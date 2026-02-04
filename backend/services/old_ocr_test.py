@@ -85,7 +85,7 @@ def flatten_fields(fields):
     return flat_list
 
 flat_sf1_fields = flatten_fields(SF_FIELDS["SF1"])
-print(flat_sf1_fields)
+# print(flat_sf1_fields)
 
 # [FUNCTION] Extract Specific Fields from Text
 def extract_field(text, field_name):
@@ -104,15 +104,7 @@ for form in forms:
         output_file = os.path.join(output_dir, f"{form}.txt")
         with open(output_file, "w", encoding="utf-8") as f:
             f.write(text)
-        print(f"OCR output saved: {output_file}")
-
-        # Only extract SF1 if we're on SF1
-        if form == "SF1":
-            ocr_text_clean = clean_text(text)
-            sf1_data = {}
-            for field in flat_sf1_fields:
-                sf1_data[field] = extract_field(ocr_text_clean, field)
-            print(sf1_data)
+        print(f">> OCR txt generated: {output_file}")
 
 # Split OCR text into lines and clean each line
 lines = [clean_text(line) for line in text.splitlines() if line.strip()]
@@ -138,10 +130,12 @@ print(sf1_data)
 
 import re
 
-raw_text = open('backend/forms/ocr_output/SF1.txt').read()
+with open('backend/forms/ocr_output/SF1.txt', encoding='utf-8') as f:
+    raw_text = f.read()
 
 # Split by LRN
 students_raw = re.split(r'(\d{12})', raw_text)  # LRN is 12 digits
+
 students = []
 
 for i in range(1, len(students_raw), 2):
@@ -165,4 +159,36 @@ for i in range(1, len(students_raw), 2):
         'Name': name,
         'Sex': sex,
         'Birth Date': birth_date
+    })
+
+# EXTRACT STUDENT ROWS
+with open("backend/forms/ocr_output/SF1.txt", encoding="utf-8") as f:
+    raw_text = f.read()
+
+# Normalize whitespace
+text = re.sub(r'[ \t]+', ' ', raw_text)
+
+# Split by LRN
+rows = re.split(r'(?=\b\d{12}\b)', text)
+student_rows = [r.strip() for r in rows if re.match(r'\d{12}', r)]
+
+def split_columns(row):
+    return [c.strip() for c in re.split(r'\s{2,}|\|', row) if c.strip()]
+
+students = []
+
+for row in student_rows:
+    cols = split_columns(row)
+
+    if len(cols) < 6:
+        continue  # OCR noise
+
+    students.append({
+        "LRN": cols[0],
+        "Name": cols[1],
+        "Sex": cols[2],
+        "Birth Date": cols[3],
+        "Age": cols[4],
+        "Mother Tongue": cols[5],
+        # extend when OCR allows
     })
