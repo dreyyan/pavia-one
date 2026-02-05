@@ -18,7 +18,7 @@ TXT_PATH = os.path.join(OUTPUT_DIR, "SF1.txt")
 CSV_PATH = os.path.join(OUTPUT_DIR, "SF1_cleaned.csv")
 
 # ==============================
-# OCR FUNCTION (proven)
+# OCR FUNCTION
 # ==============================
 def convert_pdf_to_text(pdf_path):
     pages = convert_from_path(pdf_path, dpi=300, poppler_path=POPPLER_PATH)
@@ -31,7 +31,7 @@ def convert_pdf_to_text(pdf_path):
     return text
 
 # ==============================
-# CLEANING FUNCTIONS (final tuning)
+# CLEANING FUNCTIONS
 # ==============================
 def clean_name(val):
     if not val:
@@ -162,25 +162,28 @@ for block in student_blocks:
     else:
         continue
 
-    # 2. Name + Sex (anchor on M/F)
-    name_sex_match = re.search(r"([A-Z ,\-]+?)\s+(M|F)\b", block, re.I)
-    if name_sex_match:
-        name_line = name_sex_match.group(1).strip()
-        student["Sex"] = name_sex_match.group(2).upper()
-        parts = [p.strip() for p in name_line.split(",") if p.strip()]
-        if len(parts) >= 3:
-            student["Last Name"] = clean_name(parts[0])
-            student["First Name"] = clean_name(parts[1])
-            student["Middle Name"] = clean_middle_name(parts[2])
-        elif len(parts) == 2:
-            student["Last Name"] = clean_name(parts[0])
-            student["First Name"] = clean_name(parts[1])
-        else:
-            deduct(15)
-        after_sex = block[name_sex_match.end():].strip()
+    # 2. Name + Sex
+    sex_match = re.search(r"\b(M|F)\b", block, re.I)
+    if sex_match:
+        student["Sex"] = sex_match.group(1).upper()
+        name_str = block[:sex_match.start()].strip()
+        after_sex = block[sex_match.end():].strip()
     else:
         deduct(20)
-        after_sex = block
+        name_str = block
+        after_sex = ""
+
+    # Parse name
+    parts = [p.strip() for p in name_str.split(",") if p.strip()]
+    if len(parts) >= 3:
+        student["Last Name"] = clean_name(parts[0])
+        student["First Name"] = clean_name(parts[1])
+        student["Middle Name"] = clean_middle_name(parts[2])
+    elif len(parts) == 2:
+        student["Last Name"] = clean_name(parts[0])
+        student["First Name"] = clean_name(parts[1])
+    else:
+        deduct(15)
 
     # 3. Birthdate + Age
     bd_age_match = re.search(r"(\d{2}[-./]\d{2}[-./]\d{4})\s*(\d{1,2})", after_sex)
