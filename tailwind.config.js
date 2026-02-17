@@ -2,15 +2,15 @@
 export default {
   content: [
     "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
+    "./src/**/*.{ts,tsx,js,jsx}",
   ],
   theme: {
     extend: {
       colors: {
-        primary: "#1e3a8a", // PNHS Blue
-        accent: "#16a34a",  // PNHS Green
+        primary: "#1e3a8a",
+        accent: "#16a34a",
       },
     },
   },
   plugins: [],
-}
+};
