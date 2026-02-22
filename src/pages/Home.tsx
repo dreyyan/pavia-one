@@ -1,3 +1,4 @@
+import FeaturesCarousel from "../components/FeaturesCarousel";
 import ImageHeader from "../components/ImageHeader";
 
 export default function Home() {
@@ -7,15 +8,12 @@ export default function Home() {
             <section className="space-y-6">
                 <div className="">
                     {/* Image Header */}
-                    <ImageHeader />
-                    {/* Hero Image */}
                     <div>
-                        <img src="/hero-image-placeholder.png" className="" />
+                        <ImageHeader />
                     </div>
-
                     {/* Features Carousel */}
                     <div>
-
+                        <FeaturesCarousel />
                     </div>
                 </div>
             </section>

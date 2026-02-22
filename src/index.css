@@ -67,36 +67,8 @@
   --color-bg-950: #0D0D0D;
 
   /* Fonts */
-  --font-display: 'Manrope', sans-serif;
-  --font-heading: 'Manrope', sans-serif;
+  --font-display: 'Figtree', sans-serif;
+  --font-heading: 'Figtree', sans-serif;
   --font-body: 'Roboto', sans-serif;
   --font-ui: 'Roboto', sans-serif;
 }
-
-/* Font classes */
-.font-display { font-family: var(--font-display); font-weight: 700; }
-.font-heading { font-family: var(--font-heading); font-weight: 600; }
-.font-body { font-family: var(--font-body); font-weight: 400; }
-.font-ui { font-family: var(--font-ui); font-weight: 500; }
-
-/* Font sizes & line heights */
-.text-display1 { font-size: 2.5rem; line-height: 1.1; letter-spacing: -0.02em; }
-.text-h1 { font-size: 1.875rem; line-height: 1.2; }
-.text-h2 { font-size: 1.5rem; line-height: 1.25; }
-.text-h3 { font-size: 1.25rem; line-height: 1.3; }
-.text-h4 { font-size: 1.125rem; line-height: 1.35; }
-.text-body-large { font-size: 1.125rem; line-height: 1.6; }
-.text-body-default { font-size: 1rem; line-height: 1.6; }
-.text-body-small { font-size: 0.875rem; line-height: 1.45; }
-.text-label { font-size: 0.875rem; line-height: 1.4; }
-.text-button { font-size: 1rem; line-height: 1.4; }
-
-/* Color classes */
-.bg-primary { background-color: var(--color-primary-500); }
-.text-primary { color: var(--color-primary-500); }
-.bg-secondary { background-color: var(--color-secondary-500); }
-.text-secondary { color: var(--color-secondary-500); }
-.bg-accent { background-color: var(--color-accent-500); }
-.text-accent { color: var(--color-accent-500); }
-.bg-bg { background-color: var(--color-bg-500); }
-.text-text { color: var(--color-text-500); }
