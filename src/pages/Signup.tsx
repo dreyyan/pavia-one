@@ -17,7 +17,7 @@ const AuthHeader = () => (
   </div>
 );
 
-const Signup = () => {
+const SignUp = () => {
   const [role, setRole] = useState<"student" | "adviser" | null>(null);
   const [lrn, setLrn] = useState("");
   const [email, setEmail] = useState("");
@@ -179,4 +179,4 @@ const Signup = () => {
   );
 };
 
-export default Signup;
+export default SignUp;

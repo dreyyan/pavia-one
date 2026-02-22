@@ -1,5 +1,10 @@
 @import "tailwindcss";
-/* Custom Colors & Fonts */
+/* Fonts Import */
+@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap');
+
+/* ==============================
+   Custom Colors & Fonts
+============================== */
 :root {
   /* Primary colors */
   --color-primary-50:  #E5F2FF;
@@ -67,8 +72,114 @@
   --color-bg-950: #0D0D0D;
 
   /* Fonts */
-  --font-display: 'Figtree', sans-serif;
-  --font-heading: 'Figtree', sans-serif;
-  --font-body: 'Roboto', sans-serif;
-  --font-ui: 'Roboto', sans-serif;
+  --font-figtree: 'Figtree', sans-serif;
+  --font-roboto: 'Roboto', sans-serif;
+}
+
+.font-roboto {
+  font-family: var(--font-roboto);
+}
+
+/* ==============================
+   Typography
+============================== */
+
+/* Headlines */
+.display-1 {
+  font-family: var(--font-figtree);
+  font-weight: 700; /* bold */
+  font-size: 32px;
+  line-height: 44px;
+}
+
+h1 {
+  font-family: var(--font-figtree);
+  font-weight: 700;
+  font-size: 28px;
+  line-height: 36px;
+}
+
+h2 {
+  font-family: var(--font-figtree);
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 32px;
+}
+
+h3 {
+  font-family: var(--font-figtree);
+  font-weight: 600; /* semibold */
+  font-size: 18px;
+  line-height: 26px;
+}
+
+h4 {
+  font-family: var(--font-figtree);
+  font-weight: 500; /* medium */
+  font-size: 16px;
+  line-height: 24px;
+}
+
+/* Body Text */
+.body-large {
+  font-family: var(--font-roboto);
+  font-weight: 500; /* medium */
+  font-size: 14px;
+  line-height: 29px;
+}
+
+.body-default {
+  font-family: var(--font-roboto);
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 26px;
+}
+
+.body-small {
+  font-family: var(--font-roboto);
+  font-weight: 400; /* regular */
+  font-size: 12px;
+  line-height: 21px;
+}
+
+/* Labels, Buttons, Links */
+.label-caption {
+  font-family: var(--font-roboto);
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.button {
+  font-family: var(--font-roboto);
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.link {
+  font-family: var(--font-roboto);
+  font-weight: 600; /* semibold */
+  font-size: 14px;
+  line-height: 20px;
+}
+
+/* Table Header */
+.table-header {
+  font-family: var(--font-figtree);
+  font-weight: 600; /* semibold */
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.input-field-label {
+  font-family: var(--font-roboto);
+  font-weight: 500; /* medium */
+  font-size: 14px;
+  line-height: 18px;
+}
+
+/* Shadows */
+.shadow-sm {
+  box-shadow: 0 4px 4px rgba(0,0,0,0.25);
 }

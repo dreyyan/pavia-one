@@ -5,18 +5,14 @@ export default function Home() {
 
     return (
         <main className="">
-            <section className="space-y-6">
-                <div className="">
-                    {/* Image Header */}
-                    <div>
-                        <ImageHeader />
-                    </div>
-                    {/* Features Carousel */}
-                    <div>
-                        <FeaturesCarousel />
-                    </div>
-                </div>
-            </section>
+            {/* Image Header */}
+            <div>
+                <ImageHeader />
+            </div>
+            {/* Features Carousel */}
+            <div className="px-6 py-10">
+                <FeaturesCarousel />
+            </div>
         </main>
     );
 }

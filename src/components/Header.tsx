@@ -1,16 +1,16 @@
 import { useState } from "react";
 
 const Header = () => {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(true);
 
     return (
-        <header className="flex justify-between px-6 py-4 border">
+        <header className="flex justify-between items-center px-6 py-4">
             { isLoggedIn && 
-            <button className="size-8">
+            <button className="size-9">
                 <img src="/burger-menu-icon.svg" alt="Burger Menu Icon"/>
             </button>
             }
-            <img src="/pavia-one-banner.svg" className="" />
+            <img src="/pavia-one-banner.svg" className="h-7" />
         </header>
     );
 };
