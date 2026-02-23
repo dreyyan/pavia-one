@@ -1,6 +1,9 @@
+import { useNavigate } from "react-router-dom";
+
 const ImageHeader = () => {
+    const navigate = useNavigate();
     return (
-        <div className="bg-[var(--color-primary-700)]">
+        <button onClick={() => navigate("/")} className="bg-[var(--color-primary-700)] cursor-pointer">
             <div className="flex flex-col justify-center items-center pt-6 pb-9">
                 <img src="/pavia-one-icon.svg" className="size-30" />
                 <img src="/pavia-one-text-white.svg" className="" />
@@ -9,7 +12,7 @@ const ImageHeader = () => {
                     <h3 className="mt-4 text-[var(--color-text-50)] text-center">Your School's All-in-One Management Platform</h3>
                 </div>
             </div>
-        </div>
+        </button>
     );
 };
 

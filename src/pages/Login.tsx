@@ -35,14 +35,13 @@ import PrimaryButton from "../components/PrimaryButton";
                     {/* Input Fields */}
                     <div className="flex flex-col gap-y-4 mt-6 mb-2">
                         <InputField
-                            label="Email"
-                            type="email"
+                            label="Email or Username"
+                            type="text"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            placeholder="Enter your email"
+                            placeholder="Email or username"
                             iconSrc="email-username-icon.svg"
                         />
-
                         <InputField
                             label="Password"
                             type="password"
@@ -62,7 +61,7 @@ import PrimaryButton from "../components/PrimaryButton";
                         </label>
 
                         {/* Forgot Password */}
-                        <a href="/forgot-password" className="link text-[var(--color-primary-600)] hover:underline">
+                        <a href="/forgot-password" className="link text-[var(--color-primary-700)] hover:underline">
                             Forgot Password?
                         </a>
                     </div>
@@ -74,7 +73,7 @@ import PrimaryButton from "../components/PrimaryButton";
                 {/* [LINK] Navigate to Sign Up */}
                 <span className="flex justify-center gap-x-1 mt-4">
                     <p className="label-caption">Don't have an account?</p>
-                    <a href="" className="link block text-center underline text-[var(--color-primary-700)]">Sign Up</a>
+                    <a href="/sign-up" className="link block text-center hover:underline text-[var(--color-primary-600)]">Sign Up</a>
                 </span>
             </div>
         );

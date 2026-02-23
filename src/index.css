@@ -159,7 +159,7 @@ h4 {
 
 .link {
   font-family: var(--font-roboto);
-  font-weight: 600; /* semibold */
+  font-weight: 500; /* medium */
   font-size: 14px;
   line-height: 20px;
 }
