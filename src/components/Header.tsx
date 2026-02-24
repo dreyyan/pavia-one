@@ -6,7 +6,7 @@ const Header = () => {
     return (
         <header className="flex justify-between items-center px-6 py-4">
             { isLoggedIn && 
-            <button className="size-9">
+            <button className="size-8">
                 <img src="/burger-menu-icon.svg" alt="Burger Menu Icon"/>
             </button>
             }
