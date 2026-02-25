@@ -1,32 +1,18 @@
-// [IMPORT] Database
-const prisma = require('../lib/prisma');   // adjust path if needed
+// [IMPORT] Setup
+const express = require('express');
+const router = express.Router();
+const prisma = require('../lib/prisma');
 
 // [IMPORT] Tools
 require('dotenv').config();
-const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
-// [IMPORT] Express Router
-const express = require('express');
-const router = express.Router();
-
-// [IMPORT] Utility functions
+// [IMPORT] Utilities & Middleware
 const { successResponse, errorResponse } = require('../utils/response');
+const { hashPassword } = require("../../utils/helpers")
 
-// =================================================================
-// [HELPER] Hash password
-const hashPassword = async (password) => {
-    try {
-        const hashed = await bcrypt.hash(password, parseInt(process.env.SALT_ROUNDS) || 10);
-        return hashed;
-    } catch (err) {
-        console.error("Error hashing password", err);
-        throw err;
-    }
-}
-
-// =================================================================
-// [POST] Student Sign Up
+// ?[POST] Student Sign Up
+// /api/auth/sign-up
 router.post('/sign-up', async (req, res) => {
     const { studentId, name, email, password } = req.body;
     
@@ -58,8 +44,8 @@ router.post('/sign-up', async (req, res) => {
     }
 });
 
-// =================================================================
-// [POST] Student Login
+// ?[POST] Student Login
+// /api/auth/login
 router.post('/login', async (req, res) => {
     const { studentIdOrEmail, password, rememberMe } = req.body;
 

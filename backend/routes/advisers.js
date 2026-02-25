@@ -1,30 +1,15 @@
-// routes/adviser.js
+// [IMPORT] Setup
 const express = require('express');
 const router = express.Router();
+const prisma = require('../lib/prisma');
 
-const prisma = require('../lib/prisma');   // adjust path if needed
-
+// [IMPORT] Tools
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
 
+// [IMPORT] Utilities & Middleware
 const { successResponse, errorResponse } = require('../utils/response');
-
-// ────────────────────────────────────────────────
-// Middleware to verify adviser JWT
-const verifyAdviser = (req, res, next) => {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) {
-        return res.status(401).json(errorResponse('No token provided'));
-    }
-
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.adviserId = decoded.adviserId; // you will need to change token payload later
-        next();
-    } catch (err) {
-        return res.status(401).json(errorResponse('Invalid or expired token'));
-    }
-};
+const verifyAdviser = require('../middleware/authMiddleware').verifyAdviser;
 
 // ────────────────────────────────────────────────
 // GET /api/adviser/profile

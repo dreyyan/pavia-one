@@ -20,7 +20,7 @@ const verifyToken = (req, res, next) => {
     }
 }
 
-// ?[MIDDLEWARE] Verify student JWT (to be used on protected routes)
+// ?[MIDDLEWARE] Verify Student JWT
 const verifyStudent = (req, res, next) => {
     const token = req.headers.authorization?.split(' ')[1];
 
@@ -38,7 +38,23 @@ const verifyStudent = (req, res, next) => {
     }
 };
 
-// ?[MIDDLEWARE] Verify ADMIN JWT
+// ?[MIDDLEWARE] Verify Adviser JWT
+const verifyAdviser = (req, res, next) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+        return res.status(401).json(errorResponse('No token provided'));
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.adviserId = decoded.adviserId; // you will need to change token payload later
+        next();
+    } catch (err) {
+        return res.status(401).json(errorResponse('Invalid or expired token'));
+    }
+};
+
+// ?[MIDDLEWARE] Verify Admin JWT
 const verifyAdmin = (req, res, next) => {
     const authHeader = req.headers.authorization;
 

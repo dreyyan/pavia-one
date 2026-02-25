@@ -1,9 +1,14 @@
+// [IMPORT] Setup
 const express = require('express');
 const router = express.Router();
-const prisma = require('../../lib/prisma');
+const prisma = require('../lib/prisma');
+
+// [IMPORT] Tools
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
-const { successResponse, errorResponse } = require('../../utils/response');
+
+// [IMPORT] Utilities & Middleware
+const { successResponse, errorResponse } = require('../utils/response');
 const verifyAdmin = require('../../middleware/authMiddleware').verifyAdmin;
 
 // ?[GET] List all students (paginated, searchable, admin-only)
