@@ -1,36 +1,13 @@
-// routes/student.js
 const express = require('express');
 const router = express.Router();
-
-const prisma = require('../lib/prisma');   // adjust path if needed
-
+const prisma = require('../lib/prisma');
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
-
-// Utility functions (assuming same folder structure)
 const { successResponse, errorResponse } = require('../utils/response');
+const verifyStudent = require('../middleware/authMiddleware').verifyStudent;
 
-// ────────────────────────────────────────────────
-// Middleware to verify student JWT (to be used on protected routes)
-// You can move this to a separate auth middleware file later
-const verifyStudent = (req, res, next) => {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) {
-        return res.status(401).json(errorResponse('No token provided'));
-    }
-
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.studentId = decoded.studentId;
-        next();
-    } catch (err) {
-        return res.status(401).json(errorResponse('Invalid or expired token'));
-    }
-};
-
-// ────────────────────────────────────────────────
-// GET /api/student/profile
-// Get current student's own profile (protected)
+// ?[GET] Retrieve student's own profile (protected)
+// /api/student/profile
 router.get('/profile', verifyStudent, async (req, res) => {
     try {
         const student = await prisma.student.findUnique({
@@ -41,28 +18,29 @@ router.get('/profile', verifyStudent, async (req, res) => {
                 name: true,
                 email: true,
                 createdAt: true,
-                // Add more fields later (section, grade level, etc.)
             }
         });
 
+        // ![ERROR] Student not found
         if (!student) {
             return res.status(404).json(errorResponse('Student not found'));
         }
 
+        // *[SUCCESS] Return student profile
         res.json(successResponse('Profile retrieved', student));
+
     } catch (err) {
         res.status(500).json(errorResponse('Failed to fetch profile', err.message));
     }
 });
 
-// ────────────────────────────────────────────────
-// PUT /api/student/profile
-// Update own profile (name, email – password change should be separate route)
+// ?[PUT] Update own profile (password change should be separate route)
+// /api/student/profile
 router.put('/profile', verifyStudent, async (req, res) => {
     const { name, email } = req.body;
 
     try {
-        // Optional: check if new email is already taken
+        // ![ERROR] Email already exists
         if (email) {
             const existing = await prisma.student.findUnique({ where: { email } });
             if (existing && existing.id !== req.studentId) {
@@ -81,21 +59,18 @@ router.put('/profile', verifyStudent, async (req, res) => {
             }
         });
 
+        // *[SUCCESS] Return updated profile
         res.json(successResponse('Profile updated successfully', updated));
+
     } catch (err) {
         res.status(400).json(errorResponse('Failed to update profile', err.message));
     }
 });
 
-// ────────────────────────────────────────────────
-// GET /api/student/grades
-// View own current / recent grades (expand later with filters: period, subject, etc.)
+// ?[GET] View own current / recent grades
 router.get('/grades', verifyStudent, async (req, res) => {
     try {
-        // This assumes you will later add Grade model + relations
-        // For now – placeholder response
-        // Replace with real query once Grade / Enrollment models exist
-
+        // TODO: Implement actual grade fetching logic after Grade model is added
         res.json(successResponse('Grades fetched (placeholder)', {
             message: 'Grade viewing endpoint ready – implement after Grade model is added',
             studentId: req.studentId
