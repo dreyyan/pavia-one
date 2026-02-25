@@ -1,48 +1,34 @@
-// [IMPORT] Database
-const { PrismaClient, Prisma } = require('@prisma/client');
-const prisma = new PrismaClient();
+require('dotenv').config();
 
-// [IMPORT] Tools
-require('dotenv').config()
+const express = require('express');
+const cors = require('cors');
 
-// [IMPORT] Express.js
-const express = require('express')
-const cors = require('cors')
-const app = express()
+// Import the shared singleton Prisma instance
+const prisma = require('./lib/prisma');  // ← note: ./lib (since server.js is in backend/)
 
-// [IMPORT] Routers
-const studentRoutes = require('./routes/student')
-const adviserRoutes = require('./routes/adviser')
-const authRoutes = require('./routes/auth')
+const app = express();
 
-// =================================================================
-// (1)[MIDDLEWARE] Parse incoming JSON request bodies
-app.use(express.json())
-
-// (2)[MIDDLEWARE] Allow request from React frontend
+app.use(express.json());
 app.use(cors({
-    origin: 'http://localhost:5173',
-    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
-    credentials: true,
+  origin: 'http://localhost:5173',
+  credentials: true,
 }));
 
-// (3)[MIDDLEWARE] Custom error handling
+// Routes
+app.use('/api/student', require('./routes/student'));
+app.use('/api/adviser', require('./routes/adviser'));
+app.use('/api/auth', require('./routes/auth'));
+
+// Global error handler
 app.use((err, req, res, next) => {
-    console.error(err.stack);
-
-    const statusCode = err.status || 500;
-    const errorMessage = err.message || "Something went wrong";
-
-    res.status(statusCode).json(errorResponse(errorMessage));
+  console.error(err.stack);
+  res.status(err.status || 500).json({ error: err.message || "Something went wrong" });
 });
 
-// =================================================================
-// [ROUTES]
-app.use('/api/student', studentRoutes);
-app.use('/api/auth', authRoutes);
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}`);
+});
 
-// =================================================================
-// [LISTENER] Start HTTP server
-app.listen(process.env.PORT, () => {
-    console.log(`Express.js server started at ${process.env.PORT}`)
-})
+// Optional: export prisma for other modules if needed (e.g. seeding scripts)
+module.exports = { prisma };

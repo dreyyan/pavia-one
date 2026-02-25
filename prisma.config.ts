@@ -1,4 +1,3 @@
-// prisma.config.ts (project root)
 import "dotenv/config";
 
 export default {
@@ -7,6 +6,6 @@ export default {
     path: "backend/prisma/migrations",
   },
   datasource: {
-    url: process.env.DATABASE_URL!, // use the env directly
+    url: process.env.DATABASE_URL!, // REQUIRED for migrate dev
   },
 };
