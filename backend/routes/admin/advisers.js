@@ -128,4 +128,39 @@ router.post('/', verifyAdmin, async (req, res) => {
     }
 });
 
+// ?[DELETE] Delete an adviser (admin-only)
+// /api/admin/advisers/:id
+router.delete('/:id', verifyAdmin, async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        // Check if adviser exists
+        const adviser = await prisma.adviser.findUnique({
+            where: { id: parseInt(id) },
+            select: { id: true, adviserId: true, name: true, email: true }
+        });
+
+        // ![ERROR] Adviser not found
+        if (!adviser) {
+            return res.status(404).json(errorResponse('Adviser not found'));
+        }
+
+        // Delete the adviser
+        await prisma.adviser.delete({
+            where: { id: parseInt(id) }
+        });
+
+        // *[SUCCESS] Adviser deleted successfully
+        res.json(successResponse('Adviser deleted successfully', {
+            id: adviser.id,
+            adviserId: adviser.adviserId,
+            name: adviser.name,
+            email: adviser.email
+        }));
+
+    } catch (err) {
+        res.status(500).json(errorResponse('Failed to delete adviser', err.message));
+    }
+});
+
 module.exports = router;
