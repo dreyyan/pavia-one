@@ -6,6 +6,7 @@ const prisma = require('../../lib/prisma');
 // [IMPORT] Tools
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 
 // [IMPORT] Utilities & Middleware
 const { successResponse, errorResponse } = require('../../utils/response');

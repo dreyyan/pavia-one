@@ -18,7 +18,7 @@ router.get('/', verifyAdmin, async (req, res) => {
         const {
             page = 1,
             limit = 50,           // reasonable default for 5,000+ students
-            sortBy = 'name',      // name, studentId, createdAt
+            sortBy = 'studentId',      // name, studentId, createdAt
             sortOrder = 'asc',
             search = '',          // optional search by name / studentId / email
         } = req.query;
@@ -128,10 +128,5 @@ router.post('/', verifyAdmin, async (req, res) => {
         res.status(500).json(errorResponse('Failed to create student', err.message));
     }
 });
-
-// Optional future endpoints (add when needed)
-// GET /api/admin/students/:id
-// PUT /api/admin/students/:id (update student record)
-// DELETE /api/admin/students/:id (soft delete / archive)
 
 module.exports = router;

@@ -13,8 +13,9 @@ app.use(cors({
 
 // Routes
 app.use('/api/students', require('./routes/students'));
-app.use('/api/admin/students', require('./routes/admin/students'));
 app.use('/api/advisers', require('./routes/advisers'));
+app.use('/api/admin/students', require('./routes/admin/students'));
+app.use('/api/admin/advisers', require('./routes/admin/advisers'));
 app.use('/api/auth/students', require('./routes/auth/students'));
 app.use('/api/auth/advisers', require('./routes/auth/advisers'));
 
