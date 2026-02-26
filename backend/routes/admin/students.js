@@ -129,4 +129,39 @@ router.post('/', verifyAdmin, async (req, res) => {
     }
 });
 
+// ?[DELETE] Delete a student (admin-only)
+// /api/admin/students/:id
+router.delete('/:id', verifyAdmin, async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        // Check if student exists
+        const student = await prisma.student.findUnique({
+            where: { id: parseInt(id) },
+            select: { id: true, studentId: true, name: true, email: true }
+        });
+
+        // ![ERROR] Student not found
+        if (!student) {
+            return res.status(404).json(errorResponse('Student not found'));
+        }
+
+        // Delete the student
+        await prisma.student.delete({
+            where: { id: parseInt(id) }
+        });
+
+        // *[SUCCESS] Student deleted successfully
+        res.json(successResponse('Student deleted successfully', {
+            id: student.id,
+            studentId: student.studentId,
+            name: student.name,
+            email: student.email
+        }));
+
+    } catch (err) {
+        res.status(500).json(errorResponse('Failed to delete student', err.message));
+    }
+});
+
 module.exports = router;
