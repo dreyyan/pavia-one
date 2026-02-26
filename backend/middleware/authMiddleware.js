@@ -79,4 +79,4 @@ const verifyAdmin = (req, res, next) => {
     }
 };
 
-module.exports = { verifyToken, verifyStudent, verifyAdmin };
+module.exports = { verifyToken, verifyStudent, verifyAdviser, verifyAdmin };

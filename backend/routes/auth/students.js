@@ -1,14 +1,14 @@
 // [IMPORT] Setup
 const express = require('express');
 const router = express.Router();
-const prisma = require('../lib/prisma');
+const prisma = require('../../lib/prisma');
 
 // [IMPORT] Tools
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
 
 // [IMPORT] Utilities & Middleware
-const { successResponse, errorResponse } = require('../utils/response');
+const { successResponse, errorResponse } = require('../../utils/response');
 const { hashPassword } = require("../../utils/helpers")
 
 // ?[POST] Student Sign Up
