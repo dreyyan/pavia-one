@@ -1,14 +1,28 @@
-// generateAdviserToken.js
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
+const readline = require('readline');
 
-// Replace with the adviser's DB ID you want to generate a token for
-const adviserId = "2026-0002";
+// Setup readline interface
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
 
-const token = jwt.sign(
-  { adviserId },
-  process.env.JWT_SECRET,
-  { expiresIn: '16h' }
-);
+// Ask for adviserId
+rl.question('Enter adviser ID: ', (adviserId) => {
+    if (!adviserId) {
+        console.error('Adviser ID is required');
+        rl.close();
+        return;
+    }
 
-console.log(token);
+    // Generate JWT
+    const token = jwt.sign(
+        { adviserId },
+        process.env.JWT_SECRET,
+        { expiresIn: '16h' }
+    );
+
+    console.log('\nGenerated Token:\n', token);
+    rl.close();
+});

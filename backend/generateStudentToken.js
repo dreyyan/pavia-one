@@ -1,13 +1,28 @@
-// generateStudentToken.js
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
+const readline = require('readline');
 
-const studentLRN = "117591120149";
+// Setup readline interface
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
 
-const token = jwt.sign(
-  { lrn: studentLRN },
-  process.env.JWT_SECRET,
-  { expiresIn: '16h' }
-);
+// Ask for LRN
+rl.question('Enter student LRN: ', (studentLRN) => {
+    if (!studentLRN) {
+        console.error('LRN is required');
+        rl.close();
+        return;
+    }
 
-console.log(token);
+    // Generate JWT
+    const token = jwt.sign(
+        { lrn: studentLRN },
+        process.env.JWT_SECRET,
+        { expiresIn: '16h' }
+    );
+
+    console.log('\nGenerated Token:\n', token);
+    rl.close();
+});
