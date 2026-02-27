@@ -45,6 +45,7 @@ router.get('/', verifyAdmin, async (req, res) => {
                     adviserId: true,
                     name: true,
                     email: true,
+                    mustChangePassword: true,
                     createdAt: true,
                     sections: {
                         select: {
@@ -116,13 +117,15 @@ router.post('/', verifyAdmin, async (req, res) => {
                 adviserId,
                 name,
                 email,
-                password: hashedPassword
+                password: hashedPassword,
+                mustChangePassword
             },
             select: {
                 id: true,
                 adviserId: true,
                 name: true,
                 email: true,
+                mustChangePassword: true,
                 createdAt: true
             }
         });

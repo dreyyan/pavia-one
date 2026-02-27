@@ -45,6 +45,8 @@ model Adviser {
   email     String   @unique
   password  String
 
+  mustChangePassword  Boolean       @default(true)
+
   // ?Metadata
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
