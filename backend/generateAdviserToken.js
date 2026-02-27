@@ -3,7 +3,7 @@ require('dotenv').config();
 const jwt = require('jsonwebtoken');
 
 // Replace with the adviser's DB ID you want to generate a token for
-const adviserId = "2026-0001";
+const adviserId = "2026-0002";
 
 const token = jwt.sign(
   { adviserId },

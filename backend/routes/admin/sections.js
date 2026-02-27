@@ -11,7 +11,7 @@ const jwt = require('jsonwebtoken');
 const { successResponse, errorResponse } = require('../../utils/response');
 const verifyAdmin = require('../../middleware/authMiddleware').verifyAdmin;
 
-// ?[GET] List all sections
+// ?[GET] List all sections (with student details)
 // /api/admin/sections
 router.get('/', verifyAdmin, async (req, res) => {
     try {
@@ -47,7 +47,17 @@ router.get('/', verifyAdmin, async (req, res) => {
                         },
                     },
                     _count: {
-                        select: { students: true },
+                        select: { students: true }, // class size
+                    },
+                    students: {
+                        select: {
+                            id: true,
+                            lrn: true,
+                            name: true,
+                            email: true,
+                            accountStatus: true,
+                        },
+                        orderBy: { name: 'asc' }, // optional: sort students alphabetically
                     },
                 },
                 orderBy: { [sortBy]: sortOrder === 'desc' ? 'desc' : 'asc' },
@@ -59,7 +69,7 @@ router.get('/', verifyAdmin, async (req, res) => {
 
         const totalPages = Math.ceil(total / take);
 
-        // *[SUCCESS] Return list of sections
+        // *[SUCCESS] Return list of sections with student details
         res.json(
             successResponse('Sections retrieved successfully', {
                 data: sections,
