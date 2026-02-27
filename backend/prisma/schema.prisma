@@ -5,27 +5,68 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql" // or "mysql" / "sqlite" depending on your DB
+  provider = "postgresql"
 }
 
-model Student {
-  id        Int      @id @default(autoincrement())
-  studentId String   @unique @db.VarChar(9)
-  name      String
-  email     String   @unique
-  password  String
+// *ENUMS
+enum AccountStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
 
+// *[MODEL] Student
+model Student {
+  id                  Int      @id @default(autoincrement())
+  lrn                 String   @unique @db.VarChar(9)
+  name                String
+  email               String   @unique
+  password            String
+
+  sectionId           Int
+  createdByAdviserId  Int
+  accountStatus       AccountStatus @default(ACTIVE)
+  mustChangePassword  Boolean       @default(true)
+
+  // ?Metadata
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // ?Relations
+  section  Section  @relation(fields: [sectionId], references: [id])
+  adviser  Adviser  @relation(fields: [createdByAdviserId], references: [id])
 }
 
+// *[MODEL] Adviser
 model Adviser {
   id        Int      @id @default(autoincrement())
   adviserId String   @unique @db.VarChar(9)
   name      String
   email     String   @unique
   password  String
-  
+
+  // ?Metadata
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // ?Relations
+  sections Section[]
+  students Student[]
+}
+
+// *[MODEL] Section
+model Section {
+  id         Int      @id @default(autoincrement())
+  name       String   @unique
+  gradeLevel Int
+  adviserId  String
+
+  // ?Metadata
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // ?Relations
+  adviser    Adviser   @relation(fields: [adviserId], references: [adviserId])
+  students   Student[]
+  @@unique([gradeLevel, name])
 }
