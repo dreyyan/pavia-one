@@ -1,15 +1,15 @@
 // [IMPORT] Setup
 const express = require('express');
 const router = express.Router();
-const prisma = require('../lib/prisma');
+const prisma = require('../../lib/prisma');
 
 // [IMPORT] Tools
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
 
 // [IMPORT] Utilities & Middleware
-const { successResponse, errorResponse } = require('../utils/response');
-const verifyStudent = require('../middleware/authMiddleware').verifyStudent;
+const { successResponse, errorResponse } = require('../../utils/response');
+const verifyStudent = require('../../middleware/authMiddleware').verifyStudent;
 
 // ?[GET] Retrieve student's own profile (protected)
 // /api/student/profile
@@ -158,20 +158,6 @@ router.put('/change-password', verifyStudent, async (req, res) => {
         res.json(successResponse('Password updated successfully'));
     } catch (err) {
         res.status(500).json(errorResponse('Failed to update password', err.message));
-    }
-});
-
-// ?[GET] View own current / recent grades (placeholder)
-// /api/student/grades
-router.get('/grades', verifyStudent, async (req, res) => {
-    try {
-        // TODO: Implement actual grade fetching logic after Grade model is added
-        res.json(successResponse('Grades fetched (placeholder)', {
-            message: 'Grade viewing endpoint ready – implement after Grade model is added',
-            lrn: req.lrn
-        }));
-    } catch (err) {
-        res.status(500).json(errorResponse('Failed to fetch grades', err.message));
     }
 });
 
