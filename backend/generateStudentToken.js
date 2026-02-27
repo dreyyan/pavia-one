@@ -2,10 +2,10 @@
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
 
-const studentId = 1; // Student's DB ID
+const studentLRN = "117591120149";
 
 const token = jwt.sign(
-  { studentId },
+  { lrn: studentLRN },
   process.env.JWT_SECRET,
   { expiresIn: '16h' }
 );

@@ -31,7 +31,7 @@ const verifyStudent = (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.studentId = decoded.studentId;
+        req.lrn = decoded.lrn; // <-- use `lrn` instead of `studentId`
         next();
     } catch (err) {
         return res.status(401).json(errorResponse('Invalid or expired token'));

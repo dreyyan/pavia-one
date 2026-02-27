@@ -16,13 +16,16 @@ const verifyStudent = require('../middleware/authMiddleware').verifyStudent;
 router.get('/profile', verifyStudent, async (req, res) => {
     try {
         const student = await prisma.student.findUnique({
-            where: { id: req.lrn },
+            where: { lrn: req.lrn },  // use LRN instead of internal ID
             select: {
                 id: true,
                 lrn: true,
                 name: true,
                 email: true,
+                sectionId: true,
+                createdByAdviserId: true,
                 createdAt: true,
+                updatedAt: true,
             }
         });
 
@@ -42,12 +45,12 @@ router.get('/profile', verifyStudent, async (req, res) => {
 // ?[PUT] Update own profile (password change should be separate route)
 // /api/student/profile
 router.put('/profile', verifyStudent, async (req, res) => {
-    let { name, email } = req.body;
+    const { name, email } = req.body;
 
     try {
         // Fetch current student profile
         const student = await prisma.student.findUnique({
-            where: { id: req.lrn },
+            where: { lrn: req.lrn },
             select: { id: true, name: true, email: true }
         });
 
@@ -57,45 +60,39 @@ router.put('/profile', verifyStudent, async (req, res) => {
 
         const updates = {};
 
-        // Update name if provided
-        if (name && name !== student.name) {
-            updates.name = name;
-        }
+        // Update name if provided and different
+        if (name && name !== student.name) updates.name = name;
 
-        // Update email if provided
+        // Update email if provided and different
         if (email) {
-            email = email.trim().toLowerCase();
+            const normalizedEmail = email.trim().toLowerCase();
 
-            // ![ERROR] New email is the same as current
-            if (email === student.email.toLowerCase()) {
-                return res.status(400).json(errorResponse('No changes detected for email'));
+            if (normalizedEmail !== student.email.toLowerCase()) {
+                // Check if another student already has this email
+                const existing = await prisma.student.findUnique({ where: { email: normalizedEmail } });
+                if (existing && existing.id !== student.id) {
+                    return res.status(409).json(errorResponse('Email already in use'));
+                }
+
+                updates.email = normalizedEmail;
             }
-
-            // Check if another student already has this email
-            const existing = await prisma.student.findUnique({ where: { email } });
-            
-            // ![ERROR] Email already exists
-            if (existing && existing.id !== req.lrn) {
-                return res.status(409).json(errorResponse('Email already in use'));
-            }
-
-            updates.email = email;
         }
 
-        // If no updates, return early
+        // ![ERROR] Nothing to update
         if (Object.keys(updates).length === 0) {
             return res.status(400).json(errorResponse('No changes detected'));
         }
 
-        // Update the student profile
+        // Update student profile
         const updated = await prisma.student.update({
-            where: { id: req.lrn },
+            where: { lrn: req.lrn },
             data: updates,
             select: {
                 id: true,
                 lrn: true,
                 name: true,
                 email: true,
+                updatedAt: true
             }
         });
 
@@ -103,16 +100,17 @@ router.put('/profile', verifyStudent, async (req, res) => {
         res.json(successResponse('Profile updated successfully', updated));
 
     } catch (err) {
-        // Catch Prisma unique constraint errors
+        // Prisma unique constraint handling
         if (err.code === 'P2002' && err.meta?.target?.includes('email')) {
             return res.status(409).json(errorResponse('Email already in use'));
         }
 
-        res.status(400).json(errorResponse('Failed to update profile', err.message));
+        res.status(500).json(errorResponse('Failed to update profile', err.message));
     }
 });
 
-// ?[GET] View own current / recent grades
+// ?[GET] View own current / recent grades (placeholder)
+// /api/student/grades
 router.get('/grades', verifyStudent, async (req, res) => {
     try {
         // TODO: Implement actual grade fetching logic after Grade model is added
