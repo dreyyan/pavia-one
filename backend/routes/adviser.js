@@ -22,6 +22,8 @@ router.get('/profile', verifyAdviser, async (req, res) => {
                 adviserId: true,
                 name: true,
                 email: true,
+                mustChangePassword: true,
+                sections: true,
                 createdAt: true,
             }
         });
@@ -105,6 +107,57 @@ router.put('/profile', verifyAdviser, async (req, res) => {
 
     } catch (err) {
         res.status(500).json(errorResponse('Failed to update adviser profile', err.message));
+    }
+});
+
+// ?[PUT] Change own password
+// /api/adviser/change-password
+router.put('/change-password', verifyAdviser, async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+
+    // ![ERROR] Missing fields
+    if (!currentPassword || !newPassword) {
+        return res.status(400).json(errorResponse('Current and new passwords are required'));
+    }
+
+    try {
+        const adviser = await prisma.adviser.findUnique({
+            where: { adviserId: req.adviserId },
+            select: { password: true }
+        });
+
+        // ![ERROR] Adviser not found
+        if (!adviser) {
+            return res.status(404).json(errorResponse('Adviser not found'));
+        }
+
+        const bcrypt = require('bcrypt');
+
+        // Verify current password
+        const isCurrentMatch = await bcrypt.compare(currentPassword, adviser.password);
+        if (!isCurrentMatch) {
+            return res.status(401).json(errorResponse('Current password is incorrect'));
+        }
+
+        // Prevent updating to the same password
+        const isSameAsCurrent = await bcrypt.compare(newPassword, adviser.password);
+        if (isSameAsCurrent) {
+            return res.status(400).json(errorResponse('New password cannot be the same as the current password'));
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Update password and reset mustChangePassword flag
+        await prisma.adviser.update({
+            where: { adviserId: req.adviserId },
+            data: { password: hashedPassword, mustChangePassword: false }
+        });
+
+        // *[SUCCESS] Password updated
+        res.json(successResponse('Password updated successfully'));
+    } catch (err) {
+        res.status(500).json(errorResponse('Failed to update password', err.message));
     }
 });
 
