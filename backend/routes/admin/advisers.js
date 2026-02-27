@@ -20,7 +20,7 @@ router.get('/', verifyAdmin, async (req, res) => {
             limit = 10,
             sortBy = 'adviserId',       // name, adviserId, createdAt
             sortOrder = 'asc',
-            search = '',           // optional search by name / adviserId / email
+            search = '',                // optional search by name / adviserId / email
         } = req.query;
 
         const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -46,8 +46,16 @@ router.get('/', verifyAdmin, async (req, res) => {
                     name: true,
                     email: true,
                     createdAt: true,
-                    // Optional future fields:
-                    // assignedSection: { select: { name: true } },
+                    sections: {
+                        select: {
+                            id: true,
+                            name: true,
+                            gradeLevel: true,
+                            _count: {
+                                select: { students: true }, // class size
+                            },
+                        },
+                    },
                 },
                 orderBy: { [sortBy]: sortOrder === 'desc' ? 'desc' : 'asc' },
                 skip,
@@ -77,7 +85,6 @@ router.get('/', verifyAdmin, async (req, res) => {
         res.status(500).json(errorResponse('Failed to fetch advisers', err.message));
     }
 });
-
 
 // ?[POST] Add adviser
 // /api/admin/advisers
