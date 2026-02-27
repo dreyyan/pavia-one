@@ -16,10 +16,10 @@ const verifyStudent = require('../middleware/authMiddleware').verifyStudent;
 router.get('/profile', verifyStudent, async (req, res) => {
     try {
         const student = await prisma.student.findUnique({
-            where: { id: req.studentId },
+            where: { id: req.lrn },
             select: {
                 id: true,
-                studentId: true,
+                lrn: true,
                 name: true,
                 email: true,
                 createdAt: true,
@@ -47,7 +47,7 @@ router.put('/profile', verifyStudent, async (req, res) => {
     try {
         // Fetch current student profile
         const student = await prisma.student.findUnique({
-            where: { id: req.studentId },
+            where: { id: req.lrn },
             select: { id: true, name: true, email: true }
         });
 
@@ -75,7 +75,7 @@ router.put('/profile', verifyStudent, async (req, res) => {
             const existing = await prisma.student.findUnique({ where: { email } });
             
             // ![ERROR] Email already exists
-            if (existing && existing.id !== req.studentId) {
+            if (existing && existing.id !== req.lrn) {
                 return res.status(409).json(errorResponse('Email already in use'));
             }
 
@@ -89,11 +89,11 @@ router.put('/profile', verifyStudent, async (req, res) => {
 
         // Update the student profile
         const updated = await prisma.student.update({
-            where: { id: req.studentId },
+            where: { id: req.lrn },
             data: updates,
             select: {
                 id: true,
-                studentId: true,
+                lrn: true,
                 name: true,
                 email: true,
             }
@@ -118,7 +118,7 @@ router.get('/grades', verifyStudent, async (req, res) => {
         // TODO: Implement actual grade fetching logic after Grade model is added
         res.json(successResponse('Grades fetched (placeholder)', {
             message: 'Grade viewing endpoint ready – implement after Grade model is added',
-            studentId: req.studentId
+            lrn: req.lrn
         }));
     } catch (err) {
         res.status(500).json(errorResponse('Failed to fetch grades', err.message));

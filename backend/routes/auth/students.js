@@ -15,14 +15,14 @@ const { hashPassword } = require("../../utils/helpers")
 // ?[POST] Student Sign Up
 // /api/auth/sign-up
 router.post('/sign-up', async (req, res) => {
-    const { studentId, name, email, password } = req.body;
+    const { stulrndentId, name, email, password } = req.body;
     
     try {
-        // Check if studentId or email already exists
+        // Check if LRN or email already exists
         const existing = await prisma.student.findFirst({
             where: {
                 OR: [
-                    { studentId },
+                    { lrn },
                     { email }
                 ]
             }
@@ -35,7 +35,7 @@ router.post('/sign-up', async (req, res) => {
         const hashedPassword = await hashPassword(password);
 
         const newStudent = await prisma.student.create({
-            data: { studentId, name, email, password: hashedPassword }
+            data: { lrn, name, email, password: hashedPassword }
         });
 
         const { password: _, ...studentWithoutPassword } = newStudent; // Remove password
@@ -48,14 +48,14 @@ router.post('/sign-up', async (req, res) => {
 // ?[POST] Student Login
 // /api/auth/login
 router.post('/login', async (req, res) => {
-    const { studentIdOrEmail, password, rememberMe } = req.body;
+    const { lrnOrEmail, password, rememberMe } = req.body;
 
     try {
         const student = await prisma.student.findFirst({
             where: {
                 OR: [
-                    { studentId: studentIdOrEmail },
-                    { email: studentIdOrEmail }
+                    { lrn: lrnOrEmail },
+                    { email: lrnOrEmail }
                 ]
             }
         });
@@ -74,7 +74,7 @@ router.post('/login', async (req, res) => {
         const expiresIn = rememberMe ? "7d" : "1h";
 
         const token = jwt.sign(
-            { studentId: student.id }, 
+            { lrn: student.id }, 
             process.env.JWT_SECRET, 
             { expiresIn }
         );

@@ -17,10 +17,10 @@ router.get('/', verifyAdmin, async (req, res) => {
     try {
         const {
             page = 1,
-            limit = 50,           // reasonable default for 5,000+ students
-            sortBy = 'studentId',      // name, studentId, createdAt
+            limit = 50,
+            sortBy = 'lrn',   // name, lrn, createdAt
             sortOrder = 'asc',
-            search = '',          // optional search by name / studentId / email
+            search = '',            // optional search by name / lrn / email
         } = req.query;
 
         const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -31,7 +31,7 @@ router.get('/', verifyAdmin, async (req, res) => {
             ? {
                 OR: [
                 { name: { contains: search, mode: 'insensitive' } },
-                { studentId: { contains: search } },
+                { lrn: { contains: search } },
                 { email: { contains: search, mode: 'insensitive' } },
                 ],
             }
@@ -42,7 +42,7 @@ router.get('/', verifyAdmin, async (req, res) => {
             where,
             select: {
                 id: true,
-                studentId: true,
+                lrn: true,
                 name: true,
                 email: true,
                 createdAt: true,
@@ -83,7 +83,7 @@ router.get('/', verifyAdmin, async (req, res) => {
 // ?[POST] Add student
 // /api/admin/students
 router.post('/', verifyAdmin, async (req, res) => {
-    const { studentId, name, email, password } = req.body;
+    const { lrn, name, email, password, sectionId } = req.body;
 
     try {
         // Check if email already exists
@@ -91,12 +91,12 @@ router.post('/', verifyAdmin, async (req, res) => {
             where: {
                 OR: [
                     { email },
-                    { studentId }
+                    { lrn }
                 ]
             }
         });
 
-        // ![ERROR] Student with same email or studentId already exists
+        // ![ERROR] Student with same email or LRN already exists
         if (existing) {
             return res.status(409).json(errorResponse('Student already exists'));
         }
@@ -107,14 +107,17 @@ router.post('/', verifyAdmin, async (req, res) => {
 
         const newStudent = await prisma.student.create({
             data: {
-                studentId,
+                lrn,
                 name,
                 email,
-                password: hashedPassword
+                password: hashedPassword,
+                section: {
+                    connect: { id: sectionId }
+                }
             },
             select: {
                 id: true,
-                studentId: true,
+                lrn: true,
                 name: true,
                 email: true,
                 createdAt: true
@@ -138,7 +141,7 @@ router.delete('/:id', verifyAdmin, async (req, res) => {
         // Check if student exists
         const student = await prisma.student.findUnique({
             where: { id: parseInt(id) },
-            select: { id: true, studentId: true, name: true, email: true }
+            select: { id: true, lrn: true, name: true, email: true }
         });
 
         // ![ERROR] Student not found
@@ -151,10 +154,10 @@ router.delete('/:id', verifyAdmin, async (req, res) => {
             where: { id: parseInt(id) }
         });
 
-        // *[SUCCESS] Student deleted successfully
+        // *[SUCCESS] Student deletion
         res.json(successResponse('Student deleted successfully', {
             id: student.id,
-            studentId: student.studentId,
+            lrn: student.lrn,
             name: student.name,
             email: student.email
         }));

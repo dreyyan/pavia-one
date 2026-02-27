@@ -16,6 +16,7 @@ app.use('/api/student', require('./routes/student'));
 app.use('/api/adviser', require('./routes/adviser'));
 app.use('/api/admin/students', require('./routes/admin/students'));
 app.use('/api/admin/advisers', require('./routes/admin/advisers'));
+app.use('/api/admin/sections', require('./routes/admin/sections'));
 app.use('/api/auth/students', require('./routes/auth/students'));
 app.use('/api/auth/advisers', require('./routes/auth/advisers'));
 
