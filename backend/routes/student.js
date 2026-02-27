@@ -24,6 +24,7 @@ router.get('/profile', verifyStudent, async (req, res) => {
                 email: true,
                 sectionId: true,
                 createdByAdviserId: true,
+                mustChangePassword: true,
                 createdAt: true,
                 updatedAt: true,
             }
@@ -42,7 +43,7 @@ router.get('/profile', verifyStudent, async (req, res) => {
     }
 });
 
-// ?[PUT] Update own profile (password change should be separate route)
+// ?[PUT] Update own profile
 // /api/student/profile
 router.put('/profile', verifyStudent, async (req, res) => {
     const { name, email } = req.body;
@@ -106,6 +107,57 @@ router.put('/profile', verifyStudent, async (req, res) => {
         }
 
         res.status(500).json(errorResponse('Failed to update profile', err.message));
+    }
+});
+
+// ?[PUT] Change own password
+// /api/student/change-password
+router.put('/change-password', verifyStudent, async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+
+    // ![ERROR] Missing fields
+    if (!currentPassword || !newPassword) {
+        return res.status(400).json(errorResponse('Current and new passwords are required'));
+    }
+
+    try {
+        const student = await prisma.student.findUnique({
+            where: { lrn: req.lrn },
+            select: { password: true }
+        });
+
+        // ![ERROR] Student not found
+        if (!student) {
+            return res.status(404).json(errorResponse('Student not found'));
+        }
+
+        const bcrypt = require('bcrypt');
+
+        // Verify current password
+        const isCurrentMatch = await bcrypt.compare(currentPassword, student.password);
+        if (!isCurrentMatch) {
+            return res.status(401).json(errorResponse('Current password is incorrect'));
+        }
+
+        // Prevent updating to the same password
+        const isSameAsCurrent = await bcrypt.compare(newPassword, student.password);
+        if (isSameAsCurrent) {
+            return res.status(400).json(errorResponse('New password cannot be the same as the current password'));
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Update password and reset mustChangePassword flag
+        await prisma.student.update({
+            where: { lrn: req.lrn },
+            data: { password: hashedPassword, mustChangePassword: false }
+        });
+
+        // *[SUCCESS] Password updated
+        res.json(successResponse('Password updated successfully'));
+    } catch (err) {
+        res.status(500).json(errorResponse('Failed to update password', err.message));
     }
 });
 
