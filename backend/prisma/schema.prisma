@@ -18,13 +18,13 @@ enum AccountStatus {
 // *[MODEL] Student
 model Student {
   id                  Int      @id @default(autoincrement())
-  lrn                 String   @unique @db.VarChar(9)
+  lrn                 String   @unique @db.VarChar(12)
   name                String
   email               String   @unique
   password            String
 
-  sectionId           Int
-  createdByAdviserId  Int
+  sectionId           Int?
+  createdByAdviserId  String
   accountStatus       AccountStatus @default(ACTIVE)
   mustChangePassword  Boolean       @default(true)
 
@@ -33,8 +33,8 @@ model Student {
   updatedAt DateTime @updatedAt
 
   // ?Relations
-  section  Section  @relation(fields: [sectionId], references: [id])
-  adviser  Adviser  @relation(fields: [createdByAdviserId], references: [id])
+  section  Section?  @relation(fields: [sectionId], references: [id])
+  adviser  Adviser  @relation(fields: [createdByAdviserId], references: [adviserId])
 }
 
 // *[MODEL] Adviser

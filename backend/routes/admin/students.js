@@ -20,7 +20,7 @@ router.get('/', verifyAdmin, async (req, res) => {
             limit = 50,
             sortBy = 'lrn',   // name, lrn, createdAt
             sortOrder = 'asc',
-            search = '',            // optional search by name / lrn / email
+            search = '',      // optional search by name / lrn / email
         } = req.query;
 
         const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -30,29 +30,40 @@ router.get('/', verifyAdmin, async (req, res) => {
         const where = search
             ? {
                 OR: [
-                { name: { contains: search, mode: 'insensitive' } },
-                { lrn: { contains: search } },
-                { email: { contains: search, mode: 'insensitive' } },
+                    { name: { contains: search, mode: 'insensitive' } },
+                    { lrn: { contains: search } },
+                    { email: { contains: search, mode: 'insensitive' } },
                 ],
             }
             : {};
 
         const [students, total] = await Promise.all([
             prisma.student.findMany({
-            where,
-            select: {
-                id: true,
-                lrn: true,
-                name: true,
-                email: true,
-                createdAt: true,
-                // Optional: add later when models exist
-                // section: { select: { name: true } },
-                // gradeLevel: true,
-            },
-            orderBy: { [sortBy]: sortOrder === 'desc' ? 'desc' : 'asc' },
-            skip,
-            take,
+                where,
+                select: {
+                    id: true,
+                    lrn: true,
+                    name: true,
+                    email: true,
+                    createdAt: true,
+                    section: {
+                        select: {
+                            id: true,
+                            name: true,
+                            gradeLevel: true,
+                        },
+                    },
+                    adviser: {
+                        select: {
+                            id: true,
+                            name: true,
+                            adviserId: true,
+                        },
+                    },
+                },
+                orderBy: { [sortBy]: sortOrder === 'desc' ? 'desc' : 'asc' },
+                skip,
+                take,
             }),
 
             prisma.student.count({ where }),
@@ -60,18 +71,17 @@ router.get('/', verifyAdmin, async (req, res) => {
 
         const totalPages = Math.ceil(total / take);
 
-        // TODO: Consider adding metadata about sections, grade levels, etc. for filtering in frontend
         res.json(
             successResponse('Students retrieved successfully', {
-            data: students,
-            pagination: {
-                total,
-                page: parseInt(page),
-                limit: take,
-                totalPages,
-                hasNext: parseInt(page) < totalPages,
-                hasPrev: parseInt(page) > 1,
-            },
+                data: students,
+                pagination: {
+                    total,
+                    page: parseInt(page),
+                    limit: take,
+                    totalPages,
+                    hasNext: parseInt(page) < totalPages,
+                    hasPrev: parseInt(page) > 1,
+                },
             })
         );
     } catch (err) {
@@ -81,53 +91,57 @@ router.get('/', verifyAdmin, async (req, res) => {
 });
 
 // ?[POST] Add student
-// /api/admin/students
 router.post('/', verifyAdmin, async (req, res) => {
-    const { lrn, name, email, password, sectionId } = req.body;
+    const { lrn, name, email, password, sectionId, createdByAdviserId } = req.body;
 
     try {
-        // Check if email already exists
-        const existing = await prisma.student.findFirst({
-            where: {
-                OR: [
-                    { email },
-                    { lrn }
-                ]
-            }
-        });
-
-        // ![ERROR] Student with same email or LRN already exists
-        if (existing) {
-            return res.status(409).json(errorResponse('Student already exists'));
+        // Validate required fields
+        if (!lrn || !name || !email || !password || !createdByAdviserId) {
+            return res.status(400).json(errorResponse(
+                'LRN, name, email, password, and createdByAdviserId are required'
+            ));
         }
 
-        // Hash password before saving (VERY IMPORTANT)
+        // Check if student already exists
+        const existing = await prisma.student.findFirst({
+            where: { OR: [{ email }, { lrn }] }
+        });
+        if (existing) return res.status(409).json(errorResponse('Student already exists'));
+
+        // Hash password
         const bcrypt = require('bcrypt');
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        // Build student data
+        const studentData = {
+            lrn,
+            name,
+            email,
+            password: hashedPassword,
+            createdByAdviserId,           // string (adviser.adviserId)
+            sectionId: sectionId || null  // optional
+        };
+
+        // Create student
         const newStudent = await prisma.student.create({
-            data: {
-                lrn,
-                name,
-                email,
-                password: hashedPassword,
-                section: {
-                    connect: { id: sectionId }
-                }
-            },
+            data: studentData,
             select: {
                 id: true,
                 lrn: true,
                 name: true,
                 email: true,
-                createdAt: true
+                createdAt: true,
+                section: sectionId
+                    ? { select: { id: true, name: true } }
+                    : null,
+                adviser: { select: { id: true, name: true, adviserId: true } }
             }
         });
 
-        // *[SUCCESS] Return created student (/wo password)
         res.status(201).json(successResponse('Student created successfully', newStudent));
 
     } catch (err) {
+        console.error(err);
         res.status(500).json(errorResponse('Failed to create student', err.message));
     }
 });

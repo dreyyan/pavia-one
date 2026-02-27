@@ -82,7 +82,7 @@ router.get('/', verifyAdmin, async (req, res) => {
 // ?[POST] Create section
 // /api/admin/sections
 router.post('/', verifyAdmin, async (req, res) => {
-    const { name, adviserId, gradeLevel } = req.body; // <-- added gradeLevel
+    const { name, adviserId, gradeLevel } = req.body;
 
     try {
         // ![ERROR] Missing required fields
