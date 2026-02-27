@@ -43,67 +43,46 @@ router.get('/section', verifyStudent, async (req, res) => {
     }
 });
 
-// ?[GET] Get student's grades
-// /api/student/grades
-router.get('/grades', verifyStudent, async (req, res) => {
-    try {
-        const grades = await prisma.grade.findMany({
-            where: { studentId: req.lrn },
-            select: {
-                subject: true,
-                quarter1: true,
-                quarter2: true,
-                quarter3: true,
-                quarter4: true,
-                finalRating: true,
-                remarks: true
-            }
-        });
+// // ?[GET] Get student's grades
+// // /api/student/grades
+// router.get('/grades', verifyStudent, async (req, res) => {
+//     try {
+//         const grades = await prisma.grade.findMany({
+//             where: { studentId: req.lrn },
+//             select: {
+//                 subject: true,
+//                 quarter1: true,
+//                 quarter2: true,
+//                 quarter3: true,
+//                 quarter4: true,
+//                 finalRating: true,
+//                 remarks: true
+//             }
+//         });
 
-        res.json(successResponse('Grades retrieved', grades));
-    } catch (err) {
-        res.status(500).json(errorResponse('Failed to fetch grades', err.message));
-    }
-});
+//         res.json(successResponse('Grades retrieved', grades));
+//     } catch (err) {
+//         res.status(500).json(errorResponse('Failed to fetch grades', err.message));
+//     }
+// });
 
-// ?[GET] Get student's core values per quarter
-// /api/student/core-values
-router.get('/core-values', verifyStudent, async (req, res) => {
-    try {
-        const coreValues = await prisma.coreValue.findMany({
-            where: { studentId: req.lrn },
-            select: {
-                value: true,
-                q1: true,
-                q2: true,
-                q3: true,
-                q4: true
-            }
-        });
+// // ?[GET] Get student's attendance (optional)
+// // /api/student/attendance
+// router.get('/attendance', verifyStudent, async (req, res) => {
+//     try {
+//         const attendance = await prisma.attendance.findMany({
+//             where: { studentId: req.lrn },
+//             select: {
+//                 date: true,
+//                 status: true // present, absent, late, etc.
+//             },
+//             orderBy: { date: 'asc' }
+//         });
 
-        res.json(successResponse('Core values retrieved', coreValues));
-    } catch (err) {
-        res.status(500).json(errorResponse('Failed to fetch core values', err.message));
-    }
-});
-
-// ?[GET] Get student's attendance (optional)
-// /api/student/attendance
-router.get('/attendance', verifyStudent, async (req, res) => {
-    try {
-        const attendance = await prisma.attendance.findMany({
-            where: { studentId: req.lrn },
-            select: {
-                date: true,
-                status: true // present, absent, late, etc.
-            },
-            orderBy: { date: 'asc' }
-        });
-
-        res.json(successResponse('Attendance retrieved', attendance));
-    } catch (err) {
-        res.status(500).json(errorResponse('Failed to fetch attendance', err.message));
-    }
-});
+//         res.json(successResponse('Attendance retrieved', attendance));
+//     } catch (err) {
+//         res.status(500).json(errorResponse('Failed to fetch attendance', err.message));
+//     }
+// });
 
 module.exports = router;
