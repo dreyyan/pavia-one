@@ -117,76 +117,110 @@ router.get('/', verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[POST] Create section
+// ?[POST] Create section(s)
 // /api/admin/sections
 router.post('/', verifyAdmin, async (req, res) => {
-  const { name, adviserId, gradeLevel } = req.body;
-
   try {
-    // Validate required fields
-    if (!name || !adviserId || gradeLevel === undefined) {
-      return res.status(400).json(
-        errorResponse('Section name, adviserId, and gradeLevel are required')
-      );
+    // Accept single object or array
+    const sectionsInput = Array.isArray(req.body) ? req.body : [req.body];
+
+    if (sectionsInput.length === 0) {
+      return res.status(400).json(errorResponse('Request body cannot be empty'));
     }
 
-    // Check if section already exists for same grade level
-    const existing = await prisma.section.findFirst({
-      where: {
-        name,
-        gradeLevel: parseInt(gradeLevel),
-      },
-    });
+    const createdSections = [];
+    const errors = [];
 
-    if (existing) {
-      return res.status(409).json(
-        errorResponse(`Section "${name}" already exists for grade level ${gradeLevel}`)
-      );
-    }
+    for (const section of sectionsInput) {
+      const { name, adviserId, gradeLevel, schoolYear } = section;
 
-    // Check if adviser exists
-    const adviser = await prisma.adviser.findUnique({
-      where: { adviserId },
-    });
+      // Validate required fields
+      if (!name || !adviserId || gradeLevel === undefined || !schoolYear) {
+        errors.push({ name, message: 'Missing required fields' });
+        continue;
+      }
 
-    if (!adviser) {
-      return res.status(404).json(
-        errorResponse('Adviser not found')
-      );
-    }
+      // Validate gradeLevel
+      if (![7, 8, 9, 10].includes(parseInt(gradeLevel))) {
+        errors.push({ name, gradeLevel, message: 'gradeLevel must be between 7 and 10' });
+        continue;
+      }
 
-    // Create section
-    const newSection = await prisma.section.create({
-      data: {
-        name,
-        gradeLevel: parseInt(gradeLevel),
-        adviser: {
-          connect: { adviserId },
+      // Validate schoolYear format
+      const schoolYearPattern = /^(\d{4})\s-\s(\d{4})$/;
+      const match = schoolYear.match(schoolYearPattern);
+      if (!match) {
+        errors.push({ name, schoolYear, message: 'schoolYear must follow "YYYY - YYYY"' });
+        continue;
+      }
+
+      const startYear = parseInt(match[1], 10);
+      const endYear = parseInt(match[2], 10);
+
+      if (endYear !== startYear + 1) {
+        errors.push({ name, schoolYear, message: 'schoolYear must increment by 1, e.g., "2025 - 2026"' });
+        continue;
+      }
+
+      // Check for existing section with same name, gradeLevel, schoolYear
+      const existing = await prisma.section.findFirst({
+        where: {
+          name,
+          gradeLevel: parseInt(gradeLevel),
+          schoolYear,
         },
-      },
-      select: {
-        id: true,
-        name: true,
-        gradeLevel: true,
-        createdAt: true,
-        adviser: {
-          select: {
-            id: true,
-            adviserId: true,
-            name: true,
-            email: true,
+      });
+
+      if (existing) {
+        errors.push({ name, message: `Section already exists for grade level ${gradeLevel} in ${schoolYear}` });
+        continue;
+      }
+
+      // Check if adviser exists
+      const adviser = await prisma.adviser.findUnique({ where: { adviserId } });
+      if (!adviser) {
+        errors.push({ name, adviserId, message: 'Adviser not found' });
+        continue;
+      }
+
+      // Create section
+      const newSection = await prisma.section.create({
+        data: {
+          name,
+          gradeLevel: parseInt(gradeLevel),
+          schoolYear,
+          adviser: { connect: { adviserId } },
+        },
+        select: {
+          id: true,
+          name: true,
+          gradeLevel: true,
+          schoolYear: true,
+          createdAt: true,
+          adviser: {
+            select: {
+              id: true,
+              adviserId: true,
+              name: true,
+              email: true,
+            },
           },
         },
-      },
-    });
+      });
+
+      createdSections.push(newSection);
+    }
 
     res.status(201).json(
-      successResponse('Section created successfully', newSection)
+      successResponse('Section(s) processed successfully', {
+        created: createdSections,
+        failed: errors,
+      })
     );
   } catch (err) {
-    console.error('Create section error:', err);
+    console.error('Create section(s) error:', err);
     res.status(500).json(
-      errorResponse('Failed to create section', err.message)
+      errorResponse('Failed to create section(s)', err.message)
     );
   }
 });
