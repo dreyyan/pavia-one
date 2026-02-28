@@ -113,6 +113,49 @@ router.get('/', verifyAdmin, async (req, res) => {
 	}
 });
 
+// ?[GET] Get a single section by ID (admin-only)
+// /api/admin/sections/:id
+router.get('/:id', verifyAdmin, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const sectionId = parseInt(id, 10);
+    if (isNaN(sectionId)) {
+      return res.status(400).json(errorResponse('Invalid section ID'));
+    }
+
+    const section = await prisma.section.findUnique({
+      where: { id: sectionId },
+      select: {
+        id: true,
+        name: true,
+        gradeLevel: true,
+        adviserId: true,
+        schoolYear: true,
+        curriculum: true,
+        createdAt: true,
+        updatedAt: true,
+        adviser: { select: { id: true, name: true, adviserId: true } },
+        enrollments: {
+          select: { id: true, studentId: true, schoolYear: true, status: true, learningModality: true },
+        },
+        dailyTotals: true,
+      },
+    });
+
+    // ![ERROR] Section not found
+    if (!section) {
+      return res.status(404).json(errorResponse('Section not found'));
+    }
+
+    // *[SUCCESS] Section retrieved successfully
+    res.json(successResponse('Section retrieved successfully', section));
+  } catch (err) {
+    console.error('Admin single section fetch error:', err);
+    res.status(500).json(errorResponse('[ERROR] Failed to fetch section.', err.message));
+  }
+});
+
 // ?[POST] Add section(s)
 // /api/admin/sections
 router.post('/', verifyAdmin, async (req, res) => {
