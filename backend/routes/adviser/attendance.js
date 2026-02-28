@@ -188,6 +188,130 @@ router.get('/:studentId', verifyAdviser, async (req, res) => {
   }
 });
 
+// ?[DELETE] Remove a wrongly recorded attendance (protected)
+// /api/attendance/:attendanceId
+router.delete('/:attendanceId', verifyAdmin, async (req, res) => {
+  try {
+    const { attendanceId } = req.params;
+
+    // ![ERROR] Validate input
+    if (!attendanceId) {
+      return res.status(400).json(errorResponse('attendanceId is required'));
+    }
+
+    // Check if the attendance exists
+    const existing = await prisma.attendance.findUnique({ where: { id: attendanceId } });
+    if (!existing) {
+      return res.status(404).json(errorResponse('Attendance record not found'));
+    }
+
+    // Delete the attendance record
+    await prisma.attendance.delete({ where: { id: attendanceId } });
+
+    // *[SUCCESS] Return success message
+    res.json(successResponse('Attendance record deleted successfully', { attendanceId }));
+  } catch (err) {
+    res.status(500).json(errorResponse('Failed to delete attendance record', err.message));
+  }
+});
+
+
+// ?[GET] Generate weekly attendance report for a section (protected)
+// /api/adviser/attendance/weekly-report/:sectionId
+router.get('/weekly-report/:sectionId', verifyAdviser, async (req, res) => {
+  try {
+    const { sectionId } = req.params;
+    const { weekStart } = req.query; // optional: YYYY-MM-DD
+
+    // ![ERROR] Validate input
+    if (!sectionId) {
+      return res.status(400).json(errorResponse('sectionId is required'));
+    }
+
+    const startDate = weekStart ? new Date(weekStart) : new Date();
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 6); // week = 7 days
+
+    // Fetch attendance records for the week
+    const records = await prisma.attendance.findMany({
+      where: {
+        sectionId,
+        date: { gte: startDate, lte: endDate },
+      },
+      include: { student: true },
+    });
+
+    // Summarize attendance per student
+    const summary = {};
+    records.forEach(rec => {
+      if (!summary[rec.studentId]) {
+        summary[rec.studentId] = { studentId: rec.studentId, name: rec.student.name, present: 0, absent: 0, excused: 0 };
+      }
+      summary[rec.studentId][rec.status] += 1; // assumes status = 'present' | 'absent' | 'excused'
+    });
+
+    // *[SUCCESS] Return weekly report
+    res.json(successResponse('Weekly attendance report', {
+      sectionId,
+      weekStart: startDate.toISOString().split('T')[0],
+      weekEnd: endDate.toISOString().split('T')[0],
+      attendanceSummary: Object.values(summary),
+    }));
+  } catch (err) {
+    res.status(500).json(errorResponse('Failed to generate weekly attendance report', err.message));
+  }
+});
+
+
+// ?[GET] Generate monthly attendance report for a section (protected)
+// /api/adviser/attendance/monthly-report/:sectionId
+router.get('/monthly-report/:sectionId', verifyAdviser, async (req, res) => {
+  try {
+    const { sectionId } = req.params;
+    const { month, year } = req.query; // optional: month = 1-12, year = YYYY
+
+    // ![ERROR] Validate input
+    if (!sectionId) {
+      return res.status(400).json(errorResponse('sectionId is required'));
+    }
+
+    const now = new Date();
+    const reportMonth = month ? parseInt(month) - 1 : now.getMonth(); // JS months 0-11
+    const reportYear = year ? parseInt(year) : now.getFullYear();
+
+    const startDate = new Date(reportYear, reportMonth, 1);
+    const endDate = new Date(reportYear, reportMonth + 1, 0); // last day of month
+
+    // Fetch attendance records for the month
+    const records = await prisma.attendance.findMany({
+      where: {
+        sectionId,
+        date: { gte: startDate, lte: endDate },
+      },
+      include: { student: true },
+    });
+
+    // Summarize attendance per student
+    const summary = {};
+    records.forEach(rec => {
+      if (!summary[rec.studentId]) {
+        summary[rec.studentId] = { studentId: rec.studentId, name: rec.student.name, present: 0, absent: 0, excused: 0 };
+      }
+      summary[rec.studentId][rec.status] += 1;
+    });
+
+    // *[SUCCESS] Return monthly report
+    res.json(successResponse('Monthly attendance report', {
+      sectionId,
+      month: reportMonth + 1,
+      year: reportYear,
+      attendanceSummary: Object.values(summary),
+    }));
+  } catch (err) {
+    res.status(500).json(errorResponse('Failed to generate monthly attendance report', err.message));
+  }
+});
+
 // ?[GET] Generate full SF2 attendance for a student
 // /api/adviser/attendance/sf2/:studentId
 router.get('/sf2/:studentId', verifyAdviser, async (req, res) => {
