@@ -103,6 +103,99 @@ router.get("/", verifyAdmin, async (req, res) => {
 	}
 });
 
+// ?[GET] Get a single adviser by adviserId or internal ID (admin-only)
+// /api/admin/advisers/:identifier
+router.get('/:identifier', verifyAdmin, async (req, res) => {
+  const { identifier } = req.params; // can be adviserId (string) or internal ID (number)
+
+  try {
+    let where;
+
+    // Check if identifier is a number and within Prisma Int range
+    const parsedId = Number(identifier);
+    if (!isNaN(parsedId) && parsedId <= 2147483647 && parsedId >= -2147483648) {
+      // safe to treat as internal ID
+      where = { id: parsedId };
+    } else {
+      // treat as adviserId
+      where = { adviserId: identifier };
+    }
+
+    // *[FETCH] Get adviser and all related fields
+    const adviser = await prisma.adviser.findUnique({
+      where,
+      select: {
+        id: true,
+        adviserId: true,
+        name: true,
+        email: true,
+        password: true,
+        mustChangePassword: true,
+        signatureUrl: true,
+        createdAt: true,
+        updatedAt: true,
+
+        sections: {
+          select: {
+            id: true,
+            name: true,
+            gradeLevel: true,
+            schoolYear: true,
+            curriculum: true,
+            _count: { select: { enrollments: true } }, // class size
+          },
+        },
+
+        createdStudents: {
+          select: {
+            id: true,
+            lrn: true,
+            firstName: true,
+            middleName: true,
+            lastName: true,
+            nameExtension: true,
+            sex: true,
+            birthDate: true,
+            motherTongue: true,
+            ethnicGroup: true,
+            religion: true,
+            email: true,
+            accountStatus: true,
+            mustChangePassword: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+      },
+    });
+
+    // ![ERROR] Adviser not found
+    if (!adviser) {
+      return res.status(404).json(errorResponse('Adviser not found'));
+    }
+
+    // *[FORMAT] Map sections to include classSize
+    const adviserWithSections = {
+      ...adviser,
+      sections: adviser.sections.map((section) => ({
+        id: section.id,
+        name: section.name,
+        gradeLevel: section.gradeLevel,
+        schoolYear: section.schoolYear,
+        curriculum: section.curriculum,
+        classSize: section._count.enrollments,
+      })),
+    };
+
+    // *[SUCCESS] Adviser retrieved successfully
+    res.json(successResponse('Adviser retrieved successfully', adviserWithSections));
+
+  } catch (err) {
+    console.error('Admin single adviser fetch error:', err);
+    res.status(500).json(errorResponse('[ERROR] Failed to fetch adviser.', err.message));
+  }
+});
+
 // ?[POST] Add adviser(s)
 // /api/admin/advisers
 router.post("/", verifyAdmin, async (req, res) => {
