@@ -100,7 +100,7 @@ router.get('/', verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[POST] Add adviser (single or bulk)
+// ?[POST] Add adviser/s
 // /api/admin/advisers
 router.post('/', verifyAdmin, async (req, res) => {
   try {
@@ -189,7 +189,7 @@ router.post('/', verifyAdmin, async (req, res) => {
   }
 });
 
-// DELETE all advisers
+// ?[DELETE] Remove all advisers
 // /api/admin/advisers/all
 router.delete('/all', verifyAdmin, async (req, res) => {
   try {
@@ -214,7 +214,8 @@ router.delete('/all', verifyAdmin, async (req, res) => {
   }
 });
 
-// DELETE multiple advisers (bulk) via body JSON
+// ?[DELETE] Remove advisers
+// /api/admin/advisers
 router.delete('/', verifyAdmin, async (req, res) => {
   const ids = Array.isArray(req.body.ids) ? req.body.ids.map(i => parseInt(i)) : [];
   if (!ids.length) {
@@ -239,13 +240,13 @@ router.delete('/', verifyAdmin, async (req, res) => {
     deletedAdvisers.push(adviser);
   }
 
-  res.json(successResponse('Adviser(s) processed successfully', {
+  res.json(successResponse('Adviser(s) removed successfully', {
     deleted: deletedAdvisers,
     failed: errors,
   }));
 });
 
-// ?[DELETE] Delete an adviser (admin-only)
+// ?[DELETE] Remove an adviser
 // /api/admin/advisers/:id
 router.delete('/:id', verifyAdmin, async (req, res) => {
     const { id } = req.params;
