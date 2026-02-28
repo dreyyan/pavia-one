@@ -48,12 +48,12 @@ router.get('/', verifyAdmin, async (req, res) => {
             },
           },
 
-          // ✅ count enrollments instead of students
+          // Count enrollments instead of students
           _count: {
             select: { enrollments: true },
           },
 
-          // ✅ get students through enrollments
+          // Get students through enrollments
           enrollments: {
             where: { status: 'ENROLLED' },
             select: {
@@ -86,7 +86,7 @@ router.get('/', verifyAdmin, async (req, res) => {
 
     const totalPages = Math.ceil(total / take);
 
-    // ✅ Transform enrollments → students array
+    // Transform enrollments → students array
     const formattedSections = sections.map((section) => ({
       ...section,
       classSize: section._count.enrollments,
@@ -226,6 +226,7 @@ router.post('/', verifyAdmin, async (req, res) => {
 });
 
 // ?[DELETE] Delete section
+// /api/admin/sections/:id
 router.delete('/:id', verifyAdmin, async (req, res) => {
   const { id } = req.params;
 
