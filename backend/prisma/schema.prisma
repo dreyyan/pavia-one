@@ -74,6 +74,12 @@ enum Curriculum {
   OTHER           // Any other curriculum
 }
 
+enum SF9GradeItemType {
+  WRITTEN_WORK
+  PERFORMANCE_TASK
+  QUARTERLY_ASSESSMENT
+}
+
 enum CoreValueName {
   MAKADIYOS
   MAKATAO
@@ -284,28 +290,53 @@ model LearningArea {
   name        String
   description String?
 
+  writtenWorkWeight       Float @default(0.3)   // 20–40%
+  performanceTaskWeight   Float @default(0.5)   // 40–60%
+  quarterlyAssessmentWeight Float @default(0.2) // 20%
+
   grades      SF9Grade[]
 
   @@map("learning_areas")
 }
 
 model SF9Grade {
-  id            Int        @id @default(autoincrement())
-  studentId     Int
+  id             Int        @id @default(autoincrement())
+  studentId      Int
   learningAreaId Int
-  schoolYear    String
-  q1            Int?
-  q2            Int?
-  q3            Int?
-  q4            Int?
-  finalRating   Int?
-  remarks       SF9Remarks?
+  schoolYear     String
 
-  student       Student      @relation(fields: [studentId], references: [id])
-  learningArea  LearningArea @relation(fields: [learningAreaId], references: [id])
+  q1          Int?
+  q2          Int?
+  q3          Int?
+  q4          Int?
+
+  q1Ready     Boolean @default(false)
+  q2Ready     Boolean @default(false)
+  q3Ready     Boolean @default(false)
+  q4Ready     Boolean @default(false)
+
+  finalRating Int?
+  remarks     SF9Remarks?
+
+  student      Student      @relation(fields: [studentId], references: [id])
+  learningArea LearningArea @relation(fields: [learningAreaId], references: [id])
+  items        SF9GradeItem[]
 
   @@unique([studentId, learningAreaId, schoolYear])
   @@map("sf9_grades")
+}
+
+model SF9GradeItem {
+  id           Int              @id @default(autoincrement())
+  sf9GradeId   Int
+  quarter      Int              // 1, 2, 3, 4
+  type         SF9GradeItemType
+  score        Float
+  maxScore     Float            // maximum possible score for this item
+
+  grade        SF9Grade         @relation(fields: [sf9GradeId], references: [id], onDelete: Cascade)
+
+  @@map("sf9_grade_items")
 }
 
 model CoreValue {

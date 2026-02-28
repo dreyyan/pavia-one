@@ -79,29 +79,6 @@ router.get('/grades', verifyStudent, async (req, res) => {
     }
 });
 
-// ?[GET] Get student's SF5 report
-// /api/student/sf5
-router.get('/sf5', verifyStudent, async (req, res) => {
-    try {
-        const report = await prisma.sf5Report.findUnique({
-            where: { studentId: (await prisma.student.findUnique({ where: { lrn: req.lrn } })).id },
-            select: {
-                generalAverage: true,
-                actionTaken: true,
-                learningAreasNotMet: true
-            }
-        });
-
-        if (!report) {
-            return res.status(404).json(errorResponse('SF5 report not found'));
-        }
-
-        res.json(successResponse('SF5 report retrieved', report));
-    } catch (err) {
-        res.status(500).json(errorResponse('Failed to fetch SF5 report', err.message));
-    }
-});
-
 // ?[GET] Get student's SF9 Core Values
 // /api/student/core-values
 router.get('/core-values', verifyStudent, async (req, res) => {

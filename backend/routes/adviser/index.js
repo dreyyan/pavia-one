@@ -3,6 +3,7 @@ const router = express.Router();
 
 router.use('/', require('./profile'));
 router.use('/sections', require('./sections'));
+router.use('/grades', require('./grades'));
 router.use('/attendance', require('./attendance'));
 router.use('/sf1', require('./sf1'));
 
