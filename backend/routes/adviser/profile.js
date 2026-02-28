@@ -34,7 +34,7 @@ router.get('/profile', verifyAdviser, async (req, res) => {
             curriculum: true
           }
         },
-        createdStudents: {
+        students: {
           select: { id: true, lrn: true, firstName: true, lastName: true }
         },
         createdAt: true,

@@ -154,6 +154,58 @@ router.get('/:sectionId', verifyAdviser, async (req, res) => {
   }
 });
 
+// ?[GET] Search for a specific student in an adviser's section
+// /api/adviser/sections/:sectionId/student
+router.get('/:sectionId/student', verifyAdviser, async (req, res) => {
+  try {
+    const { query } = req.query; // e.g., LRN or name
+    if (!query) return res.status(400).json(errorResponse('query parameter is required'));
+
+    const sectionId = parseInt(req.params.sectionId);
+
+    // Verify adviser manages this section
+    const section = await prisma.section.findUnique({
+      where: { id: sectionId },
+      select: { adviserId: true }
+    });
+    if (!section || section.adviserId !== req.adviserId) {
+      return res.status(403).json(errorResponse('You do not manage this section'));
+    }
+
+    // Search for student in this section by LRN or name
+    const enrollment = await prisma.enrollment.findFirst({
+      where: {
+        sectionId,
+        student: {
+          OR: [
+            { lrn: { equals: query } },
+            { firstName: { contains: query, mode: 'insensitive' } },
+            { middleName: { contains: query, mode: 'insensitive' } },
+            { lastName: { contains: query, mode: 'insensitive' } },
+            { nameExtension: { contains: query, mode: 'insensitive' } }
+          ]
+        }
+      },
+      include: { student: true }
+    });
+
+    if (!enrollment) {
+      return res.status(404).json(errorResponse('Student not found in this section'));
+    }
+
+    const student = {
+      ...enrollment.student,
+      fullName: getFullName(enrollment.student),
+      sectionId
+    };
+
+    res.json(successResponse('Student found', student));
+  } catch (err) {
+    console.error('Section student search error:', err);
+    res.status(500).json(errorResponse('Failed to search student', err.message));
+  }
+});
+
 // ?[POST] Bulk create students and enroll them to a section
 // /api/adviser/sections/:sectionId/enrollments
 router.post('/:sectionId/enrollments', verifyAdviser, async (req, res) => {
@@ -161,7 +213,7 @@ router.post('/:sectionId/enrollments', verifyAdviser, async (req, res) => {
     const { students, schoolYear, learningModality = 'FACE_TO_FACE' } = req.body;
     const sectionId = parseInt(req.params.sectionId);
 
-    // Validate input
+    // [0] Validate input
     if (!students || !Array.isArray(students) || students.length === 0) {
       return res.status(400).json(errorResponse('students array is required'));
     }
@@ -174,7 +226,12 @@ router.post('/:sectionId/enrollments', verifyAdviser, async (req, res) => {
       where: { id: sectionId },
       select: { adviserId: true }
     });
-    if (!section || section.adviserId !== req.adviserId) {
+
+    if (!section) {
+      return res.status(404).json(errorResponse('Section not found'));
+    }
+
+    if (section.adviserId !== req.adviserId) {
       return res.status(403).json(errorResponse('You do not manage this section'));
     }
 
@@ -208,10 +265,10 @@ router.post('/:sectionId/enrollments', verifyAdviser, async (req, res) => {
       )
     );
 
-    // Merge existing + newly created students for enrollment
+    // Merge existing + newly created students
     const allStudents = [...existingStudents, ...createdStudents];
 
-    // [4] Check for existing enrollments
+    // [4] Check for existing enrollments in this section and school year
     const existingEnrollments = await prisma.enrollment.findMany({
       where: {
         studentId: { in: allStudents.map(s => s.id) },
@@ -239,6 +296,7 @@ router.post('/:sectionId/enrollments', verifyAdviser, async (req, res) => {
       skipDuplicates: true
     });
 
+    // *[SUCCESS] Response
     res.json(
       successResponse('Students created and enrolled successfully', {
         totalStudentsProcessed: allStudents.length,

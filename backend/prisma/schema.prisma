@@ -127,7 +127,7 @@ model Adviser {
   updatedAt          DateTime  @updatedAt
 
   sections           Section[]
-  createdStudents    Student[] @relation("CreatedByAdviser")
+  students    Student[] @relation("CreatedByAdviser")
 
   @@map("advisers")
 }
@@ -231,7 +231,7 @@ model Enrollment {
   enrollmentDate   DateTime?
   remarks          String?
 
-  student          Student          @relation(fields: [studentId], references: [id])
+  student          Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
   section          Section          @relation(fields: [sectionId], references: [id])
 
   @@unique([studentId, schoolYear])
