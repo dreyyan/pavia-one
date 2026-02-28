@@ -113,7 +113,7 @@ router.get('/', verifyAdmin, async (req, res) => {
 	}
 });
 
-// ?[POST] Create section(s)
+// ?[POST] Add section(s)
 // /api/admin/sections
 router.post('/', verifyAdmin, async (req, res) => {
 	try {

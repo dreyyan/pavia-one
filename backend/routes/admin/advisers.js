@@ -103,7 +103,7 @@ router.get("/", verifyAdmin, async (req, res) => {
 	}
 });
 
-// ?[POST] Add adviser/s
+// ?[POST] Add adviser(s)
 // /api/admin/advisers
 router.post("/", verifyAdmin, async (req, res) => {
 	try {
