@@ -66,7 +66,7 @@ router.get('/', verifyAdmin, async (req, res) => {
       prisma.adviser.count({ where }),
     ]);
 
-    // ✅ Format sections to include classSize
+    // Format sections to include classSize
     const formattedAdvisers = advisers.map((adviser) => ({
       ...adviser,
       sections: adviser.sections.map((section) => ({
