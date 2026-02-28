@@ -256,7 +256,7 @@ model SF2StudentAttendance {
   id             Int        @id @default(autoincrement())
   studentId      Int
   attendanceDate DateTime
-  status         Attendance
+  status         Attendance?
 
   student        Student    @relation(fields: [studentId], references: [id])
 
