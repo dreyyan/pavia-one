@@ -289,6 +289,7 @@ model LearningArea {
   id          Int        @id @default(autoincrement())
   name        String
   description String?
+  gradeLevel  Int        @default(7)
 
   writtenWorkWeight       Float @default(0.3)   // 20–40%
   performanceTaskWeight   Float @default(0.5)   // 40–60%

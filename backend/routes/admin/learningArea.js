@@ -22,6 +22,63 @@ router.get('/', verifyAdmin, async (req, res) => {
   }
 });
 
+// ?[POST] Auto-create learning areas per grade with specific weights (protected)
+// /api/admin/learning-area/auto-create-all
+router.post('/auto-create-all', verifyAdmin, async (req, res) => {
+  try {
+    const { grades } = req.body;
+
+    // ![ERROR] Validate input
+    if (!Array.isArray(grades) || grades.length === 0) {
+      return res.status(400).json(errorResponse('grades array is required'));
+    }
+
+    let createdSummary = [];
+
+    for (const grade of grades) {
+      const { gradeLevel, learningAreas } = grade;
+
+      if (!gradeLevel || !Array.isArray(learningAreas) || learningAreas.length === 0) {
+        return res.status(400).json(
+          errorResponse('Each grade must have a gradeLevel and a non-empty learningAreas array')
+        );
+      }
+
+      // Fetch existing learning areas for this grade
+      const existing = await prisma.learningArea.findMany({ where: { gradeLevel } });
+      const existingNames = existing.map(la => la.name);
+
+      const toCreate = learningAreas.filter(la => !existingNames.includes(la.name));
+
+      if (toCreate.length === 0) continue;
+
+      // Bulk create learning areas for this grade
+      const created = await prisma.learningArea.createMany({
+        data: toCreate.map(la => ({
+          name: la.name,
+          description: la.description || null,
+          gradeLevel,
+          writtenWorkWeight: la.writtenWorkWeight ?? null,
+          performanceTaskWeight: la.performanceTaskWeight ?? null,
+          quarterlyAssessmentWeight: la.quarterlyAssessmentWeight ?? null
+        })),
+        skipDuplicates: true
+      });
+
+      createdSummary.push({ gradeLevel, createdCount: created.count, createdAreas: toCreate.map(la => la.name) });
+    }
+
+    if (createdSummary.length === 0) {
+      return res.status(400).json(errorResponse('All specified learning areas already exist'));
+    }
+
+    // *[SUCCESS] Return summary
+    res.json(successResponse('Learning areas auto-created for grades', createdSummary));
+  } catch (err) {
+    res.status(500).json(errorResponse('Failed to auto-create learning areas', err.message));
+  }
+});
+
 // ?[POST] Create one or multiple learning areas (protected)
 // /api/admin/learning-area
 router.post('/', verifyAdmin, async (req, res) => {
