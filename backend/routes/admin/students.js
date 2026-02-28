@@ -6,33 +6,21 @@ const prisma = require('../../lib/prisma');
 // [IMPORT] Tools
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 
 // [IMPORT] Utilities & Middleware
 const { successResponse, errorResponse } = require('../../utils/response');
+const { getFullName, isValidSex } = require('../../utils/helpers')
 const verifyAdmin = require('../../middleware/authMiddleware').verifyAdmin;
 
-// Helper: build full name
-const getFullName = (student) =>
-  [student.firstName, student.middleName, student.lastName, student.nameExtension]
-    .filter(Boolean)
-    .join(' ');
-
 // ?[GET] List all students (paginated, searchable, admin-only)
-// /api/admin/students
 router.get('/', verifyAdmin, async (req, res) => {
   try {
-    const {
-      page = 1,
-      limit = 50,
-      sortBy = 'lrn',   // lrn, firstName, createdAt
-      sortOrder = 'asc',
-      search = '',      // optional search by name / lrn / email
-    } = req.query;
+    const { page = 1, limit = 50, sortBy = 'lrn', sortOrder = 'asc', search = '' } = req.query;
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const skip = (pageNum - 1) * limitNum;
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    const take = parseInt(limit);
-
-    // Build where clause for search
     const where = search
       ? {
           OR: [
@@ -60,43 +48,34 @@ router.get('/', verifyAdmin, async (req, res) => {
           email: true,
           createdAt: true,
           adviser: { select: { id: true, name: true, adviserId: true } },
-          enrollments: {
-            where: { status: 'ENROLLED' }, // only current enrollment
-            select: {
-              section: {
-                select: { id: true, name: true, gradeLevel: true },
-              },
-            },
-            take: 1, // only get the first active enrollment
-          },
+          enrollments: { where: { status: 'ENROLLED' }, select: { section: { select: { id: true, name: true, gradeLevel: true } } }, take: 1 },
         },
         orderBy: { [sortBy]: sortOrder === 'desc' ? 'desc' : 'asc' },
         skip,
-        take,
+        take: limitNum,
       }),
       prisma.student.count({ where }),
     ]);
 
-    const totalPages = Math.ceil(total / take);
-
-    // Map section from first enrollment and add fullName
+    const totalPages = Math.ceil(total / limitNum);
     const studentsWithSection = students.map((s) => ({
       ...s,
       fullName: getFullName(s),
       section: s.enrollments[0]?.section || null,
-      enrollments: undefined, // remove enrollments array from response
+      enrollments: undefined,
     }));
 
+		// *[SUCCESS] Students retrieved successfully
     res.json(
       successResponse('Students retrieved successfully', {
         data: studentsWithSection,
         pagination: {
           total,
-          page: parseInt(page),
-          limit: take,
+          page: pageNum,
+          limit: limitNum,
           totalPages,
-          hasNext: parseInt(page) < totalPages,
-          hasPrev: parseInt(page) > 1,
+          hasNext: pageNum < totalPages,
+          hasPrev: pageNum > 1,
         },
       })
     );
@@ -106,115 +85,148 @@ router.get('/', verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[POST] Add student
+// ?[POST] Add student(s)
 router.post('/', verifyAdmin, async (req, res) => {
-  const { lrn, firstName, middleName, lastName, nameExtension, email, password, sex, birthDate, sectionId, createdByAdviserId } = req.body;
-
   try {
-    // Validate required fields
-    if (!lrn || !firstName || !lastName || !email || !password || !sex || !createdByAdviserId) {
-      return res.status(400).json(
-        errorResponse('LRN, firstName, lastName, email, password, sex, and createdByAdviserId are required')
-      );
+    const studentsInput = Array.isArray(req.body) ? req.body : [req.body];
+    if (!studentsInput.length) return res.status(400).json(errorResponse('No student data provided'));
+
+    const createdStudents = [];
+    const errors = [];
+
+    for (const student of studentsInput) {
+      const { lrn, firstName, middleName, lastName, nameExtension, email, password, sex, birthDate, sectionId, createdByAdviserId } = student;
+
+			// ![ERROR] Missing required fields
+      if (!lrn || !firstName || !lastName || !email || !password || !sex || !createdByAdviserId) {
+        errors.push({ lrn, message: 'Missing required fields' });
+        continue;
+      }
+
+			// ![ERROR] Invalid sex value
+      if (!isValidSex(sex)) {
+        errors.push({ lrn, message: 'Invalid sex value' });
+        continue;
+      }
+
+      const existing = await prisma.student.findFirst({ where: { OR: [{ email }, { lrn }] } });
+
+			// ![ERROR] Student already exists
+      if (existing) {
+        errors.push({ lrn, message: 'Student already exists' });
+        continue;
+      }
+
+      const parsedBirthDate = birthDate ? new Date(birthDate) : null;
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      const studentData = { lrn, firstName, middleName: middleName || null, lastName, nameExtension: nameExtension || null, email, password: hashedPassword, sex: sex.toUpperCase(), birthDate: parsedBirthDate, createdByAdviserId };
+
+      if (sectionId) {
+        const section = await prisma.section.findUnique({ where: { id: sectionId } });
+
+				// ![ERROR] Section not found
+        if (!section) {
+          errors.push({ lrn, sectionId, message: 'Section not found' });
+          continue;
+        }
+        studentData.enrollments = { create: { sectionId, status: 'ENROLLED' } };
+      }
+
+      const newStudent = await prisma.student.create({
+        data: studentData,
+        select: {
+          id: true,
+          lrn: true,
+          firstName: true,
+          middleName: true,
+          lastName: true,
+          nameExtension: true,
+          email: true,
+          sex: true,
+          birthDate: true,
+          createdAt: true,
+          adviser: { select: { id: true, name: true, adviserId: true } },
+          enrollments: { where: { status: 'ENROLLED' }, select: { section: { select: { id: true, name: true } } }, take: 1 },
+        },
+      });
+
+      createdStudents.push({ ...newStudent, fullName: getFullName(newStudent), section: newStudent.enrollments[0]?.section || null, enrollments: undefined });
     }
 
-    // Check if student already exists
-    const existing = await prisma.student.findFirst({
-      where: { OR: [{ email }, { lrn }] }
-    });
-    if (existing) return res.status(409).json(errorResponse('Student already exists'));
-
-    // Hash password
-    const bcrypt = require('bcrypt');
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Build student creation data
-    const studentData = {
-      lrn,
-      firstName,
-      middleName: middleName || null,
-      lastName,
-      nameExtension: nameExtension || null,
-      email,
-      password: hashedPassword,
-      sex,
-      birthDate: birthDate || null,
-      createdByAdviserId,
-      // If sectionId is provided, create enrollment immediately
-      enrollments: sectionId
-        ? {
-            create: {
-              sectionId,
-              status: 'ENROLLED'
-            }
-          }
-        : undefined,
-    };
-
-    // Create student
-    const newStudent = await prisma.student.create({
-      data: studentData,
-      select: {
-        id: true,
-        lrn: true,
-        firstName: true,
-        middleName: true,
-        lastName: true,
-        nameExtension: true,
-        email: true,
-        sex: true,
-        birthDate: true,
-        createdAt: true,
-        adviser: { select: { id: true, name: true, adviserId: true } },
-        enrollments: {
-          where: { status: 'ENROLLED' },
-          select: { section: { select: { id: true, name: true } } },
-          take: 1,
-        },
-      },
-    });
-
-    // Add section and fullName
-    res.status(201).json(successResponse('Student created successfully', {
-      ...newStudent,
-      fullName: getFullName(newStudent),
-      section: newStudent.enrollments[0]?.section || null,
-      enrollments: undefined,
-    }));
+		// *[SUCCESS] Student(s) processed successfully
+    res.status(201).json(successResponse('Student(s) processed successfully', { created: createdStudents, failed: errors }));
   } catch (err) {
-    console.error(err);
-    res.status(500).json(errorResponse('Failed to create student', err.message));
+    console.error('Create student(s) error:', err);
+    res.status(500).json(errorResponse('Failed to create student(s)', err.message));
   }
 });
 
-// ?[DELETE] Delete a student (admin-only)
-// /api/admin/students/:id
+// ?[DELETE] Delete all students
+router.delete('/all', verifyAdmin, async (req, res) => {
+  try {
+    const allStudents = await prisma.student.findMany({ select: { id: true, lrn: true, firstName: true, lastName: true, email: true } });
+
+		// ![ERROR] No students to delete
+    if (!allStudents.length) return res.status(400).json(errorResponse('No students to delete'));
+
+    const deletedStudents = [];
+    for (const student of allStudents) {
+      await prisma.student.delete({ where: { id: student.id } });
+      deletedStudents.push(student);
+    }
+
+		// *[SUCCESS] All students deleted successfully
+    res.json(successResponse('All students deleted successfully', deletedStudents));
+  } catch (err) {
+    console.error('Delete all students error:', err);
+    res.status(500).json(errorResponse('Failed to delete all students', err.message));
+  }
+});
+
+// ?[DELETE] Delete students
+router.delete('/', verifyAdmin, async (req, res) => {
+  const ids = Array.isArray(req.body.ids) ? req.body.ids.map((i) => parseInt(i)) : [];
+
+	// ![ERROR] No student ID(s) provided
+  if (!ids.length) return res.status(400).json(errorResponse('No student ID(s) provided'));
+
+  const deletedStudents = [];
+  const errors = [];
+
+  for (const id of ids) {
+    const student = await prisma.student.findUnique({ where: { id }, select: { id: true, lrn: true, firstName: true, lastName: true, email: true } });
+
+		// ![ERROR] Student not found
+    if (!student) {
+      errors.push({ id, message: 'Student not found' });
+      continue;
+    }
+
+    await prisma.student.delete({ where: { id } });
+    deletedStudents.push(student);
+  }
+
+	// *[SUCCESS] Student(s) processed successfully
+  res.json(successResponse('Student(s) processed successfully', { deleted: deletedStudents, failed: errors }));
+});
+
+// ?[DELETE] Delete a student
 router.delete('/:id', verifyAdmin, async (req, res) => {
   const { id } = req.params;
 
   try {
-    const student = await prisma.student.findUnique({
-      where: { id: parseInt(id) },
-      select: {
-        id: true,
-        lrn: true,
-        firstName: true,
-        middleName: true,
-        lastName: true,
-        nameExtension: true,
-        email: true,
-      },
-    });
+    const student = await prisma.student.findUnique({ where: { id: parseInt(id) }, select: { id: true, lrn: true, firstName: true, lastName: true, email: true } });
 
+		// ![ERROR] Student not found
     if (!student) return res.status(404).json(errorResponse('Student not found'));
 
     await prisma.student.delete({ where: { id: parseInt(id) } });
 
-    res.json(successResponse('Student deleted successfully', {
-      ...student,
-      fullName: getFullName(student),
-    }));
+		// *[SUCCESS] Student deleted successfully
+    res.json(successResponse('Student deleted successfully', student));
   } catch (err) {
+    console.error('Delete student error:', err);
     res.status(500).json(errorResponse('Failed to delete student', err.message));
   }
 });

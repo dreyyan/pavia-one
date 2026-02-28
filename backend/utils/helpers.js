@@ -11,4 +11,7 @@ const getFullName = (student) =>
 		.filter(Boolean)
 		.join(' ');
 
-module.exports = { hashPassword, getFullName };
+// [HELPER] Validate sex
+const isValidSex = (sex) => ['MALE', 'FEMALE'].includes(sex.toUpperCase());
+
+module.exports = { hashPassword, getFullName, isValidSex };
