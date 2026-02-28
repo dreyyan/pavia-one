@@ -3,213 +3,233 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../../lib/prisma');
 
-// [IMPORT] Tools
-require('dotenv').config();
-const jwt = require('jsonwebtoken');
-
 // [IMPORT] Utilities & Middleware
 const { successResponse, errorResponse } = require('../../utils/response');
 const verifyAdmin = require('../../middleware/authMiddleware').verifyAdmin;
 
-// ?[GET] List all sections (with student details)
+// Helper: build full name
+const getFullName = (student) =>
+  [student.firstName, student.middleName, student.lastName, student.nameExtension]
+    .filter(Boolean)
+    .join(' ');
+
+// ?[GET] List all sections (/w enrolled students)
 // /api/admin/sections
 router.get('/', verifyAdmin, async (req, res) => {
-    try {
-        const {
-            page = 1,
-            limit = 5,
-            sortBy = 'name', // name, createdAt
-            sortOrder = 'asc',
-            search = '',
-        } = req.query;
+  try {
+    const {
+      page = 1,
+      limit = 5,
+      sortBy = 'name',
+      sortOrder = 'asc',
+      search = '',
+    } = req.query;
 
-        const skip = (parseInt(page) - 1) * parseInt(limit);
-        const take = parseInt(limit);
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const take = parseInt(limit);
 
-        const where = search
-            ? {
-                name: { contains: search, mode: 'insensitive' },
-            }
-            : {};
+    const where = search
+      ? { name: { contains: search, mode: 'insensitive' } }
+      : {};
 
-        const [sections, total] = await Promise.all([
-            prisma.section.findMany({
-                where,
+    const [sections, total] = await Promise.all([
+      prisma.section.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          gradeLevel: true,
+          createdAt: true,
+          adviser: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+
+          // ✅ count enrollments instead of students
+          _count: {
+            select: { enrollments: true },
+          },
+
+          // ✅ get students through enrollments
+          enrollments: {
+            where: { status: 'ENROLLED' },
+            select: {
+              student: {
                 select: {
-                    id: true,
-                    name: true,
-                    createdAt: true,
-                    adviser: {
-                        select: {
-                            id: true,
-                            name: true,
-                            email: true,
-                        },
-                    },
-                    _count: {
-                        select: { students: true }, // class size
-                    },
-                    students: {
-                        select: {
-                            id: true,
-                            lrn: true,
-                            name: true,
-                            email: true,
-                            accountStatus: true,
-                        },
-                        orderBy: { name: 'asc' }, // optional: sort students alphabetically
-                    },
+                  id: true,
+                  lrn: true,
+                  firstName: true,
+                  middleName: true,
+                  lastName: true,
+                  nameExtension: true,
+                  email: true,
+                  accountStatus: true,
                 },
-                orderBy: { [sortBy]: sortOrder === 'desc' ? 'desc' : 'asc' },
-                skip,
-                take,
-            }),
-            prisma.section.count({ where }),
-        ]);
+              },
+            },
+            orderBy: {
+              student: {
+                firstName: 'asc',
+              },
+            },
+          },
+        },
+        orderBy: { [sortBy]: sortOrder === 'desc' ? 'desc' : 'asc' },
+        skip,
+        take,
+      }),
+      prisma.section.count({ where }),
+    ]);
 
-        const totalPages = Math.ceil(total / take);
+    const totalPages = Math.ceil(total / take);
 
-        // *[SUCCESS] Return list of sections with student details
-        res.json(
-            successResponse('Sections retrieved successfully', {
-                data: sections,
-                pagination: {
-                    total,
-                    page: parseInt(page),
-                    limit: take,
-                    totalPages,
-                    hasNext: parseInt(page) < totalPages,
-                    hasPrev: parseInt(page) > 1,
-                },
-            })
-        );
-    } catch (err) {
-        console.error('Admin sections fetch error:', err);
-        res.status(500).json(errorResponse('Failed to fetch sections', err.message));
-    }
+    // ✅ Transform enrollments → students array
+    const formattedSections = sections.map((section) => ({
+      ...section,
+      classSize: section._count.enrollments,
+      students: section.enrollments.map((e) => ({
+        ...e.student,
+        fullName: getFullName(e.student),
+      })),
+      enrollments: undefined,
+      _count: undefined,
+    }));
+
+    res.json(
+      successResponse('Sections retrieved successfully', {
+        data: formattedSections,
+        pagination: {
+          total,
+          page: parseInt(page),
+          limit: take,
+          totalPages,
+          hasNext: parseInt(page) < totalPages,
+          hasPrev: parseInt(page) > 1,
+        },
+      })
+    );
+  } catch (err) {
+    console.error('Admin sections fetch error:', err);
+    res.status(500).json(errorResponse('Failed to fetch sections', err.message));
+  }
 });
 
 // ?[POST] Create section
 // /api/admin/sections
 router.post('/', verifyAdmin, async (req, res) => {
-    const { name, adviserId, gradeLevel } = req.body;
+  const { name, adviserId, gradeLevel } = req.body;
 
-    try {
-        // ![ERROR] Missing required fields
-        if (!name || !adviserId || gradeLevel === undefined) {
-            return res.status(400).json(
-                errorResponse('Section name, adviserId, and gradeLevel are required')
-            );
-        }
-
-        // Check if section name already exists for the same grade level
-        const existing = await prisma.section.findFirst({
-            where: {
-                name,
-                gradeLevel,
-            },
-        });
-
-        // ![ERROR] Existing section name
-        if (existing) {
-            return res.status(409).json(
-                errorResponse(`Section "${name}" already exists for grade level ${gradeLevel}`)
-            );
-        }
-
-        // Check if adviser exists
-        const adviser = await prisma.adviser.findUnique({
-            where: { adviserId }, // adviserId is a string like "2026-0001"
-        });
-
-        // ![ERROR] Missing adviser
-        if (!adviser) {
-            return res.status(404).json(
-                errorResponse('Adviser not found')
-            );
-        }
-
-        // Create new section
-        const newSection = await prisma.section.create({
-            data: {
-                name,
-                gradeLevel,
-                adviser: {
-                    connect: { adviserId },
-                },
-            },
-            select: {
-                id: true,
-                name: true,
-                gradeLevel: true,
-                createdAt: true,
-                adviser: {
-                    select: {
-                        id: true,
-                        adviserId: true,
-                        name: true,
-                        email: true,
-                    },
-                },
-            },
-        });
-
-        // *[SUCCESS] Section creation
-        res.status(201).json(
-            successResponse('Section created successfully', newSection)
-        );
-
-    } catch (err) {
-        res.status(500).json(
-            errorResponse('Failed to create section', err.message)
-        );
+  try {
+    // Validate required fields
+    if (!name || !adviserId || gradeLevel === undefined) {
+      return res.status(400).json(
+        errorResponse('Section name, adviserId, and gradeLevel are required')
+      );
     }
+
+    // Check if section already exists for same grade level
+    const existing = await prisma.section.findFirst({
+      where: {
+        name,
+        gradeLevel: parseInt(gradeLevel),
+      },
+    });
+
+    if (existing) {
+      return res.status(409).json(
+        errorResponse(`Section "${name}" already exists for grade level ${gradeLevel}`)
+      );
+    }
+
+    // Check if adviser exists
+    const adviser = await prisma.adviser.findUnique({
+      where: { adviserId },
+    });
+
+    if (!adviser) {
+      return res.status(404).json(
+        errorResponse('Adviser not found')
+      );
+    }
+
+    // Create section
+    const newSection = await prisma.section.create({
+      data: {
+        name,
+        gradeLevel: parseInt(gradeLevel),
+        adviser: {
+          connect: { adviserId },
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        gradeLevel: true,
+        createdAt: true,
+        adviser: {
+          select: {
+            id: true,
+            adviserId: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    res.status(201).json(
+      successResponse('Section created successfully', newSection)
+    );
+  } catch (err) {
+    console.error('Create section error:', err);
+    res.status(500).json(
+      errorResponse('Failed to create section', err.message)
+    );
+  }
 });
 
 // ?[DELETE] Delete section
-// /api/admin/sections/:id
 router.delete('/:id', verifyAdmin, async (req, res) => {
-    const { id } = req.params;
+  const { id } = req.params;
 
-    try {
-        const section = await prisma.section.findUnique({
-            where: { id: parseInt(id) },
-            select: {
-                id: true,
-                name: true,
-                _count: { select: { students: true } },
-            },
-        });
+  try {
+    const section = await prisma.section.findUnique({
+      where: { id: parseInt(id) },
+      select: {
+        id: true,
+        name: true,
+        _count: { select: { enrollments: true } },
+      },
+    });
 
-        if (!section) {
-            return res.status(404).json(
-                errorResponse('Section not found')
-            );
-        }
-
-        // ![ERROR] Section /w existing students
-        if (section._count.students > 0) {
-            return res.status(400).json(
-                errorResponse('Cannot delete section with existing students')
-            );
-        }
-
-        await prisma.section.delete({
-            where: { id: parseInt(id) },
-        });
-
-        // *[SUCCESS] Section deletion
-        res.json(
-            successResponse('Section deleted successfully', {
-                id: section.id,
-                name: section.name,
-            })
-        );
-    } catch (err) {
-        res.status(500).json(
-            errorResponse('Failed to delete section', err.message)
-        );
+    if (!section) {
+      return res.status(404).json(errorResponse('Section not found'));
     }
+
+    // ✅ prevent delete if students exist
+    if (section._count.enrollments > 0) {
+      return res.status(400).json(
+        errorResponse('Cannot delete section with enrolled students')
+      );
+    }
+
+    await prisma.section.delete({
+      where: { id: parseInt(id) },
+    });
+
+    res.json(
+      successResponse('Section deleted successfully', {
+        id: section.id,
+        name: section.name,
+      })
+    );
+  } catch (err) {
+    console.error(err);
+    res.status(500).json(errorResponse('Failed to delete section', err.message));
+  }
 });
 
 module.exports = router;
