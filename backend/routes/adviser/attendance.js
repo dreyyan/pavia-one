@@ -5,7 +5,7 @@ const prisma = require('../../lib/prisma');
 
 // [IMPORT] Utilities & Middleware
 const { successResponse, errorResponse } = require('../../utils/response');
-const { getFullName } = require('../../utils/helpers');
+const { getFullName, validateSF2Completeness } = require('../../utils/helpers');
 const verifyAdviser = require('../../middleware/authMiddleware').verifyAdviser;
 
 // ?[POST] Record or update attendance (single or bulk)
@@ -185,6 +185,141 @@ router.get('/:studentId', verifyAdviser, async (req, res) => {
   } catch (err) {
     console.error('Attendance fetch error:', err);
     res.status(500).json(errorResponse('Failed to fetch attendance', err.message));
+  }
+});
+
+// ?[GET] Generate full SF2 attendance for a student
+// /api/adviser/attendance/sf2/:studentId
+router.get('/sf2/:studentId', verifyAdviser, async (req, res) => {
+  try {
+    const studentId = parseInt(req.params.studentId);
+    const { schoolYear, from, to } = req.query;
+
+    // [1] Verify student belongs to adviser's sections
+    const studentEnrollment = await prisma.enrollment.findFirst({
+      where: {
+        studentId,
+        section: { adviserId: req.adviserId }
+      },
+      select: { id: true, sectionId: true, schoolYear: true }
+    });
+
+    if (!studentEnrollment) {
+      return res.status(403).json(
+        errorResponse('You cannot access SF2 attendance for a student not in your section')
+      );
+    }
+
+    // [2] Build optional date filters
+    const dateFilter = {};
+    if (from) dateFilter.gte = new Date(from);
+    if (to) dateFilter.lte = new Date(to);
+
+    // [3] Fetch student with all SF2 data
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+      include: {
+        address: true,
+        guardian: true,
+        enrollments: {
+          include: { section: true },
+          where: schoolYear ? { schoolYear } : undefined
+        },
+        dailyAttendances: {
+          where: Object.keys(dateFilter).length ? { attendanceDate: dateFilter } : undefined,
+          orderBy: { attendanceDate: 'asc' }
+        },
+        monthlySummaries: {
+          where: schoolYear ? { schoolYear } : undefined,
+          orderBy: { month: 'asc' }
+        },
+        sf9Grades: { include: { learningArea: true } },
+        sf9CoreValues: { include: { coreValue: true } },
+        sf9Summaries: schoolYear ? { where: { schoolYear } } : true,
+        sf5Reports: schoolYear ? { where: { schoolYear } } : true
+      }
+    });
+
+    if (!student) {
+      return res.status(404).json(errorResponse('Student not found'));
+    }
+
+    // [4] Format SF2 response
+    const sf2Data = {
+      studentInfo: {
+        id: student.id,
+        lrn: student.lrn,
+        fullName: getFullName(student),
+        sex: student.sex,
+        birthDate: student.birthDate,
+        email: student.email,
+        address: student.address || null,
+        guardian: student.guardian || null,
+        accountStatus: student.accountStatus
+      },
+      enrollments: student.enrollments.map(e => ({
+        sectionId: e.sectionId,
+        sectionName: e.section.name,
+        schoolYear: e.schoolYear,
+        learningModality: e.learningModality,
+        status: e.status,
+        enrollmentDate: e.enrollmentDate,
+        remarks: e.remarks
+      })),
+      dailyAttendances: student.dailyAttendances.map(a => ({
+        attendanceDate: a.attendanceDate,
+        status: a.status
+      })),
+      monthlySummaries: student.monthlySummaries.map(m => ({
+        month: m.month,
+        schoolYear: m.schoolYear,
+        totalPresent: m.totalPresent,
+        totalAbsent: m.totalAbsent,
+        remarks: m.remarks
+      })),
+      sf9Grades: student.sf9Grades.map(g => ({
+        learningArea: g.learningArea.name,
+        schoolYear: g.schoolYear,
+        q1: g.q1,
+        q2: g.q2,
+        q3: g.q3,
+        q4: g.q4,
+        finalRating: g.finalRating,
+        remarks: g.remarks
+      })),
+      sf9CoreValues: student.sf9CoreValues.map(c => ({
+        coreValue: c.coreValue.name,
+        q1: c.q1,
+        q2: c.q2,
+        q3: c.q3,
+        q4: c.q4
+      })),
+      sf9Summaries: student.sf9Summaries.map(s => ({
+        schoolYear: s.schoolYear,
+        generalAverage: s.generalAverage
+      })),
+      sf5Reports: student.sf5Reports.map(s => ({
+        schoolYear: s.schoolYear,
+        generalAverage: s.generalAverage,
+        actionTaken: s.actionTaken,
+        learningAreasNotMet: s.learningAreasNotMet
+      }))
+    };
+
+    // [5] Check SF2 completeness
+    const completeness = validateSF2Completeness(sf2Data);
+
+    // *[SUCCESS] Return SF2 attendance + completeness info
+    res.json(successResponse(
+      'Full SF2 attendance retrieved successfully',
+      { sf2Data, ...completeness }
+    ));
+
+  } catch (err) {
+    console.error('SF2 attendance fetch error:', err);
+    res.status(500).json(
+      errorResponse('Failed to fetch full SF2 attendance', err.message)
+    );
   }
 });
 
