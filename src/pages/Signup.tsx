@@ -31,6 +31,25 @@ const SignUp = () => {
             {/* STEP 2: Sign Up as Role */}
             {role !== null && (
             <div className="flex flex-col pt-15 px-6">
+                    {/* Back button */}
+                    <button
+                    onClick={() => {
+                        setRole(null);
+                        setEmail("");
+                        setPassword("");
+                    }}
+                    className="
+                        absolute left-4 top-80 
+                        flex items-center gap-2
+                        bg-[var(--color-primary-700)] text-white 
+                        px-4 py-2 rounded-full shadow-md 
+                        hover:bg-[var(--color-primary-600)] 
+                        transition-colors duration-200
+                        text-sm font-semibold
+                        z-50 cursor-pointer
+                    ">
+                    &larr; Change Role
+                    </button>
                 <h2 className="text-[var(--color-primary-700)]">Sign Up</h2>
 
                 {/* Input Fields */}

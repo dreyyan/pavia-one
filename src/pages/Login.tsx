@@ -16,20 +16,40 @@ import PrimaryButton from "../components/PrimaryButton";
 
                 {/* STEP 1: Select Role */}
                 {role === null && (
-                <div className="flex flex-col justify-center items-center pt-15 px-6">
-                    <h2 className="text-[var(--color-primary-700)]">Login as</h2>
+                    <div className="flex flex-col justify-center items-center pt-15 px-6">
+                        <h2 className="text-[var(--color-primary-700)]">Login as</h2>
 
-                    {/* Role Cards */}
-                    <div className="flex gap-x-4 mt-4">
-                        <RoleCard role="Student" icon="student-icon.svg" onClick={() => setRole("Student")} />
-                        <RoleCard role="Adviser" icon="adviser-icon.svg" onClick={() => setRole("Adviser")} />
+                        {/* Role Cards */}
+                        <div className="flex gap-x-4 mt-4">
+                            <RoleCard role="Student" icon="student-icon.svg" onClick={() => setRole("Student")} />
+                            <RoleCard role="Adviser" icon="adviser-icon.svg" onClick={() => setRole("Adviser")} />
+                        </div>
                     </div>
-                </div>
                 )}
 
                 {/* STEP 2: Login as Role */}
                 {role !== null && (
                 <div className="flex flex-col pt-15 px-6">
+                    {/* Back button */}
+                    <button
+                    onClick={() => {
+                        setRole(null);
+                        setEmail("");
+                        setPassword("");
+                    }}
+                    className="
+                        absolute left-4 top-80 
+                        flex items-center gap-2
+                        bg-[var(--color-primary-700)] text-white 
+                        px-4 py-2 rounded-full shadow-md 
+                        hover:bg-[var(--color-primary-600)] 
+                        transition-colors duration-200
+                        text-sm font-semibold
+                        z-50 cursor-pointer
+                    ">
+                    &larr; Change Role
+                    </button>
+                        
                     <h2 className="text-[var(--color-primary-700)]">Login</h2>
 
                     {/* Input Fields */}
