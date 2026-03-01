@@ -4,6 +4,7 @@ interface InputFieldProps {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   placeholder?: string;
+  maxLength?: number;
   error?: string;
   iconSrc?: string; // path to image
   iconAlt?: string;
@@ -15,6 +16,7 @@ const InputField = ({
   value,
   onChange,
   placeholder,
+  maxLength,
   error,
   iconSrc,
   iconAlt = "icon",
@@ -26,7 +28,7 @@ const InputField = ({
       <div className="relative">
         {iconSrc && (
           <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-            <img src={iconSrc} alt={iconAlt} className="w-5 h-5 object-contain" />
+            <img src={iconSrc} alt={iconAlt} loading="eager" className="w-5 h-5 object-contain" />
           </div>
         )}
 
@@ -35,6 +37,7 @@ const InputField = ({
           value={value}
           onChange={onChange}
           placeholder={placeholder}
+          maxLength={maxLength}
           className={`focus:outline-none focus:ring-0 border-2 border-[var(--color-background-800)] rounded-lg py-2 ${
             iconSrc ? "pl-10" : "px-3"
           } w-full`}
