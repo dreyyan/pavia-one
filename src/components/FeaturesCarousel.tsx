@@ -97,7 +97,7 @@ const FeaturesCarousel = () => {
                 <PrimaryButton text="Login as Adviser" color="FCB103" onClick={handleAdviserLogin} />
             </div>
 
-            <a href="" className="link block text-center underline text-[var(--color-primary-700)]">Learn More</a>
+            <a href="about-us" className="link block text-center underline text-[var(--color-primary-700)]">Learn More</a>
         </div>
     );
 };
