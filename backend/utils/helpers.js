@@ -1,0 +1,83 @@
+const bcrypt = require('bcrypt');
+
+// [HELPER] Hash password
+const hashPassword = async (password) => {
+    return await bcrypt.hash(password, 10);
+};
+
+// [HELPER] Build full name
+const getFullName = (student) =>
+    [student.firstName, student.middleName, student.lastName, student.nameExtension]
+        .filter(Boolean)
+        .join(' ');
+
+// [HELPER] Validate sex
+const isValidSex = (sex) => ['MALE', 'FEMALE'].includes(sex.toUpperCase());
+
+// [HELPER] Calculate age from birthdate
+const calculateAge = (birthDate) => {
+  const today = new Date();
+  const birth = new Date(birthDate);
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age;
+};
+
+// [HELPER] Check if SF2 data is complete for export
+const validateSF2Completeness = (sf2Data) => {
+    const missing = {};
+
+    // Check student info
+    const info = sf2Data.studentInfo;
+    missing.studentInfo = [];
+    if (!info.address) missing.studentInfo.push('address');
+    if (!info.guardian) missing.studentInfo.push('guardian');
+    if (!info.birthDate) missing.studentInfo.push('birthDate');
+    if (!info.sex) missing.studentInfo.push('sex');
+
+    if (missing.studentInfo.length === 0) delete missing.studentInfo;
+
+    // Enrollments
+    if (!sf2Data.enrollments || sf2Data.enrollments.length === 0) {
+        missing.enrollments = 'No enrollment records';
+    }
+
+    // Daily attendances
+    if (!sf2Data.dailyAttendances || sf2Data.dailyAttendances.length === 0) {
+        missing.dailyAttendances = 'No attendance records';
+    }
+
+    // Monthly summaries
+    if (!sf2Data.monthlySummaries || sf2Data.monthlySummaries.length === 0) {
+        missing.monthlySummaries = 'No monthly summaries';
+    }
+
+    // Grades
+    if (!sf2Data.sf9Grades || sf2Data.sf9Grades.length === 0) {
+        missing.sf9Grades = 'No SF9 grades';
+    }
+
+    // Core values
+    if (!sf2Data.sf9CoreValues || sf2Data.sf9CoreValues.length === 0) {
+        missing.sf9CoreValues = 'No core value records';
+    }
+
+    // SF9 Summaries
+    if (!sf2Data.sf9Summaries || sf2Data.sf9Summaries.length === 0) {
+        missing.sf9Summaries = 'No SF9 summaries';
+    }
+
+    // SF5 Reports
+    if (!sf2Data.sf5Reports || sf2Data.sf5Reports.length === 0) {
+        missing.sf5Reports = 'No SF5 report records';
+    }
+
+    const isComplete = Object.keys(missing).length === 0;
+
+    return { isComplete, missing };
+};
+
+module.exports = { hashPassword, getFullName, isValidSex, calculateAge, validateSF2Completeness };
