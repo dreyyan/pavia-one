@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Student" ALTER COLUMN "lrn" SET DATA TYPE VARCHAR(12);

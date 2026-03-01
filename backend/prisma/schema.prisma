@@ -1,0 +1,391 @@
+// schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// *────────────────────────────────────────────────
+// * ENUMS
+// *────────────────────────────────────────────────
+enum Attendance {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum Sex {
+  MALE
+  FEMALE
+}
+
+enum AccountStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum Region {
+  NCR           // National Capital Region
+  CAR           // Cordillera Administrative Region
+  REGION_I      // Ilocos Region
+  REGION_II     // Cagayan Valley
+  REGION_III    // Central Luzon
+  REGION_IV_A   // CALABARZON
+  REGION_IV_B   // MIMAROPA
+  REGION_V      // Bicol Region
+  REGION_VI     // Western Visayas
+  NIR           // Negros Island Region
+  REGION_VII    // Central Visayas
+  REGION_VIII   // Eastern Visayas
+  REGION_IX     // Zamboanga Peninsula
+  REGION_X      // Northern Mindanao
+  REGION_XI     // Davao Region
+  REGION_XII    // SOCCSKSARGEN
+  REGION_XIII   // Caraga
+  BARMM         // Bangsamoro Autonomous Region
+}
+
+enum LearningModality {
+  FACE_TO_FACE      // Face-to-Face (F2F)
+  DISTANCE_LEARNING // Distance / Modular Learning (DL)
+  BLENDED           // Blended Learning (BL)
+  ONLINE            // Online Learning (OL)
+  HOMESCHOOL        // Homeschooling (HS)
+  OTHER             // Any other modality
+}
+
+enum EnrollmentStatus {
+  ENROLLED     // Currently enrolled
+  DROPPED      // Dropped mid-year
+  TRANSFERRED  // Transferred to another school
+  GRADUATED    // Completed the grade/year
+}
+
+enum Curriculum {
+  K12             // K to 12 Basic Education Curriculum
+  SPECIAL_SCIENCE // Special Science Curriculum
+  SPECIAL_ARTS    // Special Arts Curriculum
+  ALS             // Alternative Learning System
+  OTHER           // Any other curriculum
+}
+
+enum SF9GradeItemType {
+  WRITTEN_WORK
+  PERFORMANCE_TASK
+  QUARTERLY_ASSESSMENT
+}
+
+enum CoreValueName {
+  MAKADIYOS
+  MAKATAO
+  MAKAKALIKASAN
+  MAKABANSA
+}
+
+enum QuarterRating {
+  AO    // Always Observed
+  SO    // Sometimes Observed
+  RO    // Rarely Observed
+  NO    // Not Observed
+}
+
+enum SF5ActionTaken {
+  PROMOTED
+  CONDITIONAL
+  RETAINED
+}
+
+enum SF9Remarks {
+  PASSED
+  FAILED
+  INC   // Incomplete
+}
+
+// *────────────────────────────────────────────────
+// * MODELS
+// *────────────────────────────────────────────────
+model School {
+  id             Int      @id @default(autoincrement())
+  schoolIdNumber String   @unique
+  schoolName     String
+  region         Region
+  division       String
+  district       String?
+
+  @@map("schools")
+}
+
+model Adviser {
+  id                 Int       @id @default(autoincrement())
+  adviserId          String    @unique @db.VarChar(9)
+  name               String
+  email              String    @unique
+  password           String
+  mustChangePassword Boolean   @default(true)
+  signatureUrl       String?
+
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  sections           Section[]
+  students    Student[] @relation("CreatedByAdviser")
+
+  @@map("advisers")
+}
+
+model Section {
+  id          Int       @id @default(autoincrement())
+  name        String
+  gradeLevel  Int
+  adviserId   String
+  schoolYear  String
+  curriculum  Curriculum @default(K12)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  adviser   Adviser @relation(fields: [adviserId], references: [adviserId])
+  @@unique([adviserId])
+
+  enrollments Enrollment[]
+  dailyTotals SF2DailyTotals[]
+
+  @@unique([schoolYear, gradeLevel, name])
+  @@map("sections")
+}
+
+model Student {
+  id                 Int       @id @default(autoincrement())
+  lrn                String    @unique @db.VarChar(12)
+  firstName          String
+  middleName         String?
+  lastName           String
+  nameExtension      String?
+  sex                Sex
+  birthDate          DateTime @db.Date
+  motherTongue       String?
+  ethnicGroup        String?
+  religion           String?
+  email              String?   @unique
+  password           String?
+  createdByAdviserId String
+  accountStatus      AccountStatus @default(ACTIVE)
+  mustChangePassword Boolean       @default(true)
+
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  adviser            Adviser       @relation("CreatedByAdviser", fields: [createdByAdviserId], references: [adviserId])
+
+  address            Address?
+  guardian           Guardian?
+  enrollments        Enrollment[]
+  monthlySummaries   SF2MonthlySummary[]
+  dailyAttendances   SF2StudentAttendance[]
+  sf9Grades          SF9Grade[]
+  sf9Summaries       SF9Summary[]
+  sf5Reports         SF5Report[]
+  sf9CoreValues      SF9CoreValue[]
+
+  @@map("students")
+}
+
+model Address {
+  id              Int      @id @default(autoincrement())
+  studentId       Int      @unique
+  streetAddress   String?
+  barangay        String?
+  municipalityCity String?
+  province        String?
+
+  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@map("addresses")
+}
+
+model Guardian {
+  id                     Int      @id @default(autoincrement())
+  studentId              Int      @unique
+
+  fatherFirstName        String?
+  fatherMiddleName       String?
+  fatherLastName         String?
+  motherMaidenFirstName  String?
+  motherMaidenMiddleName String?
+  motherMaidenLastName   String?
+
+  guardianName           String?
+  guardianRelationship   String?
+  guardianContactNumber  String?
+
+  student                Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@map("guardians")
+}
+
+model Enrollment {
+  id               Int              @id @default(autoincrement())
+  studentId        Int
+  sectionId        Int
+  schoolYear       String
+  learningModality LearningModality
+  status           EnrollmentStatus @default(ENROLLED)
+  enrollmentDate   DateTime?
+  remarks          String?
+
+  student          Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  section          Section          @relation(fields: [sectionId], references: [id])
+
+  @@unique([studentId, schoolYear])
+  @@map("enrollments")
+}
+
+model SF2DailyTotals {
+  id             Int      @id @default(autoincrement())
+  sectionId      Int
+  attendanceDate DateTime @db.Date
+  totalMale      Int      @default(0)
+  totalFemale    Int      @default(0)
+  totalCombined  Int      @default(0)
+
+  section        Section  @relation(fields: [sectionId], references: [id])
+
+  @@unique([sectionId, attendanceDate])
+  @@map("sf2_daily_totals")
+}
+
+model SF2StudentAttendance {
+  id             Int        @id @default(autoincrement())
+  studentId      Int
+  attendanceDate DateTime
+  status         Attendance?
+
+  student        Student    @relation(fields: [studentId], references: [id])
+
+  @@unique([studentId, attendanceDate])
+  @@map("sf2_student_attendance")
+}
+
+model SF2MonthlySummary {
+  id           Int      @id @default(autoincrement())
+  studentId    Int
+  schoolYear   String
+  month        DateTime @db.Date
+  totalPresent Int      @default(0)
+  totalAbsent  Int      @default(0)
+  remarks      String?
+
+  student      Student  @relation(fields: [studentId], references: [id])
+
+  @@unique([studentId, schoolYear, month])
+  @@map("sf2_monthly_summary")
+}
+
+model LearningArea {
+  id          Int        @id @default(autoincrement())
+  name        String
+  description String?
+  gradeLevel  Int        @default(7)
+
+  writtenWorkWeight       Float @default(0.3)   // 20–40%
+  performanceTaskWeight   Float @default(0.5)   // 40–60%
+  quarterlyAssessmentWeight Float @default(0.2) // 20%
+
+  grades      SF9Grade[]
+
+  @@map("learning_areas")
+}
+
+model SF9Grade {
+  id             Int        @id @default(autoincrement())
+  studentId      Int
+  learningAreaId Int
+  schoolYear     String
+
+  q1          Int?
+  q2          Int?
+  q3          Int?
+  q4          Int?
+
+  q1Ready     Boolean @default(false)
+  q2Ready     Boolean @default(false)
+  q3Ready     Boolean @default(false)
+  q4Ready     Boolean @default(false)
+
+  finalRating Int?
+  remarks     SF9Remarks?
+
+  student      Student      @relation(fields: [studentId], references: [id])
+  learningArea LearningArea @relation(fields: [learningAreaId], references: [id])
+  items        SF9GradeItem[]
+
+  @@unique([studentId, learningAreaId, schoolYear])
+  @@map("sf9_grades")
+}
+
+model SF9GradeItem {
+  id           Int              @id @default(autoincrement())
+  sf9GradeId   Int
+  quarter      Int              // 1, 2, 3, 4
+  type         SF9GradeItemType
+  score        Float
+  maxScore     Float            // maximum possible score for this item
+
+  grade        SF9Grade         @relation(fields: [sf9GradeId], references: [id], onDelete: Cascade)
+
+  @@map("sf9_grade_items")
+}
+
+model CoreValue {
+  id          Int             @id @default(autoincrement())
+  name        CoreValueName
+  description String?
+
+  sf9CoreValues SF9CoreValue[]
+
+  @@map("core_values")
+}
+
+model SF5Report {
+  id                  Int       @id @default(autoincrement())
+  studentId           Int
+  generalAverage      Int?
+  actionTaken         SF5ActionTaken
+  learningAreasNotMet String[]
+
+  student             Student   @relation(fields: [studentId], references: [id])
+
+  @@map("sf5_reports")
+}
+
+model SF9CoreValue {
+  id           Int           @id @default(autoincrement())
+  studentId    Int
+  coreValueId  Int
+  q1           QuarterRating?
+  q2           QuarterRating?
+  q3           QuarterRating?
+  q4           QuarterRating?
+
+  coreValue    CoreValue     @relation(fields: [coreValueId], references: [id])
+  student      Student       @relation(fields: [studentId], references: [id])
+
+  @@unique([studentId, coreValueId])
+  @@map("sf9_core_values")
+}
+
+model SF9Summary {
+  id             Int      @id @default(autoincrement())
+  studentId      Int
+  schoolYear     String
+  generalAverage Int?
+
+  student        Student  @relation(fields: [studentId], references: [id])
+
+  @@unique([studentId, schoolYear])
+  @@map("sf9_summaries")
+}
