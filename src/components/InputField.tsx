@@ -8,6 +8,7 @@ interface InputFieldProps {
   error?: string;
   iconSrc?: string; // path to image
   iconAlt?: string;
+  showClear?: boolean; // new prop
 }
 
 const InputField = ({
@@ -20,7 +21,17 @@ const InputField = ({
   error,
   iconSrc,
   iconAlt = "icon",
+  showClear = true,
 }: InputFieldProps) => {
+
+  // [HANDLE] Clear input field
+  const handleClear = () => {
+    const event = {
+      target: { value: "" },
+    } as unknown as React.ChangeEvent<HTMLInputElement>;
+    onChange(event);
+  };
+
   return (
     <div className="flex flex-col gap-1">
       {label && <label className="input-field-label text-[var(--color-text-900)]">{label}</label>}
@@ -40,8 +51,18 @@ const InputField = ({
           maxLength={maxLength}
           className={`focus:outline-none focus:ring-0 border-2 border-[var(--color-background-800)] rounded-lg py-2 ${
             iconSrc ? "pl-10" : "px-3"
-          } w-full`}
-        />
+          } w-full`}/>
+
+        {/* Clear Button */}
+        {showClear && value && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="absolute inset-y-0 right-0 flex items-center justify-center pb-1 pl-3 pr-4 h-full font-bold text-md text-gray-400 hover:text-gray-600 cursor-pointer"
+          >
+            &times;
+          </button>
+        )}
       </div>
 
       {error && <span className="text-red-500 text-xs">{error}</span>}
