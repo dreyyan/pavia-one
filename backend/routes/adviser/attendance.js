@@ -190,7 +190,7 @@ router.get('/:studentId', verifyAdviser, async (req, res) => {
 
 // ?[DELETE] Remove a wrongly recorded attendance (protected)
 // /api/attendance/:attendanceId
-router.delete('/:attendanceId', verifyAdmin, async (req, res) => {
+router.delete('/:attendanceId', verifyAdviser, async (req, res) => {
   try {
     const { attendanceId } = req.params;
 
