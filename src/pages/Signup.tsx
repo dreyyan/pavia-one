@@ -8,8 +8,11 @@ import PasswordRequirement from "../components/PasswordRequirement";
 const SignUp = () => {
     // States
     const [role, setRole] = useState<"Student" | "Adviser" | null>(null);
+    const [LRN, setLRN] = useState("");
+    const [adviserIdNumber, setAdviserIdNumber] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
 
     return (
         <div className="pb-20">
@@ -35,7 +38,8 @@ const SignUp = () => {
                     <button
                     onClick={() => {
                         setRole(null);
-                        setEmail("");
+                        setLRN("");
+                        setAdviserIdNumber("");
                         setPassword("");
                     }}
                     className="
@@ -58,8 +62,8 @@ const SignUp = () => {
                     <InputField
                         label="Learner's Reference Number (LRN)"
                         type="text"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        value={LRN}
+                        onChange={(e) => setLRN(e.target.value)}
                         maxLength={12}
                         placeholder="100000000000"
                         iconSrc="student-id-number-icon.svg"
@@ -69,8 +73,8 @@ const SignUp = () => {
                     <InputField
                         label="Adviser ID Number"
                         type="text"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        value={adviserIdNumber}
+                        onChange={(e) => setAdviserIdNumber(e.target.value)}
                         placeholder="2026-0001"
                         iconSrc="adviser-id-number-icon.svg"
                     />
@@ -94,8 +98,8 @@ const SignUp = () => {
                   <InputField
                       label="Confirm Password"
                       type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="********"
                       iconSrc="password-icon.svg"
                   />
