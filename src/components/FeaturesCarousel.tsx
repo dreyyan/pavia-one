@@ -87,8 +87,8 @@ const FeaturesCarousel = () => {
             
             {/* Carousel Content */}
             <div className="text-center pt-4 pb-8 space-y-2">
-                <h2 className="border text-[var(--color-primary-700)]">{content[currentIndex].title}</h2>
-                <p className="border body-small">{content[currentIndex].description}</p>
+                <h2 className="text-[var(--color-primary-700)]">{content[currentIndex].title}</h2>
+                <p className="body-small">{content[currentIndex].description}</p>
             </div>
 
             {/* Primary Buttons */}
