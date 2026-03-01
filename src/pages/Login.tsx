@@ -34,20 +34,34 @@ import PrimaryButton from "../components/PrimaryButton";
 
                     {/* Input Fields */}
                     <div className="flex flex-col gap-y-4 mt-6 mb-2">
+                        {role == "Student" ? (
                         <InputField
-                            label="Email or Username"
+                            label="Learner's Reference Number (LRN)"
                             type="text"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            placeholder="Email or username"
-                            iconSrc="email-username-icon.svg"
+                            maxLength={12}
+                            placeholder="100000000000"
+                            iconSrc="student-id-number-icon.svg"
                         />
+                    ) : (
+                        <InputField
+                            label="Adviser ID Number"
+                            type="text"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            maxLength={12}
+                            placeholder="2006-0001"
+                            iconSrc="adviser-id-number-icon.svg"
+                        />
+                        )}
+                        
                         <InputField
                             label="Password"
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Enter your password"
+                            placeholder="********"
                             iconSrc="password-icon.svg"
                         />
                     </div>

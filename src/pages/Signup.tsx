@@ -28,39 +28,40 @@ const SignUp = () => {
             </div>
             )}
 
-            {/* STEP 2: Login as Role */}
+            {/* STEP 2: Sign Up as Role */}
             {role !== null && (
             <div className="flex flex-col pt-15 px-6">
-                <h2 className="text-[var(--color-primary-700)]">Login</h2>
+                <h2 className="text-[var(--color-primary-700)]">Sign Up</h2>
 
                 {/* Input Fields */}
                 <div className="flex flex-col gap-y-4 mt-6 mb-3">
                   {role === "Student" && (
                     <InputField
-                        label="Student ID"
+                        label="Learner's Reference Number (LRN)"
                         type="text"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Enter your student ID"
+                        maxLength={12}
+                        placeholder="100000000000"
                         iconSrc="student-id-number-icon.svg"
                     />
                   )}
                   {role === "Adviser" && (
                     <InputField
-                        label="Adviser ID"
+                        label="Adviser ID Number"
                         type="text"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Enter your adviser ID"
+                        placeholder="2026-0001"
                         iconSrc="adviser-id-number-icon.svg"
                     />
                   )}
                   <InputField
-                      label="Email"
+                      label="Email Address"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Email or username"
+                      placeholder="example@domain.com"
                       iconSrc="email-icon.svg"
                   />
                   <InputField
