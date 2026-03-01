@@ -18,7 +18,6 @@ const Login = () => {
     const [showModal, setShowModal] = useState(false);
     const [modalMessage, setModalMessage] = useState("");
 
-
     // [HANDLE] Login
     const handleLogin = async () => {
     setError(""); 

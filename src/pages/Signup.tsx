@@ -4,18 +4,108 @@ import RoleCard from "../components/RoleCard";
 import InputField from "../components/InputField";
 import PrimaryButton from "../components/PrimaryButton";
 import PasswordRequirement from "../components/PasswordRequirement";
+import { useNavigate } from "react-router-dom";
+import Modal from "../components/Modal";
 
 const SignUp = () => {
+    const navigate = useNavigate();
+
     // States
     const [role, setRole] = useState<"Student" | "Adviser" | null>(null);
     const [LRN, setLRN] = useState("");
     const [adviserIdNumber, setAdviserIdNumber] = useState("");
+    const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const [error, setError] = useState("");
+    const [successMessage, setSuccessMessage] = useState("");
+    const [showModal, setShowModal] = useState(false);
+    const [modalMessage, setModalMessage] = useState("");
+
+    // [HANDLE] Sign Up
+    const handleSignUp = async () => {
+        setError("");
+        setSuccessMessage("");
+
+        // [1] Validate required fields
+        if (!name || !email || !password || !confirmPassword || (role === "Student" && !LRN)) {
+            setModalMessage("Please fill in all required fields.");
+            setShowModal(true);
+            return;
+        }
+
+        // [2] Student-specific validation
+        if (role === "Student" && !/^\d{12}$/.test(LRN)) {
+            setModalMessage("LRN must be a 12-digit number.");
+            setShowModal(true);
+            return;
+        }
+
+        // [3] Password confirmation
+        if (password !== confirmPassword) {
+            setModalMessage("Passwords do not match.");
+            setShowModal(true);
+            return;
+        }
+
+        // [4] Password strength
+        if (password.length < 8) {
+            setModalMessage("Password must be at least 8 characters.");
+            setShowModal(true);
+            return;
+        }
+
+        // [5] Prepare payload
+        const payload: any = { name, email, password, confirmPassword };
+        if (role === "Student") payload.lrn = LRN;
+
+        if (role === "Adviser") {
+            setModalMessage("Adviser sign-up is not available yet.");
+            setShowModal(true);
+            return;
+        }
+
+        // [6] Endpoint
+        const endpoint = "/api/auth/sign-up";
+
+        try {
+            const res = await fetch(endpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                setModalMessage(data.message || "Sign Up failed.");
+                setShowModal(true);
+                return;
+            }
+
+            // [7] Success
+            setModalMessage("Account created successfully! Redirecting to login...");
+            setShowModal(true);
+
+            setTimeout(() => navigate("/login"), 2000);
+        } catch (err) {
+            console.error(err);
+            setModalMessage("Something went wrong. Please try again.");
+            setShowModal(true);
+        }
+    };
 
     return (
         <div className="pb-20">
+            {showModal && (
+            <Modal
+                isOpen={showModal}
+                onClose={() => setShowModal(false)}
+                title="Login Error"
+                message={modalMessage}   // simple message
+            />
+            )}
             <ImageHeader />
 
             {/* STEP 1: Select Role */}
@@ -80,6 +170,14 @@ const SignUp = () => {
                     />
                   )}
                   <InputField
+                      label="Name"
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="e.g. Juan dela Cruz"
+                      iconSrc="name-icon.svg"
+                  />
+                  <InputField
                       label="Email Address"
                       type="email"
                       value={email}
@@ -114,7 +212,7 @@ const SignUp = () => {
                   <PasswordRequirement requirement="Contains special character" isMet={/[!@#$%^&*(),.?":{}|<>]/.test(password)} />
                 </div>
 
-                <PrimaryButton text="Sign Up" onClick={() => {}} />
+                <PrimaryButton text="Sign Up" onClick={() => {handleSignUp()}} />
             </div>
             )}
 

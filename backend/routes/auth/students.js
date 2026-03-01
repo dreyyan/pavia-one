@@ -15,10 +15,25 @@ const { hashPassword } = require("../../utils/helpers")
 // ?[POST] Student Sign Up
 // /api/auth/sign-up
 router.post('/sign-up', async (req, res) => {
-    const { lrn, name, email, password } = req.body;
-    
+    const { lrn, name, email, password, confirmPassword } = req.body;
+
     try {
-        // Check if LRN or email already exists
+        // 1️⃣ Validate required fields
+        if (!lrn || !name || !email || !password || !confirmPassword) {
+            return res.status(400).json(errorResponse("All fields are required"));
+        }
+
+        // 2️⃣ Validate LRN format (12 digits)
+        if (!/^\d{12}$/.test(lrn)) {
+            return res.status(400).json(errorResponse("LRN must be a 12-digit number"));
+        }
+
+        // 3️⃣ Validate password match
+        if (password !== confirmPassword) {
+            return res.status(400).json(errorResponse("Passwords do not match"));
+        }
+
+        // 4️⃣ Check if LRN or email already exists
         const existing = await prisma.student.findFirst({
             where: {
                 OR: [
@@ -32,16 +47,21 @@ router.post('/sign-up', async (req, res) => {
             return res.status(409).json(errorResponse("Student ID or email already registered"));
         }
 
+        // 5️⃣ Hash password
         const hashedPassword = await hashPassword(password);
 
+        // 6️⃣ Create new student
         const newStudent = await prisma.student.create({
             data: { lrn, name, email, password: hashedPassword }
         });
 
-        const { password: _, ...studentWithoutPassword } = newStudent; // Remove password
+        // 7️⃣ Remove password from response
+        const { password: _, ...studentWithoutPassword } = newStudent;
+
+        // 8️⃣ Respond success
         res.status(201).json(successResponse("Student created successfully", studentWithoutPassword));
     } catch (err) {
-        res.status(400).json(errorResponse("Failed to create student", err.message));
+        res.status(500).json(errorResponse("Failed to create student", err.message));
     }
 });
 
