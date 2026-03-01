@@ -15,7 +15,7 @@ const { hashPassword } = require("../../utils/helpers")
 // ?[POST] Student Sign Up
 // /api/auth/sign-up
 router.post('/sign-up', async (req, res) => {
-    const { stulrndentId, name, email, password } = req.body;
+    const { lrn, name, email, password } = req.body;
     
     try {
         // Check if LRN or email already exists
@@ -48,16 +48,11 @@ router.post('/sign-up', async (req, res) => {
 // ?[POST] Student Login
 // /api/auth/login
 router.post('/login', async (req, res) => {
-    const { lrnOrEmail, password, rememberMe } = req.body;
+    const { lrn, password, rememberMe } = req.body;
 
     try {
         const student = await prisma.student.findFirst({
-            where: {
-                OR: [
-                    { lrn: lrnOrEmail },
-                    { email: lrnOrEmail }
-                ]
-            }
+            where: { lrn: req.lrn }
         });
 
         if (!student) {
