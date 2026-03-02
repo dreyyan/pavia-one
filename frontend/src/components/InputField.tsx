@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 interface InputFieldProps {
   label?: string;
   type?: string;
@@ -8,7 +10,7 @@ interface InputFieldProps {
   error?: string;
   iconSrc?: string; // path to image
   iconAlt?: string;
-  showClear?: boolean; // new prop
+  showClear?: boolean; // show clear button for non-password fields
 }
 
 const InputField = ({
@@ -23,46 +25,86 @@ const InputField = ({
   iconAlt = "icon",
   showClear = true,
 }: InputFieldProps) => {
+  // State for password visibility toggle
+  const [showPassword, setShowPassword] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
-  // [HANDLE] Clear input field
+  // Handle input clear
   const handleClear = () => {
-    const event = {
-      target: { value: "" },
-    } as unknown as React.ChangeEvent<HTMLInputElement>;
+    const event = { target: { value: "" } } as unknown as React.ChangeEvent<HTMLInputElement>;
     onChange(event);
   };
+
+  // Toggle password visibility
+  const togglePasswordVisibility = () => setShowPassword((prev) => !prev);
+
+  // Dynamic input type
+  const inputType = type === "password" ? (showPassword ? "text" : "password") : type;
+
+  // Determine password icon based on hover & visibility
+  let passwordIcon = "";
+
+  if (showPassword) {
+    // Password is visible
+    passwordIcon = isHovered ? "/visibility-off-hovered-icon.svg" : "/visibility-off-icon.svg";
+  } else {
+    // Password is hidden
+    passwordIcon = isHovered ? "/visibility-hovered-icon.svg" : "/visibility-icon.svg";
+  }
 
   return (
     <div className="flex flex-col gap-1">
       {label && <label className="input-field-label text-[var(--color-text-900)]">{label}</label>}
 
       <div className="relative">
+        {/* Left icon */}
         {iconSrc && (
           <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-            <img src={iconSrc} alt={iconAlt} loading="eager" className="w-5 h-5 object-contain" />
+            <img
+              src={`/${iconSrc}`}
+              alt={iconAlt}
+              loading="eager"
+              className="w-5 h-5 object-contain"
+            />
           </div>
         )}
 
+        {/* Input */}
         <input
-          type={type}
+          type={inputType}
           value={value}
           onChange={onChange}
           placeholder={placeholder}
           maxLength={maxLength}
           className={`focus:outline-none focus:ring-0 border-2 border-[var(--color-background-800)] rounded-lg py-2 ${
             iconSrc ? "pl-10" : "px-3"
-          } w-full`}/>
+          } w-full`}
+        />
 
-        {/* Clear Button */}
-        {showClear && value && (
+        {/* Right button: password visibility OR clear */}
+        {type === "password" && value ? (
+          <button
+            type="button"
+            onClick={togglePasswordVisibility}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className="absolute inset-y-0 right-0 flex items-center justify-center pb-1 pl-3 pr-4 h-full cursor-pointer"
+          >
+            <img
+              src={passwordIcon}
+              alt={showPassword ? "Hide password" : "Show password"}
+              className="size-6 pt-1 object-contain"
+            />
+          </button>
+        ) : showClear && value ? (
           <button
             type="button"
             onClick={handleClear}
-            className="absolute inset-y-0 right-0 flex items-center justify-center pb-1 pl-3 pr-4 h-full font-bold text-md text-gray-400 hover:text-gray-600 cursor-pointer"
+            className="absolute inset-y-0 right-0 flex items-center justify-center pb-1 pl-3 pr-5 h-full font-bold text-md text-gray-400 hover:text-gray-600 cursor-pointer"
           >
             &times;
           </button>
-        )}
+        ) : null}
       </div>
 
       {error && <span className="text-red-500 text-xs">{error}</span>}
