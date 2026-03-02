@@ -5,16 +5,15 @@ import Header from "./components/Header";
 
 export default function Layout() {
   const location = useLocation();
-  const hideHeader = location.pathname === "/login" || location.pathname === "/sign-up" || location.pathname === "/forgot";
-  const hideFooter = location.pathname === "/login" || location.pathname === "/sign-up" || location.pathname === "/forgot";
+  const hideHeaderFooter = location.pathname === "/login/admin" || location.pathname === "/login/adviser" || location.pathname === "/forgot";
 
   return (
     <div className="flex flex-col min-h-screen">
-      {!hideHeader && <Header />}
+      {!hideHeaderFooter && <Header />}
       <main className="flex-grow">
         <Outlet />
       </main>
-      {!hideFooter && <Footer />}
+      {!hideHeaderFooter && <Footer />}
     </div>
   );
 }
