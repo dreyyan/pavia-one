@@ -12,26 +12,58 @@ const bcrypt = require('bcrypt');
 const { successResponse, errorResponse } = require('../../utils/response');
 const { hashPassword } = require("../../utils/helpers")
 
-// ?[POST] Adviser Login
-// /api/auth/adviser/login
-router.post('/login', async (req, res) => {
-    const { adviserIdOrEmail, password, rememberMe } = req.body;
+// ?[POST] Adviser Sign Up
+// /api/auth/adviser/sign-up
+router.post('/sign-up', async (req, res) => {
+    const { adviserId, name, email, password } = req.body;
 
     try {
-        const adviser = await prisma.adviser.findFirst({
+        // Check if adviserId or email already exists
+        const existing = await prisma.adviser.findFirst({
             where: {
                 OR: [
-                    { adviserId: adviserIdOrEmail },
-                    { email: adviserIdOrEmail }
+                    { adviserId },
+                    { email }
                 ]
             }
         });
 
+        if (existing) {
+            return res.status(409).json(errorResponse("Adviser ID or email already registered"));
+        }
+
+        const hashedPassword = await hashPassword(password);
+
+        const newAdviser = await prisma.adviser.create({
+            data: { adviserId, name, email, password: hashedPassword }
+        });
+
+        const { password: _, ...adviserWithoutPassword } = newAdviser; // Remove password
+        res.status(201).json(successResponse("Adviser created successfully", adviserWithoutPassword));
+    } catch (err) {
+        res.status(400).json(errorResponse("Failed to create adviser", err.message));
+    }
+});
+
+// ?[POST] Adviser Login
+// /api/auth/adviser/login
+router.post('/login', async (req, res) => {
+    const { adviserIdNumber, password, rememberMe } = req.body;
+
+    try {
+        const adviser = await prisma.adviser.findFirst({
+            where: { adviserId: adviserIdNumber }
+        });
+
+        // ![ERROR] Adivser not found
         if (!adviser) {
             return res.status(404).json(errorResponse("Adviser not found"));
         }
 
+        // ?Check if passwords match
         const isMatch = await bcrypt.compare(password, adviser.password);
+
+        // ![ERROR] Invalid password
         if (!isMatch) {
             return res.status(401).json(errorResponse("Invalid password"));
         }
@@ -45,6 +77,8 @@ router.post('/login', async (req, res) => {
         );
 
         const { password: _, ...adviserWithoutPassword } = adviser;
+
+        // *[SUCCESS] Login Successful
         res.status(200).json(successResponse("Login successful", { adviser: adviserWithoutPassword, token }));
     } catch (err) {
         res.status(400).json(errorResponse("Failed to log in adviser", err.message));
