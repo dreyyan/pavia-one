@@ -50,9 +50,12 @@ router.post('/sign-up', async (req, res) => {
         // 5️⃣ Hash password
         const hashedPassword = await hashPassword(password);
 
+        const [firstName, ...lastNameParts] = name.trim().split(" ");
+        const lastName = lastNameParts.join(" ") || "";
+
         // 6️⃣ Create new student
         const newStudent = await prisma.student.create({
-            data: { lrn, name, email, password: hashedPassword }
+            data: { lrn, firstName, lastName, email, password: hashedPassword }
         });
 
         // 7️⃣ Remove password from response
@@ -61,6 +64,7 @@ router.post('/sign-up', async (req, res) => {
         // 8️⃣ Respond success
         res.status(201).json(successResponse("Student created successfully", studentWithoutPassword));
     } catch (err) {
+        console.error("SIGNUP ERROR:", err);
         res.status(500).json(errorResponse("Failed to create student", err.message));
     }
 });

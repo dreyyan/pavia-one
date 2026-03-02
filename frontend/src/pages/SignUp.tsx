@@ -21,6 +21,7 @@ const SignUp = () => {
     const [error, setError] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
     const [showModal, setShowModal] = useState(false);
+    const [modalType, setModalType] = useState<"default" | "error" | "success">("default");
     const [modalMessage, setModalMessage] = useState("");
 
     // [HANDLE] Sign Up
@@ -31,6 +32,7 @@ const SignUp = () => {
         // [1] Validate required fields
         if (!name || !email || !password || !confirmPassword || (role === "Student" && !LRN)) {
             setModalMessage("Please fill in all required fields.");
+            setModalType("error");
             setShowModal(true);
             return;
         }
@@ -39,6 +41,7 @@ const SignUp = () => {
         if (role === "Student" && !/^\d{12}$/.test(LRN)) {
             setModalMessage("LRN must be a 12-digit number.");
             setShowModal(true);
+            setModalType("error");
             return;
         }
 
@@ -46,12 +49,26 @@ const SignUp = () => {
         if (password !== confirmPassword) {
             setModalMessage("Passwords do not match.");
             setShowModal(true);
+            setModalType("error");
             return;
         }
 
         // [4] Password strength
-        if (password.length < 8) {
-            setModalMessage("Password must be at least 8 characters.");
+        const uppercase = /[A-Z]/.test(password);
+        const lowercase = /[a-z]/.test(password);
+        const number = /\d/.test(password);
+        const specialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+        if (password.length < 8 || !uppercase || !lowercase || !number || !specialChar) {
+            let message = "Password must meet the following requirements:<br>";
+            if (password.length < 8) message += "- At least 8 characters<br>";
+            if (!uppercase) message += "- Contains uppercase letter<br>";
+            if (!lowercase) message += "- Contains lowercase letter<br>";
+            if (!number) message += "- Contains number<br>";
+            if (!specialChar) message += "- Contains special character<br>";
+
+            setModalMessage(message.trim());
+            setModalType("error");
             setShowModal(true);
             return;
         }
@@ -62,12 +79,15 @@ const SignUp = () => {
 
         if (role === "Adviser") {
             setModalMessage("Adviser sign-up is not available yet.");
+            setModalType("error");
             setShowModal(true);
             return;
         }
 
         // [6] Endpoint
-        const endpoint = "/api/auth/sign-up";
+        const endpoint = role === "Student"
+            ? "/api/auth/students/sign-up"
+            : "/api/auth/advisers/sign-up";
 
         try {
             const res = await fetch(endpoint, {
@@ -76,22 +96,28 @@ const SignUp = () => {
                 body: JSON.stringify(payload),
             });
 
-            const data = await res.json();
+            let data: any;
+            try {
+                data = await res.json();
+            } catch {
+                data = { message: "No response from server" };
+            }
 
             if (!res.ok) {
                 setModalMessage(data.message || "Sign Up failed.");
+                setModalType("error");
                 setShowModal(true);
                 return;
             }
 
-            // [7] Success
             setModalMessage("Account created successfully! Redirecting to login...");
+            setModalType("success");
             setShowModal(true);
-
             setTimeout(() => navigate("/login"), 2000);
         } catch (err) {
             console.error(err);
             setModalMessage("Something went wrong. Please try again.");
+            setModalType("error");
             setShowModal(true);
         }
     };
@@ -100,10 +126,18 @@ const SignUp = () => {
         <div className="pb-20">
             {showModal && (
             <Modal
+                key={modalType}
                 isOpen={showModal}
                 onClose={() => setShowModal(false)}
-                title="Login Error"
-                message={modalMessage}   // simple message
+                title={
+                modalType === "error"
+                    ? "Error"
+                    : modalType === "success"
+                    ? "Success"
+                    : "Notice"
+                }
+                message={modalMessage}
+                type={modalType}
             />
             )}
             <ImageHeader />

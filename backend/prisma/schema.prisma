@@ -2,11 +2,13 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
   provider = "postgresql"
 }
+
 
 // *────────────────────────────────────────────────
 // * ENUMS
@@ -166,8 +168,8 @@ model Student {
   middleName         String?
   lastName           String
   nameExtension      String?
-  sex                Sex
-  birthDate          DateTime @db.Date
+  sex                Sex?
+  birthDate          DateTime? @db.Date
   motherTongue       String?
   ethnicGroup        String?
   religion           String?
@@ -264,7 +266,7 @@ model SF2StudentAttendance {
   attendanceDate DateTime
   status         Attendance?
 
-  student        Student    @relation(fields: [studentId], references: [id])
+  student        Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, attendanceDate])
   @@map("sf2_student_attendance")

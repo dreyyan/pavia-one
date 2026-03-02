@@ -6,10 +6,17 @@ const app = express();
 
 // [MIDDLEWARE] CORS and JSON parsing
 app.use(express.json());
+
 app.use(cors({
   origin: 'http://localhost:5173',
   credentials: true,
 }));
+
+app.use((req, res, next) => {
+  console.log(`[REQUEST] ${req.method} ${req.url}`);
+  console.log('Body:', req.body);
+  next();
+});
 
 // Routes
 app.use('/api/student', require('./routes/student/index'));
