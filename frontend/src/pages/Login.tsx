@@ -88,8 +88,8 @@ const Login = () => {
                         type="text"
                         value={adviserId}
                         onChange={(e) => setAdviserId(e.target.value)}
-                        maxLength={12}
-                        placeholder="2006-0001"
+                        maxLength={7}
+                        placeholder="2006-001"
                         iconSrc="adviser-id-number-icon.svg"
                     />
 
