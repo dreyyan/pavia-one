@@ -48,11 +48,11 @@ router.post('/sign-up', async (req, res) => {
 // ?[POST] Adviser Login
 // /api/auth/adviser/login
 router.post('/login', async (req, res) => {
-    const { adviserIdNumber, password, rememberMe } = req.body;
+    const { adviserId, password, rememberMe } = req.body;
 
     try {
         const adviser = await prisma.adviser.findFirst({
-            where: { adviserId: adviserIdNumber }
+            where: { adviserId: adviserId }
         });
 
         // ![ERROR] Adivser not found
