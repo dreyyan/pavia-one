@@ -36,7 +36,7 @@ const Login = () => {
         };
 
         try {
-            const res = await fetch("/api/login", {
+            const res = await fetch("/api/auth/advisers/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
@@ -89,7 +89,7 @@ const Login = () => {
                         value={adviserId}
                         onChange={(e) => setAdviserId(e.target.value)}
                         maxLength={7}
-                        placeholder="2006-001"
+                        placeholder="2006001"
                         iconSrc="adviser-id-number-icon.svg"
                     />
 
