@@ -46,11 +46,11 @@ const FeaturesCarousel = () => {
 
     // [HANDLES] Navigation
     const handleAdviserLogin = () => {
-        navigate("/login");
+        navigate("/login/adviser");
     };
 
-    const handleLearnMore = () => {
-        navigate("/about-us");
+    const handleAdminLogin = () => {
+        navigate("/login/admin")
     };
 
     return (
@@ -94,7 +94,8 @@ const FeaturesCarousel = () => {
             {/* Primary Buttons */}
             <div className="flex flex-col gap-y-2 mb-4">
                 <PrimaryButton text="Login as Adviser" onClick={handleAdviserLogin} />
-                <PrimaryButton text="Learn More" color="FCB103" onClick={handleLearnMore} />
+                <PrimaryButton text="Login as Admin" color="FCB103" onClick={handleAdminLogin} />
+                <a href="about-us" className="link block text-center underline text-[var(--color-primary-700)]">Learn More</a>
             </div>
         </div>
     );
