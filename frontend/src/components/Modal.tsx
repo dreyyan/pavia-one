@@ -76,9 +76,10 @@ const Modal = ({
           <div className="mb-4">{children}</div>
         ) : (
           message && (
-            <p className="text-sm sm:text-base mb-4">
-              {message}
-            </p>
+            <p
+              className="text-sm sm:text-base mb-4"
+              dangerouslySetInnerHTML={{ __html: message }}
+            />
           )
         )}
 
