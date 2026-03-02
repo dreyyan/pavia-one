@@ -22,6 +22,7 @@ app.use((req, res, next) => {
 app.use('/api/adviser', require('./routes/adviser/index'));
 app.use('/api/admin', require('./routes/admin/index'));
 app.use('/api/auth/advisers', require('./routes/auth/advisers'));
+app.use('/api/auth/admin', require('./routes/auth/admin'))
 
 // [ERROR HANDLING]
 app.use((err, req, res, next) => {
