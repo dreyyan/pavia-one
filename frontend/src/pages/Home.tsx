@@ -9,6 +9,7 @@ export default function Home() {
             <div>
                 <ImageHeader />
             </div>
+            
             {/* Features Carousel */}
             <div className="px-6 py-10">
                 <FeaturesCarousel />

@@ -38,19 +38,19 @@ const FeaturesCarousel = () => {
         const nextIndex = (prev + 1) % images.length;
         return nextIndex;
         });
-        setIsLoading(true); // reset here instead
+        setIsLoading(true);
     }, 10000);
 
     return () => clearInterval(interval);
     }, []);
 
     // [HANDLES] Navigation
-    const handleStudentLogin = () => {
+    const handleAdviserLogin = () => {
         navigate("/login");
     };
 
-    const handleAdviserLogin = () => {
-        navigate("/login");
+    const handleLearnMore = () => {
+        navigate("/about-us");
     };
 
     return (
@@ -93,11 +93,9 @@ const FeaturesCarousel = () => {
 
             {/* Primary Buttons */}
             <div className="flex flex-col gap-y-2 mb-4">
-                <PrimaryButton text="Login as Student" onClick={handleStudentLogin} />
-                <PrimaryButton text="Login as Adviser" color="FCB103" onClick={handleAdviserLogin} />
+                <PrimaryButton text="Login as Adviser" onClick={handleAdviserLogin} />
+                <PrimaryButton text="Learn More" color="FCB103" onClick={handleLearnMore} />
             </div>
-
-            <a href="about-us" className="link block text-center underline text-[var(--color-primary-700)]">Learn More</a>
         </div>
     );
 };

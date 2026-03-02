@@ -27,7 +27,13 @@ const Modal = ({
 
   // Reset input when modal closes
   useEffect(() => {
-    if (!isOpen) setTextInput(inputValue);
+    if (!isOpen) return;
+
+    const timer = setTimeout(() => {
+      setTextInput(inputValue);
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, [isOpen, inputValue]);
 
   if (!isOpen) return null;

@@ -3,7 +3,6 @@ import Home from "./pages/Home";
 import Layout from "./Layout";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
-import SignUp from "./pages/SignUp";
 import AboutUs from "./AboutUs";
 
 function App() {
@@ -12,7 +11,6 @@ function App() {
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/sign-up" element={<SignUp />} />
         <Route path="/forgot" element={<ForgotPassword />} />
         <Route path="/about-us" element={<AboutUs />} />
       </Route>
