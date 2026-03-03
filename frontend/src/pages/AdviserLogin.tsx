@@ -116,7 +116,7 @@ const AdviserLogin = () => {
                     </label>
 
                     <a
-                        href="/forgot-password"
+                        href={`/forgot-password?role=adviser`}
                         className="link text-[var(--color-primary-700)] hover:underline"
                     >
                         Forgot Password?

@@ -129,11 +129,14 @@ model Adviser {
   mustChangePassword Boolean   @default(true)
   signatureUrl       String?
 
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-
   sections Section[] @relation("AdviserSections")
   students    Student[] @relation("CreatedByAdviser")
+
+  resetToken           String?  @unique
+  resetTokenExpiry     DateTime?
+
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   @@map("advisers")
 }
@@ -143,6 +146,10 @@ model Admin {
   username  String   @unique
   email    String @unique
   password  String
+
+  resetToken         String?  @unique
+  resetTokenExpiry   DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

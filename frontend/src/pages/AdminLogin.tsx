@@ -116,7 +116,7 @@ const AdminLogin = () => {
                     </label>
 
                     <a
-                        href="/forgot-password"
+                        href={`/forgot-password?role=admin`}
                         className="link text-[var(--color-primary-700)] hover:underline"
                     >
                         Forgot Password?
