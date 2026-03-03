@@ -78,10 +78,12 @@ const AdminLogin = () => {
             <ImageHeader />
 
             <div className="flex flex-col pt-15 px-6">
+                {/* Header */}
                 <h1 className="text-[var(--color-primary-700)]">
                     Admin Login
                 </h1>
 
+                {/* [SECTION] Input Fields */}
                 <div className="flex flex-col gap-y-4 mt-6 mb-2">
                     <InputField
                         label="Username"
@@ -103,6 +105,7 @@ const AdminLogin = () => {
                     />
                 </div>
 
+                {/* [SECTION] Auxiliary Actions */}
                 <div className="flex justify-between items-center mt-2 px-2 mb-10">
                     <label className="flex items-center gap-2 label-caption text-[var(--color-text-900)]">
                         <input
@@ -120,10 +123,11 @@ const AdminLogin = () => {
                     </a>
                 </div>
 
+                {/* [PRIMARY BUTTON] Login */}
                 <PrimaryButton text="Login" onClick={handleLogin} />
             </div>
 
-            {/* Switch login role link */}
+            {/* [SECTION] Switch Login Role Link */}
             <div className="flex justify-center mt-4">
                 <p className="label-caption">
                     Not an Admin?{" "}
