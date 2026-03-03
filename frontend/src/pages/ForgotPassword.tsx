@@ -1,109 +1,125 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-
-/* --- Shared Header Component --- */
-const AuthHeader = () => (
-  <div className="bg-[#004a99] text-white text-center py-10 relative min-h-[40vh] flex flex-col justify-center items-center">
-    <div className="absolute inset-0 opacity-10 bg-[url('/school-bg.png')] bg-cover bg-center" />
-    <div className="relative z-10 flex flex-col items-center">
-      <div className="w-16 h-16 bg-white/20 rounded-full mb-4 border border-white/30 flex items-center justify-center">
-         <span className="text-2xl">🔑</span> 
-      </div>
-      <h1 className="text-3xl font-bold tracking-tight">Pavia<span className="font-light">|</span>ONE</h1>
-      <p className="text-[10px] uppercase tracking-[0.2em] mt-2 opacity-80 text-center max-w-[180px]">
-        Password Recovery System
-      </p>
-    </div>
-  </div>
-);
+import { useNavigate } from "react-router-dom";
+import ImageHeader from "../components/ImageHeader";
+import InputField from "../components/InputField";
+import PrimaryButton from "../components/PrimaryButton";
+import Modal from "../components/Modal";
 
 const ForgotPassword = () => {
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-  const [isSubmitted, setIsSubmitted] = useState(false);
+    const navigate = useNavigate();
 
-  const handleReset = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setMessage("");
+    // *STATES
+    const [email, setEmail] = useState("");
+    const [showModal, setShowModal] = useState(false);
+    const [modalMessage, setModalMessage] = useState("");
+    const [isSubmitted, setIsSubmitted] = useState(false);
 
-    // 1. Basic Validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError("Please enter a valid email address.");
-      return;
-    }
+    // *HANDLES
+    const handleReset = async () => {
+        // ![ERROR] Empty Email
+        if (!email.trim()) {
+            setModalMessage("Please enter your email address.");
+            setShowModal(true);
+            return;
+        }
 
-    // 2. Fake Logic for sending email
-    console.log("Sending reset link to:", email);
-    setIsSubmitted(true);
-    setMessage("If an account exists for this email, you will receive a password reset link shortly.");
-  };
+        // ![ERROR] Invalid Email Format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            setModalMessage("Please enter a valid email address.");
+            setShowModal(true);
+            return;
+        }
 
-  return (
-    <div className="min-h-screen bg-white flex flex-col font-sans">
-      <AuthHeader />
+        try {
+            // TODO: Replace with real API call
+            console.log("Sending reset link to:", email);
 
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="max-w-[400px] w-full">
-          <div className="flex flex-col w-full">
-            
-            <h2 className="text-[#004a99] text-2xl font-bold mb-2 uppercase tracking-tight text-center w-full">
-              Reset Password
-            </h2>
-            <p className="text-gray-400 text-[11px] text-center mb-8 px-4">
-              Enter your email address and we'll send you a link to get back into your account.
-            </p>
+            setIsSubmitted(true);
 
-            {error && (
-              <div className="bg-red-50 text-red-500 text-[11px] p-2 rounded mb-4 border border-red-100 text-center">
-                {error}
-              </div>
-            )}
+        } catch (err) {
+            console.error(err);
+            setModalMessage("Something went wrong. Please try again.");
+            setShowModal(true);
+        }
+    };
 
-            {message && (
-              <div className="bg-green-50 text-green-600 text-[11px] p-3 rounded mb-4 border border-green-100 text-center">
-                {message}
-              </div>
-            )}
-
-            {!isSubmitted ? (
-              <form onSubmit={handleReset} className="flex flex-col gap-4 w-full">
-                <input
-                  type="text"
-                  placeholder="Enter your email"
-                  className="w-full h-12 px-4 border-[1px] border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white outline-none focus:ring-1 focus:ring-[#004a99] transition-all box-border"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+    return (
+        <div className="pb-20">
+            {/* [COMPONENT] Modal */}
+            {showModal && (
+                <Modal
+                    isOpen={showModal}
+                    onClose={() => setShowModal(false)}
+                    title="Reset Error"
+                    message={modalMessage}
                 />
-
-                <button
-                  type="submit"
-                  className="w-full bg-[#004a99] text-white py-3.5 rounded-lg font-bold text-sm shadow-md hover:bg-[#003d7a] active:scale-[0.98] transition-all mt-2"
-                >
-                  SEND RESET LINK
-                </button>
-              </form>
-            ) : (
-              <Link
-                to="/login"
-                className="w-full bg-[#004a99] text-white py-3.5 rounded-lg font-bold text-sm shadow-md hover:bg-[#003d7a] text-center active:scale-[0.98] transition-all mt-2"
-              >
-                RETURN TO LOGIN
-              </Link>
             )}
 
-            <div className="mt-8 text-center">
-              <Link to="/login" className="text-[#004a99] text-[11px] font-bold hover:underline">
-                Back to Login
-              </Link>
+            {/* [COMPONENT] Image Header */}
+            <ImageHeader />
+
+            <div className="flex flex-col pt-15 px-6">
+                {/* Header */}
+                <h1 className="text-[var(--color-primary-700)]">
+                    Forgot Password
+                </h1>
+
+                <p className="label-caption text-[var(--color-text-800)] mt-2 mb-6">
+                    Enter your email address and we’ll send you a password reset link.
+                </p>
+
+                {!isSubmitted ? (
+                    <>
+                        {/* [SECTION] Input Field */}
+                        <div className="mb-8">
+                            <InputField
+                                label="Email Address"
+                                type="text"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="example@email.com"
+                                iconSrc="email-icon.svg"
+                            />
+                        </div>
+
+                        {/* [PRIMARY BUTTON] Send Reset */}
+                        <PrimaryButton
+                            text="Send Reset Link"
+                            onClick={handleReset}
+                        />
+                    </>
+                ) : (
+                    <>
+                        <div className="mb-8">
+                            <p className="text-sm text-[var(--color-text-900)]">
+                                If an account exists for <strong>{email}</strong>, 
+                                you will receive a password reset link shortly.
+                            </p>
+                        </div>
+
+                        <PrimaryButton
+                            text="Return to Login"
+                            onClick={() => navigate("/login/adviser")}
+                        />
+                    </>
+                )}
             </div>
-          </div>
+
+            {/* [SECTION] Back to Login Link */}
+            {!isSubmitted && (
+                <div className="flex justify-center items-center gap-x-1 mt-6 text-sm">
+                    <span className="label-caption">Remember your password?</span>
+                    <button
+                        onClick={() => navigate("/login/adviser")}
+                        className="link hover:underline text-[var(--color-primary-600)]"
+                    >
+                        Back to Login
+                    </button>
+                </div>
+            )}
         </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default ForgotPassword;
