@@ -5,7 +5,7 @@ import Header from "./components/Header";
 
 export default function Layout() {
   const location = useLocation();
-  const hideHeaderFooter = location.pathname === "/login/admin" || location.pathname === "/login/adviser" || location.pathname === "/forgot";
+  const hideHeaderFooter = location.pathname === "/login/admin" || location.pathname === "/login/adviser" || location.pathname === "/forgot-password";
 
   return (
     <div className="flex flex-col min-h-screen">
