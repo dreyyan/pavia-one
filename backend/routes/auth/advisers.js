@@ -48,23 +48,22 @@ router.post('/sign-up', async (req, res) => {
 // ?[POST] Adviser Login
 // /api/auth/adviser/login
 router.post('/login', async (req, res) => {
-    const { adviserIdOrEmail, password, rememberMe } = req.body;
+    const { adviserId, password, rememberMe } = req.body;
 
     try {
         const adviser = await prisma.adviser.findFirst({
-            where: {
-                OR: [
-                    { adviserId: adviserIdOrEmail },
-                    { email: adviserIdOrEmail }
-                ]
-            }
+            where: { adviserId: adviserId }
         });
 
+        // ![ERROR] Adivser not found
         if (!adviser) {
             return res.status(404).json(errorResponse("Adviser not found"));
         }
 
+        // ?Check if passwords match
         const isMatch = await bcrypt.compare(password, adviser.password);
+
+        // ![ERROR] Invalid password
         if (!isMatch) {
             return res.status(401).json(errorResponse("Invalid password"));
         }
@@ -78,6 +77,8 @@ router.post('/login', async (req, res) => {
         );
 
         const { password: _, ...adviserWithoutPassword } = adviser;
+
+        // *[SUCCESS] Login Successful
         res.status(200).json(successResponse("Login successful", { adviser: adviserWithoutPassword, token }));
     } catch (err) {
         res.status(400).json(errorResponse("Failed to log in adviser", err.message));

@@ -1,0 +1,185 @@
+@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+/* Fonts Import */
+/* ==============================
+   Custom Colors & Fonts
+============================== */
+:root {
+  /* Primary colors */
+  --color-primary-50:  #E5F2FF;
+  --color-primary-100: #CCE5FF;
+  --color-primary-200: #99CCFF;
+  --color-primary-300: #66B2FF;
+  --color-primary-400: #3399FF;
+  --color-primary-500: #007FFF;
+  --color-primary-600: #0066CC;
+  --color-primary-700: #004C99;
+  --color-primary-800: #003366;
+  --color-primary-900: #001933;
+  --color-primary-950: #000D1A;
+
+  /* Secondary colors */
+  --color-secondary-50:  #FFF7E6;
+  --color-secondary-100: #FEEFCD;
+  --color-secondary-200: #FEE09A;
+  --color-secondary-300: #FDD068;
+  --color-secondary-400: #FDC135;
+  --color-secondary-500: #FCB103;
+  --color-secondary-600: #CA8E02;
+  --color-secondary-700: #976A02;
+  --color-secondary-800: #654701;
+  --color-secondary-900: #322301;
+  --color-secondary-950: #191200;
+
+  /* Accent colors */
+  --color-accent-50:  #EAFAEA;
+  --color-accent-100: #D6F5D6;
+  --color-accent-200: #ADEBAD;
+  --color-accent-300: #84E184;
+  --color-accent-400: #5BD75B;
+  --color-accent-500: #32CD32;
+  --color-accent-600: #28A428;
+  --color-accent-700: #1E7B1E;
+  --color-accent-800: #145214;
+  --color-accent-900: #0A290A;
+  --color-accent-950: #051505;
+
+  /* Text colors */
+  --color-text-50:  #F2F2F2;
+  --color-text-100: #E6E6E6;
+  --color-text-200: #CCCCCC;
+  --color-text-300: #B3B3B3;
+  --color-text-400: #999999;
+  --color-text-500: #808080;
+  --color-text-600: #666666;
+  --color-text-700: #4D4D4D;
+  --color-text-800: #333333;
+  --color-text-900: #1A1A1A;
+  --color-text-950: #0D0D0D;
+
+  /* Background colors */
+  --color-bg-50:  #F2F2F2;
+  --color-bg-100: #E6E6E6;
+  --color-bg-200: #CCCCCC;
+  --color-bg-300: #B3B3B3;
+  --color-bg-400: #999999;
+  --color-bg-500: #808080;
+  --color-bg-600: #666666;
+  --color-bg-700: #4D4D4D;
+  --color-bg-800: #333333;
+  --color-bg-900: #1A1A1A;
+  --color-bg-950: #0D0D0D;
+
+  /* Fonts */
+  --font-figtree: 'Figtree', sans-serif;
+  --font-roboto: 'Roboto', sans-serif;
+}
+
+.font-roboto {
+  font-family: var(--font-roboto);
+}
+
+/* ==============================
+   Typography
+============================== */
+
+/* Headlines */
+.display-1 {
+  font-family: var(--font-figtree);
+  font-weight: 700; /* bold */
+  font-size: 32px;
+  line-height: 44px;
+}
+
+h1 {
+  font-family: var(--font-figtree);
+  font-weight: 700;
+  font-size: 28px;
+  line-height: 36px;
+}
+
+h2 {
+  font-family: var(--font-figtree);
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 32px;
+}
+
+h3 {
+  font-family: var(--font-figtree);
+  font-weight: 600; /* semibold */
+  font-size: 18px;
+  line-height: 26px;
+}
+
+h4 {
+  font-family: var(--font-figtree);
+  font-weight: 500; /* medium */
+  font-size: 16px;
+  line-height: 24px;
+}
+
+/* Body Text */
+.body-large {
+  font-family: var(--font-roboto);
+  font-weight: 500; /* medium */
+  font-size: 14px;
+  line-height: 29px;
+}
+
+.body-default {
+  font-family: var(--font-roboto);
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 26px;
+}
+
+.body-small {
+  font-family: var(--font-roboto);
+  font-weight: 400; /* regular */
+  font-size: 12px;
+  line-height: 21px;
+}
+
+/* Labels, Buttons, Links */
+.label-caption {
+  font-family: var(--font-roboto);
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.button {
+  font-family: var(--font-roboto);
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.link {
+  font-family: var(--font-roboto);
+  font-weight: 500; /* medium */
+  font-size: 14px;
+  line-height: 20px;
+}
+
+/* Table Header */
+.table-header {
+  font-family: var(--font-figtree);
+  font-weight: 600; /* semibold */
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.input-field-label {
+  font-family: var(--font-roboto);
+  font-weight: 500; /* medium */
+  font-size: 14px;
+  line-height: 18px;
+}
+
+/* Shadows */
+.shadow-sm {
+  box-shadow: 0 4px 4px rgba(0,0,0,0.25);
+}

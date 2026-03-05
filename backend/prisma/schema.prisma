@@ -1,12 +1,12 @@
-// schema.prisma
-
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
   provider = "postgresql"
 }
+
 
 // *────────────────────────────────────────────────
 // * ENUMS
@@ -122,35 +122,51 @@ model School {
 
 model Adviser {
   id                 Int       @id @default(autoincrement())
-  adviserId          String    @unique @db.VarChar(9)
+  adviserId          String    @unique @db.VarChar(8)
   name               String
   email              String    @unique
   password           String
   mustChangePassword Boolean   @default(true)
   signatureUrl       String?
 
+  sections Section[] @relation("AdviserSections")
+  students    Student[] @relation("CreatedByAdviser")
+
+  resetToken           String?  @unique
+  resetTokenExpiry     DateTime?
+
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  sections           Section[]
-  students    Student[] @relation("CreatedByAdviser")
-
   @@map("advisers")
+}
+
+model Admin {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  email    String @unique
+  password  String
+
+  resetToken         String?  @unique
+  resetTokenExpiry   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Section {
   id          Int       @id @default(autoincrement())
   name        String
   gradeLevel  Int
-  adviserId   String
+  adviserId Int
+
   schoolYear  String
   curriculum  Curriculum @default(K12)
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  adviser   Adviser @relation(fields: [adviserId], references: [adviserId])
-  @@unique([adviserId])
+  adviser     Adviser @relation("AdviserSections", fields: [adviserId], references: [id], onDelete: Cascade)
 
   enrollments Enrollment[]
   dailyTotals SF2DailyTotals[]
@@ -166,8 +182,8 @@ model Student {
   middleName         String?
   lastName           String
   nameExtension      String?
-  sex                Sex
-  birthDate          DateTime @db.Date
+  sex                Sex?
+  birthDate          DateTime? @db.Date
   motherTongue       String?
   ethnicGroup        String?
   religion           String?
@@ -179,7 +195,7 @@ model Student {
 
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
-  adviser            Adviser       @relation("CreatedByAdviser", fields: [createdByAdviserId], references: [adviserId])
+  adviser            Adviser       @relation("CreatedByAdviser", fields: [createdByAdviserId], references: [adviserId], onDelete: Cascade)
 
   address            Address?
   guardian           Guardian?
@@ -264,7 +280,7 @@ model SF2StudentAttendance {
   attendanceDate DateTime
   status         Attendance?
 
-  student        Student    @relation(fields: [studentId], references: [id])
+  student        Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, attendanceDate])
   @@map("sf2_student_attendance")
