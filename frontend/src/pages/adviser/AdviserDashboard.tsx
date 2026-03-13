@@ -1,7 +1,47 @@
 import DashboardButton from "../../components/DashboardButton";
 import DashboardItem from "../../components/DashboardItem";
+import { useState, useEffect } from "react";
+import DashboardSkeleton from "../../components/DashboardSkeleton";
 
 const AdviserDashboard = () => {
+    const [profile, setProfile] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchProfile = async () => {
+        try {
+            const token = localStorage.getItem("token");
+
+            const res = await fetch(
+            `${import.meta.env.VITE_API_BASE_URL}/api/adviser/profile`,
+            {
+                headers: {
+                Authorization: `Bearer ${token}`,
+                },
+            }
+            );
+
+            const data = await res.json();
+
+            if (data.success) {
+            setProfile(data.data);
+            } else {
+            console.error(data.message);
+            }
+        } catch (err) {
+            console.error("Failed to fetch profile:", err);
+        } finally {
+            setLoading(false);
+        }
+        };
+
+        fetchProfile();
+    }, []);
+
+    // const section = profile.sections?.[0];
+    // const classSize = profile.students?.length ?? 0;
+    if (loading) return <DashboardSkeleton />;
+
     return (
         <div className="py-6 px-4 space-y-4">
             <h1 className="text-[var(--color-text-950)]">Dashboard</h1>
