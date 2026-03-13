@@ -4,17 +4,18 @@ import DashboardItem from "../../components/DashboardItem";
 const AdviserDashboard = () => {
     return (
         <div className="py-6 px-4 space-y-4">
-            <h1 className="text-[var(--color-primary-800)]">Dashboard</h1>
+            <h1 className="text-[var(--color-text-950)]">Dashboard</h1>
 
             {/* [SECTION] Personal Information */}
-            <div className="flex bg-[var(--color-bg-100)] border-2 border-[var(--color-bg-300)]/60 rounded-lg px-5 py-6 gap-x-3">
+            <div className="flex items-center bg-[var(--color-bg-100)] border-2 border-[var(--color-bg-300)]/60 rounded-lg px-5 py-6 gap-x-4">
                 {/* Profile Image */}
-                <div className="bg-[var(--color-bg-200)] size-19 rounded-full"></div>
+                <div className="bg-[var(--color-bg-200)] size-18 rounded-full"></div>
+
                 {/* Profile Details */}
                 <div className="">
-                    <h2>John Doe</h2>
-                    <p className="body-large">Grade 10 - Section A</p>
-                    <p className="body-default">Class Adviser</p>
+                    <h2 className="mb-2">John Doe</h2>
+                    <p className="font-roboto font-semibold text-sm">Grade 10 - Section A</p>
+                    <p className="font-roboto font-medium text-xs">Class Adviser</p>
                 </div>
             </div>
 
