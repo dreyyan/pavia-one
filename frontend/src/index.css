@@ -74,6 +74,8 @@
   /* Fonts */
   --font-figtree: 'Figtree', sans-serif;
   --font-roboto: 'Roboto', sans-serif;
+
+  background-color: var(--color-bg-200);
 }
 
 .font-roboto {
