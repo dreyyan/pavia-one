@@ -11,7 +11,7 @@ export default function Home() {
             </div>
             
             {/* Features Carousel */}
-            <div className="px-6 py-10">
+            <div className="px-6 py-10 bg-[var(--color-bg-50)]">
                 <FeaturesCarousel />
             </div>
         </main>
