@@ -1,6 +1,6 @@
 const Footer = () => {
     return (
-        <footer className="flex flex-col py-4 px-3 justify-center items-center gap-y-1 border bg-[var(--color-primary-700)]">
+        <footer className="flex flex-col py-4 px-3 justify-center items-center gap-y-1 bg-[var(--color-primary-700)]">
             {/* <img src="/pavia-one-banner-white.svg" className="" /> */}
             <p className="font-roboto text-xs text-white">© 2026 PaviaOne. All rights reserved.</p>
             <span className="flex gap-x-1">
