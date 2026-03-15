@@ -44,7 +44,9 @@ const AdviserDashboard = () => {
 
     return (
         <div className="py-6 px-4 space-y-4">
-            <h1 className="text-[var(--color-text-950)]">Dashboard</h1>
+            <div className="bg-[var(--color-primary-700)] py-2 rounded-lg">
+                <h1 className="text-center text-[var(--color-text-50)]">Dashboard</h1>
+            </div>
 
             {/* [SECTION] Personal Information */}
             <div className="flex items-center bg-[var(--color-bg-100)] border-2 border-[var(--color-bg-300)]/60 rounded-lg px-5 py-6 gap-x-4 shadow-md">
