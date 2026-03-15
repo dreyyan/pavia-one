@@ -63,7 +63,7 @@ const AdminLogin = () => {
     };
 
     return (
-        <div className="pb-20">
+        <div className="pb-20 bg-[var(--color-bg-50)]">
             {/* [COMPONENT] Modal */}
             {showModal && (
                 <Modal
