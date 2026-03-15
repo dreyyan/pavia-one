@@ -47,7 +47,7 @@ const AdviserDashboard = () => {
             <h1 className="text-[var(--color-text-950)]">Dashboard</h1>
 
             {/* [SECTION] Personal Information */}
-            <div className="flex items-center bg-[var(--color-bg-100)] border-2 border-[var(--color-bg-300)]/60 rounded-lg px-5 py-6 gap-x-4">
+            <div className="flex items-center bg-[var(--color-bg-100)] border-2 border-[var(--color-bg-300)]/60 rounded-lg px-5 py-6 gap-x-4 shadow-md">
                 {/* Profile Image */}
                 <div className="bg-[var(--color-bg-200)] size-18 rounded-full"></div>
 
@@ -60,7 +60,7 @@ const AdviserDashboard = () => {
             </div>
 
             {/* [SECTION] Overview */}
-            <div className="bg-[var(--color-bg-100)] border-2 border-[var(--color-bg-300)]/60 rounded-lg px-5 py-6 gap-x-3">
+            <div className="bg-[var(--color-bg-100)] border-2 border-[var(--color-bg-300)]/60 rounded-lg px-5 py-6 gap-x-3 shadow-md">
                 <h2 className="mb-3">Overview</h2>
 
                 {/* Overview Details */}
