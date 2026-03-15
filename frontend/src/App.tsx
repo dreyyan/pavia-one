@@ -9,6 +9,7 @@ import ResetPassword from "./pages/ResetPassword";
 import ForgotPassword from "./pages/ForgotPassword";
 import AboutUs from "./AboutUs";
 import AdviserDashboard from "./pages/adviser/AdviserDashboard";
+import AdviserClassManagement from "./pages/adviser/AdviserClassManagement";
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
         <Route path="/adviser/dashboard" element={<AdviserDashboard />} />
+        <Route path="/adviser/classes" element={<AdviserClassManagement />} />
         <Route path="/about-us" element={<AboutUs />} />
       </Route>
     </Routes>
