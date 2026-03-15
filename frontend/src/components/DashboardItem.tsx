@@ -17,7 +17,7 @@ const DashboardItem: React.FC<DashboardProps> = ({iconSrc, text, value}) => {
             </div>
 
             {/* Value */}
-            <h2>{value}</h2>
+            <h2 className="text-[var(--color-text-900)]">{value}</h2>
         </div>
     );
 };
