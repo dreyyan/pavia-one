@@ -42,22 +42,22 @@ const Header = () => {
       {/* [COMPONENT] Sidebar */}
       <aside
         className={`
-          fixed top-0 left-0 h-full w-74
+          fixed top-0 left-0 h-full w-82
           bg-[var(--color-bg-100)] shadow-xl z-50
           transform transition-transform duration-300
           ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
         {/* [SECTION] Sidebar Header */}
-        <div className="flex items-center bg-[var(--color-bg-100)] shadow-md px-5 py-6 gap-x-4">
+        <div className="flex items-center bg-[var(--color-primary-700)] shadow-md px-5 py-6 gap-x-4">
             {/* Profile Image */}
             <div className="bg-[var(--color-bg-200)] size-18 rounded-full"></div>
 
             {/* Profile Details */}
             <div className="">
-                <h2 className="mb-2">John Doe</h2>
-                <p className="font-roboto font-semibold text-sm">Grade 10 - Section A</p>
-                <p className="font-roboto font-medium text-xs">Class Adviser</p>
+                <h2 className="mb-2 text-[var(--color-text-50)]">John Doe</h2>
+                <p className="font-roboto font-semibold text-sm text-[var(--color-text-100)]">Grade 10 - Section A</p>
+                <p className="font-roboto font-medium text-xs text-[var(--color-text-100)]">Class Adviser</p>
             </div>
         </div>
 
