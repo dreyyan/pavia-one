@@ -34,7 +34,9 @@ router.get('/', verifyAdviser, async (req, res) => {
         name: true,
         gradeLevel: true,
         schoolYear: true,
-        curriculum: true
+        curriculum: true,
+        classSize: true,
+        schedule: true
       },
       orderBy: { gradeLevel: 'asc' }
     });
