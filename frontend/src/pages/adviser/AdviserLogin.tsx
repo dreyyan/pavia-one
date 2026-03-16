@@ -16,14 +16,12 @@ const AdviserLogin = () => {
 
     // *HANDLES
     const handleLogin = async () => {
-        // ![ERROR] Empty Adviser ID
         if (adviserId.trim() === "") {
             setModalMessage("Please enter your Adviser ID.");
             setShowModal(true);
             return;
         }
 
-        // ![ERROR] Empty Password
         if (!password) {
             setModalMessage("Please enter your password.");
             setShowModal(true);
@@ -36,7 +34,7 @@ const AdviserLogin = () => {
         };
 
         try {
-            const res = await fetch("/api/auth/advisers/login", {
+            const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/adviser/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
@@ -44,15 +42,16 @@ const AdviserLogin = () => {
 
             const data = await res.json();
 
-            // ![ERROR] Error response from backend
-            if (!res.ok) {
+            if (!res.ok || !data.success) {
                 setModalMessage(data.message || "Login failed.");
                 setShowModal(true);
                 return;
             }
 
-            // *[SUCCESS] Navigate to Dashboard
-            localStorage.setItem("token", data.token);
+            // ⚡ Store the token correctly
+            localStorage.setItem("token", data.data.token); // ← note the `.data.token`
+            localStorage.setItem("role", "Adviser");
+
             navigate("/adviser/dashboard");
 
         } catch (err) {
