@@ -159,117 +159,99 @@ router.get('/:id', verifyAdmin, async (req, res) => {
 // ?[POST] Add section(s)
 // /api/admin/sections
 router.post('/', verifyAdmin, async (req, res) => {
-	try {
-		// Accept single object or array
-		const sectionsInput = Array.isArray(req.body) ? req.body : [req.body];
+  try {
+    const sectionsInput = Array.isArray(req.body) ? req.body : [req.body];
 
-		// ![ERROR] Empty body request
-		if (sectionsInput.length === 0) {
-			return res.status(400).json(errorResponse('Request body cannot be empty'));
-		}
+    if (sectionsInput.length === 0) {
+      return res.status(400).json(errorResponse('Request body cannot be empty'));
+    }
 
-		const createdSections = [];
-		const errors = [];
+    const createdSections = [];
+    const errors = [];
 
-		for (const section of sectionsInput) {
-			const { name, adviserId, gradeLevel, schoolYear } = section;
+    for (const section of sectionsInput) {
+      const { name, adviserId, gradeLevel, schoolYear, color, classSize, schedule } = section;
 
-			// ![ERROR] One or more missing fields
-			if (!name || !adviserId || gradeLevel === undefined || !schoolYear) {
-				errors.push({ name, message: 'Missing required fields' });
-				continue;
-			}
+      if (!name || !adviserId || gradeLevel === undefined || !schoolYear) {
+        errors.push({ name, message: 'Missing required fields' });
+        continue;
+      }
 
-			// ![ERROR] Invalid grade level
-			if (![7, 8, 9, 10].includes(parseInt(gradeLevel))) {
-				errors.push({ name, gradeLevel, message: 'gradeLevel must be between 7 and 10' });
-				continue;
-			}
+      if (![7, 8, 9, 10].includes(parseInt(gradeLevel))) {
+        errors.push({ name, gradeLevel, message: 'gradeLevel must be between 7 and 10' });
+        continue;
+      }
 
-			// Validate schoolYear format
-			const schoolYearPattern = /^(\d{4})\s-\s(\d{4})$/;
-			const match = schoolYear.match(schoolYearPattern);
+      const schoolYearPattern = /^(\d{4})\s-\s(\d{4})$/;
+      const match = schoolYear.match(schoolYearPattern);
+      if (!match) {
+        errors.push({ name, schoolYear, message: 'schoolYear must follow "YYYY - YYYY"' });
+        continue;
+      }
 
-			// ![ERROR] Invalid school year format
-			if (!match) {
-				errors.push({ name, schoolYear, message: 'schoolYear must follow "YYYY - YYYY"' });
-				continue;
-			}
+      if (parseInt(match[2], 10) !== parseInt(match[1], 10) + 1) {
+        errors.push({ name, schoolYear, message: 'schoolYear must increment by 1, e.g., "2025 - 2026"' });
+        continue;
+      }
 
-			const startYear = parseInt(match[1], 10);
-			const endYear = parseInt(match[2], 10);
+      const existing = await prisma.section.findFirst({
+        where: { name, gradeLevel: parseInt(gradeLevel), schoolYear },
+      });
+      if (existing) {
+        errors.push({ name, message: `Section already exists for grade level ${gradeLevel} in ${schoolYear}` });
+        continue;
+      }
 
-			// ![ERROR] Invalid school year increment
-			if (endYear !== startYear + 1) {
-				errors.push({ name, schoolYear, message: 'schoolYear must increment by 1, e.g., "2025 - 2026"' });
-				continue;
-			}
+      const adviser = await prisma.adviser.findUnique({ where: { adviserId } });
+      if (!adviser) {
+        errors.push({ name, adviserId, message: 'Adviser not found' });
+        continue;
+      }
 
-			// Check for existing section with same name, gradeLevel, schoolYear
-			const existing = await prisma.section.findFirst({
-				where: {
-					name,
-					gradeLevel: parseInt(gradeLevel),
-					schoolYear,
-				},
-			});
+      // Create section
+      const newSection = await prisma.section.create({
+        data: {
+          name,
+          gradeLevel: parseInt(gradeLevel),
+          schoolYear,
+          adviser: { connect: { adviserId } },
+          color: color || null,
+          classSize: classSize || null,
+          schedule: schedule || null,
+        },
+        select: {
+          id: true,
+          name: true,
+          gradeLevel: true,
+          schoolYear: true,
+          color: true,
+          classSize: true,
+          schedule: true,
+          createdAt: true,
+          adviser: {
+            select: {
+              id: true,
+              adviserId: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
 
-			// ![ERROR] Section already exists
-			if (existing) {
-				errors.push({ name, message: `Section already exists for grade level ${gradeLevel} in ${schoolYear}` });
-				continue;
-			}
+      createdSections.push(newSection);
+    }
 
-			// Check if adviser exists
-			const adviser = await prisma.adviser.findUnique({ where: { adviserId } });
-
-			// ![ERROR] Adviser not found
-			if (!adviser) {
-				errors.push({ name, adviserId, message: 'Adviser not found' });
-				continue;
-			}
-
-			// Create section
-			const newSection = await prisma.section.create({
-				data: {
-					name,
-					gradeLevel: parseInt(gradeLevel),
-					schoolYear,
-					adviser: { connect: { adviserId } },
-				},
-				select: {
-					id: true,
-					name: true,
-					gradeLevel: true,
-					schoolYear: true,
-					createdAt: true,
-					adviser: {
-						select: {
-							id: true,
-							adviserId: true,
-							name: true,
-							email: true,
-						},
-					},
-				},
-			});
-
-			createdSections.push(newSection);
-		}
-
-		// *[SUCCESS] Section(s) processed successfully
-		res.status(201).json(
-			successResponse('Section(s) processed successfully', {
-				created: createdSections,
-				failed: errors,
-			})
-		);
-	} catch (err) {
-		console.error('Create section(s) error:', err);
-		res.status(500).json(
-			errorResponse('Failed to create section(s)', err.message)
-		);
-	}
+    res.status(201).json(
+      successResponse('Section(s) processed successfully', {
+        created: createdSections,
+        failed: errors,
+      })
+    );
+  } catch (err) {
+    console.error('Create section(s) error:', err);
+    res.status(500).json(errorResponse('Failed to create section(s)', err.message));
+  }
 });
 
 // ?[DELETE] Delete all sections
