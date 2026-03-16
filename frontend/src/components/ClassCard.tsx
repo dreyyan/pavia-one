@@ -51,14 +51,14 @@ const ClassCard: React.FC<ClassCardProps> = ({ name, schedule, classSize, color 
         <h2 className="text-left text-[var(--color-text-50)] font-semibold">{name}</h2>
 
         {/* Class Schedule */}
-        <div>
+        {/* <div>
             {schedule.map(({ day, time }, index) => (
             <div key={index} className="flex justify-between [&>p]:text-[var(--color-text-50)]">
                 <p className="font-roboto font-bold text-sm leading-normal tracking-wider">{day}</p>
                 <p className="font-roboto font-medium text-sm leading-normal">{time}</p>
             </div>
             ))}
-        </div>
+        </div> */}
         </button>
     );
 };
