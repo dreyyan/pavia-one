@@ -17,7 +17,7 @@ const verifyAdviser = require('../../middleware/authMiddleware').verifyAdviser;
 router.get('/profile', verifyAdviser, async (req, res) => {
   try {
     const adviser = await prisma.adviser.findUnique({
-      where: { id: req.adviserId },
+      where: { adviserId: req.adviserId },
       select: {
         id: true,
         adviserId: true,
