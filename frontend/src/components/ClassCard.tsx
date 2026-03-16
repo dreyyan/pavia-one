@@ -8,23 +8,17 @@ interface ClassCardProps {
 };
 
 const ClassCard: React.FC<ClassCardProps> = ({ name, schedule, classSize, color }) => {
-    const [hovered, setHovered] = useState(false);
     return (
         <button
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        style={{
-            backgroundColor: color,
-            borderColor: hovered ? "var(--color-bg-100)" : color,
-        }}
+        style={{backgroundColor: color}}
         className="
             relative
             rounded-lg
             pt-4 pb-2 px-4
             space-y-1
-            border-2
             cursor-pointer
-            transition-all
+            transition-opacity
+            hover:opacity-80
             shadow-md
         "
         >
