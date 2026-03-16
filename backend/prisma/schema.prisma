@@ -163,6 +163,10 @@ model Section {
   schoolYear  String
   curriculum  Curriculum @default(K12)
 
+  color       String?
+  classSize   Int?
+  schedule    Json?
+
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
