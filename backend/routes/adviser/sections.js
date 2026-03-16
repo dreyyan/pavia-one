@@ -12,6 +12,44 @@ const { successResponse, errorResponse } = require('../../utils/response');
 const { getFullName } = require('../../utils/helpers');
 const verifyAdviser = require('../../middleware/authMiddleware').verifyAdviser;
 
+// ?[GET] Retrieve adviser's sections (protected)
+// /api/adviser/sections
+router.get('/', verifyAdviser, async (req, res) => {
+  try {
+    // [1] Find the numeric adviser ID first
+    const adviser = await prisma.adviser.findUnique({
+      where: { adviserId: req.adviserId },
+      select: { id: true }
+    });
+
+    if (!adviser) {
+      return res.status(404).json(errorResponse('Adviser not found'));
+    }
+
+    // [2] Use numeric adviser.id to fetch sections
+    const sections = await prisma.section.findMany({
+      where: { adviserId: adviser.id }, // numeric ID
+      select: {
+        id: true,
+        name: true,
+        gradeLevel: true,
+        schoolYear: true,
+        curriculum: true
+      },
+      orderBy: { gradeLevel: 'asc' }
+    });
+
+    if (!sections || sections.length === 0) {
+      return res.status(404).json(errorResponse('No sections found for this adviser'));
+    }
+
+    res.json(successResponse('Adviser sections retrieved', sections));
+  } catch (err) {
+    console.error('Sections fetch error:', err);
+    res.status(500).json(errorResponse('Failed to fetch adviser sections', err.message));
+  }
+});
+
 // ?[GET] List students assigned to this adviser's sections
 // /api/adviser/sections/students
 router.get('/students', verifyAdviser, async (req, res) => {
