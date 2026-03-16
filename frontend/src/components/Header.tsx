@@ -1,18 +1,34 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import SidebarLink from "./SidebarLink";
 
 const Header = () => {
     const navigate = useNavigate();
-    const [isLoggedIn, setIsLoggedIn] = useState(true);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [role, setRole] = useState<"Adviser" | "Admin">("Adviser");
+    const [role, setRole] = useState<"Adviser" | "Admin" | "">(() => {
+      return (localStorage.getItem("role") as "Adviser" | "Admin") || "";
+    });
+
+    const [isLoggedIn, setIsLoggedIn] = useState(() => {
+      return !!localStorage.getItem("token");
+    });
 
     // [HANDLE] Toggle sidebar 
     const toggleSidebar = () => { setIsSidebarOpen(prev => !prev); };
 
     // [HANDLE] Close the sidebar
     const closeSidebar = () => setIsSidebarOpen(false);
+
+    // [HANDLE] Logout
+    const handleLogout = () => {
+      localStorage.removeItem("token");
+      localStorage.removeItem("role");
+
+      setIsLoggedIn(false);
+      setRole("");
+
+      navigate("/");
+    };
 
   return (
     <>
@@ -72,6 +88,16 @@ const Header = () => {
         <SidebarLink icon="/notifications-and-events-icon.svg" text="Notifications and Events" to={`/${role.toLowerCase()}/notifications`} onClick={closeSidebar} />
         <SidebarLink icon="/profile-icon.svg" text="Profile" to={`/${role.toLowerCase()}/profile`} onClick={closeSidebar} />
         <SidebarLink icon="/settings-icon.svg" text="Settings" to={`/${role.toLowerCase()}/settings`} onClick={closeSidebar} />
+        {/* Logout */}
+        <SidebarLink
+          icon="/logout-icon.svg"
+          text="Logout"
+          to={`/login/${role.toLowerCase()}`}
+          onClick={() => {
+            closeSidebar();
+            handleLogout();
+          }}
+        />
         </nav>
       </aside>
     </>
