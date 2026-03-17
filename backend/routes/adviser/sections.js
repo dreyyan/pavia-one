@@ -103,16 +103,22 @@ router.get('/:id', verifyAdviser, async (req, res) => {
 router.get('/:id/students', verifyAdviser, async (req, res) => {
   try {
     const sectionId = parseInt(req.params.id);
-
     if (isNaN(sectionId)) {
       return res.status(400).json(errorResponse('Invalid section ID'));
     }
 
-    const { page = 1, limit = 50, search = '', sortBy = 'lrn', sortOrder = 'asc' } = req.query;
+    const {
+      page = 1,
+      limit = 50,
+      search = '',
+      sortBy = 'lrn',
+      sortOrder = 'asc',
+    } = req.query;
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const take = parseInt(limit);
 
-    // [1] Get numeric adviser ID (same as section endpoint)
+    // Get numeric adviser ID
     const adviser = await prisma.adviser.findUnique({
       where: { adviserId: req.adviserId },
       select: { id: true },
@@ -122,11 +128,14 @@ router.get('/:id/students', verifyAdviser, async (req, res) => {
       return res.status(404).json(errorResponse('Adviser not found'));
     }
 
-    // [2] Verify this section belongs to the adviser
+    // Verify section belongs to adviser
     const section = await prisma.section.findFirst({
-      where: {
-        id: sectionId,
-        adviserId: adviser.id,
+      where: { id: sectionId, adviserId: adviser.id },
+      select: {
+        id: true,
+        name: true,
+        gradeLevel: true,
+        color: true
       },
     });
 
@@ -134,7 +143,7 @@ router.get('/:id/students', verifyAdviser, async (req, res) => {
       return res.status(403).json(errorResponse('Unauthorized or section not found'));
     }
 
-    // [3] Build filter for enrollments
+    // Build filter for enrollments
     const enrollmentWhere = {
       sectionId,
       student: search
@@ -151,18 +160,33 @@ router.get('/:id/students', verifyAdviser, async (req, res) => {
         : undefined,
     };
 
-    // [4] Fetch enrollments + students
+    // Determine orderBy for Prisma (relation sorting)
+    let orderBy = { student: { lrn: 'asc' } }; // default
+    if (sortBy === 'lrn' || sortBy === 'firstName' || sortBy === 'lastName') {
+      orderBy = { student: { [sortBy]: sortOrder === 'desc' ? 'desc' : 'asc' } };
+    } else if (sortBy === 'fullName') {
+      // fullName is derived: sort by firstName then lastName
+      orderBy = {
+        student: {
+          firstName: sortOrder === 'desc' ? 'desc' : 'asc',
+          lastName: sortOrder === 'desc' ? 'desc' : 'asc',
+        },
+      };
+    }
+
+    // Fetch enrollments
     const [enrollments, total] = await Promise.all([
       prisma.enrollment.findMany({
         where: enrollmentWhere,
         include: { student: true },
         skip,
         take,
+        orderBy,
       }),
       prisma.enrollment.count({ where: enrollmentWhere }),
     ]);
 
-    // [5] Map to student objects
+    // Map to student objects with fullName only
     const students = enrollments.map((e) => ({
       ...e.student,
       fullName: getFullName(e.student),
@@ -170,10 +194,14 @@ router.get('/:id/students', verifyAdviser, async (req, res) => {
 
     const totalPages = Math.ceil(total / take);
 
-    // [SUCCESS]
     res.json(
       successResponse('Students retrieved successfully', {
-        data: students,
+        section: {
+          name: section.name,
+          gradeLevel: section.gradeLevel,
+          color: section.color
+        },
+        students,
         pagination: {
           total,
           page: parseInt(page),
