@@ -35,6 +35,7 @@ router.get('/', verifyAdviser, async (req, res) => {
         gradeLevel: true,
         schoolYear: true,
         curriculum: true,
+        color: true,
         classSize: true,
         schedule: true
       },
