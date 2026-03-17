@@ -10,6 +10,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import AboutUs from "./AboutUs";
 import AdviserDashboard from "./pages/adviser/AdviserDashboard";
 import AdviserClassManagement from "./pages/adviser/AdviserClassManagement";
+import AdviserMyClass from "./pages/adviser/AdviserMyClass";
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
         {/* Adviser */}
         <Route path="/adviser/dashboard" element={<AdviserDashboard />} />
         <Route path="/adviser/classes" element={<AdviserClassManagement />} />
+        <Route path="/adviser/classes/:id" element={<AdviserMyClass />} />
 
         {/* Shared Endpoints */}
         <Route path="/about-us" element={<AboutUs />} />
