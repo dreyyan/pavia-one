@@ -83,9 +83,21 @@ const AdviserMyClass = () => {
       {/* Floating Back Button */}
       <button
         onClick={() => navigate("/adviser/classes")}
-        className="fixed top-20 left-6 z-2 px-2 py-1 bg-[var(--color-primary-500)] text-[var(--color-text-50)] font-semibold rounded-full shadow-lg hover:bg-[var(--color-primary-400)] transition cursor-pointer"
+        className="fixed top-20 left-6 z-50 flex items-center gap-2 px-4 py-2 bg-[var(--color-primary-600)] 
+                  text-[var(--color-text-50)] font-semibold rounded-full shadow-lg hover:bg-[var(--color-primary-500)] 
+                  focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-400)] transition-all"
       >
-        ← Back
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-4 w-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+        </svg>
+        Back
       </button>
 
       <MyClassCard
