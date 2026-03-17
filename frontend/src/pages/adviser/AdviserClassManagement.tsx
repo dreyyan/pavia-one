@@ -88,7 +88,7 @@ const AdviserClassManagement = () => {
     : classes;
 
   return (
-    <div className="py-6 px-4 space-y-4">
+    <div className="py-10 px-4 space-y-4">
       {/* Header */}
       <div>
         <div className="bg-[var(--color-primary-700)] py-2 rounded-t-lg">
