@@ -223,26 +223,26 @@ const AdviserClassStudents = () => {
                 <th className="py-2 px-4 text-left hidden md:table-cell">Attendance</th>
                 </tr>
             </thead>
-            <tbody>
+                <tbody>
                 {displayedStudents.map((student) => (
-                <tr
+                    <tr
                     key={student.id}
                     className="border-t border-[var(--color-bg-200)] hover:bg-[var(--color-bg-100)] cursor-pointer"
-                    onClick={() => navigate(`/adviser/students/${student.id}`)}
-                >
+                    onClick={() => navigate(`/adviser/classes/${id}/students/${student.id}`)}
+                    >
                     <td className="py-2 px-4 text-[var(--color-text-900)] font-medium">{student.lrn}</td>
                     <td className="py-2 px-4 text-[var(--color-text-900)] font-bold">{student.fullName}</td>
                     <td className="py-2 px-4 text-[var(--color-text-900)] hidden sm:table-cell">
-                    <img
+                        <img
                         src={student.profilePic || "/default-profile.svg"}
                         alt={student.fullName}
                         className="w-10 h-10 rounded-full"
-                    />
+                        />
                     </td>
                     <td className="py-2 px-4 hidden md:table-cell">{student.attendanceRate ?? 0}%</td>
-                </tr>
+                    </tr>
                 ))}
-            </tbody>
+                </tbody>
             </table>
         )}
       </div>
