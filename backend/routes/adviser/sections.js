@@ -278,6 +278,60 @@ router.get('/:sectionId', verifyAdviser, async (req, res) => {
   }
 });
 
+// ?[GET] Get a specific student in a section (protected)
+// /api/adviser/sections/:sectionId/students/:studentId
+router.get('/:sectionId/students/:studentId', verifyAdviser, async (req, res) => {
+  try {
+    const sectionId = parseInt(req.params.sectionId);
+    const studentId = parseInt(req.params.studentId);
+
+    // Get numeric adviser ID from token
+    const adviser = await prisma.adviser.findUnique({
+      where: { adviserId: req.adviserId }, // string from token
+      select: { id: true }
+    });
+
+    if (!adviser) {
+      return res.status(404).json(errorResponse('Adviser not found'));
+    }
+
+    // Verify this section belongs to the adviser
+    const section = await prisma.section.findUnique({
+      where: { id: sectionId },
+      select: { adviserId: true }
+    });
+
+    if (!section || section.adviserId !== adviser.id) {
+      return res.status(403).json(errorResponse('You do not manage this section'));
+    }
+
+    // Fetch the student enrollment in this section
+    const enrollment = await prisma.enrollment.findFirst({
+      where: {
+        sectionId,
+        studentId
+      },
+      include: { student: true }
+    });
+
+    if (!enrollment) {
+      return res.status(404).json(errorResponse('Student not found in this section'));
+    }
+
+    // Build student response with full name
+    const student = {
+      ...enrollment.student,
+      fullName: getFullName(enrollment.student),
+      sectionId
+    };
+
+    res.json(successResponse('Student retrieved successfully', student));
+  } catch (err) {
+    console.error('Get student in section error:', err);
+    res.status(500).json(errorResponse('Failed to fetch student', err.message));
+  }
+});
+
 // ?[GET] Search for a specific student in an adviser's section
 // /api/adviser/sections/:sectionId/student
 router.get('/:sectionId/student', verifyAdviser, async (req, res) => {
