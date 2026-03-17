@@ -111,7 +111,7 @@ const AdviserClassManagement = () => {
         <div ref={filterRef} className="relative">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center justify-center rounded-sm p-2 border transition cursor-pointer ${
+            className={`flex items-center justify-center text-[var()--color-text-50] rounded-sm p-2 border transition cursor-pointer ${
               showFilters
                 ? "bg-[var(--color-primary-600)] border-[var(--color-primary-500)]"
                 : "bg-[var(--color-primary-700)] border-[var(--color-primary-700)] hover:opacity-80"
