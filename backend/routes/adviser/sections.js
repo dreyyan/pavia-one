@@ -53,6 +53,51 @@ router.get('/', verifyAdviser, async (req, res) => {
   }
 });
 
+// ?[GET] Retrieve a specific section by ID (protected)
+// /api/adviser/sections/:id
+router.get('/:id', verifyAdviser, async (req, res) => {
+  const { id } = req.params; // section numeric ID
+
+  try {
+    // [1] Find numeric adviser ID first
+    const adviser = await prisma.adviser.findUnique({
+      where: { adviserId: req.adviserId },
+      select: { id: true },
+    });
+
+    if (!adviser) {
+      return res.status(404).json(errorResponse('Adviser not found'));
+    }
+
+    // [2] Fetch the specific section using numeric ID and adviser ID
+    const section = await prisma.section.findFirst({
+      where: {
+        id: Number(id),
+        adviserId: adviser.id, // ensure the section belongs to this adviser
+      },
+      select: {
+        id: true,
+        name: true,
+        gradeLevel: true,
+        schoolYear: true,
+        curriculum: true,
+        color: true,
+        classSize: true,
+        schedule: true,
+      },
+    });
+
+    if (!section) {
+      return res.status(404).json(errorResponse('Section not found for this adviser'));
+    }
+
+    res.json(successResponse('Section retrieved', section));
+  } catch (err) {
+    console.error('Section fetch error:', err);
+    res.status(500).json(errorResponse('Failed to fetch section', err.message));
+  }
+});
+
 // ?[GET] List students assigned to this adviser's sections
 // /api/adviser/sections/students
 router.get('/students', verifyAdviser, async (req, res) => {
