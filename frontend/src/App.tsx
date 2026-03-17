@@ -16,12 +16,17 @@ function App() {
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
+        {/* Authentication */}
         <Route path="/login/admin" element={<AdminLogin />} />
         <Route path="/login/adviser" element={<AdviserLogin />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
+
+        {/* Adviser */}
         <Route path="/adviser/dashboard" element={<AdviserDashboard />} />
         <Route path="/adviser/classes" element={<AdviserClassManagement />} />
+
+        {/* Shared Endpoints */}
         <Route path="/about-us" element={<AboutUs />} />
       </Route>
     </Routes>
