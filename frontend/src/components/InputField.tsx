@@ -11,6 +11,7 @@ interface InputFieldProps {
   iconSrc?: string; // path to image
   iconAlt?: string;
   showClear?: boolean; // show clear button for non-password fields
+  disabled?: boolean;
 }
 
 const InputField = ({
@@ -24,6 +25,7 @@ const InputField = ({
   iconSrc,
   iconAlt = "icon",
   showClear = true,
+  disabled = false,
 }: InputFieldProps) => {
   // State for password visibility toggle
   const [showPassword, setShowPassword] = useState(false);
@@ -31,6 +33,7 @@ const InputField = ({
 
   // Handle input clear
   const handleClear = () => {
+    if (disabled) return;
     const event = { target: { value: "" } } as unknown as React.ChangeEvent<HTMLInputElement>;
     onChange(event);
   };
@@ -76,6 +79,7 @@ const InputField = ({
           onChange={onChange}
           placeholder={placeholder}
           maxLength={maxLength}
+          disabled={disabled}
           className={`focus:outline-none focus:ring-0 border-2 border-[var(--color-background-800)] rounded-lg py-2 ${
             iconSrc ? "pl-10" : "px-3"
           } w-full`}
@@ -88,6 +92,7 @@ const InputField = ({
             onClick={togglePasswordVisibility}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
+            disabled={disabled}
             className="absolute inset-y-0 right-0 flex items-center justify-center pb-1 pl-3 pr-4 h-full cursor-pointer"
           >
             <img
@@ -100,6 +105,7 @@ const InputField = ({
           <button
             type="button"
             onClick={handleClear}
+            disabled={disabled}
             className="absolute inset-y-0 right-0 flex items-center justify-center pb-1 pl-3 pr-5 h-full font-bold text-md text-gray-400 hover:text-gray-600 cursor-pointer"
           >
             &times;
