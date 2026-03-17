@@ -98,29 +98,45 @@ router.get('/:id', verifyAdviser, async (req, res) => {
   }
 });
 
-// ?[GET] List students assigned to this adviser's sections
-// /api/adviser/sections/students
-router.get('/students', verifyAdviser, async (req, res) => {
+// ?[GET] Students in a specific adviser section
+// /api/adviser/sections/:id/students
+router.get('/:id/students', verifyAdviser, async (req, res) => {
   try {
+    const sectionId = parseInt(req.params.id);
+
+    if (isNaN(sectionId)) {
+      return res.status(400).json(errorResponse('Invalid section ID'));
+    }
+
     const { page = 1, limit = 50, search = '', sortBy = 'lrn', sortOrder = 'asc' } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const take = parseInt(limit);
 
-    // [1] Get all section IDs managed by this adviser
-    const sections = await prisma.section.findMany({
+    // [1] Get numeric adviser ID (same as section endpoint)
+    const adviser = await prisma.adviser.findUnique({
       where: { adviserId: req.adviserId },
-      select: { id: true }
+      select: { id: true },
     });
-    const sectionIds = sections.map(s => s.id);
 
-    // [2] If adviser manages no sections, return empty
-    if (sectionIds.length === 0) {
-      return res.json(successResponse('No sections assigned', { data: [], pagination: {} }));
+    if (!adviser) {
+      return res.status(404).json(errorResponse('Adviser not found'));
     }
 
-    // [3] Build filter: only students in adviser's sections + optional search
+    // [2] Verify this section belongs to the adviser
+    const section = await prisma.section.findFirst({
+      where: {
+        id: sectionId,
+        adviserId: adviser.id,
+      },
+    });
+
+    if (!section) {
+      return res.status(403).json(errorResponse('Unauthorized or section not found'));
+    }
+
+    // [3] Build filter for enrollments
     const enrollmentWhere = {
-      sectionId: { in: sectionIds }, // enforce adviser access
+      sectionId,
       student: search
         ? {
             OR: [
@@ -129,38 +145,32 @@ router.get('/students', verifyAdviser, async (req, res) => {
               { lastName: { contains: search, mode: 'insensitive' } },
               { nameExtension: { contains: search, mode: 'insensitive' } },
               { lrn: { contains: search } },
-              { email: { contains: search, mode: 'insensitive' } }
-            ]
+              { email: { contains: search, mode: 'insensitive' } },
+            ],
           }
-        : undefined
+        : undefined,
     };
 
-    // [4] Fetch enrollments with included student info
+    // [4] Fetch enrollments + students
     const [enrollments, total] = await Promise.all([
       prisma.enrollment.findMany({
         where: enrollmentWhere,
-        include: {
-          student: true,
-          section: { select: { id: true, name: true, gradeLevel: true } }
-        },
-        orderBy: { student: { [sortBy]: sortOrder === 'desc' ? 'desc' : 'asc' } },
+        include: { student: true },
         skip,
-        take
+        take,
       }),
-      prisma.enrollment.count({ where: enrollmentWhere })
+      prisma.enrollment.count({ where: enrollmentWhere }),
     ]);
 
-    // [5] Map enrollments to student objects
-    const students = enrollments.map(e => ({
+    // [5] Map to student objects
+    const students = enrollments.map((e) => ({
       ...e.student,
       fullName: getFullName(e.student),
-      section: e.section
     }));
 
-    // [6] Prepare pagination
     const totalPages = Math.ceil(total / take);
 
-    // *[SUCCESS] Return students with pagination
+    // [SUCCESS]
     res.json(
       successResponse('Students retrieved successfully', {
         data: students,
@@ -170,12 +180,12 @@ router.get('/students', verifyAdviser, async (req, res) => {
           limit: take,
           totalPages,
           hasNext: parseInt(page) < totalPages,
-          hasPrev: parseInt(page) > 1
-        }
+          hasPrev: parseInt(page) > 1,
+        },
       })
     );
   } catch (err) {
-    console.error('Adviser students fetch error:', err);
+    console.error('Adviser section students fetch error:', err);
     res.status(500).json(errorResponse('Failed to fetch students', err.message));
   }
 });
@@ -299,41 +309,50 @@ router.post('/:sectionId/enrollments', verifyAdviser, async (req, res) => {
     const { students, schoolYear, learningModality = 'FACE_TO_FACE' } = req.body;
     const sectionId = parseInt(req.params.sectionId);
 
-    // [0] Validate input
+    // ![ERROR] Validate input
     if (!students || !Array.isArray(students) || students.length === 0) {
       return res.status(400).json(errorResponse('students array is required'));
     }
     if (!schoolYear) {
       return res.status(400).json(errorResponse('schoolYear is required'));
     }
+    if (isNaN(sectionId)) {
+      return res.status(400).json(errorResponse('Invalid section ID'));
+    }
 
-    // [1] Verify adviser manages this section
-    const section = await prisma.section.findUnique({
-      where: { id: sectionId },
-      select: { adviserId: true }
+    // [1] Numeric adviser ID + keep string adviserId for createdByAdviserId
+    const adviser = await prisma.adviser.findUnique({
+      where: { adviserId: req.adviserId },
+      select: { id: true, adviserId: true },
+    });
+
+    if (!adviser) {
+      return res.status(404).json(errorResponse('Adviser not found'));
+    }
+
+    // [2] Verify adviser manages this section
+    const section = await prisma.section.findFirst({
+      where: { id: sectionId, adviserId: adviser.id },
+      select: { id: true },
     });
 
     if (!section) {
-      return res.status(404).json(errorResponse('Section not found'));
-    }
-
-    if (section.adviserId !== req.adviserId) {
       return res.status(403).json(errorResponse('You do not manage this section'));
     }
 
-    // [2] Prepare students: check existing by LRN
-    const lrns = students.map(s => s.lrn);
+    // [3] Prepare students: check existing by LRN
+    const lrns = students.map((s) => s.lrn);
     const existingStudents = await prisma.student.findMany({
       where: { lrn: { in: lrns } },
-      select: { id: true, lrn: true }
+      select: { id: true, lrn: true },
     });
 
-    const existingLrns = existingStudents.map(s => s.lrn);
-    const newStudents = students.filter(s => !existingLrns.includes(s.lrn));
+    const existingLrns = existingStudents.map((s) => s.lrn);
+    const newStudents = students.filter((s) => !existingLrns.includes(s.lrn));
 
-    // [3] Create new students if they don't exist
+    // [4] Create new students if they don't exist
     const createdStudents = await Promise.all(
-      newStudents.map(s =>
+      newStudents.map((s) =>
         prisma.student.create({
           data: {
             lrn: s.lrn,
@@ -343,10 +362,10 @@ router.post('/:sectionId/enrollments', verifyAdviser, async (req, res) => {
             nameExtension: s.nameExtension,
             sex: s.sex,
             email: s.email,
-            createdByAdviserId: req.adviserId,
-            birthDate: new Date(s.birthDate)
+            birthDate: new Date(s.birthDate),
+            createdByAdviserId: req.adviserId, // <- use string from token
           },
-          select: { id: true, lrn: true }
+          select: { id: true, lrn: true },
         })
       )
     );
@@ -354,32 +373,38 @@ router.post('/:sectionId/enrollments', verifyAdviser, async (req, res) => {
     // Merge existing + newly created students
     const allStudents = [...existingStudents, ...createdStudents];
 
-    // [4] Check for existing enrollments in this section and school year
+    // [5] Check for existing enrollments in this section and school year
     const existingEnrollments = await prisma.enrollment.findMany({
       where: {
-        studentId: { in: allStudents.map(s => s.id) },
+        studentId: { in: allStudents.map((s) => s.id) },
         sectionId,
-        schoolYear
+        schoolYear,
       },
-      select: { studentId: true }
+      select: { studentId: true },
     });
 
-    const alreadyEnrolledIds = existingEnrollments.map(e => e.studentId);
-    const toEnroll = allStudents.filter(s => !alreadyEnrolledIds.includes(s.id));
+    const alreadyEnrolledIds = existingEnrollments.map((e) => e.studentId);
+    const toEnroll = allStudents.filter((s) => !alreadyEnrolledIds.includes(s.id));
 
     if (toEnroll.length === 0) {
-      return res.status(400).json(errorResponse('All students are already enrolled in this section for this school year'));
+      return res
+        .status(400)
+        .json(
+          errorResponse(
+            'All students are already enrolled in this section for this school year'
+          )
+        );
     }
 
-    // [5] Bulk create enrollments
+    // [6] Bulk create enrollments
     const createdEnrollments = await prisma.enrollment.createMany({
-      data: toEnroll.map(s => ({
+      data: toEnroll.map((s) => ({
         studentId: s.id,
         sectionId,
         schoolYear,
-        learningModality
+        learningModality,
       })),
-      skipDuplicates: true
+      skipDuplicates: true,
     });
 
     // *[SUCCESS] Response
@@ -387,7 +412,7 @@ router.post('/:sectionId/enrollments', verifyAdviser, async (req, res) => {
       successResponse('Students created and enrolled successfully', {
         totalStudentsProcessed: allStudents.length,
         studentsCreated: createdStudents.length,
-        enrollmentsCreated: createdEnrollments.count
+        enrollmentsCreated: createdEnrollments.count,
       })
     );
   } catch (err) {
