@@ -1,16 +1,25 @@
 import { useState } from "react";
-
+import { useNavigate } from "react-router-dom";
 interface ClassCardProps {
-  name: string;
-  schedule: { day: string; time: string }[];
-  classSize: number;
-  color: string;
+    id: number;
+    name: string;
+    schedule: { day: string; time: string }[];
+    classSize: number;
+    color: string;
 };
 
-const ClassCard: React.FC<ClassCardProps> = ({ name, schedule, classSize, color }) => {
+const ClassCard: React.FC<ClassCardProps> = ({ id, name, schedule, classSize, color }) => {
+    const navigate = useNavigate();
+
+    // [HANDLE] Navigate to class details
+    const handleClassCard = () => {
+    navigate(`/adviser/classes/${id}`);
+    };
+
     return (
         <button
         style={{backgroundColor: color}}
+        onClick={handleClassCard}
         className="
             relative
             rounded-lg

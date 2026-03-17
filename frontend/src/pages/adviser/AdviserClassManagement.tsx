@@ -162,6 +162,7 @@ const AdviserClassManagement = () => {
           !error &&
           filteredClasses.map((cls) => (
             <ClassCard
+            id={cls.id}
               key={cls.id}
               name={cls.name}
               schedule={cls.schedule}
