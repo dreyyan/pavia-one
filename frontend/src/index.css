@@ -57,6 +57,18 @@
   --color-purple-900: #330F34;
   --color-purple-950: #1A081A;
 
+  --color-red-50:  #FFE6E6;
+  --color-red-100: #FFBFBF;
+  --color-red-200: #FF9999;
+  --color-red-300: #FF7373;
+  --color-red-400: #FF4D4D;
+  --color-red-500: #FF2626;
+  --color-red-600: #E60000;
+  --color-red-700: #B30000;
+  --color-red-800: #800000;
+  --color-red-900: #4D0000;
+  --color-red-950: #260000;
+
   /* Text colors */
   --color-text-50:  #F2F2F2;
   --color-text-100: #E6E6E6;
