@@ -79,11 +79,11 @@ const AdviserMyClass = () => {
   if (!section) return <p>No section found.</p>;
 
   return (
-    <div className="py-8 px-4 space-y-4 relative">
+    <div className="py-17 px-4 space-y-4 relative">
       {/* Floating Back Button */}
       <button
         onClick={() => navigate("/adviser/classes")}
-        className="fixed top-20 left-6 z-50 flex items-center gap-2 px-4 py-2 bg-[var(--color-primary-600)] 
+        className="fixed top-20 left-6 z-2 flex items-center gap-2 px-4 py-2 bg-[var(--color-primary-600)] 
                   text-[var(--color-text-50)] font-semibold rounded-full shadow-lg hover:bg-[var(--color-primary-500)] 
                   focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-400)] transition-all"
       >
