@@ -45,6 +45,18 @@
   --color-accent-900: #0A290A;
   --color-accent-950: #051505;
 
+  --color-purple-50:  #F3E6F7;
+  --color-purple-100: #E0BFEF;
+  --color-purple-200: #C996E7;
+  --color-purple-300: #B06FE0;
+  --color-purple-400: #9837D8;
+  --color-purple-500: #8F28A4;
+  --color-purple-600: #7A218D;
+  --color-purple-700: #621D6F;
+  --color-purple-800: #4B1751;
+  --color-purple-900: #330F34;
+  --color-purple-950: #1A081A;
+
   /* Text colors */
   --color-text-50:  #F2F2F2;
   --color-text-100: #E6E6E6;
