@@ -90,7 +90,7 @@ const Modal = ({
         )}
 
         {/* Optional input */}
-        {onConfirm && (
+        {onConfirm && children && (
           <input
             type="text"
             value={textInput}
@@ -117,7 +117,7 @@ const Modal = ({
               if (onConfirm) onConfirm(textInput);
               onClose();
             }}
-            className="px-4 py-2 rounded-lg text-white text-sm sm:text-base bg-[var(--color-primary-500)] hover:bg-[var(--color-primary-600)] transition-colors"
+            className="px-4 py-2 rounded-lg text-white text-sm font-bold sm:text-base bg-[var(--color-primary-500)] hover:bg-[var(--color-primary-600)] transition-colors"
           >
             {confirmText}
           </button>
