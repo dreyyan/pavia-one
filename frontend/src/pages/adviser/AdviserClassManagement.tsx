@@ -64,9 +64,9 @@ const AdviserClassManagement = () => {
             name: `${sec.gradeLevel} — ${sec.name}`,
             gradeLevel: sec.gradeLevel,
             schoolYear: sec.schoolYear,
-            color: sec.color || "#999999", // fallback color
-            classSize: sec.classSize || 0, // fallback size
-            schedule: sec.schedule || [], // fallback empty schedule
+            color: sec.color || "#999999",
+            classSize: sec.classSize || 0,
+            schedule: sec.schedule || [],
           }));
 
           setClasses(sectionsWithDefaults);
