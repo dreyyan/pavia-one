@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-interface ClassCardProps {
+interface MyClassCardProps {
     id: number;
     name: string;
     schedule: { day: string; time: string }[];
@@ -10,7 +10,7 @@ interface ClassCardProps {
     color: string;
 };
 
-const MyClassCard: React.FC<ClassCardProps> = ({ id, name, schedule, classSize, maleCount, femaleCount, color }) => {
+const MyClassCard: React.FC<MyClassCardProps> = ({ id, name, schedule, classSize, maleCount, femaleCount, color }) => {
     return (
         <div
         key={id}
@@ -53,6 +53,7 @@ const MyClassCard: React.FC<ClassCardProps> = ({ id, name, schedule, classSize, 
                 <h1 className="text-left text-[var(--color-text-50)] font-semibold">{name}</h1>
 
                 {/* Class Schedule */}
+                { schedule && 
                 <div>
                     {schedule.map(({ day, time }, index) => (
                     <div key={index} className="flex justify-between [&>p]:text-[var(--color-text-50)]">
@@ -61,6 +62,7 @@ const MyClassCard: React.FC<ClassCardProps> = ({ id, name, schedule, classSize, 
                     </div>
                     ))}
                 </div>
+                }
             </div>
 
             {/* Class Size - Male & Female */}

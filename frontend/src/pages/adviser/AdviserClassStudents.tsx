@@ -22,6 +22,8 @@ interface Section {
   classSize: number;
   color: string;
   schedule: ScheduleItem[];
+  maleCount?: number;
+  femaleCount?: number;
 }
 
 type SortOption = "lrn-asc" | "lrn-desc" | "name-asc" | "name-desc";
@@ -67,7 +69,16 @@ const AdviserClassStudents = () => {
           setSection(null);
         } else {
           // Set students
-          setStudents(data.data?.students || []);
+          const studentsData = data.data?.students || [];
+          setStudents(studentsData);
+
+          // Calculate male and female counts
+          let maleCount = 0;
+          let femaleCount = 0;
+          studentsData.forEach((s: any) => {
+            if (s.sex === "MALE") maleCount++;
+            else if (s.sex === "FEMALE") femaleCount++;
+          });
 
           // Map section info for MyClassCard
           const sec = data.data?.section;
@@ -76,9 +87,11 @@ const AdviserClassStudents = () => {
               id: sec.id,
               name: `${sec.gradeLevel} — ${sec.name}`,
               gradeLevel: sec.gradeLevel,
-              classSize: data.data?.students?.length || 0,
+              classSize: studentsData.length,
               color: sec.color || "#999999",
               schedule: sec.schedule || [],
+              maleCount,
+              femaleCount,
             });
           }
         }
@@ -93,17 +106,6 @@ const AdviserClassStudents = () => {
 
     if (id) fetchData();
   }, [id]);
-
-  // Close filter dropdown on outside click
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
-        setShowSortFilters(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   // Filtered and sorted students
   const displayedStudents = students
@@ -128,35 +130,53 @@ const AdviserClassStudents = () => {
   if (error) return <p className="text-red-500">{error}</p>;
   if (!section) return <p>No section found.</p>;
 
+  // Breadcrumbs navigation
+  const breadcrumbs = [
+    {
+      label: "Class Management",
+      path: "/adviser/classes",
+    },
+    {
+      label: section.name, // "{gradeLevel} — {sectionName}"
+      path: `/adviser/classes/${id}`, // links back to section page
+    },
+    {
+      label: "View Students",
+      path: null, // current page
+    },
+  ];
+
   return (
-    <div className="py-8 px-4 space-y-4 relative">
-      {/* Back Button */}
-      <button
-        onClick={() => navigate(`/adviser/classes/${id}`)}
-        className="fixed top-20 left-6 z-50 flex items-center gap-2 px-4 py-2 bg-[var(--color-primary-600)] 
-                   text-[var(--color-text-50)] font-semibold rounded-full shadow-lg hover:bg-[var(--color-primary-500)] 
-                   focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-400)] transition-all"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-4 w-4"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-        </svg>
-        Back
-      </button>
+    <div className="py-10 px-4 space-y-4 relative">
+      <nav className="font-roboto text-sm text-[var(--color-text-700)] px-2 pb-2">
+        {breadcrumbs.map((crumb, index) => (
+          <span key={index}>
+            {crumb.path ? (
+              <span
+                className="cursor-pointer hover:underline"
+                onClick={() => navigate(crumb.path!)}
+              >
+                {crumb.label}
+              </span>
+            ) : (
+              <span className="font-roboto font-medium text-[var(--color-text-900)]">
+                {crumb.label}
+              </span>
+            )}
+
+            {index < breadcrumbs.length - 1 && " / "}
+          </span>
+        ))}
+      </nav>
 
       {/* Section Card */}
       <MyClassCard
         id={section.id}
         key={section.id}
         name={section.name}
-        schedule={section.schedule}
         classSize={section.classSize}
+        maleCount={section.maleCount}
+        femaleCount={section.femaleCount}
         color={section.color}
       />
 
