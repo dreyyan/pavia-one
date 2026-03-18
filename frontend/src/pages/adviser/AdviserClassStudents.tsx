@@ -182,45 +182,61 @@ const AdviserClassStudents = () => {
 
       {/* Search & Sort */}
       <div className="flex items-center gap-4 mt-4">
-        <input
-          type="text"
-          placeholder="Search by LRN or Name..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 bg-[var(--color-bg-100)] border border-[var(--color-bg-400)] rounded-sm py-2 pl-4 pr-3 outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm"
-        />
+        {/* Search input */}
+        <div className="relative flex-1">
+          <input
+            type="text"
+            placeholder="Search by LRN or Name..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-[var(--color-bg-50)] font-roboto rounded-sm py-2 pl-4 pr-3 outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm"
+          />
+        </div>
 
+        {/* Sort dropdown */}
         <div ref={filterRef} className="relative">
           <button
             onClick={() => setShowSortFilters(!showSortFilters)}
-            className="flex items-center justify-center bg-[var(--color-primary-700)] border border-[var(--color-primary-700)] p-2 rounded-sm hover:opacity-80 transition"
+            className={`flex items-center justify-center text-[var(--color-text-50)] rounded-sm p-2 border transition cursor-pointer ${
+              showSortFilters
+                ? "bg-[var(--color-primary-600)] border-[var(--color-primary-500)]"
+                : "bg-[var(--color-primary-700)] border-[var(--color-primary-700)] hover:opacity-80"
+            }`}
           >
             <img src="/filter-icon.svg" alt="Sort" className="w-5 h-5" />
           </button>
 
           {showSortFilters && (
-            <div className="absolute right-0 mt-2 w-40 bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-md shadow-lg p-2 space-y-1 z-50">
+            <div className="absolute right-0 mt-2 w-40 bg-[var(--color-bg-50)] border border-[var(--color-bg-300)] rounded-md shadow-lg p-2 space-y-1 z-50">
               <button
                 onClick={() => { setSortOption("lrn-asc"); setShowSortFilters(false); }}
-                className={`w-full text-left px-2 py-1 rounded hover:bg-[var(--color-bg-200)] ${sortOption==="lrn-asc"?"bg-[var(--color-primary-200)]":""}`}
+                className={`w-full text-left px-2 py-1 rounded hover:bg-[var(--color-bg-200)] ${
+                  sortOption === "lrn-asc" ? "bg-[var(--color-primary-200)]" : ""
+                }`}
               >
                 LRN ↑
               </button>
               <button
                 onClick={() => { setSortOption("lrn-desc"); setShowSortFilters(false); }}
-                className={`w-full text-left px-2 py-1 rounded hover:bg-[var(--color-bg-200)] ${sortOption==="lrn-desc"?"bg-[var(--color-primary-200)]":""}`}
+                className={`w-full text-left px-2 py-1 rounded hover:bg-[var(--color-bg-200)] ${
+                  sortOption === "lrn-desc" ? "bg-[var(--color-primary-200)]" : ""
+                }`}
               >
                 LRN ↓
               </button>
               <button
                 onClick={() => { setSortOption("name-asc"); setShowSortFilters(false); }}
-                className={`w-full text-left px-2 py-1 rounded hover:bg-[var(--color-bg-200)] ${sortOption==="name-asc"?"bg-[var(--color-primary-200)]":""}`}
+                className={`w-full text-left px-2 py-1 rounded hover:bg-[var(--color-bg-200)] ${
+                  sortOption === "name-asc" ? "bg-[var(--color-primary-200)]" : ""
+                }`}
               >
                 Name ↑
               </button>
               <button
                 onClick={() => { setSortOption("name-desc"); setShowSortFilters(false); }}
-                className={`w-full text-left px-2 py-1 rounded hover:bg-[var(--color-bg-200)] ${sortOption==="name-desc"?"bg-[var(--color-primary-200)]":""}`}
+                className={`w-full text-left px-2 py-1 rounded hover:bg-[var(--color-bg-200)] ${
+                  sortOption === "name-desc" ? "bg-[var(--color-primary-200)]" : ""
+                }`}
               >
                 Name ↓
               </button>
