@@ -53,13 +53,10 @@ const AdviserDashboard = () => {
     fetchProfile();
   }, [setShowTokenExpiredModal]);
 
-  // Determine the advisory section
-  const advisorySection = profile?.sections?.find((section: any) => section.isAdvisory);
-
-  // Count the number of students in the advisory section
-  const classSize = advisorySection ? profile?.students?.length || 0 : 0;
-
   if (loading) return <DashboardSkeleton />;
+
+  const advisorySection = profile?.sections?.find((section: any) => section.isAdvisory);
+  const classSize = advisorySection ? profile?.students?.length || 0 : 0;
 
   return (
     <div className="py-6 px-4 space-y-4">
@@ -69,13 +66,24 @@ const AdviserDashboard = () => {
 
       {/* Personal Information */}
       <div className="flex items-center bg-[var(--color-bg-100)] border-2 border-[var(--color-bg-300)]/60 rounded-lg px-5 py-6 gap-x-4 shadow-md">
-        <div className="bg-[var(--color-bg-200)] size-18 rounded-full"></div>
-        <div>
+        {/* Profile Picture */}
+        <div className="bg-[var(--color-bg-200)] w-18 h-18 rounded-full flex-shrink-0"></div>
+
+        {/* Info Section */}
+        <div className="flex-1">
           <h2 className="mb-2">{profile?.name}</h2>
-          <p className="font-roboto font-semibold text-sm">
-            Grade {advisorySection?.gradeLevel} - {advisorySection?.name}
-          </p>
-          <p className="font-roboto font-medium text-xs">Class Adviser</p>
+          {advisorySection ? (
+            <>
+              <p className="font-roboto font-semibold text-sm">
+                Grade {advisorySection.gradeLevel} - {advisorySection.name}
+              </p>
+              <p className="font-roboto font-medium text-xs">Class Adviser</p>
+            </>
+          ) : (
+            <p className="text-red-600 font-semibold text-sm">
+              You are not assigned to any advisory section.
+            </p>
+          )}
         </div>
       </div>
 
@@ -83,20 +91,7 @@ const AdviserDashboard = () => {
       <div className="bg-[var(--color-bg-100)] border-2 border-[var(--color-bg-300)]/60 rounded-lg px-5 py-6 gap-x-3 shadow-md">
         <h2 className="mb-3">Overview</h2>
         <div className="space-y-2">
-          {advisorySection ? (
-            <DashboardItem
-              iconSrc="/class-size-icon.svg"
-              text="Class Size"
-              value={classSize}
-            />
-          ) : (
-            <DashboardItem
-              iconSrc="/class-size-icon.svg"
-              text="Class Size"
-              value={0}
-            />
-          )}
-
+          <DashboardItem iconSrc="/class-size-icon.svg" text="Class Size" value={classSize} />
           <DashboardItem
             iconSrc="/present-today-icon.svg"
             text="Present Today"
@@ -112,7 +107,13 @@ const AdviserDashboard = () => {
 
       {/* Dashboard Buttons */}
       <div className="grid grid-cols-2 gap-6 px-4">
-        <DashboardButton iconSrc="/view-students-icon.svg" text="View Students" color="#0066CC" to={`/adviser/classes/${advisorySection.id}/students`} />
+        <DashboardButton
+          iconSrc="/view-students-icon.svg"
+          text="View Students"
+          color="#0066CC"
+          to={advisorySection ? `/adviser/classes/${advisorySection.id}/students` : "#"}
+          disabled={!advisorySection}
+        />
         <DashboardButton iconSrc="/attendance-icon.svg" text="Attendance" color="#28A428" />
         <DashboardButton iconSrc="/grades-icon.svg" text="Grades" color="#CA8E02" />
         <DashboardButton iconSrc="/reports-icon.svg" text="Reports" color="#8F28A4" />
