@@ -105,7 +105,7 @@ const AdviserMyClass = () => {
 
   return (
     <div className="py-10 px-4 space-y-4 relative">
-      <nav className="font-roboto text-sm text-[var(--color-text-700)] px-2">
+      <nav className="font-roboto text-sm text-[var(--color-text-700)] px-2 pb-2">
         {breadcrumbs.map((crumb, index) => (
           <span key={index}>
             {crumb.path ? (
@@ -121,7 +121,7 @@ const AdviserMyClass = () => {
               </span>
             )}
 
-            {index < breadcrumbs.length - 1 && " > "}
+            {index < breadcrumbs.length - 1 && " / "}
           </span>
         ))}
       </nav>
