@@ -105,13 +105,13 @@ const AdviserClassManagement = () => {
           <input
             type="text"
             placeholder="Search classes..."
-            className="w-full bg-[var(--color-bg-100)] border border-[var(--color-bg-400)] rounded-sm py-2 pl-4 pr-3 outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm"
+            className="w-full bg-[var(--color-bg-50)] font-roboto rounded-sm py-2 pl-4 pr-3 outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm"
           />
         </div>
         <div ref={filterRef} className="relative">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center justify-center text-[var()--color-text-50] rounded-sm p-2 border transition cursor-pointer ${
+            className={`flex items-center justify-center text-[var(--color-text-50)] rounded-sm p-2 border transition cursor-pointer ${
               showFilters
                 ? "bg-[var(--color-primary-600)] border-[var(--color-primary-500)]"
                 : "bg-[var(--color-primary-700)] border-[var(--color-primary-700)] hover:opacity-80"
@@ -121,14 +121,14 @@ const AdviserClassManagement = () => {
           </button>
 
           {showFilters && (
-            <div className="absolute right-0 mt-2 w-56 bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-md shadow-lg p-3 space-y-2 z-50">
-              <p className="text-sm font-semibold text-[var(--color-text-700)]">Filter by Grade</p>
+            <div className="absolute right-0 mt-2 w-56 bg-[var(--color-bg-50)] border border-[var(--color-bg-300)] rounded-md shadow-lg p-3 space-y-2 z-50">
+              <p className="font-roboto font-bold text-[var(--color-text-700)]">Filter by Grade</p>
               <button
                 onClick={() => {
                   setSelectedGrade(null);
                   setShowFilters(false);
                 }}
-                className={`w-full text-left px-2 py-1 rounded hover:bg-[var(--color-bg-200)] ${
+                className={`font-roboto font-semibold w-full text-left px-2 py-1 rounded hover:bg-[var(--color-bg-200)] ${
                   selectedGrade === null ? "bg-[var(--color-primary-200)]" : ""
                 }`}
               >
@@ -141,7 +141,7 @@ const AdviserClassManagement = () => {
                     setSelectedGrade(grade);
                     setShowFilters(false);
                   }}
-                  className={`w-full text-left px-2 py-1 rounded hover:bg-[var(--color-bg-200)] ${
+                  className={`font-roboto w-full text-left px-2 py-1 rounded hover:bg-[var(--color-bg-200)] ${
                     selectedGrade === grade ? "bg-[var(--color-primary-200)]" : ""
                   }`}
                 >
