@@ -266,8 +266,9 @@ const AdviserStudentDetails = () => {
 
         const studentFlat: Student = {
           ...studentData,
-          sectionName: studentData.section?.name ?? "",
-          gradeLevel: studentData.section?.gradeLevel ?? undefined,
+          sectionName: studentData.sectionName ?? "",
+          gradeLevel: studentData.gradeLevel ?? undefined,
+          sectionId: studentData.sectionId ?? undefined,
         };
 
         setStudent(studentFlat);
@@ -327,9 +328,9 @@ const AdviserStudentDetails = () => {
     { label: "Class Management", path: "/adviser/classes" },
     {
       label: `${student.gradeLevel ?? "?"} — ${student.sectionName ?? "Section"}`,
-      path: `/adviser/classes/${sectionId}`,
+      path: student.sectionId ? `/adviser/classes/${student.sectionId}` : undefined,
     },
-    { label: "View Students", path: `/adviser/classes/${sectionId}/students` },
+    { label: "View Students", path: `/adviser/classes/${student.sectionId}/students` },
     { label: student.fullName, path: null },
   ];
 
