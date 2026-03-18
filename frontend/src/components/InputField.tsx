@@ -80,7 +80,7 @@ const InputField = ({
           placeholder={placeholder}
           maxLength={maxLength}
           disabled={disabled}
-          className={`focus:outline-none focus:ring-0 border-2 border-[var(--color-background-800)] rounded-lg py-2 ${
+          className={`focus:outline-none focus:ring-0 bg-[var(--color-bg-50)] border-2 border-[var(--color-bg-800)] rounded-lg py-2 ${
             iconSrc ? "pl-10" : "px-3"
           } w-full`}
         />
