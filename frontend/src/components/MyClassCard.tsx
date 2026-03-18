@@ -64,10 +64,16 @@ const MyClassCard: React.FC<ClassCardProps> = ({ id, name, schedule, classSize, 
             </div>
 
             {/* Class Size - Male & Female */}
-            <div className="flex justify-end bg-[var(--color-primary-500)] [&>p]:text-[var(--color-text-50)] px-4 rounded-b-lg">
-                <p className="body-large">{maleCount} ♂</p>
-                <p>&nbsp;/&nbsp;</p>
-                <p className="body-large">{femaleCount} ♀</p>
+            <div className="flex justify-end bg-[var(--color-bg-50)] px-4 rounded-b-lg">
+                <span className="flex items-center">
+                    <p className="font-roboto text-[15px] font-bold text-[var(--color-primary-700)]">{maleCount}</p>
+                    <img src="/male-icon.svg" className="size-5"/>
+                </span>
+                <p className="font-figtree font-semibold pb-1 text-[var(--color-primary-700)]">&nbsp;|&nbsp;</p>
+                <span className="flex items-center">
+                    <p className="font-roboto text-[15px] font-bold text-[var(--color-primary-700)]">{femaleCount}</p>
+                    <img src="/male-icon.svg" className="size-5"/>
+                </span>
             </div>
         </div>
     );
