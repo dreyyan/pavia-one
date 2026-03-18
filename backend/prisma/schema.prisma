@@ -159,6 +159,7 @@ model Section {
   name        String
   gradeLevel  Int
   adviserId Int
+  isAdvisory  Boolean   @default(false)
 
   schoolYear  String
   curriculum  Curriculum @default(K12)
