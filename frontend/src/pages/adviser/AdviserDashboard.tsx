@@ -3,19 +3,19 @@ import DashboardItem from "../../components/DashboardItem";
 import DashboardSkeleton from "../../components/DashboardSkeleton";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext"; // modal context
 
 const AdviserDashboard = () => {
   const navigate = useNavigate();
+  const { setShowTokenExpiredModal } = useAuth();
 
-  // * Auth & Profile state
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null); // null = unknown
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
-      setIsAuthenticated(false);
+      setShowTokenExpiredModal(true); // show modal immediately
       setLoading(false);
       return;
     }
@@ -26,39 +26,34 @@ const AdviserDashboard = () => {
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         });
 
+        if (res.status === 401) {
+          setShowTokenExpiredModal(true);
+          return;
+        }
+
         const data = await res.json();
 
         if (!data.success) {
           console.error("Profile fetch error:", data.message);
           localStorage.removeItem("token");
-          setIsAuthenticated(false);
-          setLoading(false);
+          setShowTokenExpiredModal(true);
           return;
         }
 
         setProfile(data.data);
-        setIsAuthenticated(true);
       } catch (err) {
         console.error("Failed to fetch profile:", err);
         localStorage.removeItem("token");
-        setIsAuthenticated(false);
+        setShowTokenExpiredModal(true);
       } finally {
         setLoading(false);
       }
     };
 
     fetchProfile();
-  }, []);
+  }, [setShowTokenExpiredModal]);
 
-  // Redirect if not authenticated
-  useEffect(() => {
-    if (isAuthenticated === false) {
-      navigate("/login/adviser");
-    }
-  }, [isAuthenticated, navigate]);
-
-  // Show skeleton while loading or validating token
-  if (loading || isAuthenticated === null) return <DashboardSkeleton />;
+  if (loading) return <DashboardSkeleton />;
 
   return (
     <div className="py-6 px-4 space-y-4">

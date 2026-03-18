@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import MyClassCard from "../../components/MyClassCard";
+import { useAuth } from "../../context/AuthContext"; // Make sure you have this
 
 interface Student {
   id: number;
@@ -8,6 +9,7 @@ interface Student {
   fullName: string;
   profilePic?: string;
   attendanceRate?: number;
+  sex?: string;
 }
 
 interface ScheduleItem {
@@ -31,6 +33,7 @@ type SortOption = "lrn-asc" | "lrn-desc" | "name-asc" | "name-desc";
 const AdviserClassStudents = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { setShowTokenExpiredModal } = useAuth();
 
   const [students, setStudents] = useState<Student[]>([]);
   const [section, setSection] = useState<Section | null>(null);
@@ -40,8 +43,16 @@ const AdviserClassStudents = () => {
   const [search, setSearch] = useState("");
   const [sortOption, setSortOption] = useState<SortOption>("lrn-asc");
   const [showSortFilters, setShowSortFilters] = useState(false);
-
   const filterRef = useRef<HTMLDivElement>(null);
+
+  // Centralized API response handler
+  const handleApiResponse = async (res: Response) => {
+    if (res.status === 401) {
+      setShowTokenExpiredModal(true); // Show modal for expired token
+      return null;
+    }
+    return await res.json();
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -61,39 +72,39 @@ const AdviserClassStudents = () => {
           }
         );
 
-        const data = await res.json();
+        const data = await handleApiResponse(res);
+        if (!data) return; // token expired → modal will show automatically
 
         if (!data.success) {
           setError(data.message || "Failed to fetch data");
           setStudents([]);
           setSection(null);
-        } else {
-          // Set students
-          const studentsData = data.data?.students || [];
-          setStudents(studentsData);
+          return;
+        }
 
-          // Calculate male and female counts
-          let maleCount = 0;
-          let femaleCount = 0;
-          studentsData.forEach((s: any) => {
-            if (s.sex === "MALE") maleCount++;
-            else if (s.sex === "FEMALE") femaleCount++;
+        const studentsData: Student[] = data.data?.students || [];
+        setStudents(studentsData);
+
+        // Calculate male/female counts
+        let maleCount = 0;
+        let femaleCount = 0;
+        studentsData.forEach((s: any) => {
+          if (s.sex === "MALE") maleCount++;
+          else if (s.sex === "FEMALE") femaleCount++;
+        });
+
+        const sec = data.data?.section;
+        if (sec) {
+          setSection({
+            id: sec.id,
+            name: `${sec.gradeLevel} — ${sec.name}`,
+            gradeLevel: sec.gradeLevel,
+            classSize: studentsData.length,
+            color: sec.color || "#999999",
+            schedule: sec.schedule || [],
+            maleCount,
+            femaleCount,
           });
-
-          // Map section info for MyClassCard
-          const sec = data.data?.section;
-          if (sec) {
-            setSection({
-              id: sec.id,
-              name: `${sec.gradeLevel} — ${sec.name}`,
-              gradeLevel: sec.gradeLevel,
-              classSize: studentsData.length,
-              color: sec.color || "#999999",
-              schedule: sec.schedule || [],
-              maleCount,
-              femaleCount,
-            });
-          }
         }
       } catch (err: any) {
         setError(err.message || "Something went wrong");
@@ -105,7 +116,7 @@ const AdviserClassStudents = () => {
     };
 
     if (id) fetchData();
-  }, [id]);
+  }, [id, setShowTokenExpiredModal]);
 
   // Filtered and sorted students
   const displayedStudents = students
@@ -115,14 +126,10 @@ const AdviserClassStudents = () => {
     )
     .sort((a, b) => {
       switch (sortOption) {
-        case "lrn-asc":
-          return a.lrn.localeCompare(b.lrn);
-        case "lrn-desc":
-          return b.lrn.localeCompare(a.lrn);
-        case "name-asc":
-          return a.fullName.localeCompare(b.fullName);
-        case "name-desc":
-          return b.fullName.localeCompare(a.fullName);
+        case "lrn-asc": return a.lrn.localeCompare(b.lrn);
+        case "lrn-desc": return b.lrn.localeCompare(a.lrn);
+        case "name-asc": return a.fullName.localeCompare(b.fullName);
+        case "name-desc": return b.fullName.localeCompare(a.fullName);
       }
     });
 
@@ -130,20 +137,10 @@ const AdviserClassStudents = () => {
   if (error) return <p className="text-red-500">{error}</p>;
   if (!section) return <p>No section found.</p>;
 
-  // Breadcrumbs navigation
   const breadcrumbs = [
-    {
-      label: "Class Management",
-      path: "/adviser/classes",
-    },
-    {
-      label: section.name, // "{gradeLevel} — {sectionName}"
-      path: `/adviser/classes/${id}`, // links back to section page
-    },
-    {
-      label: "View Students",
-      path: null, // current page
-    },
+    { label: "Class Management", path: "/adviser/classes" },
+    { label: section.name, path: `/adviser/classes/${id}` },
+    { label: "View Students", path: null },
   ];
 
   return (
@@ -152,24 +149,17 @@ const AdviserClassStudents = () => {
         {breadcrumbs.map((crumb, index) => (
           <span key={index}>
             {crumb.path ? (
-              <span
-                className="cursor-pointer hover:underline"
-                onClick={() => navigate(crumb.path!)}
-              >
+              <span className="cursor-pointer hover:underline" onClick={() => navigate(crumb.path!)}>
                 {crumb.label}
               </span>
             ) : (
-              <span className="font-roboto font-medium text-[var(--color-text-900)]">
-                {crumb.label}
-              </span>
+              <span className="font-roboto font-medium text-[var(--color-text-900)]">{crumb.label}</span>
             )}
-
             {index < breadcrumbs.length - 1 && " / "}
           </span>
         ))}
       </nav>
 
-      {/* Section Card */}
       <MyClassCard
         id={section.id}
         key={section.id}
@@ -179,7 +169,7 @@ const AdviserClassStudents = () => {
         femaleCount={section.femaleCount}
         color={section.color}
       />
-
+      
       {/* Search & Sort */}
       <div className="flex items-center gap-4 mt-4">
         {/* Search input */}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import ClassCard from "../../components/ClassCard";
+import { useAuth } from "../../context/AuthContext"; // your modal context
 
 interface ScheduleItem {
   day: string;
@@ -17,7 +18,8 @@ interface Section {
 }
 
 const AdviserClassManagement = () => {
-  // State
+  const { setShowTokenExpiredModal } = useAuth();
+
   const [classes, setClasses] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,6 +39,15 @@ const AdviserClassManagement = () => {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  // Centralized API response handler
+  const handleApiResponse = async (res: Response) => {
+    if (res.status === 401) {
+      setShowTokenExpiredModal(true); // show modal
+      return null;
+    }
+    return await res.json();
+  };
+
   // Fetch adviser's sections from API
   useEffect(() => {
     const fetchSections = async () => {
@@ -44,7 +55,7 @@ const AdviserClassManagement = () => {
       setError(null);
 
       try {
-        const token = localStorage.getItem("token"); // or wherever you store JWT
+        const token = localStorage.getItem("token");
         const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/adviser/sections`, {
           headers: {
             "Content-Type": "application/json",
@@ -52,13 +63,13 @@ const AdviserClassManagement = () => {
           },
         });
 
-        const data = await res.json();
+        const data = await handleApiResponse(res);
+        if (!data) return; // token expired → modal shows automatically
 
         if (!data.success) {
           setError(data.message || "Failed to fetch sections");
           setClasses([]);
         } else {
-          // Map sections to expected format
           const sectionsWithDefaults: Section[] = data.data.map((sec: any) => ({
             id: sec.id,
             name: `${sec.gradeLevel} — ${sec.name}`,
@@ -68,7 +79,6 @@ const AdviserClassManagement = () => {
             classSize: sec.classSize || 0,
             schedule: sec.schedule || [],
           }));
-
           setClasses(sectionsWithDefaults);
         }
       } catch (err: any) {
@@ -80,7 +90,7 @@ const AdviserClassManagement = () => {
     };
 
     fetchSections();
-  }, []);
+  }, [setShowTokenExpiredModal]);
 
   // Apply grade filter
   const filteredClasses = selectedGrade
@@ -162,7 +172,7 @@ const AdviserClassManagement = () => {
           !error &&
           filteredClasses.map((cls) => (
             <ClassCard
-            id={cls.id}
+              id={cls.id}
               key={cls.id}
               name={cls.name}
               schedule={cls.schedule}
