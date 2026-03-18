@@ -78,28 +78,40 @@ const AdviserMyClass = () => {
   if (error) return <p className="text-red-500">{error}</p>;
   if (!section) return <p>No section found.</p>;
 
-  return (
-    <div className="py-17 px-4 space-y-4 relative">
-      {/* Floating Back Button */}
-      <button
-        onClick={() => navigate("/adviser/classes")}
-        className="fixed top-20 left-6 z-2 flex items-center gap-2 px-4 py-2 bg-[var(--color-primary-600)] 
-                  text-[var(--color-text-50)] font-semibold rounded-full shadow-lg hover:bg-[var(--color-primary-500)] 
-                  focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-400)] transition-all"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-4 w-4"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-        </svg>
-        Back
-      </button>
+  // Breadcrumbs navigation
+  const breadcrumbs = [
+    {
+      label: "Class Management",
+      path: "/adviser/classes",
+    },
+    {
+      label: section.name,
+      path: null,
+    },
+  ];
 
+  return (
+    <div className="py-10 px-4 space-y-4 relative">
+      <nav className="font-roboto text-sm text-[var(--color-text-700)] px-2">
+        {breadcrumbs.map((crumb, index) => (
+          <span key={index}>
+            {crumb.path ? (
+              <span
+                className="cursor-pointer hover:underline"
+                onClick={() => navigate(crumb.path!)}
+              >
+                {crumb.label}
+              </span>
+            ) : (
+              <span className="font-roboto font-medium text-[var(--color-text-900)]">
+                {crumb.label}
+              </span>
+            )}
+
+            {index < breadcrumbs.length - 1 && " > "}
+          </span>
+        ))}
+      </nav>
       <MyClassCard
         id={section.id}
         key={section.id}
