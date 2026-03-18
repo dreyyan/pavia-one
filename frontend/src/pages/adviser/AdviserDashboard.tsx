@@ -73,7 +73,7 @@ const AdviserDashboard = () => {
         <div>
           <h2 className="mb-2">{profile?.name}</h2>
           <p className="font-roboto font-semibold text-sm">
-            Grade {profile?.gradeLevel} - Section {profile?.sectionName}
+            Grade {advisorySection?.gradeLevel} - {advisorySection?.name}
           </p>
           <p className="font-roboto font-medium text-xs">Class Adviser</p>
         </div>
