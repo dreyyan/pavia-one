@@ -170,7 +170,7 @@ router.post('/', verifyAdmin, async (req, res) => {
     const errors = [];
 
     for (const section of sectionsInput) {
-      const { name, adviserId, gradeLevel, schoolYear, color, classSize, schedule } = section;
+      const { name, adviserId, gradeLevel, schoolYear, color, classSize, schedule, isAdvisory } = section;
 
       if (!name || !adviserId || gradeLevel === undefined || !schoolYear) {
         errors.push({ name, message: 'Missing required fields' });
@@ -218,6 +218,7 @@ router.post('/', verifyAdmin, async (req, res) => {
           color: color || null,
           classSize: classSize || null,
           schedule: schedule || null,
+		  isAdvisory: isAdvisory || false,
         },
         select: {
           id: true,
@@ -227,6 +228,7 @@ router.post('/', verifyAdmin, async (req, res) => {
           color: true,
           classSize: true,
           schedule: true,
+		  isAdvisory: true,
           createdAt: true,
           adviser: {
             select: {
@@ -257,142 +259,136 @@ router.post('/', verifyAdmin, async (req, res) => {
 // ?[DELETE] Delete all sections
 // /api/admin/sections/all
 router.delete('/all', verifyAdmin, async (req, res) => {
-	try {
-		// Get all sections with enrolled student counts
-		const allSections = await prisma.section.findMany({
-			select: {
-				id: true,
-				name: true,
-				_count: { select: { enrollments: true } },
-			},
-		});
+  try {
+    const allSections = await prisma.section.findMany({
+      select: {
+        id: true,
+        name: true,
+        _count: { select: { enrollments: true } },
+      },
+    });
 
-		// ![ERROR] No sections to delete
-		if (!allSections.length) {
-			return res.status(400).json(errorResponse('No sections to delete'));
-		}
+    if (!allSections.length) {
+      return res.status(400).json(errorResponse('No sections to delete'));
+    }
 
-		const deletedSections = [];
-		const failedSections = [];
+    const deletedSections = [];
+    const failedSections = [];
 
-		// Check each section if it contains enrolled students
-		for (const section of allSections) {
-			// // ![ERROR] Cannot delete section /w enrolled students
-			// if (section._count.enrollments > 0) {
-			// 	failedSections.push({
-			// 		id: section.id,
-			// 		name: section.name,
-			// 		message: 'Cannot delete section with enrolled students'
-			// 	});
-			// 	continue;
-			// }
+    for (const section of allSections) {
+      try {
+        if (section._count.enrollments > 0) {
+          await prisma.enrollment.deleteMany({ where: { sectionId: section.id } });
+        }
 
-			await prisma.section.delete({ where: { id: section.id } });
-			deletedSections.push({
-				id: section.id,
-				name: section.name
-			});
-		}
+        await prisma.section.delete({ where: { id: section.id } });
 
-		// *[SUCCESS] All sections processed successfully
-		res.json(
-			successResponse('All sections processed successfully', {
-				deleted: deletedSections,
-				failed: failedSections,
-			})
-		);
-	} catch (err) {
-		console.error('Delete all sections error:', err);
-		res.status(500).json(errorResponse('Failed to delete all sections', err.message));
-	}
+        deletedSections.push({
+          id: section.id,
+          name: section.name,
+        });
+      } catch (err) {
+        failedSections.push({
+          id: section.id,
+          name: section.name,
+          message: err.message,
+        });
+      }
+    }
+
+    res.json(
+      successResponse('All sections processed successfully', {
+        deleted: deletedSections,
+        failed: failedSections,
+      })
+    );
+  } catch (err) {
+    console.error('Delete all sections error:', err);
+    res.status(500).json(errorResponse('Failed to delete all sections', err.message));
+  }
 });
 
 // ?[DELETE] Delete multiple sections via body JSON
 // /api/admin/sections
 router.delete('/', verifyAdmin, async (req, res) => {
-	const ids = Array.isArray(req.body.ids) ? req.body.ids.map(i => parseInt(i)) : [];
-	if (!ids.length) {
-		return res.status(400).json(errorResponse('No section ID(s) provided'));
-	}
+  const ids = Array.isArray(req.body.ids) ? req.body.ids.map(i => parseInt(i)) : [];
+  if (!ids.length) {
+    return res.status(400).json(errorResponse('No section ID(s) provided'));
+  }
 
-	const deletedSections = [];
-	const errors = [];
+  const deletedSections = [];
+  const errors = [];
 
-	for (const id of ids) {
-		const section = await prisma.section.findUnique({
-			where: { id },
-			select: {
-				id: true,
-				name: true,
-				_count: { select: { enrollments: true } },
-			},
-		});
+  for (const id of ids) {
+    try {
+      const section = await prisma.section.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          name: true,
+          _count: { select: { enrollments: true } },
+        },
+      });
 
-		// ![ERROR] Section not found
-		if (!section) {
-			errors.push({ id, message: 'Section not found' });
-			continue;
-		}
+      if (!section) {
+        errors.push({ id, message: 'Section not found' });
+        continue;
+      }
 
-		// // ![ERROR] Cannot delete section /w enrolled students
-		// if (section._count.enrollments > 0) {
-		// 	errors.push({ id, message: 'Cannot delete section with enrolled students' });
-		// 	continue;
-		// }
+      if (section._count.enrollments > 0) {
+        await prisma.enrollment.deleteMany({ where: { sectionId: section.id } });
+      }
 
-		await prisma.section.delete({ where: { id } });
-		deletedSections.push(section);
-	}
+      await prisma.section.delete({ where: { id } });
+      deletedSections.push(section);
+    } catch (err) {
+      errors.push({ id, message: err.message });
+    }
+  }
 
-	// *[SUCCESS] Section(s) processed successfully
-	res.json(
-		successResponse('Section(s) processed successfully', {
-			deleted: deletedSections,
-			failed: errors,
-		})
-	);
+  res.json(
+    successResponse('Section(s) processed successfully', {
+      deleted: deletedSections,
+      failed: errors,
+    })
+  );
 });
 
 // ?[DELETE] Delete a single section
 // /api/admin/sections/:id
 router.delete('/:id', verifyAdmin, async (req, res) => {
-	const id = parseInt(req.params.id, 10);
+  const id = parseInt(req.params.id, 10);
 
-	try {
-		const section = await prisma.section.findUnique({
-			where: { id: parseInt(id) },
-			select: {
-				id: true,
-				name: true,
-				_count: { select: { enrollments: true } },
-			},
-		});
+  try {
+    const section = await prisma.section.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        _count: { select: { enrollments: true } },
+      },
+    });
 
-		// ![ERROR] Section not found
-		if (!section) {
-			return res.status(404).json(errorResponse('Section not found'));
-		}
+    if (!section) {
+      return res.status(404).json(errorResponse('Section not found'));
+    }
 
-		// // ![ERROR] Cannot delete section /w enrolled students
-		// if (section._count.enrollments > 0) {
-		// 	return res.status(400).json(
-		// 		errorResponse('Cannot delete section with enrolled students')
-		// 	);
-		// }
+    if (section._count.enrollments > 0) {
+      await prisma.enrollment.deleteMany({ where: { sectionId: section.id } });
+    }
 
-		await prisma.section.delete({ where: { id: parseInt(id) } });
+    await prisma.section.delete({ where: { id } });
 
-		// *[SUCCESS] Section deleted successfully
-		res.json(
-			successResponse('Section deleted successfully', {
-				id: section.id,
-				name: section.name,
-			})
-		);
-	} catch (err) {
-		console.error(err);
-		res.status(500).json(errorResponse('Failed to delete section', err.message));
-	}
+    res.json(
+      successResponse('Section deleted successfully', {
+        id: section.id,
+        name: section.name,
+      })
+    );
+  } catch (err) {
+    console.error(err);
+    res.status(500).json(errorResponse('Failed to delete section', err.message));
+  }
 });
 
 module.exports = router;
