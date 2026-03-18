@@ -210,7 +210,7 @@ const AdviserClassStudents = () => {
             <div className="absolute right-0 mt-2 w-40 bg-[var(--color-bg-50)] border border-[var(--color-bg-300)] rounded-md shadow-lg p-2 space-y-1 z-50">
               <button
                 onClick={() => { setSortOption("lrn-asc"); setShowSortFilters(false); }}
-                className={`w-full text-left px-2 py-1 rounded hover:bg-[var(--color-bg-200)] ${
+                className={`w-full text-left px-2 py-1 font-roboto text-sm rounded hover:bg-[var(--color-bg-200)] ${
                   sortOption === "lrn-asc" ? "bg-[var(--color-primary-200)]" : ""
                 }`}
               >
@@ -218,7 +218,7 @@ const AdviserClassStudents = () => {
               </button>
               <button
                 onClick={() => { setSortOption("lrn-desc"); setShowSortFilters(false); }}
-                className={`w-full text-left px-2 py-1 rounded hover:bg-[var(--color-bg-200)] ${
+                className={`w-full text-left px-2 py-1 font-roboto text-sm rounded hover:bg-[var(--color-bg-200)] ${
                   sortOption === "lrn-desc" ? "bg-[var(--color-primary-200)]" : ""
                 }`}
               >
@@ -226,7 +226,7 @@ const AdviserClassStudents = () => {
               </button>
               <button
                 onClick={() => { setSortOption("name-asc"); setShowSortFilters(false); }}
-                className={`w-full text-left px-2 py-1 rounded hover:bg-[var(--color-bg-200)] ${
+                className={`w-full text-left px-2 py-1 font-roboto text-sm rounded hover:bg-[var(--color-bg-200)] ${
                   sortOption === "name-asc" ? "bg-[var(--color-primary-200)]" : ""
                 }`}
               >
