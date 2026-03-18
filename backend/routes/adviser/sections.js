@@ -73,7 +73,7 @@ router.get('/:id', verifyAdviser, async (req, res) => {
     const section = await prisma.section.findFirst({
       where: {
         id: Number(id),
-        adviserId: adviser.id, // ensure the section belongs to this adviser
+        adviserId: adviser.id,
       },
       select: {
         id: true,
@@ -84,6 +84,13 @@ router.get('/:id', verifyAdviser, async (req, res) => {
         color: true,
         classSize: true,
         schedule: true,
+        enrollments: {
+          select: {
+            student: {
+              select: { sex: true },
+            },
+          },
+        },
       },
     });
 
