@@ -9,7 +9,7 @@ const jwt = require('jsonwebtoken');
 
 // [IMPORT] Utilities & Middleware
 const { successResponse, errorResponse } = require('../../utils/response');
-const { getFullName } = require('../../utils/helpers');
+const { getFullName, calculateAge } = require('../../utils/helpers');
 const verifyAdviser = require('../../middleware/authMiddleware').verifyAdviser;
 
 // ?[GET] Retrieve adviser's sections (protected)
@@ -278,7 +278,8 @@ router.get('/:sectionId', verifyAdviser, async (req, res) => {
     // [3] Map enrollments to student objects
     const students = section.enrollments.map(e => ({
       ...e.student,
-      fullName: getFullName(e.student)
+      fullName: getFullName(e.student),
+      age: calculateAge(e.student.birthDate)
     }));
 
     // *[SUCCESS] Return section with students
@@ -302,50 +303,230 @@ router.get('/:sectionId/students/:studentId', verifyAdviser, async (req, res) =>
     const sectionId = parseInt(req.params.sectionId);
     const studentId = parseInt(req.params.studentId);
 
-    // Get numeric adviser ID from token
+    console.log('[REQUEST] GET /api/adviser/sections/:sectionId/students/:studentId');
+    console.log('Request params:', { sectionId, studentId });
+    console.log('JWT adviserId from token:', req.adviserId);
+
+    // Get numeric adviser ID
     const adviser = await prisma.adviser.findUnique({
-      where: { adviserId: req.adviserId }, // string from token
+      where: { adviserId: req.adviserId },
       select: { id: true }
     });
+    console.log('Adviser fetched:', adviser);
 
-    if (!adviser) {
-      return res.status(404).json(errorResponse('Adviser not found'));
-    }
+    if (!adviser) return res.status(404).json(errorResponse('Adviser not found'));
 
-    // Verify this section belongs to the adviser
-    const section = await prisma.section.findUnique({
-      where: { id: sectionId },
-      select: { adviserId: true }
+    // Verify section belongs to adviser
+    const section = await prisma.section.findFirst({
+      where: {
+        id: sectionId,
+        adviserId: adviser.id,
+      },
+      select: { id: true, name: true, gradeLevel: true }
     });
+    console.log('Section fetched:', section);
 
-    if (!section || section.adviserId !== adviser.id) {
-      return res.status(403).json(errorResponse('You do not manage this section'));
-    }
+    if (!section) return res.status(403).json(errorResponse('You do not manage this section'));
 
-    // Fetch the student enrollment in this section including section info
+    // Fetch enrollment including address & guardian
     const enrollment = await prisma.enrollment.findFirst({
       where: { sectionId, studentId },
       include: {
-        student: true,
-        section: { select: { name: true, gradeLevel: true } } // include section info
+        student: { include: { address: true, guardian: true } },
+        section: { select: { name: true, gradeLevel: true } }
       }
     });
+    console.log('Enrollment fetched:', enrollment);
 
-    if (!enrollment) {
-      return res.status(404).json(errorResponse('Student not found in this section'));
-    }
+    if (!enrollment) return res.status(404).json(errorResponse('Student not found in this section'));
 
-    // Build student response with full name and section info
-    const student = {
-      ...enrollment.student,
-      fullName: getFullName(enrollment.student),
-      section: enrollment.section // { name, gradeLevel }
+    const s = enrollment.student;
+
+    // Build response
+    const studentResponse = {
+      id: s.id,
+      lrn: s.lrn,
+      firstName: s.firstName,
+      middleName: s.middleName,
+      lastName: s.lastName,
+      nameExtension: s.nameExtension,
+      fullName: getFullName(s),
+      email: s.email,
+      sex: s.sex,
+      birthDate: s.birthDate,
+      age: calculateAge(s.birthDate),
+      sectionId: enrollment.sectionId,
+      sectionName: enrollment.section.name,
+      gradeLevel: enrollment.section.gradeLevel,
+      houseNo: s.address?.streetAddress ?? "",
+      barangay: s.address?.barangay ?? "",
+      municipality: s.address?.municipalityCity ?? "",
+      province: s.address?.province ?? "",
+      fatherName: [s.guardian?.fatherLastName, s.guardian?.fatherFirstName, s.guardian?.fatherMiddleName].filter(Boolean).join(" ") || "",
+      motherName: [s.guardian?.motherMaidenLastName, s.guardian?.motherMaidenFirstName, s.guardian?.motherMaidenMiddleName].filter(Boolean).join(" ") || "",
+      guardianName: s.guardian?.guardianName ?? "",
+      guardianRelationship: s.guardian?.guardianRelationship ?? "",
+      guardianContact: s.guardian?.guardianContactNumber ?? "",
+      learningModality: enrollment.learningModality ?? ""
     };
 
-    res.json(successResponse('Student retrieved successfully', student));
+    console.log('Student response built:', studentResponse);
+
+    res.json(successResponse('Student retrieved successfully', studentResponse));
   } catch (err) {
     console.error('Get student in section error:', err);
     res.status(500).json(errorResponse('Failed to fetch student', err.message));
+  }
+});
+
+// ?[PUT] Update a specific student in a section
+// /api/adviser/sections/:sectionId/students/:studentId
+router.put('/:sectionId/students/:studentId', verifyAdviser, async (req, res) => {
+  try {
+    const sectionId = parseInt(req.params.sectionId);
+    const studentId = parseInt(req.params.studentId);
+
+    if (isNaN(sectionId) || isNaN(studentId)) {
+      return res.status(400).json(errorResponse('Invalid section or student ID'));
+    }
+
+    const {
+      lastName,
+      firstName,
+      middleName,
+      sex,
+      birthDate,
+      houseNo,
+      street,
+      sitio,
+      purok,
+      barangay,
+      municipality,
+      province,
+      fatherName,
+      motherName,
+      guardianName,
+      guardianRelationship,
+      guardianContact,
+      learningModality,
+    } = req.body;
+
+    // Basic validation
+    const requiredFields = { lastName, firstName, sex, birthDate, learningModality };
+    const missingFields = Object.entries(requiredFields)
+      .filter(([_, value]) => !value || value.toString().trim() === '')
+      .map(([key]) => key);
+
+    if (missingFields.length > 0) {
+      return res
+        .status(400)
+        .json(errorResponse(`Missing required fields: ${missingFields.join(', ')}`));
+    }
+
+    if (guardianContact && !/^\d+$/.test(guardianContact)) {
+      return res.status(400).json(errorResponse('Guardian contact must be numeric'));
+    }
+
+    // Verify adviser manages this section
+    const adviser = await prisma.adviser.findUnique({
+      where: { adviserId: req.adviserId },
+      select: { id: true },
+    });
+    if (!adviser) return res.status(404).json(errorResponse('Adviser not found'));
+
+    const section = await prisma.section.findFirst({
+      where: { id: sectionId, adviserId: adviser.id },
+      select: { id: true },
+    });
+    if (!section) return res.status(403).json(errorResponse('You do not manage this section'));
+
+    // Update student core info (only fields that exist in Student model)
+    const updatedStudent = await prisma.student.update({
+      where: { id: studentId },
+      data: {
+        lastName,
+        firstName,
+        middleName,
+        sex,
+        birthDate: birthDate ? new Date(birthDate) : null,
+      },
+    });
+
+    // Update or create address
+    if (houseNo || street || sitio || purok || barangay || municipality || province) {
+      await prisma.address.upsert({
+        where: { studentId },
+        update: {
+          streetAddress: houseNo || '',
+          street: street || '',
+          sitio: sitio || '',
+          purok: purok || '',
+          barangay: barangay || '',
+          municipalityCity: municipality || '',
+          province: province || '',
+        },
+        create: {
+          studentId,
+          streetAddress: houseNo || '',
+          street: street || '',
+          sitio: sitio || '',
+          purok: purok || '',
+          barangay: barangay || '',
+          municipalityCity: municipality || '',
+          province: province || '',
+        },
+      });
+    }
+
+    // Update or create guardian info
+    if (fatherName || motherName || guardianName || guardianRelationship || guardianContact) {
+      const [fatherLastName, fatherFirstName, fatherMiddleName] = fatherName
+        ? fatherName.split(' ')
+        : [];
+      const [motherLastName, motherFirstName, motherMiddleName] = motherName
+        ? motherName.split(' ')
+        : [];
+
+      await prisma.guardian.upsert({
+        where: { studentId },
+        update: {
+          fatherLastName: fatherLastName || '',
+          fatherFirstName: fatherFirstName || '',
+          fatherMiddleName: fatherMiddleName || '',
+          motherMaidenLastName: motherLastName || '',
+          motherMaidenFirstName: motherFirstName || '',
+          motherMaidenMiddleName: motherMiddleName || '',
+          guardianName: guardianName || '',
+          guardianRelationship: guardianRelationship || '',
+          guardianContactNumber: guardianContact || '',
+        },
+        create: {
+          studentId,
+          fatherLastName: fatherLastName || '',
+          fatherFirstName: fatherFirstName || '',
+          fatherMiddleName: fatherMiddleName || '',
+          motherMaidenLastName: motherLastName || '',
+          motherMaidenFirstName: motherFirstName || '',
+          motherMaidenMiddleName: motherMiddleName || '',
+          guardianName: guardianName || '',
+          guardianRelationship: guardianRelationship || '',
+          guardianContactNumber: guardianContact || '',
+        },
+      });
+    }
+
+    // Update enrollment info (learning modality)
+    if (learningModality) {
+      await prisma.enrollment.updateMany({
+        where: { studentId, sectionId },
+        data: { learningModality },
+      });
+    }
+
+    res.json(successResponse('Student updated successfully', updatedStudent));
+  } catch (err) {
+    console.error('Update student error:', err);
+    res.status(500).json(errorResponse('Failed to update student', err.message));
   }
 });
 
