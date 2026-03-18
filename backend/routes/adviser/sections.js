@@ -199,6 +199,14 @@ router.get('/:id/students', verifyAdviser, async (req, res) => {
       fullName: getFullName(e.student),
     }));
 
+    // Calculate male and female counts
+    let maleCount = 0;
+    let femaleCount = 0;
+    students.forEach((student) => {
+      if (student.sex === "MALE") maleCount++;
+      else if (student.sex === "FEMALE") femaleCount++;
+    });
+
     const totalPages = Math.ceil(total / take);
 
     res.json(
@@ -206,7 +214,9 @@ router.get('/:id/students', verifyAdviser, async (req, res) => {
         section: {
           name: section.name,
           gradeLevel: section.gradeLevel,
-          color: section.color
+          color: section.color,
+          maleCount,
+          femaleCount,
         },
         students,
         pagination: {
