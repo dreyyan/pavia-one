@@ -17,6 +17,8 @@ interface Section {
   color: string;
   classSize: number;
   schedule: ScheduleItem[];
+  maleCount?: number;
+  femaleCount?: number;
 }
 
 const AdviserMyClass = () => {
@@ -53,6 +55,15 @@ const AdviserMyClass = () => {
           setSection(null);
         } else {
           const sec = data.data;
+
+          let maleCount = 0;
+          let femaleCount = 0;
+          (sec.enrollments || []).forEach((enroll: any) => {
+            const sex = enroll.student?.sex;
+            if (sex === "MALE") maleCount++;
+            else if (sex === "FEMALE") femaleCount++;
+          });
+
           setSection({
             id: sec.id,
             name: `${sec.gradeLevel} — ${sec.name}`,
@@ -61,6 +72,8 @@ const AdviserMyClass = () => {
             color: sec.color || "#999999",
             classSize: sec.classSize || 0,
             schedule: sec.schedule || [],
+            maleCount,
+            femaleCount,
           });
         }
       } catch (err: any) {
@@ -118,6 +131,8 @@ const AdviserMyClass = () => {
         name={section.name}
         schedule={section.schedule}
         classSize={section.classSize}
+        maleCount={section.maleCount}
+        femaleCount={section.femaleCount}
         color={section.color}
       />
 
