@@ -250,36 +250,40 @@ const AdviserClassStudents = () => {
         {displayedStudents.length === 0 && <p>No students found.</p>}
 
         {displayedStudents.length > 0 && (
-            <table className="min-w-full bg-white shadow-md table-auto">
-            <thead className="bg-[var(--color-primary-600)] text-white">
-                <tr>
-                <th className="py-2 px-4 text-left font-medium">LRN</th>
-                <th className="py-2 px-4 text-left font-bold">Full Name</th>
-                <th className="py-2 px-4 text-left hidden sm:table-cell">Profile</th>
+          <table className="min-w-full bg-white shadow-md table-auto border-collapse">
+            <thead className="bg-[var(--color-primary-600)] text-white font-figtree">
+              <tr>
+                <th className="py-2 px-4 text-left font-bold border-r border-[var(--color-primary-700)]">LRN</th>
+                <th className="py-2 px-4 text-left font-bold border-r border-[var(--color-primary-700)]">Full Name</th>
+                <th className="py-2 px-4 text-left hidden sm:table-cell border-r border-[var(--color-primary-700)]">Profile</th>
                 <th className="py-2 px-4 text-left hidden md:table-cell">Attendance</th>
-                </tr>
+              </tr>
             </thead>
-                <tbody>
-                {displayedStudents.map((student) => (
-                    <tr
-                    key={student.id}
-                    className="border-t border-[var(--color-bg-200)] hover:bg-[var(--color-bg-100)] cursor-pointer"
-                    onClick={() => navigate(`/adviser/classes/${id}/students/${student.id}`)}
-                    >
-                    <td className="py-2 px-4 text-[var(--color-text-900)] font-medium">{student.lrn}</td>
-                    <td className="py-2 px-4 text-[var(--color-text-900)] font-bold">{student.fullName}</td>
-                    <td className="py-2 px-4 text-[var(--color-text-900)] hidden sm:table-cell">
-                        <img
-                        src={student.profilePic || "/default-profile.svg"}
-                        alt={student.fullName}
-                        className="w-10 h-10 rounded-full"
-                        />
-                    </td>
-                    <td className="py-2 px-4 hidden md:table-cell">{student.attendanceRate ?? 0}%</td>
-                    </tr>
-                ))}
-                </tbody>
-            </table>
+            <tbody className="font-roboto">
+              {displayedStudents.map((student) => (
+                <tr
+                  key={student.id}
+                  className="border-t border-[var(--color-bg-200)] hover:bg-[var(--color-bg-50)] cursor-pointer"
+                  onClick={() => navigate(`/adviser/classes/${id}/students/${student.id}`)}
+                >
+                  <td className="py-2 px-4 text-[var(--color-text-900)] border-r border-[var(--color-primary-800)]">
+                    {student.lrn}
+                  </td>
+                  <td className="py-2 px-4 text-[var(--color-text-900)] font-bold border-r border-[var(--color-bg-200)]">
+                    {student.fullName}
+                  </td>
+                  <td className="py-2 px-4 text-[var(--color-text-900)] hidden sm:table-cell border-r border-[var(--color-bg-200)]">
+                    <img
+                      src={student.profilePic || "/default-profile.svg"}
+                      alt={student.fullName}
+                      className="w-10 h-10 rounded-full"
+                    />
+                  </td>
+                  <td className="py-2 px-4 hidden md:table-cell">{student.attendanceRate ?? 0}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
     </div>
