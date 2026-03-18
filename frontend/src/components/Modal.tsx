@@ -12,7 +12,8 @@ type ModalProps = {
   children?: React.ReactNode;
   type?: "default" | "error" | "success" | "info" | "warning";
   showInput?: boolean;
-  closeOnBackdrop?: boolean;
+  closeOnBackdrop?: boolean; // click outside closes
+  isCancelable?: boolean;    // whether the modal can be canceled at all
 };
 
 const Modal = ({
@@ -28,6 +29,7 @@ const Modal = ({
   type = "default",
   showInput = false,
   closeOnBackdrop = true,
+  isCancelable = true,
 }: ModalProps) => {
   const [textInput, setTextInput] = useState(inputValue);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -38,7 +40,7 @@ const Modal = ({
     setTextInput(inputValue);
 
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape" && isCancelable) onClose();
     };
 
     document.addEventListener("keydown", handleEsc);
@@ -52,7 +54,7 @@ const Modal = ({
       document.removeEventListener("keydown", handleEsc);
       document.body.style.overflow = "";
     };
-  }, [isOpen, inputValue, onClose, showInput]);
+  }, [isOpen, inputValue, onClose, showInput, isCancelable]);
 
   if (!isOpen) return null;
 
@@ -84,7 +86,7 @@ const Modal = ({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
-      onClick={() => closeOnBackdrop && onClose()}
+      onClick={() => closeOnBackdrop && isCancelable && onClose()}
       role="dialog"
       aria-modal="true"
     >
@@ -119,12 +121,14 @@ const Modal = ({
         )}
 
         <div className="flex justify-end gap-3 mt-2">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg font-roboto text-[var(--color-text-700)] bg-[var(--color-bg-100)] hover:bg-[var(--color-bg-200)] transition-colors text-sm sm:text-base"
-          >
-            {cancelText}
-          </button>
+          {isCancelable && (
+            <button
+              onClick={onClose}
+              className="px-4 py-2 rounded-lg font-roboto text-[var(--color-text-700)] bg-[var(--color-bg-100)] hover:bg-[var(--color-bg-200)] transition-colors text-sm sm:text-base"
+            >
+              {cancelText}
+            </button>
+          )}
 
           <button
             onClick={() => {
