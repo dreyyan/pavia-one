@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import PrimaryButton from "../../components/PrimaryButton";
 import InputField from "../../components/InputField";
 import { useAuth } from "../../context/AuthContext";
+import Modal from "../../components/Modal";
 
 interface Student {
   id: number;
@@ -82,6 +83,11 @@ const AdviserStudentDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalMessage, setModalMessage] = useState("");
+  const [modalType, setModalType] = useState<"default" | "error" | "success" | "info" | "warning">("default");
+  const [redirectOnConfirm, setRedirectOnConfirm] = useState(false);
 
   const { setShowTokenExpiredModal, logout } = useAuth();
 
@@ -121,17 +127,29 @@ const AdviserStudentDetails = () => {
     );
 
     if (missingFields.length > 0) {
-      alert(`Please fill in the following required fields: ${missingFields.join(", ")}`);
+      setModalTitle("Validation Error");
+      setModalMessage(`Please fill in the following required fields: ${missingFields.join(", ")}`);
+      setModalType("error");
+      setRedirectOnConfirm(false);
+      setShowModal(true);
       return;
     }
 
     if (form.age !== undefined && (isNaN(form.age) || form.age < 0)) {
-      alert("Please enter a valid non-negative age.");
+      setModalTitle("Validation Error");
+      setModalMessage("Please enter a valid non-negative age.");
+      setModalType("error");
+      setRedirectOnConfirm(false);
+      setShowModal(true);
       return;
     }
 
     if (form.guardianContact && !/^\d+$/.test(form.guardianContact)) {
-      alert("Guardian contact number should contain only digits.");
+      setModalTitle("Validation Error");
+      setModalMessage("Guardian contact number should contain only digits.");
+      setModalType("error");
+      setRedirectOnConfirm(false);
+      setShowModal(true);
       return;
     }
 
@@ -157,13 +175,23 @@ const AdviserStudentDetails = () => {
       if (!data) return;
 
       if (!data.success) {
-        alert(data.message || "Failed to save student data.");
+        setModalTitle("Save Failed");
+        setModalMessage(data.message || "Failed to save student data.");
+        setModalType("error");
+        setRedirectOnConfirm(false);
+        setShowModal(true);
         return;
       }
 
-      alert("Student details saved successfully!");
+      // On success
+      setModalTitle("Success");
+      setModalMessage("Student details saved successfully!");
+      setModalType("success");
+      setRedirectOnConfirm(false);
+      setShowModal(true);
       setIsEditing(false);
       setOriginalForm(form);
+
     } catch (err: any) {
       alert(err.message || "Something went wrong while saving.");
     } finally {
@@ -307,6 +335,19 @@ const AdviserStudentDetails = () => {
 
   return (
     <div className="py-8 px-4 space-y-4">
+      {showModal && (
+        <Modal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+          onConfirm={() => {
+            setShowModal(false);
+            if (redirectOnConfirm) navigate("/adviser/classes"); // optional redirect
+          }}
+          title={modalTitle}
+          message={modalMessage}
+          type={modalType}
+        />
+      )}
       {/* Breadcrumbs */}
       <nav className="font-roboto text-sm text-[var(--color-text-700)] px-2 pb-2">
         {breadcrumbs.map((crumb, index) => (
