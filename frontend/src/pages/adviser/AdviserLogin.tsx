@@ -90,7 +90,9 @@ const AdviserLogin = () => {
                     title={modalTitle}
                     message={modalMessage}
                     type={modalType}
-                />
+                    closeOnBackdrop={false}
+                    isCancelable={false}
+                  />
             )}
 
             <ImageHeader />
