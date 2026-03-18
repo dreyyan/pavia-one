@@ -53,6 +53,12 @@ const AdviserDashboard = () => {
     fetchProfile();
   }, [setShowTokenExpiredModal]);
 
+  // Determine the advisory section
+  const advisorySection = profile?.sections?.find((section: any) => section.isAdvisory);
+
+  // Count the number of students in the advisory section
+  const classSize = advisorySection ? profile?.students?.length || 0 : 0;
+
   if (loading) return <DashboardSkeleton />;
 
   return (
@@ -77,9 +83,30 @@ const AdviserDashboard = () => {
       <div className="bg-[var(--color-bg-100)] border-2 border-[var(--color-bg-300)]/60 rounded-lg px-5 py-6 gap-x-3 shadow-md">
         <h2 className="mb-3">Overview</h2>
         <div className="space-y-2">
-          <DashboardItem iconSrc="/class-size-icon.svg" text="Class Size" value={profile?.classSize || 0} />
-          <DashboardItem iconSrc="/present-today-icon.svg" text="Present Today" value={profile?.presentToday || 0} />
-          <DashboardItem iconSrc="/pending-tasks-icon.svg" text="Pending Tasks" value={profile?.pendingTasks || 0} />
+          {advisorySection ? (
+            <DashboardItem
+              iconSrc="/class-size-icon.svg"
+              text="Class Size"
+              value={classSize}
+            />
+          ) : (
+            <DashboardItem
+              iconSrc="/class-size-icon.svg"
+              text="Class Size"
+              value={0}
+            />
+          )}
+
+          <DashboardItem
+            iconSrc="/present-today-icon.svg"
+            text="Present Today"
+            value={profile?.presentToday || 0}
+          />
+          <DashboardItem
+            iconSrc="/pending-tasks-icon.svg"
+            text="Pending Tasks"
+            value={profile?.pendingTasks || 0}
+          />
         </div>
       </div>
 
