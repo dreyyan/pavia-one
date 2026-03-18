@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import ClassCard from "../../components/ClassCard";
+import { useAuth } from "../../context/AuthContext"; // your modal context
 
 interface ScheduleItem {
   day: string;
@@ -17,7 +18,8 @@ interface Section {
 }
 
 const AdviserClassManagement = () => {
-  // State
+  const { setShowTokenExpiredModal } = useAuth();
+
   const [classes, setClasses] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,6 +39,15 @@ const AdviserClassManagement = () => {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  // Centralized API response handler
+  const handleApiResponse = async (res: Response) => {
+    if (res.status === 401) {
+      setShowTokenExpiredModal(true); // show modal
+      return null;
+    }
+    return await res.json();
+  };
+
   // Fetch adviser's sections from API
   useEffect(() => {
     const fetchSections = async () => {
@@ -44,7 +55,7 @@ const AdviserClassManagement = () => {
       setError(null);
 
       try {
-        const token = localStorage.getItem("token"); // or wherever you store JWT
+        const token = localStorage.getItem("token");
         const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/adviser/sections`, {
           headers: {
             "Content-Type": "application/json",
@@ -52,13 +63,13 @@ const AdviserClassManagement = () => {
           },
         });
 
-        const data = await res.json();
+        const data = await handleApiResponse(res);
+        if (!data) return; // token expired → modal shows automatically
 
         if (!data.success) {
           setError(data.message || "Failed to fetch sections");
           setClasses([]);
         } else {
-          // Map sections to expected format
           const sectionsWithDefaults: Section[] = data.data.map((sec: any) => ({
             id: sec.id,
             name: `${sec.gradeLevel} — ${sec.name}`,
@@ -68,7 +79,6 @@ const AdviserClassManagement = () => {
             classSize: sec.classSize || 0,
             schedule: sec.schedule || [],
           }));
-
           setClasses(sectionsWithDefaults);
         }
       } catch (err: any) {
@@ -80,7 +90,7 @@ const AdviserClassManagement = () => {
     };
 
     fetchSections();
-  }, []);
+  }, [setShowTokenExpiredModal]);
 
   // Apply grade filter
   const filteredClasses = selectedGrade
@@ -105,13 +115,13 @@ const AdviserClassManagement = () => {
           <input
             type="text"
             placeholder="Search classes..."
-            className="w-full bg-[var(--color-bg-100)] border border-[var(--color-bg-400)] rounded-sm py-2 pl-4 pr-3 outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm"
+            className="w-full bg-[var(--color-bg-50)] font-roboto rounded-sm py-2 pl-4 pr-3 outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm"
           />
         </div>
         <div ref={filterRef} className="relative">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center justify-center rounded-sm p-2 border transition cursor-pointer ${
+            className={`flex items-center justify-center text-[var(--color-text-50)] rounded-sm p-2 border transition cursor-pointer ${
               showFilters
                 ? "bg-[var(--color-primary-600)] border-[var(--color-primary-500)]"
                 : "bg-[var(--color-primary-700)] border-[var(--color-primary-700)] hover:opacity-80"
@@ -121,14 +131,14 @@ const AdviserClassManagement = () => {
           </button>
 
           {showFilters && (
-            <div className="absolute right-0 mt-2 w-56 bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-md shadow-lg p-3 space-y-2 z-50">
-              <p className="text-sm font-semibold text-[var(--color-text-700)]">Filter by Grade</p>
+            <div className="absolute right-0 mt-2 w-56 bg-[var(--color-bg-50)] border border-[var(--color-bg-300)] rounded-md shadow-lg p-3 space-y-2 z-50">
+              <p className="font-roboto font-bold text-sm text-[var(--color-text-700)]">Filter by Grade</p>
               <button
                 onClick={() => {
                   setSelectedGrade(null);
                   setShowFilters(false);
                 }}
-                className={`w-full text-left px-2 py-1 rounded hover:bg-[var(--color-bg-200)] ${
+                className={`font-roboto font-semibold text-sm w-full text-left px-2 py-1 rounded hover:bg-[var(--color-bg-200)] ${
                   selectedGrade === null ? "bg-[var(--color-primary-200)]" : ""
                 }`}
               >
@@ -141,7 +151,7 @@ const AdviserClassManagement = () => {
                     setSelectedGrade(grade);
                     setShowFilters(false);
                   }}
-                  className={`w-full text-left px-2 py-1 rounded hover:bg-[var(--color-bg-200)] ${
+                  className={`font-roboto text-sm w-full text-left px-2 py-1 rounded hover:bg-[var(--color-bg-200)] ${
                     selectedGrade === grade ? "bg-[var(--color-primary-200)]" : ""
                   }`}
                 >
@@ -162,7 +172,7 @@ const AdviserClassManagement = () => {
           !error &&
           filteredClasses.map((cls) => (
             <ClassCard
-            id={cls.id}
+              id={cls.id}
               key={cls.id}
               name={cls.name}
               schedule={cls.schedule}

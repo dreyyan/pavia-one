@@ -1,16 +1,19 @@
 import { useState } from "react";
 
-interface ClassCardProps {
+interface MyClassCardProps {
     id: number;
     name: string;
     schedule: { day: string; time: string }[];
     classSize: number;
+    maleCount: number;
+    femaleCount: number;
     color: string;
 };
 
-const MyClassCard: React.FC<ClassCardProps> = ({ id, name, schedule, classSize, color }) => {
+const MyClassCard: React.FC<MyClassCardProps> = ({ id, name, schedule, classSize, maleCount, femaleCount, color }) => {
     return (
         <div
+        key={id}
         style={{backgroundColor: color}}
         className="
             relative
@@ -50,6 +53,7 @@ const MyClassCard: React.FC<ClassCardProps> = ({ id, name, schedule, classSize, 
                 <h1 className="text-left text-[var(--color-text-50)] font-semibold">{name}</h1>
 
                 {/* Class Schedule */}
+                { schedule && 
                 <div>
                     {schedule.map(({ day, time }, index) => (
                     <div key={index} className="flex justify-between [&>p]:text-[var(--color-text-50)]">
@@ -58,13 +62,20 @@ const MyClassCard: React.FC<ClassCardProps> = ({ id, name, schedule, classSize, 
                     </div>
                     ))}
                 </div>
+                }
             </div>
 
             {/* Class Size - Male & Female */}
-            <div className="flex justify-end bg-[var(--color-primary-500)] [&>p]:text-[var(--color-text-50)] px-4 rounded-b-lg">
-                <p className="body-large">16 ♂</p>
-                <p>&nbsp;/&nbsp;</p>
-                <p className="body-large">14 ♀</p>
+            <div className="flex justify-end bg-[var(--color-bg-50)] px-3 rounded-b-lg">
+                <span className="flex items-center">
+                    <p className="font-roboto text-[15px] font-bold text-[var(--color-text-800)]">{maleCount}</p>
+                    <img src="/male-icon.svg" className="size-5"/>
+                </span>
+                <p className="font-figtree font-semibold pb-1 text-[var(--color-text-800)]">&nbsp;|&nbsp;</p>
+                <span className="flex items-center">
+                    <p className="font-roboto text-[15px] font-bold text-[var(--color-text-800)]">{femaleCount}</p>
+                    <img src="/female-icon.svg" className="size-5"/>
+                </span>
             </div>
         </div>
     );

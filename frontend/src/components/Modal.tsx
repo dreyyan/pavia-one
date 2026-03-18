@@ -1,15 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 type ModalProps = {
   isOpen: boolean;
   onClose: () => void;
   title: string;
   message?: string;
-  confirmText?: string;          // optional, default "OK"
+  confirmText?: string;
+  cancelText?: string;
   inputValue?: string;
   onConfirm?: (value: string) => void;
-  children?: React.ReactNode;    // optional content
+  children?: React.ReactNode;
   type?: "default" | "error" | "success" | "info" | "warning";
+  showInput?: boolean;
+  closeOnBackdrop?: boolean; // click outside closes
+  isCancelable?: boolean;    // whether the modal can be canceled at all
 };
 
 const Modal = ({
@@ -18,106 +22,120 @@ const Modal = ({
   title,
   message,
   confirmText = "OK",
+  cancelText = "Cancel",
   inputValue = "",
   onConfirm,
   children,
   type = "default",
+  showInput = false,
+  closeOnBackdrop = true,
+  isCancelable = true,
 }: ModalProps) => {
   const [textInput, setTextInput] = useState(inputValue);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Reset input when modal closes
   useEffect(() => {
     if (!isOpen) return;
 
-    const timer = setTimeout(() => {
-      setTextInput(inputValue);
-    }, 0);
+    setTextInput(inputValue);
 
-    return () => clearTimeout(timer);
-  }, [isOpen, inputValue]);
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isCancelable) onClose();
+    };
+
+    document.addEventListener("keydown", handleEsc);
+    document.body.style.overflow = "hidden";
+
+    if (showInput) {
+      setTimeout(() => inputRef.current?.focus(), 0);
+    }
+
+    return () => {
+      document.removeEventListener("keydown", handleEsc);
+      document.body.style.overflow = "";
+    };
+  }, [isOpen, inputValue, onClose, showInput, isCancelable]);
 
   if (!isOpen) return null;
 
-  const borderColorClasses = {
+  const borderColors = {
     default: "border-t-blue-500",
-    error:   "border-t-red-500",
+    error: "border-t-red-500",
     success: "border-t-green-500",
-    info:    "border-t-blue-500",
+    info: "border-t-blue-500",
     warning: "border-t-amber-500",
   };
 
-  const textColorClasses = {
+  const textColors = {
     default: "text-blue-700",
-    error:   "text-red-700",
+    error: "text-red-700",
     success: "text-green-700",
-    info:    "text-blue-700",
+    info: "text-blue-700",
     warning: "text-amber-800",
   };
 
-  const borderClass = borderColorClasses[type] || "border-t-blue-500";
-  const textClass   = textColorClasses[type]   || "text-blue-700";
+  const borderClass = borderColors[type];
+  const textClass = textColors[type];
 
-  // Optional: error-specific input styling
-  const inputBorderClass = type === "error" ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500";
+  const inputBorderClass =
+    type === "error"
+      ? "border-red-500 focus:ring-red-500"
+      : "border-gray-300 focus:ring-blue-500";
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
-      style={{ backgroundColor: "rgba(0,0,0,0.4)" }} // ← background stays inline (no issue here)
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+      onClick={() => closeOnBackdrop && isCancelable && onClose()}
+      role="dialog"
+      aria-modal="true"
     >
       <div
-        className={`
-          bg-white rounded-xl shadow-xl w-full max-w-md p-6 sm:p-8 
-          flex flex-col animate-fadeIn 
-          border-t-4 ${borderClass}
-        `}
+        className={`bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 sm:p-7 flex flex-col border-t-4 ${borderClass} animate-[scaleIn_.18s_ease-out]`}
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <h2 className={`text-xl sm:text-2xl font-semibold mb-4 ${textClass}`}>
+        <h2 className={`text-xl sm:text-2xl font-semibold mb-3 ${textClass}`}>
           {title}
         </h2>
 
-        {/* Body */}
         {children ? (
           <div className="mb-4">{children}</div>
         ) : (
           message && (
             <p
-              className="text-sm sm:text-base mb-4"
+              className="text-sm font-roboto sm:text-base text-[var(--color-text-700)] mb-4"
               dangerouslySetInnerHTML={{ __html: message }}
             />
           )
         )}
 
-        {/* Optional input */}
-        {onConfirm && (
+        {showInput && (
           <input
+            ref={inputRef}
             type="text"
             value={textInput}
             onChange={(e) => setTextInput(e.target.value)}
             placeholder="Enter value..."
-            className={`
-              w-full mb-4 px-4 py-2 border rounded-lg 
-              focus:outline-none focus:ring-2 transition-shadow shadow-sm
-              ${inputBorderClass}
-            `}
+            className={`w-full mb-5 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-shadow shadow-sm ${inputBorderClass}`}
           />
         )}
 
-        {/* Actions */}
-        <div className="flex justify-end gap-3 mt-2 flex-wrap sm:flex-nowrap [&>button]:cursor-pointer">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors text-sm sm:text-base"
-          >
-            Cancel
-          </button>
+        <div className="flex justify-end gap-3 mt-2">
+          {isCancelable && (
+            <button
+              onClick={onClose}
+              className="px-4 py-2 rounded-lg font-roboto text-[var(--color-text-700)] bg-[var(--color-bg-100)] hover:bg-[var(--color-bg-200)] transition-colors text-sm sm:text-base"
+            >
+              {cancelText}
+            </button>
+          )}
+
           <button
             onClick={() => {
               if (onConfirm) onConfirm(textInput);
               onClose();
             }}
-            className="px-4 py-2 rounded-lg text-white text-sm sm:text-base bg-[var(--color-primary-500)] hover:bg-[var(--color-primary-600)] transition-colors"
+            className="px-4 py-2 rounded-lg font-roboto text-[var(--color-text-50)] text-sm sm:text-base font-semibold bg-[var(--color-primary-500)] hover:bg-[var(--color-primary-600)] transition-colors"
           >
             {confirmText}
           </button>

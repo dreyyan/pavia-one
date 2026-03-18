@@ -2,15 +2,18 @@ import { useState } from "react";
 
 interface InputFieldProps {
   label?: string;
-  type?: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  type?: string; // "text", "number", "password", "date", or "select"
+  value: string | number;
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
   placeholder?: string;
   maxLength?: number;
   error?: string;
-  iconSrc?: string; // path to image
+  iconSrc?: string;
   iconAlt?: string;
-  showClear?: boolean; // show clear button for non-password fields
+  showClear?: boolean;
+  disabled?: boolean;
+  options?: string[]; // for dropdown/select
+  max?: number; // maximum value for number input
 }
 
 const InputField = ({
@@ -24,33 +27,47 @@ const InputField = ({
   iconSrc,
   iconAlt = "icon",
   showClear = true,
+  disabled = false,
+  options = [],
+  max,
 }: InputFieldProps) => {
-  // State for password visibility toggle
   const [showPassword, setShowPassword] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
   // Handle input clear
   const handleClear = () => {
+    if (disabled) return;
     const event = { target: { value: "" } } as unknown as React.ChangeEvent<HTMLInputElement>;
     onChange(event);
   };
 
   // Toggle password visibility
-  const togglePasswordVisibility = () => setShowPassword((prev) => !prev);
+  const togglePasswordVisibility = () => {
+    if (disabled) return;
+    setShowPassword((prev) => !prev);
+  };
 
-  // Dynamic input type
-  const inputType = type === "password" ? (showPassword ? "text" : "password") : type;
-
-  // Determine password icon based on hover & visibility
+  // Password icon
   let passwordIcon = "";
-
   if (showPassword) {
-    // Password is visible
     passwordIcon = isHovered ? "/visibility-off-hovered-icon.svg" : "/visibility-off-icon.svg";
   } else {
-    // Password is hidden
     passwordIcon = isHovered ? "/visibility-hovered-icon.svg" : "/visibility-icon.svg";
   }
+
+  // Remove number input arrows
+  const numberInputStyle =
+    type === "number"
+      ? { MozAppearance: "textfield", WebkitAppearance: "none" }
+      : undefined;
+
+  const baseClasses = `w-full rounded-lg border-2 py-2 focus:outline-none focus:ring-0 font-roboto ${
+    iconSrc ? "pl-10" : "px-3"
+  } ${
+    disabled
+      ? "bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed"
+      : "bg-[var(--color-bg-50)] border-[var(--color-bg-800)] text-[var(--color-text-900)]"
+  }`;
 
   return (
     <div className="flex flex-col gap-1">
@@ -60,35 +77,73 @@ const InputField = ({
         {/* Left icon */}
         {iconSrc && (
           <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-            <img
-              src={`/${iconSrc}`}
-              alt={iconAlt}
-              loading="eager"
-              className="w-5 h-5 object-contain"
-            />
+            <img src={`/${iconSrc}`} alt={iconAlt} loading="eager" className="w-5 h-5 object-contain" />
           </div>
         )}
 
-        {/* Input */}
-        <input
-          type={inputType}
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          maxLength={maxLength}
-          className={`focus:outline-none focus:ring-0 border-2 border-[var(--color-background-800)] rounded-lg py-2 ${
-            iconSrc ? "pl-10" : "px-3"
-          } w-full`}
-        />
+        {/* Input or Select */}
+        {type === "select" ? (
+          <select
+            value={value}
+            onChange={onChange}
+            disabled={disabled}
+            className={baseClasses + " appearance-none font-roboto"}
+          >
+            <option value="" disabled>{placeholder || "Select an option"}</option>
+            {options.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            type={type === "password" ? (showPassword ? "text" : "password") : type}
+            value={value}
+            onChange={(e) => {
+              let val = e.target.value;
 
-        {/* Right button: password visibility OR clear */}
+              if (type === "number") {
+                // Remove leading "-" to prevent negative values
+                if (val.startsWith("-")) val = val.slice(1);
+
+                // Remove non-digit characters
+                val = val.replace(/[^\d]/g, "");
+
+                // Enforce maxLength if provided
+                if (maxLength && val.length > maxLength) val = val.slice(0, maxLength);
+
+                // Enforce max if provided
+                if (max !== undefined && Number(val) > max) val = String(max);
+
+                // Trigger onChange with sanitized number
+                const event = { ...e, target: { ...e.target, value: val } } as React.ChangeEvent<HTMLInputElement>;
+                onChange(event);
+                return;
+              }
+
+              // For other input types, just forward the event
+              onChange(e);
+            }}
+            placeholder={placeholder}
+            disabled={disabled}
+            style={numberInputStyle}
+            className={baseClasses}
+            {...(type === "number" && max !== undefined ? { max } : {})}
+          />
+        )}
+
+        {/* Right button: password toggle OR clear */}
         {type === "password" && value ? (
           <button
             type="button"
             onClick={togglePasswordVisibility}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            className="absolute inset-y-0 right-0 flex items-center justify-center pb-1 pl-3 pr-4 h-full cursor-pointer"
+            disabled={disabled}
+            className={`absolute inset-y-0 right-0 flex items-center justify-center pb-1 pl-3 pr-4 h-full ${
+              disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+            }`}
           >
             <img
               src={passwordIcon}
@@ -96,7 +151,7 @@ const InputField = ({
               className="size-6 pt-1 object-contain"
             />
           </button>
-        ) : showClear && value ? (
+        ) : showClear && value && !disabled && type !== "date" && type !== "select" && type !== "number" ? (
           <button
             type="button"
             onClick={handleClear}

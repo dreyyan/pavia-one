@@ -9,7 +9,7 @@ const jwt = require('jsonwebtoken');
 
 // [IMPORT] Utilities & Middleware
 const { successResponse, errorResponse } = require('../../utils/response');
-const { getFullName } = require('../../utils/helpers');
+const { getFullName, calculateAge } = require('../../utils/helpers');
 const verifyAdviser = require('../../middleware/authMiddleware').verifyAdviser;
 
 // ?[GET] Retrieve adviser's sections (protected)
@@ -73,7 +73,7 @@ router.get('/:id', verifyAdviser, async (req, res) => {
     const section = await prisma.section.findFirst({
       where: {
         id: Number(id),
-        adviserId: adviser.id, // ensure the section belongs to this adviser
+        adviserId: adviser.id,
       },
       select: {
         id: true,
@@ -84,6 +84,13 @@ router.get('/:id', verifyAdviser, async (req, res) => {
         color: true,
         classSize: true,
         schedule: true,
+        enrollments: {
+          select: {
+            student: {
+              select: { sex: true },
+            },
+          },
+        },
       },
     });
 
@@ -98,29 +105,54 @@ router.get('/:id', verifyAdviser, async (req, res) => {
   }
 });
 
-// ?[GET] List students assigned to this adviser's sections
-// /api/adviser/sections/students
-router.get('/students', verifyAdviser, async (req, res) => {
+// ?[GET] Students in a specific adviser section
+// /api/adviser/sections/:id/students
+router.get('/:id/students', verifyAdviser, async (req, res) => {
   try {
-    const { page = 1, limit = 50, search = '', sortBy = 'lrn', sortOrder = 'asc' } = req.query;
+    const sectionId = parseInt(req.params.id);
+    if (isNaN(sectionId)) {
+      return res.status(400).json(errorResponse('Invalid section ID'));
+    }
+
+    const {
+      page = 1,
+      limit = 50,
+      search = '',
+      sortBy = 'lrn',
+      sortOrder = 'asc',
+    } = req.query;
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const take = parseInt(limit);
 
-    // [1] Get all section IDs managed by this adviser
-    const sections = await prisma.section.findMany({
+    // Get numeric adviser ID
+    const adviser = await prisma.adviser.findUnique({
       where: { adviserId: req.adviserId },
-      select: { id: true }
+      select: { id: true },
     });
-    const sectionIds = sections.map(s => s.id);
 
-    // [2] If adviser manages no sections, return empty
-    if (sectionIds.length === 0) {
-      return res.json(successResponse('No sections assigned', { data: [], pagination: {} }));
+    if (!adviser) {
+      return res.status(404).json(errorResponse('Adviser not found'));
     }
 
-    // [3] Build filter: only students in adviser's sections + optional search
+    // Verify section belongs to adviser
+    const section = await prisma.section.findFirst({
+      where: { id: sectionId, adviserId: adviser.id },
+      select: {
+        id: true,
+        name: true,
+        gradeLevel: true,
+        color: true
+      },
+    });
+
+    if (!section) {
+      return res.status(403).json(errorResponse('Unauthorized or section not found'));
+    }
+
+    // Build filter for enrollments
     const enrollmentWhere = {
-      sectionId: { in: sectionIds }, // enforce adviser access
+      sectionId,
       student: search
         ? {
             OR: [
@@ -129,53 +161,76 @@ router.get('/students', verifyAdviser, async (req, res) => {
               { lastName: { contains: search, mode: 'insensitive' } },
               { nameExtension: { contains: search, mode: 'insensitive' } },
               { lrn: { contains: search } },
-              { email: { contains: search, mode: 'insensitive' } }
-            ]
+              { email: { contains: search, mode: 'insensitive' } },
+            ],
           }
-        : undefined
+        : undefined,
     };
 
-    // [4] Fetch enrollments with included student info
+    // Determine orderBy for Prisma (relation sorting)
+    let orderBy = { student: { lrn: 'asc' } }; // default
+    if (sortBy === 'lrn' || sortBy === 'firstName' || sortBy === 'lastName') {
+      orderBy = { student: { [sortBy]: sortOrder === 'desc' ? 'desc' : 'asc' } };
+    } else if (sortBy === 'fullName') {
+      // fullName is derived: sort by firstName then lastName
+      orderBy = {
+        student: {
+          firstName: sortOrder === 'desc' ? 'desc' : 'asc',
+          lastName: sortOrder === 'desc' ? 'desc' : 'asc',
+        },
+      };
+    }
+
+    // Fetch enrollments
     const [enrollments, total] = await Promise.all([
       prisma.enrollment.findMany({
         where: enrollmentWhere,
-        include: {
-          student: true,
-          section: { select: { id: true, name: true, gradeLevel: true } }
-        },
-        orderBy: { student: { [sortBy]: sortOrder === 'desc' ? 'desc' : 'asc' } },
+        include: { student: true },
         skip,
-        take
+        take,
+        orderBy,
       }),
-      prisma.enrollment.count({ where: enrollmentWhere })
+      prisma.enrollment.count({ where: enrollmentWhere }),
     ]);
 
-    // [5] Map enrollments to student objects
-    const students = enrollments.map(e => ({
+    // Map to student objects with fullName only
+    const students = enrollments.map((e) => ({
       ...e.student,
       fullName: getFullName(e.student),
-      section: e.section
     }));
 
-    // [6] Prepare pagination
+    // Calculate male and female counts
+    let maleCount = 0;
+    let femaleCount = 0;
+    students.forEach((student) => {
+      if (student.sex === "MALE") maleCount++;
+      else if (student.sex === "FEMALE") femaleCount++;
+    });
+
     const totalPages = Math.ceil(total / take);
 
-    // *[SUCCESS] Return students with pagination
     res.json(
       successResponse('Students retrieved successfully', {
-        data: students,
+        section: {
+          name: section.name,
+          gradeLevel: section.gradeLevel,
+          color: section.color,
+          maleCount,
+          femaleCount,
+        },
+        students,
         pagination: {
           total,
           page: parseInt(page),
           limit: take,
           totalPages,
           hasNext: parseInt(page) < totalPages,
-          hasPrev: parseInt(page) > 1
-        }
+          hasPrev: parseInt(page) > 1,
+        },
       })
     );
   } catch (err) {
-    console.error('Adviser students fetch error:', err);
+    console.error('Adviser section students fetch error:', err);
     res.status(500).json(errorResponse('Failed to fetch students', err.message));
   }
 });
@@ -223,7 +278,8 @@ router.get('/:sectionId', verifyAdviser, async (req, res) => {
     // [3] Map enrollments to student objects
     const students = section.enrollments.map(e => ({
       ...e.student,
-      fullName: getFullName(e.student)
+      fullName: getFullName(e.student),
+      age: calculateAge(e.student.birthDate)
     }));
 
     // *[SUCCESS] Return section with students
@@ -240,55 +296,240 @@ router.get('/:sectionId', verifyAdviser, async (req, res) => {
   }
 });
 
-// ?[GET] Search for a specific student in an adviser's section
-// /api/adviser/sections/:sectionId/student
-router.get('/:sectionId/student', verifyAdviser, async (req, res) => {
+// ?[GET] Get a specific student in a section (protected)
+// /api/adviser/sections/:sectionId/students/:studentId
+router.get('/:sectionId/students/:studentId', verifyAdviser, async (req, res) => {
   try {
-    const { query } = req.query; // e.g., LRN or name
-    if (!query) return res.status(400).json(errorResponse('query parameter is required'));
-
     const sectionId = parseInt(req.params.sectionId);
+    const studentId = parseInt(req.params.studentId);
 
-    // Verify adviser manages this section
-    const section = await prisma.section.findUnique({
-      where: { id: sectionId },
-      select: { adviserId: true }
+    console.log('[REQUEST] GET /api/adviser/sections/:sectionId/students/:studentId');
+    console.log('Request params:', { sectionId, studentId });
+    console.log('JWT adviserId from token:', req.adviserId);
+
+    // Get numeric adviser ID
+    const adviser = await prisma.adviser.findUnique({
+      where: { adviserId: req.adviserId },
+      select: { id: true }
     });
-    if (!section || section.adviserId !== req.adviserId) {
-      return res.status(403).json(errorResponse('You do not manage this section'));
-    }
+    console.log('Adviser fetched:', adviser);
 
-    // Search for student in this section by LRN or name
-    const enrollment = await prisma.enrollment.findFirst({
+    if (!adviser) return res.status(404).json(errorResponse('Adviser not found'));
+
+    // Verify section belongs to adviser
+    const section = await prisma.section.findFirst({
       where: {
-        sectionId,
-        student: {
-          OR: [
-            { lrn: { equals: query } },
-            { firstName: { contains: query, mode: 'insensitive' } },
-            { middleName: { contains: query, mode: 'insensitive' } },
-            { lastName: { contains: query, mode: 'insensitive' } },
-            { nameExtension: { contains: query, mode: 'insensitive' } }
-          ]
-        }
+        id: sectionId,
+        adviserId: adviser.id,
       },
-      include: { student: true }
+      select: { id: true, name: true, gradeLevel: true }
     });
+    console.log('Section fetched:', section);
 
-    if (!enrollment) {
-      return res.status(404).json(errorResponse('Student not found in this section'));
-    }
+    if (!section) return res.status(403).json(errorResponse('You do not manage this section'));
 
-    const student = {
-      ...enrollment.student,
-      fullName: getFullName(enrollment.student),
-      sectionId
+    // Fetch enrollment including address & guardian
+    const enrollment = await prisma.enrollment.findFirst({
+      where: { sectionId, studentId },
+      include: {
+        student: { include: { address: true, guardian: true } },
+        section: { select: { name: true, gradeLevel: true } }
+      }
+    });
+    console.log('Enrollment fetched:', enrollment);
+
+    if (!enrollment) return res.status(404).json(errorResponse('Student not found in this section'));
+
+    const s = enrollment.student;
+
+    // Build response
+    const studentResponse = {
+      id: s.id,
+      lrn: s.lrn,
+      firstName: s.firstName,
+      middleName: s.middleName,
+      lastName: s.lastName,
+      nameExtension: s.nameExtension,
+      fullName: getFullName(s),
+      email: s.email,
+      sex: s.sex,
+      birthDate: s.birthDate,
+      age: calculateAge(s.birthDate),
+      sectionId: enrollment.sectionId,
+      sectionName: enrollment.section.name,
+      gradeLevel: enrollment.section.gradeLevel,
+      houseNo: s.address?.streetAddress ?? "",
+      barangay: s.address?.barangay ?? "",
+      municipality: s.address?.municipalityCity ?? "",
+      province: s.address?.province ?? "",
+      fatherName: [s.guardian?.fatherLastName, s.guardian?.fatherFirstName, s.guardian?.fatherMiddleName].filter(Boolean).join(" ") || "",
+      motherName: [s.guardian?.motherMaidenLastName, s.guardian?.motherMaidenFirstName, s.guardian?.motherMaidenMiddleName].filter(Boolean).join(" ") || "",
+      guardianName: s.guardian?.guardianName ?? "",
+      guardianRelationship: s.guardian?.guardianRelationship ?? "",
+      guardianContact: s.guardian?.guardianContactNumber ?? "",
+      learningModality: enrollment.learningModality ?? ""
     };
 
-    res.json(successResponse('Student found', student));
+    console.log('Student response built:', studentResponse);
+
+    res.json(successResponse('Student retrieved successfully', studentResponse));
   } catch (err) {
-    console.error('Section student search error:', err);
-    res.status(500).json(errorResponse('Failed to search student', err.message));
+    console.error('Get student in section error:', err);
+    res.status(500).json(errorResponse('Failed to fetch student', err.message));
+  }
+});
+
+// ?[PUT] Update a specific student in a section
+// /api/adviser/sections/:sectionId/students/:studentId
+router.put('/:sectionId/students/:studentId', verifyAdviser, async (req, res) => {
+  try {
+    const sectionId = parseInt(req.params.sectionId);
+    const studentId = parseInt(req.params.studentId);
+
+    if (isNaN(sectionId) || isNaN(studentId)) {
+      return res.status(400).json(errorResponse('Invalid section or student ID'));
+    }
+
+    const {
+      lastName,
+      firstName,
+      middleName,
+      sex,
+      birthDate,
+      houseNo,
+      street,
+      sitio,
+      purok,
+      barangay,
+      municipality,
+      province,
+      fatherName,
+      motherName,
+      guardianName,
+      guardianRelationship,
+      guardianContact,
+      learningModality,
+    } = req.body;
+
+    // Basic validation
+    const requiredFields = { lastName, firstName, sex, birthDate, learningModality };
+    const missingFields = Object.entries(requiredFields)
+      .filter(([_, value]) => !value || value.toString().trim() === '')
+      .map(([key]) => key);
+
+    if (missingFields.length > 0) {
+      return res
+        .status(400)
+        .json(errorResponse(`Missing required fields: ${missingFields.join(', ')}`));
+    }
+
+    if (guardianContact && !/^\d+$/.test(guardianContact)) {
+      return res.status(400).json(errorResponse('Guardian contact must be numeric'));
+    }
+
+    // Verify adviser manages this section
+    const adviser = await prisma.adviser.findUnique({
+      where: { adviserId: req.adviserId },
+      select: { id: true },
+    });
+    if (!adviser) return res.status(404).json(errorResponse('Adviser not found'));
+
+    const section = await prisma.section.findFirst({
+      where: { id: sectionId, adviserId: adviser.id },
+      select: { id: true },
+    });
+    if (!section) return res.status(403).json(errorResponse('You do not manage this section'));
+
+    // Update student core info (only fields that exist in Student model)
+    const updatedStudent = await prisma.student.update({
+      where: { id: studentId },
+      data: {
+        lastName,
+        firstName,
+        middleName,
+        sex,
+        birthDate: birthDate ? new Date(birthDate) : null,
+      },
+    });
+
+    // Update or create address
+    if (houseNo || street || sitio || purok || barangay || municipality || province) {
+
+      // Combine detailed fields into one DB field
+      const streetAddress = [houseNo, street, sitio, purok]
+        .filter(v => v && v.trim() !== "")
+        .join(" ")
+        .trim();
+
+      await prisma.address.upsert({
+        where: { studentId },
+
+        update: {
+          streetAddress: streetAddress || null,
+          barangay: barangay || null,
+          municipalityCity: municipality || null,
+          province: province || null,
+        },
+
+        create: {
+          studentId,
+          streetAddress: streetAddress || null,
+          barangay: barangay || null,
+          municipalityCity: municipality || null,
+          province: province || null,
+        },
+      });
+    }
+
+    // Update or create guardian info
+    if (fatherName || motherName || guardianName || guardianRelationship || guardianContact) {
+      const [fatherLastName, fatherFirstName, fatherMiddleName] = fatherName
+        ? fatherName.split(' ')
+        : [];
+      const [motherLastName, motherFirstName, motherMiddleName] = motherName
+        ? motherName.split(' ')
+        : [];
+
+      await prisma.guardian.upsert({
+        where: { studentId },
+        update: {
+          fatherLastName: fatherLastName || '',
+          fatherFirstName: fatherFirstName || '',
+          fatherMiddleName: fatherMiddleName || '',
+          motherMaidenLastName: motherLastName || '',
+          motherMaidenFirstName: motherFirstName || '',
+          motherMaidenMiddleName: motherMiddleName || '',
+          guardianName: guardianName || '',
+          guardianRelationship: guardianRelationship || '',
+          guardianContactNumber: guardianContact || '',
+        },
+        create: {
+          studentId,
+          fatherLastName: fatherLastName || '',
+          fatherFirstName: fatherFirstName || '',
+          fatherMiddleName: fatherMiddleName || '',
+          motherMaidenLastName: motherLastName || '',
+          motherMaidenFirstName: motherFirstName || '',
+          motherMaidenMiddleName: motherMiddleName || '',
+          guardianName: guardianName || '',
+          guardianRelationship: guardianRelationship || '',
+          guardianContactNumber: guardianContact || '',
+        },
+      });
+    }
+
+    // Update enrollment info (learning modality)
+    if (learningModality) {
+      await prisma.enrollment.updateMany({
+        where: { studentId, sectionId },
+        data: { learningModality },
+      });
+    }
+
+    res.json(successResponse('Student updated successfully', updatedStudent));
+  } catch (err) {
+    console.error('Update student error:', err);
+    res.status(500).json(errorResponse('Failed to update student', err.message));
   }
 });
 
@@ -299,41 +540,50 @@ router.post('/:sectionId/enrollments', verifyAdviser, async (req, res) => {
     const { students, schoolYear, learningModality = 'FACE_TO_FACE' } = req.body;
     const sectionId = parseInt(req.params.sectionId);
 
-    // [0] Validate input
+    // ![ERROR] Validate input
     if (!students || !Array.isArray(students) || students.length === 0) {
       return res.status(400).json(errorResponse('students array is required'));
     }
     if (!schoolYear) {
       return res.status(400).json(errorResponse('schoolYear is required'));
     }
+    if (isNaN(sectionId)) {
+      return res.status(400).json(errorResponse('Invalid section ID'));
+    }
 
-    // [1] Verify adviser manages this section
-    const section = await prisma.section.findUnique({
-      where: { id: sectionId },
-      select: { adviserId: true }
+    // [1] Numeric adviser ID + keep string adviserId for createdByAdviserId
+    const adviser = await prisma.adviser.findUnique({
+      where: { adviserId: req.adviserId },
+      select: { id: true, adviserId: true },
+    });
+
+    if (!adviser) {
+      return res.status(404).json(errorResponse('Adviser not found'));
+    }
+
+    // [2] Verify adviser manages this section
+    const section = await prisma.section.findFirst({
+      where: { id: sectionId, adviserId: adviser.id },
+      select: { id: true },
     });
 
     if (!section) {
-      return res.status(404).json(errorResponse('Section not found'));
-    }
-
-    if (section.adviserId !== req.adviserId) {
       return res.status(403).json(errorResponse('You do not manage this section'));
     }
 
-    // [2] Prepare students: check existing by LRN
-    const lrns = students.map(s => s.lrn);
+    // [3] Prepare students: check existing by LRN
+    const lrns = students.map((s) => s.lrn);
     const existingStudents = await prisma.student.findMany({
       where: { lrn: { in: lrns } },
-      select: { id: true, lrn: true }
+      select: { id: true, lrn: true },
     });
 
-    const existingLrns = existingStudents.map(s => s.lrn);
-    const newStudents = students.filter(s => !existingLrns.includes(s.lrn));
+    const existingLrns = existingStudents.map((s) => s.lrn);
+    const newStudents = students.filter((s) => !existingLrns.includes(s.lrn));
 
-    // [3] Create new students if they don't exist
+    // [4] Create new students if they don't exist
     const createdStudents = await Promise.all(
-      newStudents.map(s =>
+      newStudents.map((s) =>
         prisma.student.create({
           data: {
             lrn: s.lrn,
@@ -343,10 +593,10 @@ router.post('/:sectionId/enrollments', verifyAdviser, async (req, res) => {
             nameExtension: s.nameExtension,
             sex: s.sex,
             email: s.email,
-            createdByAdviserId: req.adviserId,
-            birthDate: new Date(s.birthDate)
+            birthDate: new Date(s.birthDate),
+            createdByAdviserId: req.adviserId, // <- use string from token
           },
-          select: { id: true, lrn: true }
+          select: { id: true, lrn: true },
         })
       )
     );
@@ -354,32 +604,38 @@ router.post('/:sectionId/enrollments', verifyAdviser, async (req, res) => {
     // Merge existing + newly created students
     const allStudents = [...existingStudents, ...createdStudents];
 
-    // [4] Check for existing enrollments in this section and school year
+    // [5] Check for existing enrollments in this section and school year
     const existingEnrollments = await prisma.enrollment.findMany({
       where: {
-        studentId: { in: allStudents.map(s => s.id) },
+        studentId: { in: allStudents.map((s) => s.id) },
         sectionId,
-        schoolYear
+        schoolYear,
       },
-      select: { studentId: true }
+      select: { studentId: true },
     });
 
-    const alreadyEnrolledIds = existingEnrollments.map(e => e.studentId);
-    const toEnroll = allStudents.filter(s => !alreadyEnrolledIds.includes(s.id));
+    const alreadyEnrolledIds = existingEnrollments.map((e) => e.studentId);
+    const toEnroll = allStudents.filter((s) => !alreadyEnrolledIds.includes(s.id));
 
     if (toEnroll.length === 0) {
-      return res.status(400).json(errorResponse('All students are already enrolled in this section for this school year'));
+      return res
+        .status(400)
+        .json(
+          errorResponse(
+            'All students are already enrolled in this section for this school year'
+          )
+        );
     }
 
-    // [5] Bulk create enrollments
+    // [6] Bulk create enrollments
     const createdEnrollments = await prisma.enrollment.createMany({
-      data: toEnroll.map(s => ({
+      data: toEnroll.map((s) => ({
         studentId: s.id,
         sectionId,
         schoolYear,
-        learningModality
+        learningModality,
       })),
-      skipDuplicates: true
+      skipDuplicates: true,
     });
 
     // *[SUCCESS] Response
@@ -387,7 +643,7 @@ router.post('/:sectionId/enrollments', verifyAdviser, async (req, res) => {
       successResponse('Students created and enrolled successfully', {
         totalStudentsProcessed: allStudents.length,
         studentsCreated: createdStudents.length,
-        enrollmentsCreated: createdEnrollments.count
+        enrollmentsCreated: createdEnrollments.count,
       })
     );
   } catch (err) {

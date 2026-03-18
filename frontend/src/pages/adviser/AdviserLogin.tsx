@@ -8,22 +8,29 @@ import { useNavigate } from "react-router-dom";
 const AdviserLogin = () => {
     const navigate = useNavigate();
 
-    // *STATES
     const [adviserId, setAdviserId] = useState("");
     const [password, setPassword] = useState("");
     const [showModal, setShowModal] = useState(false);
     const [modalMessage, setModalMessage] = useState("");
+    const [modalTitle, setModalTitle] = useState("");
+    const [modalType, setModalType] = useState<"default" | "error" | "success" | "info" | "warning">("default");
+    const [redirectOnConfirm, setRedirectOnConfirm] = useState(false);
 
-    // *HANDLES
     const handleLogin = async () => {
         if (adviserId.trim() === "") {
+            setModalTitle("Login Error");
             setModalMessage("Please enter your Adviser ID.");
+            setModalType("error");
+            setRedirectOnConfirm(false);
             setShowModal(true);
             return;
         }
 
         if (!password) {
+            setModalTitle("Login Error");
             setModalMessage("Please enter your password.");
+            setModalType("error");
+            setRedirectOnConfirm(false);
             setShowModal(true);
             return;
         }
@@ -43,46 +50,58 @@ const AdviserLogin = () => {
             const data = await res.json();
 
             if (!res.ok || !data.success) {
+                setModalTitle("Login Error");
                 setModalMessage(data.message || "Login failed.");
+                setModalType("error");
+                setRedirectOnConfirm(false);
                 setShowModal(true);
                 return;
             }
 
-            // ⚡ Store the token correctly
-            localStorage.setItem("token", data.data.token); // ← note the `.data.token`
+            localStorage.setItem("token", data.data.token);
             localStorage.setItem("role", "Adviser");
 
-            navigate("/adviser/dashboard");
+            setModalTitle("Login Successful");
+            setModalMessage("Login successful. Redirecting you to your dashboard...");
+            setModalType("success");
+            setRedirectOnConfirm(true);
+            setShowModal(true);
 
         } catch (err) {
             console.error(err);
+            setModalTitle("Login Error");
             setModalMessage("Something went wrong. Please try again.");
+            setModalType("error");
+            setRedirectOnConfirm(false);
             setShowModal(true);
         }
     };
 
     return (
-        <div className="pb-20 bg-[var(--color-bg-50)]">
-            {/* [COMPONENT] Modal */}
+        <div className="pb-20 bg-[var(--color-bg-100)]">
             {showModal && (
                 <Modal
                     isOpen={showModal}
                     onClose={() => setShowModal(false)}
-                    title="Login Error"
+                    onConfirm={() => {
+                        setShowModal(false);
+                        if (redirectOnConfirm) navigate("/adviser/dashboard");
+                    }}
+                    title={modalTitle}
                     message={modalMessage}
-                />
+                    type={modalType}
+                    closeOnBackdrop={false}
+                    isCancelable={false}
+                  />
             )}
 
-            {/* [COMPONENT] Image Header */}
             <ImageHeader />
 
             <div className="flex flex-col pt-15 px-6">
-                {/* Header */}
                 <h1 className="text-[var(--color-primary-700)]">
                     Adviser Login
                 </h1>
 
-                {/* [SECTION] Input Fields */}
                 <div className="flex flex-col gap-y-4 mt-6 mb-2">
                     <InputField
                         label="Adviser ID Number"
@@ -104,7 +123,6 @@ const AdviserLogin = () => {
                     />
                 </div>
 
-                {/* [SECTION] Auxiliary Actions */}
                 <div className="flex justify-between items-center mt-2 px-2 mb-10">
                     <label className="flex items-center gap-2 label-caption text-[var(--color-text-900)]">
                         <input
@@ -122,11 +140,9 @@ const AdviserLogin = () => {
                     </a>
                 </div>
 
-                {/* [PRIMARY BUTTON] Login */}
                 <PrimaryButton text="Login" onClick={handleLogin} />
             </div>
 
-            {/* [SECTION] Switch Login Role Link */}
             <div className="flex justify-center items-center gap-x-1 mt-4 text-sm">
                 <span className="label-caption">Not an Adviser?</span>
                 <a

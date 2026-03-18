@@ -17,6 +17,8 @@ interface Section {
   color: string;
   classSize: number;
   schedule: ScheduleItem[];
+  maleCount?: number;
+  femaleCount?: number;
 }
 
 const AdviserMyClass = () => {
@@ -53,6 +55,15 @@ const AdviserMyClass = () => {
           setSection(null);
         } else {
           const sec = data.data;
+
+          let maleCount = 0;
+          let femaleCount = 0;
+          (sec.enrollments || []).forEach((enroll: any) => {
+            const sex = enroll.student?.sex;
+            if (sex === "MALE") maleCount++;
+            else if (sex === "FEMALE") femaleCount++;
+          });
+
           setSection({
             id: sec.id,
             name: `${sec.gradeLevel} — ${sec.name}`,
@@ -61,6 +72,8 @@ const AdviserMyClass = () => {
             color: sec.color || "#999999",
             classSize: sec.classSize || 0,
             schedule: sec.schedule || [],
+            maleCount,
+            femaleCount,
           });
         }
       } catch (err: any) {
@@ -78,22 +91,48 @@ const AdviserMyClass = () => {
   if (error) return <p className="text-red-500">{error}</p>;
   if (!section) return <p>No section found.</p>;
 
-  return (
-    <div className="py-8 px-4 space-y-4 relative">
-      {/* Floating Back Button */}
-      <button
-        onClick={() => navigate("/adviser/classes")}
-        className="fixed top-20 left-6 z-2 px-2 py-1 bg-[var(--color-primary-500)] text-[var(--color-text-50)] font-semibold rounded-full shadow-lg hover:bg-[var(--color-primary-400)] transition cursor-pointer"
-      >
-        ← Back
-      </button>
+  // Breadcrumbs navigation
+  const breadcrumbs = [
+    {
+      label: "Class Management",
+      path: "/adviser/classes",
+    },
+    {
+      label: section.name,
+      path: null,
+    },
+  ];
 
+  return (
+    <div className="py-10 px-4 space-y-4 relative">
+      <nav className="font-roboto text-sm text-[var(--color-text-700)] px-2 pb-2">
+        {breadcrumbs.map((crumb, index) => (
+          <span key={index}>
+            {crumb.path ? (
+              <span
+                className="cursor-pointer hover:underline"
+                onClick={() => navigate(crumb.path!)}
+              >
+                {crumb.label}
+              </span>
+            ) : (
+              <span className="font-roboto font-medium text-[var(--color-text-900)]">
+                {crumb.label}
+              </span>
+            )}
+
+            {index < breadcrumbs.length - 1 && " / "}
+          </span>
+        ))}
+      </nav>
       <MyClassCard
         id={section.id}
         key={section.id}
         name={section.name}
         schedule={section.schedule}
         classSize={section.classSize}
+        maleCount={section.maleCount}
+        femaleCount={section.femaleCount}
         color={section.color}
       />
 
@@ -109,7 +148,7 @@ const AdviserMyClass = () => {
 
       {/* [SECTION] Dashboard Buttons */}
       <div className="grid grid-cols-2 gap-6 px-4">
-        <DashboardButton iconSrc="/view-students-icon.svg" text="View Students" color="#0066CC" />
+        <DashboardButton iconSrc="/view-students-icon.svg" text="View Students" color="#0066CC" to={`/adviser/classes/${id}/students`} />
         <DashboardButton iconSrc="/attendance-icon.svg" text="Attendance" color="#28A428" />
         <DashboardButton iconSrc="/grades-icon.svg" text="Grades" color="#CA8E02" />
         <DashboardButton iconSrc="/reports-icon.svg" text="Reports" color="#8F28A4" />

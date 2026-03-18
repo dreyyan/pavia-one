@@ -12,6 +12,16 @@ const Header = () => {
     const [isLoggedIn, setIsLoggedIn] = useState(() => {
       return !!localStorage.getItem("token");
     });
+    const [showTokenExpiredModal, setShowTokenExpiredModal] = useState(false);
+
+    const handleApiResponse = async (res: Response) => {
+      if (res.status === 401) {
+        setShowTokenExpiredModal(true);
+        return null; // indicate failure
+      }
+      const data = await res.json();
+      return data;
+    };
 
     // [HANDLE] Toggle sidebar 
     const toggleSidebar = () => { setIsSidebarOpen(prev => !prev); };
@@ -100,6 +110,20 @@ const Header = () => {
         />
         </nav>
       </aside>
+      {showTokenExpiredModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-96 text-center space-y-4 shadow-lg">
+            <h2 className="text-lg font-bold">Session Expired</h2>
+            <p>Your session has expired. Please log in again.</p>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)] text-white rounded-md font-medium"
+            >
+              Go to Login
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 };

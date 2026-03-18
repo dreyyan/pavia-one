@@ -11,7 +11,7 @@ const PrimaryButton = (props: PrimaryButtonProps) => {
             onClick={props.onClick}
             disabled={props.disabled}
             style={props.color ? { backgroundColor: `#${props.color}` } : undefined}
-            className="py-3 rounded-md cursor-pointer bg-[var(--color-primary-600)] transition-all duration-200 hover:opacity-80 disabled:opacity-50"
+            className="w-full py-3 rounded-md cursor-pointer bg-[var(--color-primary-600)] transition-all duration-200 hover:opacity-80 disabled:opacity-50"
         >
             <p className="button text-white">{props.text}</p>
         </button>
