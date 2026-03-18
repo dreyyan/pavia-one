@@ -156,7 +156,7 @@ router.get('/:id', verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[POST] Add section(s)
+// ?[POST] Add section(s]
 // /api/admin/sections
 router.post('/', verifyAdmin, async (req, res) => {
   try {
@@ -170,7 +170,7 @@ router.post('/', verifyAdmin, async (req, res) => {
     const errors = [];
 
     for (const section of sectionsInput) {
-      const { name, adviserId, gradeLevel, schoolYear, color, classSize, schedule, isAdvisory } = section;
+      const { name, adviserId, gradeLevel, schoolYear, color, schedule, isAdvisory } = section;
 
       if (!name || !adviserId || gradeLevel === undefined || !schoolYear) {
         errors.push({ name, message: 'Missing required fields' });
@@ -208,7 +208,7 @@ router.post('/', verifyAdmin, async (req, res) => {
         continue;
       }
 
-      // Create section
+      // [1] Create the section first
       const newSection = await prisma.section.create({
         data: {
           name,
@@ -216,32 +216,37 @@ router.post('/', verifyAdmin, async (req, res) => {
           schoolYear,
           adviser: { connect: { adviserId } },
           color: color || null,
-          classSize: classSize || null,
           schedule: schedule || null,
-		  isAdvisory: isAdvisory || false,
+          isAdvisory: isAdvisory || false,
         },
+      });
+
+      // [2] Fetch it including enrollments to calculate classSize
+      const newSectionWithEnrollments = await prisma.section.findUnique({
+        where: { id: newSection.id },
         select: {
           id: true,
           name: true,
           gradeLevel: true,
           schoolYear: true,
           color: true,
-          classSize: true,
           schedule: true,
-		  isAdvisory: true,
+          isAdvisory: true,
           createdAt: true,
           adviser: {
-            select: {
-              id: true,
-              adviserId: true,
-              name: true,
-              email: true,
-            },
+            select: { id: true, adviserId: true, name: true, email: true },
           },
+          enrollments: { select: { id: true } }, // include enrollments
         },
       });
 
-      createdSections.push(newSection);
+      const sectionWithClassSize = {
+        ...newSectionWithEnrollments,
+        classSize: newSectionWithEnrollments.enrollments.length,
+      };
+      delete sectionWithClassSize.enrollments;
+
+      createdSections.push(sectionWithClassSize);
     }
 
     res.status(201).json(
@@ -296,7 +301,7 @@ router.post('/assign-students', verifyAdmin, async (req, res) => {
             sectionId,
             status: 'ENROLLED',
             schoolYear: section.schoolYear,
-			learningModality: "FACE_TO_FACE"
+			      learningModality: "FACE_TO_FACE"
           },
         });
 
