@@ -78,7 +78,7 @@ const AdviserLogin = () => {
     };
 
     return (
-        <div className="pb-20 bg-[var(--color-bg-50)]">
+        <div className="pb-20 bg-[var(--color-bg-100)]">
             {showModal && (
                 <Modal
                     isOpen={showModal}
