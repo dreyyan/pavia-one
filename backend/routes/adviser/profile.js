@@ -30,6 +30,7 @@ router.get('/profile', verifyAdviser, async (req, res) => {
             id: true,
             name: true,
             gradeLevel: true,
+            isAdvisory: true,
             schoolYear: true,
             curriculum: true
           }
