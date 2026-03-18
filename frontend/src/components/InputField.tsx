@@ -27,7 +27,6 @@ const InputField = ({
   showClear = true,
   disabled = false,
 }: InputFieldProps) => {
-  // State for password visibility toggle
   const [showPassword, setShowPassword] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -44,14 +43,11 @@ const InputField = ({
   // Dynamic input type
   const inputType = type === "password" ? (showPassword ? "text" : "password") : type;
 
-  // Determine password icon based on hover & visibility
+  // Determine password icon
   let passwordIcon = "";
-
   if (showPassword) {
-    // Password is visible
     passwordIcon = isHovered ? "/visibility-off-hovered-icon.svg" : "/visibility-off-icon.svg";
   } else {
-    // Password is hidden
     passwordIcon = isHovered ? "/visibility-hovered-icon.svg" : "/visibility-icon.svg";
   }
 
@@ -63,12 +59,7 @@ const InputField = ({
         {/* Left icon */}
         {iconSrc && (
           <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-            <img
-              src={`/${iconSrc}`}
-              alt={iconAlt}
-              loading="eager"
-              className="w-5 h-5 object-contain"
-            />
+            <img src={`/${iconSrc}`} alt={iconAlt} loading="eager" className="w-5 h-5 object-contain" />
           </div>
         )}
 
@@ -95,13 +86,9 @@ const InputField = ({
             disabled={disabled}
             className="absolute inset-y-0 right-0 flex items-center justify-center pb-1 pl-3 pr-4 h-full cursor-pointer"
           >
-            <img
-              src={passwordIcon}
-              alt={showPassword ? "Hide password" : "Show password"}
-              className="size-6 pt-1 object-contain"
-            />
+            <img src={passwordIcon} alt={showPassword ? "Hide password" : "Show password"} className="size-6 pt-1 object-contain" />
           </button>
-        ) : showClear && value ? (
+        ) : showClear && value && type !== "date" ? ( // <-- hide clear button for date type
           <button
             type="button"
             onClick={handleClear}
