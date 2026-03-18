@@ -277,15 +277,15 @@ router.delete('/all', verifyAdmin, async (req, res) => {
 
 		// Check each section if it contains enrolled students
 		for (const section of allSections) {
-			// ![ERROR] Cannot delete section /w enrolled students
-			if (section._count.enrollments > 0) {
-				failedSections.push({
-					id: section.id,
-					name: section.name,
-					message: 'Cannot delete section with enrolled students'
-				});
-				continue;
-			}
+			// // ![ERROR] Cannot delete section /w enrolled students
+			// if (section._count.enrollments > 0) {
+			// 	failedSections.push({
+			// 		id: section.id,
+			// 		name: section.name,
+			// 		message: 'Cannot delete section with enrolled students'
+			// 	});
+			// 	continue;
+			// }
 
 			await prisma.section.delete({ where: { id: section.id } });
 			deletedSections.push({
@@ -334,11 +334,11 @@ router.delete('/', verifyAdmin, async (req, res) => {
 			continue;
 		}
 
-		// ![ERROR] Cannot delete section /w enrolled students
-		if (section._count.enrollments > 0) {
-			errors.push({ id, message: 'Cannot delete section with enrolled students' });
-			continue;
-		}
+		// // ![ERROR] Cannot delete section /w enrolled students
+		// if (section._count.enrollments > 0) {
+		// 	errors.push({ id, message: 'Cannot delete section with enrolled students' });
+		// 	continue;
+		// }
 
 		await prisma.section.delete({ where: { id } });
 		deletedSections.push(section);
@@ -373,12 +373,12 @@ router.delete('/:id', verifyAdmin, async (req, res) => {
 			return res.status(404).json(errorResponse('Section not found'));
 		}
 
-		// ![ERROR] Cannot delete section /w enrolled students
-		if (section._count.enrollments > 0) {
-			return res.status(400).json(
-				errorResponse('Cannot delete section with enrolled students')
-			);
-		}
+		// // ![ERROR] Cannot delete section /w enrolled students
+		// if (section._count.enrollments > 0) {
+		// 	return res.status(400).json(
+		// 		errorResponse('Cannot delete section with enrolled students')
+		// 	);
+		// }
 
 		await prisma.section.delete({ where: { id: parseInt(id) } });
 
