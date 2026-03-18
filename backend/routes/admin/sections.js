@@ -256,6 +256,68 @@ router.post('/', verifyAdmin, async (req, res) => {
   }
 });
 
+// ?[POST] Assign existing students to a section
+// /api/admin/sections/assign-students
+router.post('/assign-students', verifyAdmin, async (req, res) => {
+  try {
+    const { sectionId, studentIds } = req.body;
+
+    if (!sectionId || !Array.isArray(studentIds) || studentIds.length === 0) {
+      return res.status(400).json(errorResponse('sectionId and studentIds are required'));
+    }
+
+    const section = await prisma.section.findUnique({ where: { id: sectionId } });
+    if (!section) {
+      return res.status(404).json(errorResponse('Section not found'));
+    }
+
+    const createdEnrollments = [];
+    const errors = [];
+
+    for (const studentId of studentIds) {
+      try {
+        const student = await prisma.student.findUnique({ where: { id: studentId } });
+        if (!student) {
+          errors.push({ studentId, message: 'Student not found' });
+          continue;
+        }
+
+        const existingEnrollment = await prisma.enrollment.findFirst({
+          where: { studentId, sectionId },
+        });
+        if (existingEnrollment) {
+          errors.push({ studentId, message: 'Student already enrolled in this section' });
+          continue;
+        }
+
+        const enrollment = await prisma.enrollment.create({
+          data: {
+            studentId,
+            sectionId,
+            status: 'ENROLLED',
+            schoolYear: section.schoolYear,
+			learningModality: "FACE_TO_FACE"
+          },
+        });
+
+        createdEnrollments.push(enrollment);
+      } catch (err) {
+        errors.push({ studentId, message: err.message });
+      }
+    }
+
+    res.json(
+      successResponse('Students assigned to section', {
+        assigned: createdEnrollments,
+        failed: errors,
+      })
+    );
+  } catch (err) {
+    console.error('Assign students error:', err);
+    res.status(500).json(errorResponse('Failed to assign students', err.message));
+  }
+});
+
 // ?[DELETE] Delete all sections
 // /api/admin/sections/all
 router.delete('/all', verifyAdmin, async (req, res) => {
