@@ -322,82 +322,30 @@ router.get('/:sectionId/students/:studentId', verifyAdviser, async (req, res) =>
       return res.status(403).json(errorResponse('You do not manage this section'));
     }
 
-    // Fetch the student enrollment in this section
+    // Fetch the student enrollment in this section including section info
     const enrollment = await prisma.enrollment.findFirst({
-      where: {
-        sectionId,
-        studentId
-      },
-      include: { student: true }
+      where: { sectionId, studentId },
+      include: {
+        student: true,
+        section: { select: { name: true, gradeLevel: true } } // include section info
+      }
     });
 
     if (!enrollment) {
       return res.status(404).json(errorResponse('Student not found in this section'));
     }
 
-    // Build student response with full name
+    // Build student response with full name and section info
     const student = {
       ...enrollment.student,
       fullName: getFullName(enrollment.student),
-      sectionId
+      section: enrollment.section // { name, gradeLevel }
     };
 
     res.json(successResponse('Student retrieved successfully', student));
   } catch (err) {
     console.error('Get student in section error:', err);
     res.status(500).json(errorResponse('Failed to fetch student', err.message));
-  }
-});
-
-// ?[GET] Search for a specific student in an adviser's section
-// /api/adviser/sections/:sectionId/student
-router.get('/:sectionId/student', verifyAdviser, async (req, res) => {
-  try {
-    const { query } = req.query; // e.g., LRN or name
-    if (!query) return res.status(400).json(errorResponse('query parameter is required'));
-
-    const sectionId = parseInt(req.params.sectionId);
-
-    // Verify adviser manages this section
-    const section = await prisma.section.findUnique({
-      where: { id: sectionId },
-      select: { adviserId: true }
-    });
-    if (!section || section.adviserId !== req.adviserId) {
-      return res.status(403).json(errorResponse('You do not manage this section'));
-    }
-
-    // Search for student in this section by LRN or name
-    const enrollment = await prisma.enrollment.findFirst({
-      where: {
-        sectionId,
-        student: {
-          OR: [
-            { lrn: { equals: query } },
-            { firstName: { contains: query, mode: 'insensitive' } },
-            { middleName: { contains: query, mode: 'insensitive' } },
-            { lastName: { contains: query, mode: 'insensitive' } },
-            { nameExtension: { contains: query, mode: 'insensitive' } }
-          ]
-        }
-      },
-      include: { student: true }
-    });
-
-    if (!enrollment) {
-      return res.status(404).json(errorResponse('Student not found in this section'));
-    }
-
-    const student = {
-      ...enrollment.student,
-      fullName: getFullName(enrollment.student),
-      sectionId
-    };
-
-    res.json(successResponse('Student found', student));
-  } catch (err) {
-    console.error('Section student search error:', err);
-    res.status(500).json(errorResponse('Failed to search student', err.message));
   }
 });
 
