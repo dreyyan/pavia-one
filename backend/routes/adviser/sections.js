@@ -454,26 +454,29 @@ router.put('/:sectionId/students/:studentId', verifyAdviser, async (req, res) =>
 
     // Update or create address
     if (houseNo || street || sitio || purok || barangay || municipality || province) {
+
+      // Combine detailed fields into one DB field
+      const streetAddress = [houseNo, street, sitio, purok]
+        .filter(v => v && v.trim() !== "")
+        .join(" ")
+        .trim();
+
       await prisma.address.upsert({
         where: { studentId },
+
         update: {
-          streetAddress: houseNo || '',
-          street: street || '',
-          sitio: sitio || '',
-          purok: purok || '',
-          barangay: barangay || '',
-          municipalityCity: municipality || '',
-          province: province || '',
+          streetAddress: streetAddress || null,
+          barangay: barangay || null,
+          municipalityCity: municipality || null,
+          province: province || null,
         },
+
         create: {
           studentId,
-          streetAddress: houseNo || '',
-          street: street || '',
-          sitio: sitio || '',
-          purok: purok || '',
-          barangay: barangay || '',
-          municipalityCity: municipality || '',
-          province: province || '',
+          streetAddress: streetAddress || null,
+          barangay: barangay || null,
+          municipalityCity: municipality || null,
+          province: province || null,
         },
       });
     }
