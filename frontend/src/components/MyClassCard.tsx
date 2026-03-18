@@ -5,12 +5,15 @@ interface ClassCardProps {
     name: string;
     schedule: { day: string; time: string }[];
     classSize: number;
+    maleCount: number;
+    femaleCount: number;
     color: string;
 };
 
-const MyClassCard: React.FC<ClassCardProps> = ({ id, name, schedule, classSize, color }) => {
+const MyClassCard: React.FC<ClassCardProps> = ({ id, name, schedule, classSize, maleCount, femaleCount, color }) => {
     return (
         <div
+        key={id}
         style={{backgroundColor: color}}
         className="
             relative
@@ -62,9 +65,9 @@ const MyClassCard: React.FC<ClassCardProps> = ({ id, name, schedule, classSize, 
 
             {/* Class Size - Male & Female */}
             <div className="flex justify-end bg-[var(--color-primary-500)] [&>p]:text-[var(--color-text-50)] px-4 rounded-b-lg">
-                <p className="body-large">16 ♂</p>
+                <p className="body-large">{maleCount} ♂</p>
                 <p>&nbsp;/&nbsp;</p>
-                <p className="body-large">14 ♀</p>
+                <p className="body-large">{femaleCount} ♀</p>
             </div>
         </div>
     );
