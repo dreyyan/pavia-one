@@ -55,8 +55,8 @@ const AdviserDashboard = () => {
 
   if (loading) return <DashboardSkeleton />;
 
-  const advisorySection = profile?.sections?.find((section: any) => section.isAdvisory);
-  const classSize = advisorySection ? profile?.students?.length || 0 : 0;
+  const advisorySection = profile?.sections?.find(s => s.isAdvisory);
+  const classSize = advisorySection?.classSize ?? 0;
 
   return (
     <div className="py-6 px-4 space-y-4">
