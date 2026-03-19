@@ -15,7 +15,7 @@ const AdviserDashboard = () => {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
-      setShowTokenExpiredModal(true); // show modal immediately
+      setShowTokenExpiredModal(true);
       setLoading(false);
       return;
     }
@@ -65,19 +65,27 @@ const AdviserDashboard = () => {
       </div>
 
       {/* Personal Information */}
-      <div className="flex items-center bg-[var(--color-bg-100)] border-2 border-[var(--color-bg-300)]/60 rounded-lg px-5 py-6 gap-x-4 shadow-md">
+      <div className="flex items-center bg-[var(--color-primary-600)] border-3 border-[var(--color-primary-700)]/60 rounded-xl px-5 py-6 gap-x-4 shadow-md">
         {/* Profile Picture */}
-        <div className="bg-[var(--color-bg-200)] w-18 h-18 rounded-full flex-shrink-0"></div>
+        <div className="bg-[var(--color-bg-200)] size-18 rounded-full flex-shrink-0"></div>
 
         {/* Info Section */}
         <div className="flex-1">
-          <h2 className="mb-2">{profile?.name}</h2>
+          {/* Primary: Name */}
+          <p className="font-roboto font-extrabold text-xl mb-2 text-[var(--color-text-50)]">
+            {profile?.name}
+          </p>
+
           {advisorySection ? (
             <>
-              <p className="font-roboto font-semibold text-sm">
-                Grade {advisorySection.gradeLevel} - {advisorySection.name}
+              {/* Secondary: Grade and Section */}
+              <p className="font-roboto font-semibold text-sm text-[var(--color-text-100)]">
+                Grade {advisorySection.gradeLevel} — {advisorySection.name}
               </p>
-              <p className="font-roboto font-medium text-xs">Class Adviser</p>
+              {/* Tertiary: Role */}
+              <p className="font-roboto font-medium text-xs text-[var(--color-text-100)]">
+                Class Adviser
+              </p>
             </>
           ) : (
             <p className="text-red-600 font-semibold text-sm">
