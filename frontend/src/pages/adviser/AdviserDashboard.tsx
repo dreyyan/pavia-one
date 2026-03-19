@@ -21,9 +21,34 @@ interface Profile {
 
 const AdviserDashboard = () => {
   const { setShowTokenExpiredModal } = useAuth();
-
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mediaLoaded, setMediaLoaded] = useState(false);
+
+  // Preload all assets
+  useEffect(() => {
+    const assetsToPreload = [
+      "/class-size-icon.svg",
+      "/present-today-icon.svg",
+      "/pending-tasks-icon.svg",
+      "/view-students-icon.svg",
+      "/attendance-icon.svg",
+      "/grades-icon.svg",
+      "/reports-icon.svg",
+    ];
+
+    let loadedCount = 0;
+    assetsToPreload.forEach((src) => {
+      const img = new Image();
+      img.src = src;
+      img.onload = img.onerror = () => {
+        loadedCount++;
+        if (loadedCount === assetsToPreload.length) {
+          setMediaLoaded(true);
+        }
+      };
+    });
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -66,9 +91,10 @@ const AdviserDashboard = () => {
     fetchProfile();
   }, [setShowTokenExpiredModal]);
 
-  if (loading) return <DashboardSkeleton />;
+  // Wait for both profile fetch and media preload
+  if (loading || !mediaLoaded) return <DashboardSkeleton />;
 
-  const advisorySection = profile?.sections?.find(s => s.isAdvisory);
+  const advisorySection = profile?.sections?.find((s) => s.isAdvisory);
   const classSize = advisorySection?.classSize ?? 0;
 
   return (
