@@ -407,7 +407,15 @@ const AdviserStudentDetails = () => {
                 </tr>
                 <tr className="border-t border-[var(--color-bg-200)]">
                   <td className="py-2 pl-4 font-semibold text-sm min-w-[50px]">Sex</td>
-                  <td className="py-2 pl-2 text-sm">{student.sex ?? "-"}</td>
+                  <td className="py-2 pl-2 text-sm">
+                    {student.sex
+                      ? student.sex.toUpperCase() === "MALE"
+                        ? "M"
+                        : student.sex.toUpperCase() === "FEMALE"
+                        ? "F"
+                        : student.sex
+                      : "-"}
+                  </td>
                 </tr>
                 <tr className="border-t border-[var(--color-bg-200)]">
                   <td className="py-2 pl-4 font-semibold text-sm min-w-[50px]">Birth Date</td>
