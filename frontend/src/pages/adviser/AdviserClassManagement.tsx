@@ -164,55 +164,55 @@ const AdviserClassManagement = () => {
         </div>
       </div>
 
-{/* Class Cards */}
-<div className="grid grid-cols-1 space-y-6 py-4">
-  {loading && <p className="text-center text-[var(--color-text-500)]">Loading classes...</p>}
+      {/* Class Cards */}
+      <div className="grid grid-cols-1 space-y-8 py-4">
+        {loading && <p className="text-center text-[var(--color-text-500)]">Loading classes...</p>}
 
-  {/* No sections */}
-  {!loading && classes.length === 0 && !error && (
-    <EmptyState
-      title="No sections found for this adviser"
-      subtitle="You currently have no assigned sections. Please contact admin if this is an error."
-      iconSrc="/no-data-icon.svg"
-    />
-  )}
+        {/* No sections */}
+        {!loading && classes.length === 0 && !error && (
+          <EmptyState
+            title="No sections found for this adviser"
+            subtitle="You currently have no assigned sections. Please contact admin if this is an error."
+            iconSrc="/no-data-icon.svg"
+          />
+        )}
 
-  {/* API or fetch errors */}
-  {!loading && error && (
-    <EmptyState
-      title="Error fetching sections"
-      subtitle={error}
-      iconSrc="/error-icon.svg"
-    />
-  )}
+        {/* API or fetch errors */}
+        {!loading && error && (
+          <EmptyState
+            title="Error fetching sections"
+            subtitle={error}
+            iconSrc="/error-icon.svg"
+          />
+        )}
 
-  {/* Render class cards */}
-  {!loading &&
-    !error &&
-    classes.length > 0 &&
-    filteredClasses.map((cls) => (
-      <ClassCard
-        id={cls.id}
-        key={cls.id}
-        name={cls.name}
-        schedule={cls.schedule}
-        classSize={cls.classSize}
-        color={cls.color}
-      />
-    ))}
+        {/* Render class cards */}
+        {!loading &&
+          !error &&
+          classes.length > 0 &&
+          filteredClasses.map((cls) => (
+            <ClassCard
+              id={cls.id}
+              key={cls.id}
+              name={cls.name}
+              schedule={cls.schedule}
+              classSize={cls.classSize}
+              color={cls.color}
+            />
+          ))}
 
-  {/* Filters applied but no matching classes */}
-  {!loading &&
-    !error &&
-    classes.length > 0 &&
-    filteredClasses.length === 0 && (
-      <EmptyState
-        title="No classes match the selected grade"
-        subtitle="Try selecting a different grade or clear the filter."
-        iconSrc="/no-data-icon.svg"
-      />
-    )}
-</div>
+        {/* Filters applied but no matching classes */}
+        {!loading &&
+          !error &&
+          classes.length > 0 &&
+          filteredClasses.length === 0 && (
+            <EmptyState
+              title="No classes match the selected grade"
+              subtitle="Try selecting a different grade or clear the filter."
+              iconSrc="/no-data-icon.svg"
+            />
+          )}
+      </div>
     </div>
   );
 };
