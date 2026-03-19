@@ -71,7 +71,7 @@ const AdviserClassManagement = () => {
           setError(data.message || "Failed to fetch sections");
           setClasses([]);
         } else {
-          const sectionsWithDefaults: Section[] = data.data.map((sec: any) => ({
+          const sectionsWithDefaults: Section[] = data.data.map((sec: Section) => ({
             id: sec.id,
             name: `${sec.gradeLevel} — ${sec.name}`,
             gradeLevel: sec.gradeLevel,
@@ -82,8 +82,13 @@ const AdviserClassManagement = () => {
           }));
           setClasses(sectionsWithDefaults);
         }
-      } catch (err: any) {
-        setError(err.message || "Something went wrong");
+      } catch (err: unknown) {
+        // Type guard: make sure err is an Error
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError("Something went wrong");
+        }
         setClasses([]);
       } finally {
         setLoading(false);
@@ -91,6 +96,7 @@ const AdviserClassManagement = () => {
     };
 
     fetchSections();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setShowTokenExpiredModal]);
 
   // Apply grade filter
