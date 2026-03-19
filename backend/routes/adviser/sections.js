@@ -9,14 +9,14 @@ const jwt = require('jsonwebtoken');
 
 // [IMPORT] Utilities & Middleware
 const { successResponse, errorResponse } = require('../../utils/response');
-const { getFullName, calculateAge } = require('../../utils/helpers');
+const { getFullName, calculateAge, splitFullName } = require('../../utils/helpers');
 const verifyAdviser = require('../../middleware/authMiddleware').verifyAdviser;
 
 // ?[GET] Retrieve adviser's sections (protected)
 // /api/adviser/sections
 router.get('/', verifyAdviser, async (req, res) => {
   try {
-    // [1] Find the numeric adviser ID first
+    // [1] Find numeric adviser ID
     const adviser = await prisma.adviser.findUnique({
       where: { adviserId: req.adviserId },
       select: { id: true }
@@ -26,30 +26,56 @@ router.get('/', verifyAdviser, async (req, res) => {
       return res.status(404).json(errorResponse('Adviser not found'));
     }
 
-    // [2] Use numeric adviser.id to fetch sections
+    // [2] Fetch sections with enrollment count
     const sections = await prisma.section.findMany({
-      where: { adviserId: adviser.id }, // numeric ID
+      where: { adviserId: adviser.id },
       select: {
         id: true,
         name: true,
         gradeLevel: true,
+        isAdvisory: true,
         schoolYear: true,
         curriculum: true,
         color: true,
-        classSize: true,
-        schedule: true
+        schedule: true,
+
+        _count: {
+          select: {
+            enrollments: true
+          }
+        }
       },
       orderBy: { gradeLevel: 'asc' }
     });
 
-    if (!sections || sections.length === 0) {
-      return res.status(404).json(errorResponse('No sections found for this adviser'));
+    if (!sections.length) {
+      return res
+        .status(404)
+        .json(errorResponse('No sections found for this adviser'));
     }
 
-    res.json(successResponse('Adviser sections retrieved', sections));
+    // ⭐ Convert _count → classSize
+    const formattedSections = sections.map(section => ({
+      id: section.id,
+      name: section.name,
+      gradeLevel: section.gradeLevel,
+      isAdvisory: section.isAdvisory,
+      schoolYear: section.schoolYear,
+      curriculum: section.curriculum,
+      color: section.color,
+      classSize: section._count.enrollments,
+      schedule: section.schedule
+    }));
+
+    res.json(
+      successResponse('Adviser sections retrieved', formattedSections)
+    );
+
   } catch (err) {
     console.error('Sections fetch error:', err);
-    res.status(500).json(errorResponse('Failed to fetch adviser sections', err.message));
+    res
+      .status(500)
+      .json(errorResponse('Failed to fetch adviser sections', err.message));
   }
 });
 
@@ -105,7 +131,7 @@ router.get('/:id', verifyAdviser, async (req, res) => {
   }
 });
 
-// ?[GET] Students in a specific adviser section
+// ?[GET] Students in adviser's section
 // /api/adviser/sections/:id/students
 router.get('/:id/students', verifyAdviser, async (req, res) => {
   try {
@@ -122,10 +148,11 @@ router.get('/:id/students', verifyAdviser, async (req, res) => {
       sortOrder = 'asc',
     } = req.query;
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const pageNum = parseInt(page);
     const take = parseInt(limit);
+    const skip = (pageNum - 1) * take;
 
-    // Get numeric adviser ID
+    // [1] Get numeric adviser ID
     const adviser = await prisma.adviser.findUnique({
       where: { adviserId: req.adviserId },
       select: { id: true },
@@ -135,22 +162,19 @@ router.get('/:id/students', verifyAdviser, async (req, res) => {
       return res.status(404).json(errorResponse('Adviser not found'));
     }
 
-    // Verify section belongs to adviser
+    // [2] Verify section belongs to adviser
     const section = await prisma.section.findFirst({
       where: { id: sectionId, adviserId: adviser.id },
-      select: {
-        id: true,
-        name: true,
-        gradeLevel: true,
-        color: true
-      },
+      select: { id: true, name: true, gradeLevel: true, color: true },
     });
 
     if (!section) {
-      return res.status(403).json(errorResponse('Unauthorized or section not found'));
+      return res
+        .status(403)
+        .json(errorResponse('Unauthorized or section not found'));
     }
 
-    // Build filter for enrollments
+    // [3] Enrollment filter
     const enrollmentWhere = {
       sectionId,
       student: search
@@ -167,44 +191,107 @@ router.get('/:id/students', verifyAdviser, async (req, res) => {
         : undefined,
     };
 
-    // Determine orderBy for Prisma (relation sorting)
-    let orderBy = { student: { lrn: 'asc' } }; // default
-    if (sortBy === 'lrn' || sortBy === 'firstName' || sortBy === 'lastName') {
-      orderBy = { student: { [sortBy]: sortOrder === 'desc' ? 'desc' : 'asc' } };
-    } else if (sortBy === 'fullName') {
-      // fullName is derived: sort by firstName then lastName
+    // [4] Sorting
+    let orderBy = { student: { lrn: 'asc' } };
+
+    if (['lrn', 'firstName', 'lastName'].includes(sortBy)) {
       orderBy = {
-        student: {
-          firstName: sortOrder === 'desc' ? 'desc' : 'asc',
-          lastName: sortOrder === 'desc' ? 'desc' : 'asc',
-        },
+        student: { [sortBy]: sortOrder === 'desc' ? 'desc' : 'asc' },
       };
     }
 
-    // Fetch enrollments
+    // [5] Fetch enrollments WITH FULL student data
     const [enrollments, total] = await Promise.all([
       prisma.enrollment.findMany({
         where: enrollmentWhere,
-        include: { student: true },
         skip,
         take,
         orderBy,
+
+        select: {
+          student: {
+            select: {
+              id: true,
+              lrn: true,
+              firstName: true,
+              middleName: true,
+              lastName: true,
+              nameExtension: true,
+              sex: true,
+              birthDate: true,
+              motherTongue: true,
+              ethnicGroup: true,
+              religion: true,
+              email: true,
+              createdByAdviserId: true,
+              createdAt: true,
+              updatedAt: true,
+
+              adviser: {
+                select: { id: true, name: true, adviserId: true },
+              },
+
+              address: true,
+              guardian: true,
+
+              enrollments: {
+                select: {
+                  id: true,
+                  sectionId: true,
+                  schoolYear: true,
+                  status: true,
+                  learningModality: true,
+                },
+              },
+
+              monthlySummaries: true,
+              dailyAttendances: true,
+              sf9Grades: true,
+              sf9Summaries: true,
+              sf5Reports: true,
+              sf9CoreValues: true,
+            },
+          },
+        },
       }),
       prisma.enrollment.count({ where: enrollmentWhere }),
     ]);
 
-    // Map to student objects with fullName only
-    const students = enrollments.map((e) => ({
-      ...e.student,
-      fullName: getFullName(e.student),
-    }));
+    // [6] Map to student objects + derived fields
+    const students = enrollments.map((e) => {
+      const s = e.student;
 
-    // Calculate male and female counts
+      let guardian = s.guardian;
+
+      if (guardian) {
+        const father = splitFullName(guardian.fatherFirstName);
+        const mother = splitFullName(guardian.motherMaidenFirstName);
+
+        guardian = {
+          ...guardian,
+          fatherFirstName: father.firstName,
+          fatherMiddleName: father.middleName,
+          fatherLastName: father.lastName,
+          motherMaidenFirstName: mother.firstName,
+          motherMaidenMiddleName: mother.middleName,
+          motherMaidenLastName: mother.lastName,
+        };
+      }
+
+      return {
+        ...s,
+        guardian,
+        fullName: getFullName(s),
+      };
+    });
+
+    // [7] Male / Female counts
     let maleCount = 0;
     let femaleCount = 0;
+
     students.forEach((student) => {
-      if (student.sex === "MALE") maleCount++;
-      else if (student.sex === "FEMALE") femaleCount++;
+      if (student.sex === 'MALE') maleCount++;
+      else if (student.sex === 'FEMALE') femaleCount++;
     });
 
     const totalPages = Math.ceil(total / take);
@@ -221,17 +308,19 @@ router.get('/:id/students', verifyAdviser, async (req, res) => {
         students,
         pagination: {
           total,
-          page: parseInt(page),
+          page: pageNum,
           limit: take,
           totalPages,
-          hasNext: parseInt(page) < totalPages,
-          hasPrev: parseInt(page) > 1,
+          hasNext: pageNum < totalPages,
+          hasPrev: pageNum > 1,
         },
       })
     );
   } catch (err) {
     console.error('Adviser section students fetch error:', err);
-    res.status(500).json(errorResponse('Failed to fetch students', err.message));
+    res
+      .status(500)
+      .json(errorResponse('Failed to fetch students', err.message));
   }
 });
 
@@ -533,122 +622,230 @@ router.put('/:sectionId/students/:studentId', verifyAdviser, async (req, res) =>
   }
 });
 
-// ?[POST] Bulk create students and enroll them to a section
-// /api/adviser/sections/:sectionId/enrollments
-router.post('/:sectionId/enrollments', verifyAdviser, async (req, res) => {
+// ?[POST] Bulk create students, enroll them, assign learning areas, and create SF9Grade
+router.post('/enrollments', verifyAdviser, async (req, res) => {
   try {
     const { students, schoolYear, learningModality = 'FACE_TO_FACE' } = req.body;
-    const sectionId = parseInt(req.params.sectionId);
 
-    // ![ERROR] Validate input
-    if (!students || !Array.isArray(students) || students.length === 0) {
+    if (!students || !Array.isArray(students) || students.length === 0)
       return res.status(400).json(errorResponse('students array is required'));
-    }
-    if (!schoolYear) {
+    if (!schoolYear)
       return res.status(400).json(errorResponse('schoolYear is required'));
-    }
-    if (isNaN(sectionId)) {
-      return res.status(400).json(errorResponse('Invalid section ID'));
-    }
 
-    // [1] Numeric adviser ID + keep string adviserId for createdByAdviserId
+    // Get adviser
     const adviser = await prisma.adviser.findUnique({
       where: { adviserId: req.adviserId },
-      select: { id: true, adviserId: true },
-    });
-
-    if (!adviser) {
-      return res.status(404).json(errorResponse('Adviser not found'));
-    }
-
-    // [2] Verify adviser manages this section
-    const section = await prisma.section.findFirst({
-      where: { id: sectionId, adviserId: adviser.id },
       select: { id: true },
     });
+    if (!adviser)
+      return res.status(404).json(errorResponse('Adviser not found'));
 
-    if (!section) {
-      return res.status(403).json(errorResponse('You do not manage this section'));
-    }
+    // Get adviser’s advisory section
+    const section = await prisma.section.findFirst({
+      where: { adviserId: adviser.id, isAdvisory: true },
+      select: { id: true, gradeLevel: true, curriculum: true },
+    });
+    if (!section)
+      return res
+        .status(404)
+        .json(errorResponse('No advisory section assigned to this adviser'));
 
-    // [3] Prepare students: check existing by LRN
+    const sectionId = section.id;
+
+    // Check existing students by LRN
     const lrns = students.map((s) => s.lrn);
     const existingStudents = await prisma.student.findMany({
       where: { lrn: { in: lrns } },
       select: { id: true, lrn: true },
     });
-
     const existingLrns = existingStudents.map((s) => s.lrn);
     const newStudents = students.filter((s) => !existingLrns.includes(s.lrn));
 
-    // [4] Create new students if they don't exist
+    // Create new students
     const createdStudents = await Promise.all(
       newStudents.map((s) =>
         prisma.student.create({
           data: {
             lrn: s.lrn,
             firstName: s.firstName,
-            middleName: s.middleName,
+            middleName: s.middleName || null,
             lastName: s.lastName,
-            nameExtension: s.nameExtension,
-            sex: s.sex,
-            email: s.email,
-            birthDate: new Date(s.birthDate),
-            createdByAdviserId: req.adviserId, // <- use string from token
+            nameExtension: s.nameExtension || null,
+            sex: s.sex || null,
+            birthDate: s.birthDate ? new Date(s.birthDate) : null,
+            motherTongue: s.motherTongue || null,
+            ethnicGroup: s.ethnicGroup || null,
+            religion: s.religion || null,
+            email: s.email || null,
+            createdByAdviserId: req.adviserId,
+            address: s.address
+              ? {
+                  create: {
+                    streetAddress: s.address.streetAddress || null,
+                    barangay: s.address.barangay || null,
+                    municipalityCity: s.address.municipalityCity || null,
+                    province: s.address.province || null,
+                  },
+                }
+              : undefined,
+            guardian: s.guardian
+              ? {
+                  create: {
+                    fatherFirstName: s.guardian.fatherFirstName || null,
+                    fatherMiddleName: s.guardian.fatherMiddleName || null,
+                    fatherLastName: s.guardian.fatherLastName || null,
+                    motherMaidenFirstName: s.guardian.motherMaidenFirstName || null,
+                    motherMaidenMiddleName: s.guardian.motherMaidenMiddleName || null,
+                    motherMaidenLastName: s.guardian.motherMaidenLastName || null,
+                    guardianName: s.guardian.guardianName || null,
+                    guardianRelationship: s.guardian.guardianRelationship || null,
+                    guardianContactNumber: s.guardian.guardianContactNumber || null,
+                  },
+                }
+              : undefined,
           },
           select: { id: true, lrn: true },
         })
       )
     );
 
-    // Merge existing + newly created students
     const allStudents = [...existingStudents, ...createdStudents];
 
-    // [5] Check for existing enrollments in this section and school year
+    // Check existing enrollments
     const existingEnrollments = await prisma.enrollment.findMany({
       where: {
         studentId: { in: allStudents.map((s) => s.id) },
         sectionId,
         schoolYear,
       },
-      select: { studentId: true },
+      select: { id: true, studentId: true },
     });
-
     const alreadyEnrolledIds = existingEnrollments.map((e) => e.studentId);
     const toEnroll = allStudents.filter((s) => !alreadyEnrolledIds.includes(s.id));
 
-    if (toEnroll.length === 0) {
-      return res
-        .status(400)
-        .json(
-          errorResponse(
-            'All students are already enrolled in this section for this school year'
-          )
-        );
+    // Create enrollments
+    if (toEnroll.length > 0) {
+      await prisma.enrollment.createMany({
+        data: toEnroll.map((s) => ({
+          studentId: s.id,
+          sectionId,
+          schoolYear,
+          learningModality,
+        })),
+        skipDuplicates: true,
+      });
     }
 
-    // [6] Bulk create enrollments
-    const createdEnrollments = await prisma.enrollment.createMany({
-      data: toEnroll.map((s) => ({
-        studentId: s.id,
+    // Fetch all enrollments for these students
+    const allEnrollments = await prisma.enrollment.findMany({
+      where: {
+        studentId: { in: allStudents.map((s) => s.id) },
         sectionId,
         schoolYear,
-        learningModality,
-      })),
-      skipDuplicates: true,
+      },
+      select: { id: true, studentId: true },
     });
 
-    // *[SUCCESS] Response
+    // 🔹 Clean slate: remove old learning areas
+    await prisma.enrollmentLearningArea.deleteMany({
+      where: { enrollmentId: { in: allEnrollments.map(e => e.id) } },
+    });
+
+    // 🔹 Assign learning areas based on gradeLevel & section.curriculum
+    const allSubjects = await prisma.learningArea.findMany({
+      where: { gradeLevel: section.gradeLevel },
+      select: { id: true, name: true },
+    });
+
+    const curriculumSubjectsMap = {
+      Regular: [
+        "Filipino", "English", "Mathematics", "Science",
+        "Araling Panlipunan", "Edukasyon sa Pagpapakatao",
+        "MAPEH", "Edukasyong Pantahanan at Pangkabuhayan"
+      ],
+      STE: [
+        "Filipino", "English", "Mathematics", "Science",
+        "Araling Panlipunan", "MAPEH", "Research I", "Research II"
+      ],
+      SPS: [
+        "Filipino", "English", "Mathematics", "Science",
+        "Araling Panlipunan", "MAPEH", "Badminton"
+      ],
+      SPA: [
+        "Filipino", "English", "Mathematics", "Science",
+        "Araling Panlipunan", "MAPEH", "Visual Arts"
+      ],
+      SPJ: [
+        "Filipino", "English", "Mathematics", "Science",
+        "ICT", "Journalism"
+      ]
+    };
+
+    const subjectsForCurriculum = allSubjects.filter((la) =>
+      curriculumSubjectsMap[section.curriculum].includes(la.name)
+    );
+
+    const enrollmentLearningAreasData = [];
+    const sf9GradesData = [];
+
+    for (const enrollment of allEnrollments) {
+      for (const la of subjectsForCurriculum) {
+        enrollmentLearningAreasData.push({
+          enrollmentId: enrollment.id,
+          learningAreaId: la.id,
+        });
+
+        // Prepare SF9Grade creation
+        sf9GradesData.push({
+          studentId: enrollment.studentId,
+          learningAreaId: la.id,
+          schoolYear,
+          q1: null,
+          q2: null,
+          q3: null,
+          q4: null,
+          q1Ready: false,
+          q2Ready: false,
+          q3Ready: false,
+          q4Ready: false,
+          finalRating: null,
+          remarks: null,
+        });
+      }
+    }
+
+    // Create learning areas
+    if (enrollmentLearningAreasData.length > 0) {
+      await prisma.enrollmentLearningArea.createMany({
+        data: enrollmentLearningAreasData,
+        skipDuplicates: true,
+      });
+    }
+
+    // Create SF9Grades (skip duplicates)
+    if (sf9GradesData.length > 0) {
+      await prisma.sF9Grade.createMany({
+        data: sf9GradesData,
+        skipDuplicates: true,
+      });
+    }
+
     res.json(
-      successResponse('Students created and enrolled successfully', {
-        totalStudentsProcessed: allStudents.length,
-        studentsCreated: createdStudents.length,
-        enrollmentsCreated: createdEnrollments.count,
-      })
+      successResponse(
+        'Students enrolled, learning areas and SF9Grades auto-created successfully',
+        {
+          sectionId,
+          totalStudentsProcessed: allStudents.length,
+          studentsCreated: createdStudents.length,
+          enrollmentsCreated: toEnroll.length,
+          learningAreasAssigned: allEnrollments.length * subjectsForCurriculum.length,
+          sf9GradesCreated: allEnrollments.length * subjectsForCurriculum.length,
+        }
+      )
     );
   } catch (err) {
-    console.error('Adviser bulk student enrollment error:', err);
-    res.status(500).json(errorResponse('Failed to create students/enrollments', err.message));
+    console.error('Adviser bulk enrollment error:', err);
+    res.status(500).json(errorResponse('Failed to enroll students', err.message));
   }
 });
 

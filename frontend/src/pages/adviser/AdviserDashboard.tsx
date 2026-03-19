@@ -161,7 +161,12 @@ const AdviserDashboard = () => {
           to={advisorySection ? `/adviser/classes/${advisorySection.id}/students` : "#"}
         />
         <DashboardButton iconSrc="/attendance-icon.svg" text="Attendance" color="#28A428" />
-        <DashboardButton iconSrc="/grades-icon.svg" text="Grades" color="#CA8E02" />
+        <DashboardButton
+          iconSrc="/grades-icon.svg"
+          text="Grades"
+          color="#CA8E02"
+          to={advisorySection ? `/adviser/grades/${advisorySection.id}` : "#"}
+        />
         <DashboardButton iconSrc="/reports-icon.svg" text="Reports" color="#8F28A4" />
       </div>
     </div>

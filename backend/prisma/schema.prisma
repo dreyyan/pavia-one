@@ -67,11 +67,11 @@ enum EnrollmentStatus {
 }
 
 enum Curriculum {
-  K12             // K to 12 Basic Education Curriculum
-  SPECIAL_SCIENCE // Special Science Curriculum
-  SPECIAL_ARTS    // Special Arts Curriculum
-  ALS             // Alternative Learning System
-  OTHER           // Any other curriculum
+  Regular   // Regular K to 12 curriculum
+  STE       // Science, Technology, Engineering specialized curriculum
+  SPS       // Specialization/Badminton curriculum
+  SPA       // Specialization/Visual Arts curriculum
+  SPJ       // ICT / Journalism curriculum
 }
 
 enum SF9GradeItemType {
@@ -162,7 +162,7 @@ model Section {
   isAdvisory  Boolean   @default(false)
 
   schoolYear  String
-  curriculum  Curriculum @default(K12)
+  curriculum  Curriculum @default(Regular)
 
   color       String?
   classSize   Int?
@@ -193,10 +193,7 @@ model Student {
   ethnicGroup        String?
   religion           String?
   email              String?   @unique
-  password           String?
   createdByAdviserId String
-  accountStatus      AccountStatus @default(ACTIVE)
-  mustChangePassword Boolean       @default(true)
 
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
@@ -248,6 +245,18 @@ model Guardian {
   @@map("guardians")
 }
 
+model EnrollmentLearningArea {
+  id             Int           @id @default(autoincrement())
+  enrollmentId   Int
+  learningAreaId Int
+
+  enrollment     Enrollment   @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  learningArea   LearningArea @relation(fields: [learningAreaId], references: [id])
+
+  @@unique([enrollmentId, learningAreaId])
+  @@map("enrollment_learning_areas")
+}
+
 model Enrollment {
   id               Int              @id @default(autoincrement())
   studentId        Int
@@ -261,8 +270,25 @@ model Enrollment {
   student          Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
   section          Section          @relation(fields: [sectionId], references: [id])
 
+  learningAreas    EnrollmentLearningArea[]
+
   @@unique([studentId, schoolYear])
   @@map("enrollments")
+}
+
+model LearningArea {
+  id          Int        @id @default(autoincrement())
+  name        String
+  gradeLevel  Int        @default(7)
+
+  writtenWorkWeight       Float @default(0.3)   // 20–40%
+  performanceTaskWeight   Float @default(0.5)   // 40–60%
+  quarterlyAssessmentWeight Float @default(0.2) // 20%
+
+  grades      SF9Grade[]
+  enrollments EnrollmentLearningArea[]
+
+  @@map("learning_areas")
 }
 
 model SF2DailyTotals {
@@ -304,21 +330,6 @@ model SF2MonthlySummary {
 
   @@unique([studentId, schoolYear, month])
   @@map("sf2_monthly_summary")
-}
-
-model LearningArea {
-  id          Int        @id @default(autoincrement())
-  name        String
-  description String?
-  gradeLevel  Int        @default(7)
-
-  writtenWorkWeight       Float @default(0.3)   // 20–40%
-  performanceTaskWeight   Float @default(0.5)   // 40–60%
-  quarterlyAssessmentWeight Float @default(0.2) // 20%
-
-  grades      SF9Grade[]
-
-  @@map("learning_areas")
 }
 
 model SF9Grade {

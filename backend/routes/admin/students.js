@@ -19,7 +19,6 @@ router.get('/', verifyAdmin, async (req, res) => {
   try {
     const { page = 1, limit = 50, sortBy = 'lrn', sortOrder = 'asc', search = '' } = req.query;
 
-    // Remove TypeScript casts
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
     const skip = (pageNum - 1) * limitNum;
@@ -53,17 +52,30 @@ router.get('/', verifyAdmin, async (req, res) => {
           ethnicGroup: true,
           religion: true,
           email: true,
-          password: true,
           createdByAdviserId: true,
-          accountStatus: true,
-          mustChangePassword: true,
           createdAt: true,
           updatedAt: true,
           adviser: { select: { id: true, name: true, adviserId: true } },
           address: true,
           guardian: true,
           enrollments: {
-            select: { id: true, sectionId: true, schoolYear: true, status: true, learningModality: true },
+            select: {
+              id: true,
+              sectionId: true,
+              schoolYear: true,
+              status: true,
+              learningModality: true,
+              learningAreas: {
+                select: {
+                  learningArea: {
+                    select: {
+                      id: true,
+                      name: true,
+                    },
+                  },
+                },
+              },
+            },
           },
           monthlySummaries: true,
           dailyAttendances: true,
@@ -79,7 +91,7 @@ router.get('/', verifyAdmin, async (req, res) => {
       prisma.student.count({ where }),
     ]);
 
-    // Split guardian names properly
+    // Split guardian names properly and flatten learning areas
     const studentsWithFullName = students.map((s) => {
       let guardian = s.guardian;
 
@@ -98,10 +110,17 @@ router.get('/', verifyAdmin, async (req, res) => {
         };
       }
 
+      // Map learning areas per enrollment
+      const enrollmentsWithLearningAreas = s.enrollments.map((enr) => ({
+        ...enr,
+        learningAreas: enr.learningAreas.map((ela) => ela.learningArea),
+      }));
+
       return {
         ...s,
         guardian,
         fullName: getFullName(s),
+        enrollments: enrollmentsWithLearningAreas,
       };
     });
 

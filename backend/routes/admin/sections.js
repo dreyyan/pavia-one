@@ -27,57 +27,46 @@ router.get('/', verifyAdmin, async (req, res) => {
 			? { name: { contains: search, mode: 'insensitive' } }
 			: {};
 
-		const [sections, total] = await Promise.all([
-			prisma.section.findMany({
-				where,
-				select: {
-					id: true,
-					name: true,
-					gradeLevel: true,
-					createdAt: true,
-					adviser: {
-						select: {
-							id: true,
-							name: true,
-							email: true,
-						},
-					},
+    const validSortFields = ['name', 'gradeLevel', 'createdAt'];
+    const sortField = validSortFields.includes(sortBy) ? sortBy : 'name';
+    const orderDirection = sortOrder === 'desc' ? 'desc' : 'asc';
 
-					// Count enrollments instead of students
-					_count: {
-						select: { enrollments: true },
-					},
-
-					// Get students through enrollments
-					enrollments: {
-						where: { status: 'ENROLLED' },
-						select: {
-							student: {
-								select: {
-									id: true,
-									lrn: true,
-									firstName: true,
-									middleName: true,
-									lastName: true,
-									nameExtension: true,
-									email: true,
-									accountStatus: true,
-								},
-							},
-						},
-						orderBy: {
-							student: {
-								firstName: 'asc',
-							},
-						},
-					},
-				},
-				orderBy: { [sortBy]: sortOrder === 'desc' ? 'desc' : 'asc' },
-				skip,
-				take,
-			}),
-			prisma.section.count({ where }),
-		]);
+    const [sections, total] = await Promise.all([
+      prisma.section.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          gradeLevel: true,
+          createdAt: true,
+          adviser: {
+            select: { id: true, name: true, email: true },
+          },
+          _count: { select: { enrollments: true } },
+          enrollments: {
+            where: { status: 'ENROLLED' },
+            select: {
+              student: {
+                select: {
+                  id: true,
+                  lrn: true,
+                  firstName: true,
+                  middleName: true,
+                  lastName: true,
+                  nameExtension: true,
+                  email: true,
+                },
+              },
+            },
+            orderBy: { student: { firstName: 'asc' } },
+          },
+        },
+        orderBy: { [sortField]: orderDirection },
+        skip,
+        take,
+      }),
+      prisma.section.count({ where }),
+    ]);
 
 		const totalPages = Math.ceil(total / take);
 
@@ -170,7 +159,7 @@ router.post('/', verifyAdmin, async (req, res) => {
     const errors = [];
 
     for (const section of sectionsInput) {
-      const { name, adviserId, gradeLevel, schoolYear, color, schedule, isAdvisory } = section;
+      const { name, adviserId, gradeLevel, schoolYear, color, schedule, isAdvisory, curriculum } = section;
 
       if (!name || !adviserId || gradeLevel === undefined || !schoolYear) {
         errors.push({ name, message: 'Missing required fields' });
@@ -208,6 +197,15 @@ router.post('/', verifyAdmin, async (req, res) => {
         continue;
       }
 
+      // Validate curriculum
+      const validCurricula = ['Regular', 'STE', 'SPS', 'SPA', 'SPJ'];
+      const sectionCurriculum = curriculum || 'Regular';
+
+      if (!validCurricula.includes(sectionCurriculum)) {
+        errors.push({ name, curriculum, message: `Invalid curriculum. Must be one of: ${validCurricula.join(', ')}` });
+        continue;
+      }
+
       // [1] Create the section first
       const newSection = await prisma.section.create({
         data: {
@@ -218,6 +216,7 @@ router.post('/', verifyAdmin, async (req, res) => {
           color: color || null,
           schedule: schedule || null,
           isAdvisory: isAdvisory || false,
+          curriculum: sectionCurriculum
         },
       });
 
