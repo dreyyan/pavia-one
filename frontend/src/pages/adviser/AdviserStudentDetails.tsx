@@ -88,8 +88,7 @@ const AdviserStudentDetails = () => {
   const [modalMessage, setModalMessage] = useState("");
   const [modalType, setModalType] = useState<"default" | "error" | "success" | "info" | "warning">("default");
   const [redirectOnConfirm, setRedirectOnConfirm] = useState(false);
-
-  const { setShowTokenExpiredModal, logout } = useAuth();
+  const { setShowTokenExpiredModal } = useAuth();
 
   const handleApiResponse = async (res: Response) => {
     if (res.status === 401) {
@@ -156,6 +155,7 @@ const AdviserStudentDetails = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { age, ...payload } = form;
 
       const res = await fetch(
@@ -192,8 +192,9 @@ const AdviserStudentDetails = () => {
       setIsEditing(false);
       setOriginalForm(form);
 
-    } catch (err: any) {
-      alert(err.message || "Something went wrong while saving.");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      alert(errorMessage || "Something went wrong while saving.");
     } finally {
       setLoading(false);
     }
@@ -310,8 +311,9 @@ const AdviserStudentDetails = () => {
 
         setForm(prefillForm);
         setOriginalForm(prefillForm);
-      } catch (err: any) {
-        setError(err.message || "Something went wrong");
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        setError(errorMessage || "Something went wrong");
         setStudent(null);
       } finally {
         setLoading(false);
@@ -319,7 +321,7 @@ const AdviserStudentDetails = () => {
     };
 
     fetchStudent();
-  }, [sectionId, studentId]);
+  }, [handleApiResponse, sectionId, studentId]);
 
   if (loading) return <p>Loading student details...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
@@ -439,7 +441,7 @@ const AdviserStudentDetails = () => {
           <button
             onClick={handlePrevPage}
             disabled={page === 1}
-            className={`px-4 py-2 rounded-md text-[var(--color-text-50)] font-roboto text-sm font-semibold transition-colors duration-150 ${
+            className={`w-24 py-2 rounded-md text-[var(--color-text-50)] font-roboto text-xs font-semibold transition-colors duration-150 ${
               page === 1
                 ? "bg-[var(--color-bg-400)] cursor-not-allowed opacity-50"
                 : "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)]"
@@ -447,13 +449,15 @@ const AdviserStudentDetails = () => {
           >
             &lt; Previous
           </button>
+
           <span className="flex gap-x-1 text-sm text-[var(--color-text-900)] font-medium">
             Page <span className="font-bold">{page}</span> of <span className="font-bold">{totalPages}</span>
           </span>
+
           <button
             onClick={handleNextPage}
             disabled={page === totalPages}
-            className={`px-4 py-2 rounded-md text-[var(--color-text-50)] font-roboto text-sm font-semibold transition-colors duration-150 ${
+            className={`w-24 py-2 rounded-md text-[var(--color-text-50)] font-roboto text-xs font-semibold transition-colors duration-150 ${
               page === totalPages
                 ? "bg-[var(--color-bg-400)] cursor-not-allowed opacity-50"
                 : "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)]"
@@ -467,7 +471,7 @@ const AdviserStudentDetails = () => {
         <div className="flex justify-end gap-2">
           <button
             onClick={toggleEdit}
-            className="flex items-center gap-2 rounded-md text-sm px-4 py-2 bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)] transition text-[var(--color-text-50)] font-roboto font-medium"
+            className="flex items-center gap-2 rounded-md text-sm px-4 py-2 bg-[var(--color-secondary-600)] hover:bg-[var(--color-secondary-700)] transition text-[var(--color-text-50)] font-roboto font-medium"
           >
             {isEditing ? "Cancel" : "Edit"}
 
@@ -498,13 +502,13 @@ const AdviserStudentDetails = () => {
             <h3 className="pb-2 font-semibold">Basic Information</h3>
             <InputField label="Last Name" value={form.lastName} onChange={(e) => handleChange("lastName", e.target.value)} disabled={!isEditing} />
             <InputField label="First Name" value={form.firstName} onChange={(e) => handleChange("firstName", e.target.value)} disabled={!isEditing} />
-            <InputField label="Middle Name" value={form.middleName} onChange={(e) => handleChange("middleName", e.target.value)} disabled={!isEditing} />
-            <InputField label="Sex (M/F)" type="select" value={form.sex} onChange={(e) => handleChange("sex", e.target.value)} options={["M", "F"]} placeholder="Select sex" disabled={!isEditing} />
-            <InputField label="Birth Date" type="date" value={form.birthDate} onChange={(e) => handleChange("birthDate", e.target.value)} disabled={!isEditing} />
-            <InputField label="Age" type="number" value={form.age ?? ""} onChange={(e) => handleChange("age", e.target.value ? parseInt(e.target.value) : undefined)} maxLength={3} disabled={true} />
-            <InputField label="Mother Tongue" value={form.motherTongue} onChange={(e) => handleChange("motherTongue", e.target.value)} disabled={!isEditing} />
-            <InputField label="IP (Ethnic Group)" value={form.ip} onChange={(e) => handleChange("ip", e.target.value)} disabled={!isEditing} />
-            <InputField label="Religion" value={form.religion} onChange={(e) => handleChange("religion", e.target.value)} disabled={!isEditing} />
+            <InputField label="Middle Name" value={form.middleName ?? ""} onChange={(e) => handleChange("middleName", e.target.value)} disabled={!isEditing} />
+            <InputField label="Sex (M/F)" type="select" value={form.sex ?? ""} onChange={(e) => handleChange("sex", e.target.value)} options={["M", "F"]} placeholder="Select sex" disabled={!isEditing} />
+            <InputField label="Birth Date" type="date" value={form.birthDate ?? ""} onChange={(e) => handleChange("birthDate", e.target.value)} disabled={!isEditing} />
+            <InputField label="Age" type="number" value={form.age ?? ""} onChange={(e) => { const val = e.target.value; handleChange("age", val !== "" ? parseInt(val) : 0); }} maxLength={3} disabled={true} />
+            <InputField label="Mother Tongue" value={form.motherTongue ?? ""} onChange={(e) => handleChange("motherTongue", e.target.value)} disabled={!isEditing} />
+            <InputField label="IP (Ethnic Group)" value={form.ip ?? ""} onChange={(e) => handleChange("ip", e.target.value)} disabled={!isEditing} />
+            <InputField label="Religion" value={form.religion ?? ""} onChange={(e) => handleChange("religion", e.target.value)} disabled={!isEditing} />
           </>
         )}
 
@@ -512,25 +516,25 @@ const AdviserStudentDetails = () => {
           <>
             <h3 className="pb-2 font-semibold">Address</h3>
             <div className="grid grid-cols-2 gap-2">
-              <InputField label="House #" value={form.houseNo} onChange={(e) => handleChange("houseNo", e.target.value)} disabled={!isEditing} />
-              <InputField label="Street" value={form.street} onChange={(e) => handleChange("street", e.target.value)} disabled={!isEditing} />
-              <InputField label="Sitio" value={form.sitio} onChange={(e) => handleChange("sitio", e.target.value)} disabled={!isEditing} />
-              <InputField label="Purok" value={form.purok} onChange={(e) => handleChange("purok", e.target.value)} disabled={!isEditing} />
+              <InputField label="House #" value={form.houseNo ?? ""} onChange={(e) => handleChange("houseNo", e.target.value)} disabled={!isEditing} />
+              <InputField label="Street" value={form.street ?? ""} onChange={(e) => handleChange("street", e.target.value)} disabled={!isEditing} />
+              <InputField label="Sitio" value={form.sitio ?? ""} onChange={(e) => handleChange("sitio", e.target.value)} disabled={!isEditing} />
+              <InputField label="Purok" value={form.purok ?? ""} onChange={(e) => handleChange("purok", e.target.value)} disabled={!isEditing} />
             </div>
-            <InputField label="Barangay" value={form.barangay} onChange={(e) => handleChange("barangay", e.target.value)} disabled={!isEditing} />
-            <InputField label="Municipality / City" value={form.municipality} onChange={(e) => handleChange("municipality", e.target.value)} disabled={!isEditing} />
-            <InputField label="Province" value={form.province} onChange={(e) => handleChange("province", e.target.value)} disabled={!isEditing} />
+            <InputField label="Barangay" value={form.barangay ?? ""} onChange={(e) => handleChange("barangay", e.target.value)} disabled={!isEditing} />
+            <InputField label="Municipality / City" value={form.municipality ?? ""} onChange={(e) => handleChange("municipality", e.target.value)} disabled={!isEditing} />
+            <InputField label="Province" value={form.province ?? ""} onChange={(e) => handleChange("province", e.target.value)} disabled={!isEditing} />
           </>
         )}
 
         {page === 3 && (
           <>
             <h3 className="pb-2 font-semibold">Parents / Guardian</h3>
-            <InputField label="Father's Name" value={form.fatherName} onChange={(e) => handleChange("fatherName", e.target.value)} disabled={!isEditing} />
-            <InputField label="Mother's Maiden Name" value={form.motherName} onChange={(e) => handleChange("motherName", e.target.value)} disabled={!isEditing} />
-            <InputField label="Guardian's Name" value={form.guardianName} onChange={(e) => handleChange("guardianName", e.target.value)} disabled={!isEditing} />
-            <InputField label="Relationship" value={form.guardianRelationship} onChange={(e) => handleChange("guardianRelationship", e.target.value)} disabled={!isEditing} />
-            <InputField label="Contact Number" value={form.guardianContact} onChange={(e) => handleChange("guardianContact", e.target.value)} disabled={!isEditing} />
+            <InputField label="Father's Name" value={form.fatherName ?? ""} onChange={(e) => handleChange("fatherName", e.target.value)} disabled={!isEditing} />
+            <InputField label="Mother's Maiden Name" value={form.motherName ?? ""} onChange={(e) => handleChange("motherName", e.target.value)} disabled={!isEditing} />
+            <InputField label="Guardian's Name" value={form.guardianName ?? ""} onChange={(e) => handleChange("guardianName", e.target.value)} disabled={!isEditing} />
+            <InputField label="Relationship" value={form.guardianRelationship ?? ""} onChange={(e) => handleChange("guardianRelationship", e.target.value)} disabled={!isEditing} />
+            <InputField label="Contact Number" value={form.guardianContact ?? ""} onChange={(e) => handleChange("guardianContact", e.target.value)} disabled={!isEditing} />
             <InputField
               label="Learning Modality"
               type="select"
