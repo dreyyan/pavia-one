@@ -199,6 +199,16 @@ const AdviserStudentDetails = () => {
     }
   };
 
+  // Helper function
+  const formatFullName = (student: Student) => {
+    const first = student.firstName ?? "";
+    const middleInitial = student.middleName ? `${student.middleName.charAt(0)}.` : "";
+    const last = student.lastName ?? "";
+    const extension = student.nameExtension ? ` ${student.nameExtension}` : "";
+
+    return [first, middleInitial, last, extension].filter(Boolean).join(" ");
+  };
+
   const handleNextPage = () => {
     if (page < totalPages) setPage((p) => p + 1);
   };
@@ -365,34 +375,49 @@ const AdviserStudentDetails = () => {
         ))}
       </nav>
 
-      {/* Student Card */}
-      <div className="bg-[var(--color-bg-50)] shadow-lg rounded-lg p-6 flex flex-col md:flex-row gap-6 items-center">
-        <img
-          src={student.profilePic ?? "/default-profile.png"}
-          alt=""
-          className="flex items-center text-center font-roboto text-md w-24 h-24 rounded-full object-cover bg-[var(--color-bg-400)]"
-        />
-        <div className="flex-1 space-y-2">
-          <h2 className="text-2xl font-bold text-[var(--color-text-900)]">{student.fullName}</h2>
-          <p className="font-roboto">
-            <span className="font-roboto font-semibold">LRN:</span> {student.lrn}
+      {/* Student Card (Profile + Full Name + Details Table) */}
+      <div className="bg-[var(--color-bg-50)] shadow-lg rounded-lg flex flex-col md:flex-row md:items-start gap-y-4">
+        <div className="flex justify-center items-center text-center pt-4">
+          {/* Left: Profile Picture */}
+          <img
+            src={student.profilePic ?? "/default-profile.png"}
+            alt=""
+            className="w-24 h-24 rounded-full object-cover bg-[var(--color-bg-400)] flex-shrink-0"
+          />
+        </div>
+
+        {/* Right: Name + Details */}
+        <div className="flex-1 flex flex-col gap-4">
+          {/* Full Name */}
+          <p className="font-figtree font-bold text-xl text-[var(--color-text-900)] md:text-left text-center">
+            {formatFullName(student)}
           </p>
-          {student.email && (
-            <p className="font-roboto">
-              <span className="font-roboto font-semibold">Email:</span> {student.email}
-            </p>
-          )}
-          {student.sex && (
-            <p className="font-roboto">
-              <span className="font-roboto font-semibold">Sex:</span> {student.sex}
-            </p>
-          )}
-          {student.birthDate && (
-            <p className="font-roboto">
-              <span className="font-roboto font-semibold">Birth Date:</span>{" "}
-              {new Date(student.birthDate).toLocaleDateString()}
-            </p>
-          )}
+
+          {/* Details Table */}
+          <div className="overflow-x-auto">
+            <table className="min-w-full table-auto border-collapse font-roboto text-[var(--color-text-900)]">
+              <tbody>
+                <tr className="border-t border-[var(--color-bg-200)]">
+                  <td className="py-2 pl-4 font-semibold text-sm min-w-[50px]">LRN</td>
+                  <td className="py-2 pl-2 text-sm">{student.lrn}</td>
+                </tr>
+                <tr className="border-t border-[var(--color-bg-200)]">
+                  <td className="py-2 pl-4 font-semibold text-sm min-w-[50px]">Email</td>
+                  <td className="py-2 pl-2 text-sm">{student.email ?? "-"}</td>
+                </tr>
+                <tr className="border-t border-[var(--color-bg-200)]">
+                  <td className="py-2 pl-4 font-semibold text-sm min-w-[50px]">Sex</td>
+                  <td className="py-2 pl-2 text-sm">{student.sex ?? "-"}</td>
+                </tr>
+                <tr className="border-t border-[var(--color-bg-200)]">
+                  <td className="py-2 pl-4 font-semibold text-sm min-w-[50px]">Birth Date</td>
+                  <td className="py-2 pl-2 text-sm">
+                    {student.birthDate ? new Date(student.birthDate).toLocaleDateString() : "-"}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
