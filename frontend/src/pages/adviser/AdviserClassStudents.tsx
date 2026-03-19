@@ -259,7 +259,7 @@ const AdviserClassStudents = () => {
                   <td className="py-2 px-4 text-[var(--color-text-900)] border-r border-[var(--color-primary-800)]">
                     {student.lrn}
                   </td>
-                  <td className="py-2 px-4 text-[var(--color-text-900)] font-bold border-r border-[var(--color-bg-200)]">
+                  <td className="py-2 px-4 text-[var(--color-text-900)] font-bold border-r border-[var(--color-bg-200)] truncate max-w-[150px]">
                     {student.fullName}
                   </td>
                   <td className="py-2 px-4 text-[var(--color-text-900)] hidden sm:table-cell border-r border-[var(--color-bg-200)]">
