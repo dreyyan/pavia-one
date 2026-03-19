@@ -321,7 +321,8 @@ const AdviserStudentDetails = () => {
     };
 
     fetchStudent();
-  }, [handleApiResponse, sectionId, studentId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sectionId, studentId]);
 
   if (loading) return <p>Loading student details...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
