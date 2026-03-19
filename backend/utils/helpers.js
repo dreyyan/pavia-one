@@ -80,4 +80,19 @@ const validateSF2Completeness = (sf2Data) => {
     return { isComplete, missing };
 };
 
-module.exports = { hashPassword, getFullName, isValidSex, calculateAge, validateSF2Completeness };
+function splitFullName(fullName) {
+  if (!fullName) return { firstName: null, middleName: null, lastName: null };
+
+  const parts = fullName.trim().split(' ');
+
+  const firstName = parts[0] || null;
+  const lastName = parts.length > 1 ? parts[parts.length - 1] : null;
+
+  const middleName =
+    parts.length > 2 ? parts.slice(1, parts.length - 1).join(' ') : null;
+
+  return { firstName, middleName, lastName };
+}
+
+
+module.exports = { hashPassword, getFullName, isValidSex, calculateAge, validateSF2Completeness, splitFullName };
