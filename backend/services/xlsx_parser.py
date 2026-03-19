@@ -1,249 +1,166 @@
-# [IMPORT] Libraries
-import pandas as pd
+import json
 import os
-import re
+import pandas as pd
+from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter
 
-# [SETUP] File Directories
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FORMS_DIR = os.path.join(BASE_DIR, "..", "forms")
-SF1_PATH = os.path.join(FORMS_DIR, "SF1_filled.xlsx")
-OUTPUT_DIR = os.path.join(FORMS_DIR, "output_data")
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+CSV_PATH = os.path.join(FORMS_DIR, "output_data", "SF1_data.csv")
+TEMPLATE_PATH = os.path.join(FORMS_DIR, "SF1_template.xlsx")
+OUTPUT_PATH = os.path.join(FORMS_DIR, "output_data/SF1_filled_output.xlsx")
+SCHOOL_JSON_PATH = os.path.join(FORMS_DIR, "school_data.json")
 
-# -------------------------------------------------
-# STEP 1: Load Raw Data
-# -------------------------------------------------
-raw = pd.read_excel(SF1_PATH, header=None).fillna("")
-print("[SUCCESS] Loaded SF1_filled.xlsx (raw mode)")
+# Load data
+data = pd.read_csv(CSV_PATH).fillna("")
+with open(SCHOOL_JSON_PATH, "r", encoding="utf-8") as f:
+    school_info = json.load(f)
 
-# -------------------------------------------------
-# STEP 2A: Detect Header Rows
-# -------------------------------------------------
-main_header = None
-sub_header = None
+# Load workbook
+wb = load_workbook(TEMPLATE_PATH)
+ws = wb.active
+print("[SUCCESS] Loaded template and CSV")
 
-for i in range(len(raw)):
-    row = " ".join(str(v).upper() for v in raw.iloc[i])
-    if "LRN" in row and "NAME" in row:
-        main_header = i
-    if "BARANGAY" in row and "MUNICIPALITY" in row:
-        sub_header = i
+# Config
+START_ROW = 7
+SKIP_ROWS = {32, 59, 60}
+COL = {
+    "lrn": 1, "name": 3, "sex": 7, "birth": 8, "age": 10,
+    "mother_tongue": 12, "ip": 14, "religion": 15,
+    "barangay": 18, "municipality": 21, "province": 23,
+    "father": 28, "mother": 32, "modality": 44, "remarks": 45
+}
 
-if main_header is None or sub_header is None:
-    raise RuntimeError("[ERROR] Could not detect SF1 header rows")
-print(f">> Main header row: {main_header}")
-print(f">> Sub header row : {sub_header}")
+# Helpers
+def is_male(sex):
+    return str(sex).upper() in ("M", "MALE")
 
-# -------------------------------------------------
-# STEP 2B: Detect "Parents" Row
-# -------------------------------------------------
-parents_header = None
-for i in range(len(raw)):
-    row = " ".join(str(v).upper() for v in raw.iloc[i])
-    if "FATHER" in row or "MOTHER" in row:
-        parents_header = i
-        break
-print(f">> Parents header row: {parents_header}")
+def is_female(sex):
+    return str(sex).upper() in ("F", "FEMALE")
 
-# Handle merged cells by "ffill"
-raw.iloc[main_header] = raw.iloc[main_header].ffill()
-if sub_header:
-    raw.iloc[sub_header] = raw.iloc[sub_header].ffill()
-if parents_header:
-    raw.iloc[parents_header] = raw.iloc[parents_header].ffill()
-
-# [FUNCTION] Normalize columns
-def norm(col):
-    return (
-        col.lower()
-        .replace("\n", " ")
-        .replace(".", "")
-        .replace("(", "")
-        .replace(")", "")
-        .replace("/", " ")
-        .strip()
-    )
-
-# -------------------------------------------------
-# STEP 3: Merge headers including Parents row and Remarks row (fixed priority)
-# -------------------------------------------------
-remarks_header = None
-for i in range(len(raw)):
-    row = " ".join(str(v).upper() for v in raw.iloc[i])
-    if "REMARK" in row:
-        remarks_header = i
-        break
-print(f">> Remarks header row: {remarks_header}")
-
-merged_headers = []
-for col_idx in range(len(raw.columns)):
-    main = str(raw.iloc[main_header, col_idx]).strip()
-    sub = str(raw.iloc[sub_header, col_idx]).strip() if sub_header else ""
-    parents = str(raw.iloc[parents_header, col_idx]).strip() if parents_header else ""
-    remarks = str(raw.iloc[remarks_header, col_idx]).strip() if remarks_header else ""
-
-    # Determine column type
-    col_name = main  # default
-
-    # Use sub-header if available
-    if sub:
-        col_name = sub
-    # Use parents row only for Father/Mother columns
-    if parents and any(k in parents.upper() for k in ["FATHER", "MOTHER"]):
-        col_name = parents
-    # Use remarks only if this column is actually the remarks column
-    if remarks and any(k in remarks.upper() for k in ["REMARK"]):
-        col_name = remarks
-
-    merged_headers.append(col_name)
-
-merged_headers = [norm(c) for c in merged_headers]
-
-# -------------------------------------------------
-# STEP 4: Load Data
-# -------------------------------------------------
-# Skip rows: sub_header (header), parents_header (already merged), remarks_header
-skip_rows = [main_header, sub_header]
-if parents_header: skip_rows.append(parents_header)
-if remarks_header: skip_rows.append(remarks_header)
-
-df = raw.drop(skip_rows).copy()
-df.columns = merged_headers
-df = df.fillna("")
-
-print(">> Final detected columns:")
-for c in df.columns:
-    if c:
-        print(" -", c)
-        
-# -------------------------------------------------
-# STEP 5: Column Finder
-# -------------------------------------------------
-def find_col(keywords, skip=[]):
-    for col in df.columns:
-        if col in skip:
-            continue
-        col_norm = norm(col)
-        for kw in keywords:
-            kw_norm = norm(kw)
-            if kw_norm in col_norm:
-                return col
-    return None
-
-used_cols = []
-COL = {}
-
-COL["lrn"] = find_col(["lrn"], skip=used_cols)
-if COL["lrn"]:
-    used_cols.append(COL["lrn"])
-COL["name"] = find_col(["last name", "first name", "middle name"], skip=used_cols)
-if COL["name"]:
-    used_cols.append(COL["name"])
-COL["sex"] = find_col(["sex"], skip=used_cols)
-if COL["sex"]:
-    used_cols.append(COL["sex"])
-COL["birth"] = find_col(["birth"], skip=used_cols)
-if COL["birth"]:
-    used_cols.append(COL["birth"])
-COL["age"] = find_col(["age"], skip=used_cols)
-if COL["age"]:
-    used_cols.append(COL["age"])
-COL["mother_tongue"] = find_col(["mother tongue"], skip=used_cols)
-if COL["mother_tongue"]:
-    used_cols.append(COL["mother_tongue"])
-COL["religion"] = find_col(["religion"], skip=used_cols)
-if COL["religion"]:
-    used_cols.append(COL["religion"])
-COL["barangay"] = find_col(["barangay"], skip=used_cols)
-if COL["barangay"]:
-    used_cols.append(COL["barangay"])
-COL["municipality"] = find_col(["municipality", "city"], skip=used_cols)
-if COL["municipality"]:
-    used_cols.append(COL["municipality"])
-COL["province"] = find_col(["province"], skip=used_cols)
-if COL["province"]:
-    used_cols.append(COL["province"])
-COL["father_name"] = find_col(["father", "father's", "father name", "father's name"], skip=used_cols)
-if COL["father_name"]:
-    used_cols.append(COL["father_name"])
-COL["mother_maiden_name"] = find_col(["mother", "mother's", "maiden", "mother maiden", "mother's maiden", "maiden name"], skip=used_cols)
-if COL["mother_maiden_name"]:
-    used_cols.append(COL["mother_maiden_name"])
-COL["learning_modality"] = find_col(["learning modality"], skip=used_cols)
-if COL["learning_modality"]:
-    used_cols.append(COL["learning_modality"])
-COL["remarks"] = find_col(["remark", "remarks"], skip=used_cols)
-if COL["remarks"]:
-    used_cols.append(COL["remarks"])
-
-print(">> Assigned columns:")
-for k, v in COL.items():
-    print(f" - {k}: {v}")
-
-# -------------------------------------------------
-# STEP 6: Name Splitter
-# -------------------------------------------------
-def split_name(val):
-    parts = [p.strip() for p in val.split(",") if p.strip()]
-    if not parts:
-        return "", "", ""
-    last = parts[0]
-    first = parts[1] if len(parts) > 1 else ""
-    middle = parts[2] if len(parts) > 2 else ""
-    return last.title(), first.title(), middle.title()
-
-# -------------------------------------------------
-# STEP 6B: Parent Name Parser
-# -------------------------------------------------
-def parse_parent_name(val):
-    parts = [p.strip() for p in val.split(",") if p.strip()]
-    if not parts:
+def format_parent_name(name_str):
+    if not str(name_str).strip():
         return ""
-    last = parts[0].title()
-    if len(parts) == 1:
-        return last
-    first_middle = " ".join([p.title() for p in parts[1:]])
-    return f"{first_middle} {last}"
+    if "," in name_str:
+        parts = [p.strip() for p in name_str.split(",")]
+        last = parts[0].upper()
+        first_middle = parts[1].upper() if len(parts) > 1 else ""
+        return f"{last}, {first_middle}".strip(", ")
+    words = name_str.strip().split()
+    if len(words) == 1:
+        return words[0].upper()
+    elif len(words) == 2:
+        first, last = words
+        return f"{last.upper()}, {first.upper()}"
+    else:
+        *first_middle, last = words
+        return f"{last.upper()}, {' '.join(first_middle).upper()}"
 
-# -------------------------------------------------
-# STEP 7: Parse Students
-# -------------------------------------------------
-students = []
-for _, row in df.iterrows():
-    lrn = str(row.get(COL["lrn"], "")).strip()
-    if not re.fullmatch(r"\d{6,12}", lrn):
-        continue
-    last, first, middle = split_name(row.get(COL["name"], ""))
-    try:
-        age = int(float(row.get(COL["age"], "")))
-    except:
-        age = ""
-    father_raw = row.get(COL["father_name"], "")
-    mother_raw = row.get(COL["mother_maiden_name"], "")
-    students.append({
-        "LRN": lrn,
-        "Last Name": last,
-        "First Name": first,
-        "Middle Name": middle,
-        "Sex": row.get(COL["sex"], "").upper(),
-        "Birth Date": row.get(COL["birth"], ""),
-        "Age": age,
-        "Mother Tongue": row.get(COL["mother_tongue"], "").title(),
-        "Religion": row.get(COL["religion"], "").title(),
-        "Barangay": row.get(COL["barangay"], "").title(),
-        "Municipality": row.get(COL["municipality"], "Pavia").title(),
-        "Province": row.get(COL["province"], "Iloilo").title(),
-        "Father Name": parse_parent_name(father_raw),
-        "Mother Maiden Name": parse_parent_name(mother_raw),
-        "Learning Modality": row.get(COL["learning_modality"], "").title(),
-        "Remarks": row.get(COL["remarks"], ""),
-    })
-print(f"\n>> Parsed {len(students)} students")
+# Safe cell writer
+def write_cell(ws, row, col, value, as_text=False):
+    if value == "":
+        return
+    coord = f"{get_column_letter(col)}{row}"
+    cell = ws.cell(row, col)
+    for merged in ws.merged_cells.ranges:
+        if cell.coordinate in merged:
+            coord = f"{get_column_letter(merged.min_col)}{merged.min_row}"
+            break
+    ws[coord].value = str(value) if as_text else value
 
-# -------------------------------------------------
-# STEP 8: Save Data to CSV
-# -------------------------------------------------
-out = pd.DataFrame(students)
-out_path = os.path.join(OUTPUT_DIR, "SF1_data.csv")
-out.to_csv(out_path, index=False, encoding="utf-8-sig")
-print(f"[SUCCESS] Saved cleaned data to {out_path}")
+# Student writer
+def write_student(student, row):
+    sex_display = "M" if is_male(student.get("Sex", "")) else "F"
+    write_cell(ws, row, COL["lrn"], student.get("LRN", ""), as_text=True)
+    last = student.get("Last Name", "").upper()
+    first = student.get("First Name", "").upper()
+    middle = student.get("Middle Name", "").upper()
+    name = f"{last}, {first}" + (f" {middle}" if middle else "")
+    write_cell(ws, row, COL["name"], name)
+    write_cell(ws, row, COL["sex"], sex_display)
+    birth = str(student.get("Birth Date", "")).split("T")[0]
+    write_cell(ws, row, COL["birth"], birth)
+    write_cell(ws, row, COL["age"], student.get("Age", ""))
+    write_cell(ws, row, COL["mother_tongue"], student.get("Mother Tongue", ""))
+    write_cell(ws, row, COL["ip"], student.get("IP Ethnic Group", "").upper())
+    write_cell(ws, row, COL["religion"], student.get("Religion", ""))
+    write_cell(ws, row, COL["barangay"], student.get("Barangay", "").upper())
+    write_cell(ws, row, COL["municipality"], student.get("Municipality", "").upper())
+    write_cell(ws, row, COL["province"], student.get("Province", "ILOILO").upper())
+    write_cell(ws, row, COL["father"], format_parent_name(student.get("Father Name", "")))
+    write_cell(ws, row, COL["mother"], format_parent_name(student.get("Mother Maiden Name", "")))
+    modality = student.get("Learning Modality", "").replace("_", " ").title()
+    write_cell(ws, row, COL["modality"], modality)
+    write_cell(ws, row, COL["remarks"], student.get("Remarks", ""))
+
+# Prepare student lists
+males = data[data["Sex"].apply(is_male)].sort_values(by=["Last Name", "First Name", "Middle Name"])
+females = data[data["Sex"].apply(is_female)].sort_values(by=["Last Name", "First Name", "Middle Name"])
+
+# Write students
+current_row = START_ROW
+
+def write_group(students):
+    global current_row
+    for _, student in students.iterrows():
+        while current_row in SKIP_ROWS:
+            current_row += 1
+        write_student(student, current_row)
+        current_row += 1
+
+write_group(males)
+male_count = len(males)
+while current_row in SKIP_ROWS:
+    current_row += 1
+write_cell(ws, current_row, 1, male_count)
+write_cell(ws, current_row, 2, male_count)
+write_cell(ws, current_row, 3, "<=== TOTAL MALE")
+current_row += 1
+
+write_group(females)
+female_count = len(females)
+while current_row in SKIP_ROWS:
+    current_row += 1
+write_cell(ws, current_row, 1, female_count)
+write_cell(ws, current_row, 2, female_count)
+write_cell(ws, current_row, 3, "<=== TOTAL FEMALE")
+current_row += 1
+
+grand_total = male_count + female_count
+while current_row in SKIP_ROWS:
+    current_row += 1
+write_cell(ws, current_row, 1, grand_total)
+write_cell(ws, current_row, 2, grand_total)
+write_cell(ws, current_row, 3, "<=== TOTAL COMBINED")
+grand_total_row = current_row
+
+# --- CLEANUP: DELETE ROWS AFTER GRAND TOTAL UNTIL FOOTER MARKER ---
+marker_text = "List and Code of Indicators under REMARKS column"
+marker_row = None
+
+# Search for the marker row starting after grand total
+for r in range(grand_total_row + 1, ws.max_row + 1):
+    for c in range(1, 20):  # search first 19 columns
+        val = ws.cell(r, c).value
+        if val and isinstance(val, str) and marker_text in val:
+            marker_row = r
+            break
+    if marker_row:
+        break
+
+# Fallback if marker not found (safe limit)
+if marker_row is None:
+    marker_row = grand_total_row + 100  # max 100 rows deleted as safety
+    print("[WARNING] Footer marker not found — deleting max 100 rows after grand total")
+
+# Delete all rows between grand total +1 and marker_row -1
+if marker_row > grand_total_row + 1:
+    delete_start = grand_total_row + 1
+    delete_count = marker_row - delete_start
+    ws.delete_rows(delete_start, amount=delete_count)
+    print(f"[INFO] Deleted {delete_count} unused rows after grand total")
+
+# Save
+wb.save(OUTPUT_PATH)
+print(f"[SUCCESS] Saved to {OUTPUT_PATH}")
+print(f"Male: {male_count}, Female: {female_count}, Total: {grand_total}")
