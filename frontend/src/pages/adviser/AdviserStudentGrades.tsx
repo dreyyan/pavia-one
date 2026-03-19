@@ -5,8 +5,9 @@ import Modal from "../../components/Modal";
 interface StudentGrade {
   id: number;
   lrn: string;
-  average?: number;
-  remarks?: string;
+  fullName: string;
+  average: number | null;
+  remarks: string | null;
 }
 
 const AdviserStudentGrades = () => {
@@ -28,45 +29,44 @@ const AdviserStudentGrades = () => {
     return await res.json();
   };
 
-  useEffect(() => {
+    useEffect(() => {
     const fetchGrades = async () => {
-      if (!sectionId) return;
+        if (!sectionId) return;
 
-      setLoading(true);
-      setError(null);
+        setLoading(true);
+        setError(null);
 
-      try {
+        try {
         const token = localStorage.getItem("token");
         const res = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/${sectionId}`,
-          {
+            `${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/section/${sectionId}`,
+            {
             headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
             },
-          }
+            }
         );
 
-        const data = await handleApiResponse(res);
-        if (!data) return;
-
+        const data = await res.json();
         if (!data.success || !data.data) {
-          setError(data.message || "Failed to fetch grades");
-          setGrades([]);
-          return;
+            setError(data.message || "Failed to fetch grades");
+            setGrades([]);
+            return;
         }
 
+        // Use the pre-aggregated backend data directly
         setGrades(data.data);
-      } catch (err: unknown) {
+        } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : String(err);
         setError(errorMessage || "Something went wrong");
-      } finally {
+        } finally {
         setLoading(false);
-      }
+        }
     };
 
     fetchGrades();
-  }, [sectionId]);
+    }, [sectionId]);
 
   if (loading) return <p>Loading grades...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
@@ -92,6 +92,7 @@ const AdviserStudentGrades = () => {
           <thead>
             <tr className="bg-[var(--color-bg-100)] border-b border-[var(--color-bg-200)]">
               <th className="py-2 px-4 text-left font-semibold text-sm">LRN</th>
+              <th className="py-2 px-4 text-left font-semibold text-sm">Full Name</th>
               <th className="py-2 px-4 text-left font-semibold text-sm">Average (Current)</th>
               <th className="py-2 px-4 text-left font-semibold text-sm">Remarks</th>
             </tr>
@@ -99,7 +100,7 @@ const AdviserStudentGrades = () => {
           <tbody>
             {grades.length === 0 ? (
               <tr>
-                <td colSpan={3} className="text-center py-4">
+                <td colSpan={4} className="text-center py-4">
                   No grades available.
                 </td>
               </tr>
@@ -110,6 +111,7 @@ const AdviserStudentGrades = () => {
                   className="border-t border-[var(--color-bg-200)] hover:bg-[var(--color-bg-100)]"
                 >
                   <td className="py-2 px-4 text-sm">{student.lrn}</td>
+                  <td className="py-2 px-4 text-sm">{student.fullName}</td>
                   <td className="py-2 px-4 text-sm">{student.average ?? "-"}</td>
                   <td className="py-2 px-4 text-sm">{student.remarks ?? "-"}</td>
                 </tr>
