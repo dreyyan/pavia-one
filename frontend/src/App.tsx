@@ -13,7 +13,8 @@ import AdviserClassManagement from "./pages/adviser/AdviserClassManagement";
 import AdviserMyClass from "./pages/adviser/AdviserMyClass";
 import AdviserClassStudents from "./pages/adviser/AdviserClassStudents";
 import AdviserStudentDetails from "./pages/adviser/AdviserStudentDetails";
-import AdviserSchoolRegistersForms from "./pages/adviser/AdviserSchoolRegistersForms";
+import AdviserClassSchoolForms from "./pages/adviser/AdviserClassSchoolForms";
+import AdviserSchoolForms from "./pages/adviser/AdviserSchoolForms";
 
 function App() {
   return (
@@ -35,8 +36,9 @@ function App() {
         <Route path="/adviser/classes/:id/students" element={<AdviserClassStudents />} />
         <Route path="/adviser/classes/:id/students/:studentId" element={<AdviserStudentDetails />} />
 
-        {/* School Registers & Forms */}
-        <Route path="/adviser/school-registers-forms" element={<AdviserSchoolRegistersForms />} />
+        {/* School Forms */}
+        <Route path="/adviser/school-forms" element={<AdviserSchoolForms />} />
+        <Route path="/adviser/school-forms/:sectionId" element={<AdviserClassSchoolForms />} />
 
         {/* Shared Endpoints */}
         <Route path="/about-us" element={<AboutUs />} />
