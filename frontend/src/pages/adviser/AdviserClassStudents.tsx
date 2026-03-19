@@ -243,26 +243,35 @@ const AdviserClassStudents = () => {
           <table className="min-w-full bg-white shadow-md table-auto border-collapse">
             <thead className="bg-[var(--color-primary-600)] text-white font-figtree">
               <tr>
-                <th className="py-2 px-4 text-left font-bold border-r border-[var(--color-primary-700)]">LRN</th>
-                <th className="py-2 px-4 text-left font-bold border-r border-[var(--color-primary-700)]">Full Name</th>
-                <th className="py-2 px-4 text-left hidden sm:table-cell border-r border-[var(--color-primary-700)]">Profile</th>
-                <th className="py-2 px-4 text-left hidden md:table-cell">Attendance</th>
+                <th className="py-2 px-4 text-left font-bold border-r border-[var(--color-primary-600)] w-28 truncate">
+                  LRN
+                </th>
+                <th className="py-2 px-4 text-left font-bold border-r border-[var(--color-primary-600)]">
+                  Full Name
+                </th>
+                <th className="py-2 px-4 text-left hidden sm:table-cell border-r border-[var(--color-primary-600)]">
+                  Profile
+                </th>
+                <th className="py-2 px-4 text-left hidden md:table-cell">
+                  Attendance
+                </th>
               </tr>
             </thead>
+
             <tbody className="font-roboto">
               {displayedStudents.map((student) => (
                 <tr
                   key={student.id}
-                  className="border-t border-[var(--color-bg-200)] hover:bg-[var(--color-bg-50)] cursor-pointer"
+                  className="border-t border-[var(--color-bg-100)] hover:bg-[var(--color-bg-50)] cursor-pointer transition-color duration-200 ease-in-out"
                   onClick={() => navigate(`/adviser/classes/${id}/students/${student.id}`)}
                 >
-                  <td className="py-2 px-4 text-[var(--color-text-900)] border-r border-[var(--color-primary-800)]">
+                  <td className="text-sm py-2 px-4 text-[var(--color-text-900)] border-r border-[var(--color-bg-300)] w-28 truncate">
                     {student.lrn}
                   </td>
-                  <td className="py-2 px-4 text-[var(--color-text-900)] font-bold border-r border-[var(--color-bg-200)] truncate max-w-[150px]">
+                  <td className="text-sm py-2 px-4 text-[var(--color-text-900)] font-bold border-r border-[var(--color-bg-300)] truncate max-w-[150px]">
                     {student.fullName}
                   </td>
-                  <td className="py-2 px-4 text-[var(--color-text-900)] hidden sm:table-cell border-r border-[var(--color-bg-200)]">
+                  <td className="py-2 px-4 text-[var(--color-text-900)] hidden sm:table-cell border-r border-[var(--color-bg-300)]">
                     <img
                       src={student.profilePic || "/default-profile.svg"}
                       alt={student.fullName}
