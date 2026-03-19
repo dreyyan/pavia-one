@@ -3,7 +3,7 @@ import { useState } from "react";
 interface MyClassCardProps {
     id: number;
     name: string;
-    schedule: { day: string; time: string }[];
+    schedule?: { day: string; time: string }[];
     classSize: number;
     maleCount: number;
     femaleCount: number;
