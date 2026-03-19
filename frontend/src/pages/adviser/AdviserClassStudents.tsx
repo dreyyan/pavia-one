@@ -237,7 +237,15 @@ const AdviserClassStudents = () => {
 
       {/* Students Table */}
       <div className="overflow-x-auto mt-4 rounded-lg">
-        {displayedStudents.length === 0 && <p>No students found.</p>}
+        {displayedStudents.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-6 space-y-2 text-center text-[var(--color-text-800)]">
+            <img src="/no-data-icon.svg" alt="No students" className="size-16" />
+            <p className="font-roboto font-semibold text-lg">No students found</p>
+            <p className="font-roboto text-sm text-[var(--color-text-700)]">
+              Try searching for a different LRN or student name.
+            </p>
+          </div>
+        )}
 
         {displayedStudents.length > 0 && (
           <table className="min-w-full bg-white shadow-md table-auto border-collapse">
