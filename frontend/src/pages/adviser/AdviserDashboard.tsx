@@ -2,14 +2,27 @@ import DashboardButton from "../../components/DashboardButton";
 import DashboardItem from "../../components/DashboardItem";
 import DashboardSkeleton from "../../components/DashboardSkeleton";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext"; // modal context
 
+interface Section {
+  id: number;
+  name: string;
+  gradeLevel: number;
+  classSize: number;
+  isAdvisory: boolean;
+}
+
+interface Profile {
+  name: string;
+  sections: Section[];
+  presentToday?: number;
+  pendingTasks?: number;
+}
+
 const AdviserDashboard = () => {
-  const navigate = useNavigate();
   const { setShowTokenExpiredModal } = useAuth();
 
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -120,7 +133,6 @@ const AdviserDashboard = () => {
           text="View Students"
           color="#0066CC"
           to={advisorySection ? `/adviser/classes/${advisorySection.id}/students` : "#"}
-          disabled={!advisorySection}
         />
         <DashboardButton iconSrc="/attendance-icon.svg" text="Attendance" color="#28A428" />
         <DashboardButton iconSrc="/grades-icon.svg" text="Grades" color="#CA8E02" />
