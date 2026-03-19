@@ -24,7 +24,9 @@ const ClassCard: React.FC<ClassCardProps> = ({
   const navigate = useNavigate();
 
   const handleClassCard = () => {
-    navigate(`/adviser/classes/${id}`);
+    const hasSfStatus = sf1_status || sf2_status || sf5_status;
+    const path = hasSfStatus ? `/adviser/school-forms/${id}` : `/adviser/classes/${id}`;
+    navigate(path);
   };
 
   const getStatusConfig = (status?: string) => {
