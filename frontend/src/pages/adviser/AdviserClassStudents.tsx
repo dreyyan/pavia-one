@@ -45,16 +45,16 @@ const AdviserClassStudents = () => {
   const [showSortFilters, setShowSortFilters] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
 
-  // Centralized API response handler
-  const handleApiResponse = async (res: Response) => {
-    if (res.status === 401) {
-      setShowTokenExpiredModal(true); // Show modal for expired token
-      return null;
-    }
-    return await res.json();
-  };
-
   useEffect(() => {
+    // Centralized API response handler
+    const handleApiResponse = async (res: Response) => {
+      if (res.status === 401) {
+        setShowTokenExpiredModal(true); // Show modal for expired token
+        return null;
+      }
+      return await res.json();
+    };
+
     const fetchData = async () => {
       setLoading(true);
       setError(null);
@@ -88,7 +88,7 @@ const AdviserClassStudents = () => {
         // Calculate male/female counts
         let maleCount = 0;
         let femaleCount = 0;
-        studentsData.forEach((s: any) => {
+        studentsData.forEach((s: Student) => {
           if (s.sex === "MALE") maleCount++;
           else if (s.sex === "FEMALE") femaleCount++;
         });
@@ -106,8 +106,9 @@ const AdviserClassStudents = () => {
             femaleCount,
           });
         }
-      } catch (err: any) {
-        setError(err.message || "Something went wrong");
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error("Something went wrong");
+        setError(error.message);
         setStudents([]);
         setSection(null);
       } finally {
@@ -165,8 +166,8 @@ const AdviserClassStudents = () => {
         key={section.id}
         name={section.name}
         classSize={section.classSize}
-        maleCount={section.maleCount}
-        femaleCount={section.femaleCount}
+        maleCount={section.maleCount ?? 0}
+        femaleCount={section.femaleCount ?? 0}
         color={section.color}
       />
       
