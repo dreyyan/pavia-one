@@ -369,7 +369,7 @@ const AdviserStudentDetails = () => {
       <div className="bg-[var(--color-bg-50)] shadow-lg rounded-lg p-6 flex flex-col md:flex-row gap-6 items-center">
         <img
           src={student.profilePic ?? "/default-profile.png"}
-          alt={student.fullName}
+          alt=""
           className="flex items-center text-center font-roboto text-md w-24 h-24 rounded-full object-cover bg-[var(--color-bg-400)]"
         />
         <div className="flex-1 space-y-2">
