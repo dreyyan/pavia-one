@@ -45,6 +45,27 @@ const AdviserClassStudents = () => {
   const [showSortFilters, setShowSortFilters] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
 
+  // [EFFECT] Preload images
+  useEffect(() => {
+    const assetsToPreload = [
+      "/class-size-icon.svg",
+      "/present-today-icon.svg",
+      "/pending-tasks-icon.svg",
+      "/view-students-icon.svg",
+      "/attendance-icon.svg",
+      "/grades-icon.svg",
+      "/reports-icon.svg",
+      "/filter-icon.svg",
+      "/no-data-icon.svg",
+      "/default-profile.svg",
+    ];
+
+    assetsToPreload.forEach((src) => {
+      const img = new Image();
+      img.src = src;
+    });
+  }, []);
+
   useEffect(() => {
     // Centralized API response handler
     const handleApiResponse = async (res: Response) => {
