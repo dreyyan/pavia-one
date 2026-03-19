@@ -6,15 +6,15 @@ import re
 # [SETUP] File Directories
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FORMS_DIR = os.path.join(BASE_DIR, "..", "forms")
-SF1_PATH = os.path.join(FORMS_DIR, "SF1.xlsx")
-OUTPUT_DIR = os.path.join(FORMS_DIR, "ocr_output")
+SF1_PATH = os.path.join(FORMS_DIR, "SF1_filled.xlsx")
+OUTPUT_DIR = os.path.join(FORMS_DIR, "output_data")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # -------------------------------------------------
 # STEP 1: Load Raw Data
 # -------------------------------------------------
 raw = pd.read_excel(SF1_PATH, header=None).fillna("")
-print("[SUCCESS] Loaded SF1.xlsx (raw mode)")
+print("[SUCCESS] Loaded SF1_filled.xlsx (raw mode)")
 
 # -------------------------------------------------
 # STEP 2A: Detect Header Rows
@@ -244,6 +244,6 @@ print(f"\n>> Parsed {len(students)} students")
 # STEP 8: Save Data to CSV
 # -------------------------------------------------
 out = pd.DataFrame(students)
-out_path = os.path.join(OUTPUT_DIR, "SF1_cleaned.csv")
+out_path = os.path.join(OUTPUT_DIR, "SF1_data.csv")
 out.to_csv(out_path, index=False, encoding="utf-8-sig")
 print(f"[SUCCESS] Saved cleaned data to {out_path}")
