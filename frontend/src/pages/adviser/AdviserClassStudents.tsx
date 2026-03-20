@@ -1,10 +1,10 @@
 // [IMPORT] Hooks
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
 import MyClassCard from "../../components/MyClassCard";
-import { useAuth } from "../../context/useAuth";
 
 // ?[INTERFACES]
 interface Student {
@@ -118,7 +118,6 @@ useEffect(() => {
         return;
       }
 
-      // Fetch section's students
       setStudents(studentsData);
 
       // Calculate male/female counts
