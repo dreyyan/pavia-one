@@ -16,8 +16,8 @@ import AdviserClassStudentDetails from "./pages/adviser/AdviserClassStudentDetai
 import AdviserClassSchoolForms from "./pages/adviser/AdviserClassSchoolForms";
 import AdviserSchoolForms from "./pages/adviser/AdviserSchoolForms";
 import AdviserClassGrades from "./pages/adviser/AdviserClassGrades";
-import AdviserClassStudentGradesOverview from "./AdviserClassStudentGradesOverview";
-import AdviserClassStudentGradesDetails from "./AdviserClassStudentGradesDetails";
+import AdviserClassStudentGradesOverview from "./pages/adviser/AdviserClassStudentGradesOverview";
+import AdviserClassStudentGradesDetails from "./pages/adviser/AdviserClassStudentGradesDetails";
 
 function App() {
   return (
