@@ -141,10 +141,10 @@ const AdviserProfile = () => {
 
         {currentPage === 2 && (
           <>
-            <h3 className="text-[var(--color-primary-700)]">
+            <h2 className="text-[var(--color-primary-700)]">
               Academic Information
-            </h3>
-            <p className="body-small text-[var(--color-text-600)]">
+            </h2>
+            <p className="label-caption text-[var(--color-text-600)]">
               Coming soon
             </p>
           </>
@@ -152,10 +152,10 @@ const AdviserProfile = () => {
 
         {currentPage === 3 && (
           <>
-            <h3 className="text-[var(--color-primary-700)]">
+            <h2 className="text-[var(--color-primary-700)]">
               Contact Information
-            </h3>
-            <p className="body-small text-[var(--color-text-600)]">
+            </h2>
+            <p className="label-caption text-[var(--color-text-600)]">
               Coming soon
             </p>
           </>
@@ -163,10 +163,10 @@ const AdviserProfile = () => {
 
         {currentPage === 4 && (
           <>
-            <h3 className="text-[var(--color-primary-700)]">
+            <h2 className="text-[var(--color-primary-700)]">
               Account Information
-            </h3>
-            <p className="body-small text-[var(--color-text-600)]">
+            </h2>
+            <p className="label-caption text-[var(--color-text-600)]">
               Coming soon
             </p>
           </>
@@ -214,7 +214,7 @@ const AdviserProfile = () => {
         </button>
       </div>
 
-      <p className="body-small text-[var(--color-text-600)] mt-2">
+      <p className="label-caption text-[var(--color-text-600)] mt-2">
         Page {currentPage} of {totalPages}
       </p>
     </div>
