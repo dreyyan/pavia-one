@@ -18,6 +18,7 @@ import AdviserSchoolForms from "./pages/adviser/AdviserSchoolForms";
 import AdviserClassGrades from "./pages/adviser/AdviserClassGrades";
 import AdviserClassStudentGradesOverview from "./pages/adviser/AdviserClassStudentGradesOverview";
 import AdviserClassStudentGradesDetails from "./pages/adviser/AdviserClassStudentGradesDetails";
+import AdviserProfile from "./pages/adviser/AdviserProfile";
 
 function App() {
   return (
@@ -48,6 +49,9 @@ function App() {
         {/* School Forms */}
         <Route path="/adviser/school-forms" element={<AdviserSchoolForms />} />
         <Route path="/adviser/school-forms/:sectionId" element={<AdviserClassSchoolForms />} />
+
+        {/* Profile */}
+        <Route path="/adviser/profile" element={<AdviserProfile />} />
 
         {/* Shared Endpoints */}
         <Route path="/about-us" element={<AboutUs />} />
