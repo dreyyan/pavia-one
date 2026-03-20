@@ -87,7 +87,7 @@ const InputField = ({
             value={value}
             onChange={onChange}
             disabled={disabled}
-            className={baseClasses + " appearance-none font-roboto"}
+            className={`${baseClasses} appearance-none font-roboto`}
           >
             <option value="" disabled>{placeholder || "Select an option"}</option>
             {options.map((opt) => (
@@ -128,7 +128,7 @@ const InputField = ({
             placeholder={placeholder}
             disabled={disabled}
             style={numberInputStyle}
-            className={baseClasses}
+            className={`${baseClasses} ${type === "number" ? "[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" : ""}`}
             {...(type === "number" && max !== undefined ? { max } : {})}
           />
         )}
