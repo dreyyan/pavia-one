@@ -1,8 +1,25 @@
+// [IMPORT] Hooks
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import Modal from "../../components/Modal";
 import { createPortal } from "react-dom";
+import { useAuth } from "../../context/useAuth";
 
+// [IMPORT] Components
+import Modal from "../../components/Modal";
+
+// ?[INTERFACES] SF9 Grade from API
+interface ApiSF9Grade {
+  id: number;
+  learningArea?: { name: string } | null;
+  q1: number | null;
+  q2: number | null;
+  q3: number | null;
+  q4: number | null;
+  finalRating: number | null;
+  remarks: string | null;
+}
+
+// ?[INTERFACES] Flattened Grade for frontend
 interface StudentGradeDetail {
   id: number;
   subject: string;
@@ -14,98 +31,105 @@ interface StudentGradeDetail {
   remarks: string | null;
 }
 
+// [DATA] Subject abbreviations
 const SUBJECT_ABBREVIATIONS: Record<string, string> = {
-  "Filipino": "FIL",
-  "English": "ENG",
-  "Mathematics": "MATH",
-  "Science": "SCI",
+  Filipino: "FIL",
+  English: "ENG",
+  Mathematics: "MATH",
+  Science: "SCI",
   "Araling Panlipunan": "AP",
   "Edukasyon sa Pagpapakatao": "ESP",
-  "MAPEH": "MAPEH",
+  MAPEH: "MAPEH",
   "Edukasyong Pantahanan at Pangkabuhayan": "EPP/TLE",
 };
 
 const AdviserClassStudentGradesOverview = () => {
   const { sectionId, studentId } = useParams<{ sectionId: string; studentId: string }>();
   const navigate = useNavigate();
+  const finalRatingRefs = useRef<Record<number, HTMLTableCellElement>>({});
+  const { setShowTokenExpiredModal } = useAuth();
 
+  // [STATES]
   const [grades, setGrades] = useState<StudentGradeDetail[]>([]);
   const [profileName, setProfileName] = useState<string>("Unknown Name");
   const [advisorySection, setAdvisorySection] = useState<{ gradeLevel: string; name: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [modalTitle, setModalTitle] = useState("");
-  const [modalMessage, setModalMessage] = useState("");
   const [hoveredGradeId, setHoveredGradeId] = useState<number | null>(null);
   const [bubblePos, setBubblePos] = useState<{ top: number; left: number } | null>(null);
-  const finalRatingRefs = useRef<Record<number, HTMLTableCellElement>>({});
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalMessage, setModalMessage] = useState("");
 
-  const handleApiResponse = async (res: Response) => {
-    if (res.status === 401) {
-      setModalTitle("Unauthorized");
-      setModalMessage("Your session has expired. Please login again.");
-      setShowModal(true);
-      return null;
-    }
-    return await res.json();
-  };
-
+  // *[EFFECT] Fetch student profile and SF9 grades
   useEffect(() => {
     const fetchStudentAndGrades = async () => {
       if (!sectionId || !studentId) return;
+
       setLoading(true);
       setError(null);
 
       try {
         const token = localStorage.getItem("token");
 
-        // Fetch student info
-        const studentRes = await fetch(
+        // [FETCH] Student profile
+        const resStudent = await fetch(
           `${import.meta.env.VITE_API_BASE_URL}/api/adviser/sections/${sectionId}/students/${studentId}`,
           { headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } }
         );
-        const studentData = await handleApiResponse(studentRes);
+
+        // ![ERROR] Expired token
+        if (resStudent.status === 401) {
+          setShowTokenExpiredModal(true);
+          setLoading(false);
+          return;
+        }
+
+        const studentData: {
+          success: boolean;
+          data: {
+            fullName?: string;
+            gradeLevel?: string | number;
+            sectionName?: string;
+            sf9Grades?: ApiSF9Grade[];
+          };
+        } = await resStudent.json();
 
         if (studentData?.success) {
           setProfileName(studentData.data.fullName ?? "Unknown Name");
           setAdvisorySection({
-            gradeLevel: String(studentData.data.gradeLevel),
-            name: studentData.data.sectionName,
+            gradeLevel: String(studentData.data.gradeLevel ?? ""),
+            name: studentData.data.sectionName ?? "Unknown Section",
           });
         } else {
           setProfileName("Unknown Name");
           setAdvisorySection(null);
         }
 
-        // Fetch SF9 grades
-        const gradesRes = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/sf9/${studentId}`,
-          { headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } }
-        );
-        const gradesData = await handleApiResponse(gradesRes);
-
-        if (!gradesData?.success || !gradesData.data) {
-          setError(gradesData?.message || "Failed to fetch grades");
-          setGrades([]);
-          return;
-        }
+        const gradesArray: ApiSF9Grade[] = Array.isArray(studentData?.data?.sf9Grades)
+          ? studentData.data.sf9Grades
+          : [];
 
         setGrades(
-          gradesData.data.map((g: any) => ({
+          gradesArray.map((g) => ({
             id: g.id,
-            subject: SUBJECT_ABBREVIATIONS[g.learningArea?.name] ?? g.learningArea?.name ?? "Unknown",
-            q1: g.q1,
-            q2: g.q2,
-            q3: g.q3,
-            q4: g.q4,
-            finalRating: g.finalRating,
-            remarks: g.remarks,
+            // Use abbreviation if available, fallback to name, then "Unknown"
+            subject: g.learningArea?.name
+              ? SUBJECT_ABBREVIATIONS[g.learningArea.name] ?? g.learningArea.name
+              : "Unknown",
+            q1: g.q1 ?? null,
+            q2: g.q2 ?? null,
+            q3: g.q3 ?? null,
+            q4: g.q4 ?? null,
+            finalRating: g.finalRating ?? null,
+            remarks: g.remarks ?? null,
           }))
         );
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : String(err);
-        setError(errorMessage || "Something went wrong while fetching data");
+        setModalTitle("Error");
+        setModalMessage(errorMessage || "Something went wrong while fetching grades.");
+        setShowModal(true);
         setGrades([]);
       } finally {
         setLoading(false);
@@ -113,22 +137,38 @@ const AdviserClassStudentGradesOverview = () => {
     };
 
     fetchStudentAndGrades();
-  }, [sectionId, studentId]);
+  }, [sectionId, studentId, setShowTokenExpiredModal]);
 
+  // [LOADING STATE] Wait for data fetch
   if (loading) return <p>Loading student grades...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
-  if (!grades || grades.length === 0)
+  if (!grades.length)
     return <p className="text-center text-[var(--color-text-700)] py-4">No grades available for this student.</p>;
 
+  // Breadcrumbs navigation
   const breadcrumbs = [
     { label: "Class Management", path: "/adviser/classes" },
-    { label: advisorySection ? `${advisorySection.gradeLevel} — ${advisorySection.name}` : "Unknown Section", path: `/adviser/classes/${sectionId}` },
+    {
+      label: advisorySection ? `${advisorySection.gradeLevel} — ${advisorySection.name}` : "Unknown Section",
+      path: `/adviser/classes/${sectionId}`,
+    },
     { label: "Grades", path: `/adviser/classes/grades/${sectionId}` },
     { label: profileName, path: null },
   ];
 
   return (
     <div className="py-10 px-4 space-y-4 max-w-4xl mx-auto">
+      {/* [COMPONENT] Modal */}
+      {showModal && (
+        <Modal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+          onConfirm={() => setShowModal(false)}
+          title={modalTitle}
+          message={modalMessage}
+        />
+      )}
+      {/* [SECTION] Breadcrumbs Navigation */}
       <nav className="font-roboto text-sm text-[var(--color-text-700)] px-2 pb-2">
         {breadcrumbs.map((crumb, index) => (
           <span key={index}>
@@ -142,17 +182,8 @@ const AdviserClassStudentGradesOverview = () => {
         ))}
       </nav>
 
-      {showModal && (
-        <Modal
-          isOpen={showModal}
-          onClose={() => setShowModal(false)}
-          onConfirm={() => setShowModal(false)}
-          title={modalTitle}
-          message={modalMessage}
-        />
-      )}
-
-      <div className="flex items-center bg-[var(--color-primary-600)] border-3 border-[var(--color-primary-700)]/60 rounded-xl px-5 py-6 gap-x-4 shadow-md">
+      {/* [SECTION] Student Profile */}
+      <div className="flex items-center bg-[var(--color-primary-600)] border-2 border-[var(--color-primary-700)]/60 rounded-xl px-5 py-6 gap-x-4 shadow-md">
         <div className="bg-[var(--color-bg-200)] w-18 h-18 rounded-full flex-shrink-0"></div>
         <div className="flex-1">
           <p className="font-roboto font-extrabold text-xl mb-2 text-[var(--color-text-50)]">{profileName}</p>
@@ -167,6 +198,7 @@ const AdviserClassStudentGradesOverview = () => {
         </div>
       </div>
 
+      {/* [SECTION] Grades Table */}
       <div className="overflow-x-auto bg-[var(--color-bg-50)] shadow-md rounded-lg">
         <table className="min-w-full bg-white shadow-md table-auto border-collapse">
           <thead className="bg-[var(--color-primary-600)] text-white font-figtree">
@@ -197,26 +229,22 @@ const AdviserClassStudentGradesOverview = () => {
                   </span>
                 </td>
 
+                {/* Quarterly Grades */}
                 <td className="py-2 px-4 text-sm border-r border-[var(--color-bg-300)] hidden sm:table-cell">{grade.q1 ?? "—"}</td>
                 <td className="py-2 px-4 text-sm border-r border-[var(--color-bg-300)] hidden sm:table-cell">{grade.q2 ?? "—"}</td>
                 <td className="py-2 px-4 text-sm border-r border-[var(--color-bg-300)] hidden sm:table-cell">{grade.q3 ?? "—"}</td>
                 <td className="py-2 px-4 text-sm border-r border-[var(--color-bg-300)] hidden sm:table-cell">{grade.q4 ?? "—"}</td>
 
-                {/* Final Rating with bubble */}
+                {/* Final Rating + Tooltip */}
                 <td
                   className="py-2 px-4 text-sm border-r border-[var(--color-bg-300)] relative cursor-default"
-                  ref={(el) => { if (el) finalRatingRefs.current[grade.id] = el }}
+                  ref={(el) => { if (el) finalRatingRefs.current[grade.id] = el; }}
                   onMouseEnter={() => {
                     setHoveredGradeId(grade.id);
                     const rect = finalRatingRefs.current[grade.id]?.getBoundingClientRect();
-                    if (rect) {
-                      setBubblePos({ top: rect.top - 8, left: rect.left + rect.width / 2 });
-                    }
+                    if (rect) setBubblePos({ top: rect.top - 8, left: rect.left + rect.width / 2 });
                   }}
-                  onMouseLeave={() => {
-                    setHoveredGradeId(null);
-                    setBubblePos(null);
-                  }}
+                  onMouseLeave={() => { setHoveredGradeId(null); setBubblePos(null); }}
                 >
                   {grade.finalRating ?? "—"}
 
@@ -224,14 +252,14 @@ const AdviserClassStudentGradesOverview = () => {
                     createPortal(
                       <div
                         className="fixed z-50 bg-white border border-gray-200 rounded-xl shadow-lg px-4 py-3 text-xs whitespace-nowrap"
-                        style={{
-                          top: bubblePos.top,
-                          left: bubblePos.left,
-                          transform: "translateX(-50%)",
-                          pointerEvents: "none",
-                        }}
+                        style={{ top: bubblePos.top, left: bubblePos.left, transform: "translateX(-50%)", pointerEvents: "none" }}
                       >
-                        {[["Q1", grade.q1], ["Q2", grade.q2], ["Q3", grade.q3], ["Q4", grade.q4]].map(([label, val]) => (
+                        {[
+                          ["Q1", grade.q1],
+                          ["Q2", grade.q2],
+                          ["Q3", grade.q3],
+                          ["Q4", grade.q4]
+                        ].map(([label, val]) => (
                           <div key={label} className="flex justify-between gap-4 py-0.5">
                             <span className="text-gray-500 font-medium">{label}</span>
                             <span className="font-medium text-gray-800">{val ?? "—"}</span>
@@ -241,7 +269,6 @@ const AdviserClassStudentGradesOverview = () => {
                       document.body
                     )}
                 </td>
-
                 <td className="py-2 px-4 text-sm">{grade.remarks ?? "—"}</td>
               </tr>
             ))}
