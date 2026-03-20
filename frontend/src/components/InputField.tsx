@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 
 interface InputFieldProps {
   label?: string;
@@ -12,7 +12,7 @@ interface InputFieldProps {
   iconAlt?: string;
   showClear?: boolean;
   disabled?: boolean;
-  options?: string[]; // for dropdown/select
+  options?: string[];
   max?: number; // maximum value for number input
 }
 
@@ -31,23 +31,24 @@ const InputField = ({
   options = [],
   max,
 }: InputFieldProps) => {
+  // [STATES]
   const [showPassword, setShowPassword] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
-  // Handle input clear
+  // [HANDLE] Clear input field
   const handleClear = () => {
     if (disabled) return;
     const event = { target: { value: "" } } as unknown as React.ChangeEvent<HTMLInputElement>;
     onChange(event);
   };
 
-  // Toggle password visibility
+  // [HANDLE] Toggle password visibility
   const togglePasswordVisibility = () => {
     if (disabled) return;
     setShowPassword((prev) => !prev);
   };
 
-  // Password icon
+  // Determine password icon path
   let passwordIcon = "";
   if (showPassword) {
     passwordIcon = isHovered ? "/visibility-off-hovered-icon.svg" : "/visibility-off-icon.svg";
@@ -56,32 +57,34 @@ const InputField = ({
   }
 
   // Remove number input arrows
-  const numberInputStyle =
-    type === "number"
-      ? { MozAppearance: "textfield", WebkitAppearance: "none" }
-      : undefined;
+  const numberInputStyle: CSSProperties = {
+    MozAppearance: "textfield",
+    WebkitAppearance: "none",
+  };
 
-  const baseClasses = `w-full rounded-lg border-2 py-2 focus:outline-none focus:ring-0 font-roboto ${
+  // Base class for all input fields
+  const baseClasses = `w-full rounded-lg border-1 py-2 focus:outline-none focus:ring-0 font-roboto ${
     iconSrc ? "pl-10" : "px-3"
   } ${
     disabled
-      ? "bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed"
-      : "bg-[var(--color-bg-50)] border-[var(--color-bg-800)] text-[var(--color-text-900)]"
+      ? "bg-[var(--color-bg-50)] border-[var(--color-text-50)] text-[var(--color-text-700)] cursor-not-allowed"
+      : "bg-[var(--color-bg-50)] border-[var(--color-text-600)] text-[var(--color-text-950)]"
   }`;
 
   return (
     <div className="flex flex-col gap-1">
+      {/* [UI] Label */}
       {label && <label className="input-field-label text-[var(--color-text-900)]">{label}</label>}
 
       <div className="relative">
-        {/* Left icon */}
+        {/* [UI] Left Icon */}
         {iconSrc && (
           <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
             <img src={`/${iconSrc}`} alt={iconAlt} loading="eager" className="w-5 h-5 object-contain" />
           </div>
         )}
 
-        {/* Input or Select */}
+        {/* [UI] Dropdown or Input */}
         {type === "select" ? (
           <select
             value={value}
@@ -122,7 +125,7 @@ const InputField = ({
                 return;
               }
 
-              // For other input types, just forward the event
+              // For other input types, forward the event
               onChange(e);
             }}
             placeholder={placeholder}
@@ -133,7 +136,7 @@ const InputField = ({
           />
         )}
 
-        {/* Right button: password toggle OR clear */}
+        {/* [RIGHT BUTTON] password toggle or clear */}
         {type === "password" && value ? (
           <button
             type="button"
