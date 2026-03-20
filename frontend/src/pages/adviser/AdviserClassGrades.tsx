@@ -1,8 +1,13 @@
+// [IMPORT] Hooks
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom"; 
+import { useAuth } from "../../context/useAuth";
+
+// [IMPORT] Components
 import Modal from "../../components/Modal";
 import MyClassCard from "../../components/MyClassCard";
 
+// ?[INTERFACES]
 interface StudentGrade {
   id: number;
   lrn: string;
@@ -18,13 +23,15 @@ interface SectionInfo {
   classSize: number;
   maleCount: number;
   femaleCount: number;
-  color?: string;
+  color: string;
 }
 
 const AdviserClassGrades = () => {
   const { sectionId } = useParams<{ sectionId: string }>();
   const navigate = useNavigate();
+  const { setShowTokenExpiredModal } = useAuth();
 
+  // [STATES]
   const [grades, setGrades] = useState<StudentGrade[]>([]);
   const [section, setSection] = useState<SectionInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -33,6 +40,7 @@ const AdviserClassGrades = () => {
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
 
+  // *[HELPER] Handle API response with modal for errors
   const handleApiResponse = async (res: Response) => {
     if (res.status === 401) {
       setModalTitle("Unauthorized");
@@ -43,6 +51,7 @@ const AdviserClassGrades = () => {
     return await res.json();
   };
 
+  // *[EFFECT] Fetch section's students' grades
   useEffect(() => {
     const fetchGrades = async () => {
       if (!sectionId) return;
@@ -52,27 +61,41 @@ const AdviserClassGrades = () => {
 
       try {
         const token = localStorage.getItem("token");
-
-        // 1️⃣ Fetch section info (gradeLevel, name, class size, male/female counts)
-        const sectionRes = await fetch(
+        const resSection = await fetch(
           `${import.meta.env.VITE_API_BASE_URL}/api/adviser/sections/${sectionId}`,
-          { headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } }
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
-        const sectionData = await handleApiResponse(sectionRes);
-        if (sectionData?.success && sectionData.data) {
-          setSection({
-            id: sectionData.data.id,
-            gradeLevel: String(sectionData.data.gradeLevel),
-            name: sectionData.data.name,
-            classSize: sectionData.data.classSize ?? 0,
-            maleCount: sectionData.data.maleCount ?? 0,
-            femaleCount: sectionData.data.femaleCount ?? 0,
-            color: sectionData.data.color ?? "#4F46E5", // default
-          });
+
+        const sectionData = await handleApiResponse(resSection);
+
+        // ![ERROR] Backend failure or missing data
+        if (!sectionData?.success || !sectionData.data) {
+          setModalTitle("Failed to fetch section");
+          setModalMessage(sectionData?.message || "Unable to load section details.");
+          setShowModal(true);
+          setSection(null);
+          setGrades([]);
+          return;
         }
 
-        // 2️⃣ Fetch grades for this section
-        const gradesRes = await fetch(
+        const sec = sectionData.data;
+
+        setSection({
+          id: sec.id,
+          gradeLevel: String(sec.gradeLevel),
+          name: sec.name,
+          classSize: sec.classSize ?? 0,
+          maleCount: sec.maleCount ?? 0,
+          femaleCount: sec.femaleCount ?? 0,
+          color: sec.color ?? "#4F46E5",
+        });
+        
+        const resGrades = await fetch(
           `${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/section/${sectionId}`,
           {
             headers: {
@@ -81,10 +104,14 @@ const AdviserClassGrades = () => {
             },
           }
         );
-        const gradesData = await handleApiResponse(gradesRes);
 
+        const gradesData = await handleApiResponse(resGrades);
+
+        // ![ERROR] Backend failure or missing data
         if (!gradesData?.success || !gradesData.data) {
-          setError(gradesData?.message || "Failed to fetch grades");
+          setModalTitle("Failed to fetch grades");
+          setModalMessage(gradesData?.message || "Unable to load students' grades.");
+          setShowModal(true);
           setGrades([]);
           return;
         }
@@ -92,19 +119,23 @@ const AdviserClassGrades = () => {
         setGrades(gradesData.data);
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : String(err);
-        setError(errorMessage || "Something went wrong");
+        setModalTitle("Error");
+        setModalMessage(errorMessage || "Something went wrong while fetching grades.");
+        setShowModal(true);
+        setGrades([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchGrades();
-  }, [sectionId]);
+    if (sectionId) fetchGrades();
+  }, [sectionId, setShowTokenExpiredModal]);
 
+  // [LOADING STATE] Wait for data fetch
   if (loading) return <p>Loading grades...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
 
-  // Breadcrumbs
+  // Breadcrumbs navigation
   const breadcrumbs = [
     { label: "Class Management", path: "/adviser/classes" },
     { label: section ? `${section.gradeLevel} — ${section.name}` : "Unknown Section", path: `/adviser/classes/${sectionId}` },
@@ -113,7 +144,18 @@ const AdviserClassGrades = () => {
 
   return (
     <div className="py-10 px-4 space-y-4">
-      {/* Breadcrumb Navigation */}
+      {/* [COMPONENT] Modal */}
+      {showModal && (
+        <Modal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+          title={modalTitle}
+          message={modalMessage}
+          onConfirm={() => setShowModal(false)}
+        />
+      )}
+
+      {/* [SECTION] Breadcrumbs Navigation */}
       <nav className="font-roboto text-sm text-[var(--color-text-700)] px-2 pb-2">
         {breadcrumbs.map((crumb, index) => (
           <span key={index}>
@@ -132,16 +174,7 @@ const AdviserClassGrades = () => {
         ))}
       </nav>
 
-      {showModal && (
-        <Modal
-          isOpen={showModal}
-          onClose={() => setShowModal(false)}
-          title={modalTitle}
-          message={modalMessage}
-          onConfirm={() => setShowModal(false)}
-        />
-      )}
-
+      {/* [COMPONENT] My Class */}
       {section && (
         <MyClassCard
           id={section.id}
@@ -154,6 +187,7 @@ const AdviserClassGrades = () => {
         />
       )}
 
+      {/* [SECTION] Grades Table */}
       <div className="overflow-x-auto bg-[var(--color-bg-50)] shadow-md rounded-lg">
         {grades.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-6 space-y-2 text-center text-[var(--color-text-800)]">
