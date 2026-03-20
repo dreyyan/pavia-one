@@ -8,7 +8,7 @@ const { successResponse, errorResponse } = require('../../utils/response');
 const { getFullName } = require('../../utils/helpers');
 const verifyAdmin = require('../../middleware/authMiddleware').verifyAdmin;
 
-// ?[GET] List all sections
+// ?[GET] Get all Sections
 // /api/admin/sections
 router.get('/', verifyAdmin, async (req, res) => {
 	try {
@@ -102,7 +102,7 @@ router.get('/', verifyAdmin, async (req, res) => {
 	}
 });
 
-// ?[GET] Get a single section by ID (admin-only)
+// ?[GET] Get Section
 // /api/admin/sections/:id
 router.get('/:id', verifyAdmin, async (req, res) => {
   const { id } = req.params;
@@ -145,7 +145,7 @@ router.get('/:id', verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[POST] Add section(s]
+// ?[POST] Add section(s)
 // /api/admin/sections
 router.post('/', verifyAdmin, async (req, res) => {
   try {
@@ -374,7 +374,7 @@ router.delete('/all', verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[DELETE] Delete multiple sections via body JSON
+// ?[DELETE] Delete Sections
 // /api/admin/sections
 router.delete('/', verifyAdmin, async (req, res) => {
   const ids = Array.isArray(req.body.ids) ? req.body.ids.map(i => parseInt(i)) : [];
@@ -420,7 +420,7 @@ router.delete('/', verifyAdmin, async (req, res) => {
   );
 });
 
-// ?[DELETE] Delete a single section
+// ?[DELETE] Delete a Section
 // /api/admin/sections/:id
 router.delete('/:id', verifyAdmin, async (req, res) => {
   const id = parseInt(req.params.id, 10);
