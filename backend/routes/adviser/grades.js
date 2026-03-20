@@ -8,15 +8,12 @@ const { successResponse, errorResponse } = require('../../utils/response');
 const { updateGeneralAverage } = require('../../utils/helpers');
 const verifyAdviser = require('../../middleware/authMiddleware').verifyAdviser;
 
-// -----------------------------
-// Constants
-// -----------------------------
+//  [CONSTANTS]
 const ALLOWED_ITEM_TYPES = ['WRITTEN_WORK', 'PERFORMANCE_TASK', 'QUARTERLY_ASSESSMENT'];
 const ALLOWED_QUARTERS = ['q1', 'q2', 'q3', 'q4'];
 
-// -----------------------------
-// [GET] Retrieve all SF9 grades for a student
-// -----------------------------
+// ?[GET] Get Student Grades
+// /api/adviser/grades/sf9/:studentId
 router.get('/sf9/:studentId', verifyAdviser, async (req, res) => {
   try {
     const { studentId } = req.params;
@@ -37,7 +34,7 @@ router.get('/sf9/:studentId', verifyAdviser, async (req, res) => {
     if (!grades.length)
       return res.status(404).json(errorResponse('No SF9 grades found'));
 
-    // 🔥 Get official general average from SF9Summary
+    // Get official general average from SF9Summary
     const summary = await prisma.sF9Summary.findUnique({
       where: {
         studentId_schoolYear: {
@@ -57,9 +54,14 @@ router.get('/sf9/:studentId', verifyAdviser, async (req, res) => {
   }
 });
 
-// -----------------------------
-// [GET] Section grades summary
-// -----------------------------
+// ?[GET] Section Grades Summary
+// /api/adviser/grades/section/:sectionId
+// TODO: Fix Error
+// {
+//     "success": false,
+//     "message": "[ERROR] Failed to fetch section grades.",
+//     "data": "\nInvalid `prisma.student.findMany()` invocation in\nC:\\Users\\dreyyan\\Downloads\\code\\Projects\\pavia-one\\backend\\routes\\adviser\\grades.js:63:43\n\n  60 try {\n  61   const { sectionId } = req.params;\n  62 \n→ 63   const students = await prisma.student.findMany({\n         where: {\n           enrollments: {\n             some: {\n               sectionId: 1\n             }\n           }\n         },\n         include: {\n           sfSummaries: true,\n           ~~~~~~~~~~~\n       ?   adviser?: true,\n       ?   address?: true,\n       ?   guardian?: true,\n       ?   enrollments?: true,\n       ?   monthlySummaries?: true,\n       ?   dailyAttendances?: true,\n       ?   sf9Grades?: true,\n       ?   sf9Summaries?: true,\n       ?   sf5Reports?: true,\n       ?   sf9CoreValues?: true\n         },\n         orderBy: {\n           lastName: \"asc\"\n         }\n       })\n\nUnknown field `sfSummaries` for include statement on model `Student`. Available options are marked with ?."
+// }
 router.get('/section/:sectionId', verifyAdviser, async (req, res) => {
   try {
     const { sectionId } = req.params;
@@ -97,10 +99,8 @@ router.get('/section/:sectionId', verifyAdviser, async (req, res) => {
   }
 });
 
-// -----------------------------
-// [POST] Create SF9 grades
-// (manual quarter grades NOT allowed)
-// -----------------------------
+// ?[POST] Add SF9 Grade(s)
+// /api/adviser/grades/sf9
 router.post('/sf9', verifyAdviser, async (req, res) => {
   try {
     let { grades } = req.body;
@@ -138,9 +138,9 @@ router.post('/sf9', verifyAdviser, async (req, res) => {
   }
 });
 
-// -----------------------------
-// [GET] Get quarter lock status for SF9
-// -----------------------------
+
+// ?[GET] Get quarter lock status for SF9
+// /api/adviser/grades/sf9/:gradeId/quarter-status
 router.get('/sf9/:gradeId/quarter-status', verifyAdviser, async (req, res) => {
   try {
     const { gradeId } = req.params;
@@ -163,9 +163,8 @@ router.get('/sf9/:gradeId/quarter-status', verifyAdviser, async (req, res) => {
   }
 });
 
-// -----------------------------
-// [PATCH] Finalize / Unfinalize Quarter
-// -----------------------------
+// ?[PATCH] Finalize / Unfinalize Quarter
+// /api/adviser/grades/sf9/:gradeId/quarter-ready
 router.patch('/sf9/:gradeId/quarter-ready', verifyAdviser, async (req, res) => {
   try {
     const { gradeId } = req.params;
@@ -262,9 +261,32 @@ router.patch('/sf9/:gradeId/quarter-ready', verifyAdviser, async (req, res) => {
   }
 });
 
-// -----------------------------
-// [GET] Quarter lock status
-// -----------------------------
+// ?[GET] Get quarter lock status for SF9
+// /api/adviser/grades/sf9/:gradeId/quarter-status
+router.get('/sf9/:gradeId/quarter-status', verifyAdviser, async (req, res) => {
+  try {
+    const { gradeId } = req.params;
+
+    const grade = await prisma.sF9Grade.findUnique({
+      where: { id: Number(gradeId) },
+      select: { q1Ready: true, q2Ready: true, q3Ready: true, q4Ready: true }
+    });
+
+    if (!grade) return res.status(404).json(errorResponse('Grade not found'));
+
+    res.json(successResponse('Quarter status fetched', {
+      1: grade.q1Ready,
+      2: grade.q2Ready,
+      3: grade.q3Ready,
+      4: grade.q4Ready
+    }));
+  } catch (err) {
+    res.status(500).json(errorResponse('Failed to fetch quarter status', err.message));
+  }
+});
+
+// ?[GET] Get quarter lock status for student
+// /api/adviser/grades/sf9/:studentId/quarter-status
 router.get('/sf9/:studentId/quarter-status', verifyAdviser, async (req, res) => {
   try {
     const { studentId } = req.params;
@@ -272,7 +294,6 @@ router.get('/sf9/:studentId/quarter-status', verifyAdviser, async (req, res) => 
     const grades = await prisma.sF9Grade.findMany({
       where: { studentId: Number(studentId) },
       select: {
-        id: true,
         q1Ready: true,
         q2Ready: true,
         q3Ready: true,
@@ -280,31 +301,29 @@ router.get('/sf9/:studentId/quarter-status', verifyAdviser, async (req, res) => 
       }
     });
 
-    if (!grades.length) return res.json(successResponse({}));
+    if (!grades.length)
+      return res.json(successResponse('No grades', {}));
 
-    // Return as {1: true, 2: false, 3: false, 4: true} (for the first grade)
-    const g = grades[0];
-    res.json(successResponse({
-      1: g.q1Ready,
-      2: g.q2Ready,
-      3: g.q3Ready,
-      4: g.q4Ready
-    }));
+    const result = {
+      1: grades.every(g => g.q1Ready),
+      2: grades.every(g => g.q2Ready),
+      3: grades.every(g => g.q3Ready),
+      4: grades.every(g => g.q4Ready)
+    };
+
+    res.json(successResponse('Student quarter status fetched', result));
+
   } catch (err) {
     res.status(500).json(errorResponse('Failed to fetch quarter status', err.message));
   }
 });
 
-// -----------------------------
-// [POST] Create grade items
-// -----------------------------
+// ?[POST] Add Grade Item(s)
+// /api/adviser/grades/sf9/item
 router.post('/sf9/item', verifyAdviser, async (req, res) => {
   try {
     let itemsToCreate = Array.isArray(req.body) ? req.body : [req.body];
 
-    // -----------------------------
-    // Validate fields
-    // -----------------------------
     for (const item of itemsToCreate) {
       const { sf9GradeId, quarter, type, score, maxScore } = item;
 
@@ -327,9 +346,6 @@ router.post('/sf9/item', verifyAdviser, async (req, res) => {
       where: { id: { in: gradeIds } }
     });
 
-    // -----------------------------
-    // Validate grade existence + finalized check
-    // -----------------------------
     for (const item of itemsToCreate) {
       const grade = grades.find(g => g.id === item.sf9GradeId);
       if (!grade) return res.status(400).json(errorResponse('Grade not found'));
@@ -342,10 +358,6 @@ router.post('/sf9/item', verifyAdviser, async (req, res) => {
         );
     }
 
-    // -----------------------------
-    // 🔥 CRITICAL FIX:
-    // Only ONE Quarterly Assessment per quarter
-    // -----------------------------
     for (const item of itemsToCreate) {
       if (item.type === 'QUARTERLY_ASSESSMENT') {
 
@@ -365,10 +377,7 @@ router.post('/sf9/item', verifyAdviser, async (req, res) => {
           );
       }
     }
-
-    // -----------------------------
-    // Create items
-    // -----------------------------
+    
     const created = await prisma.$transaction(
       itemsToCreate.map(item =>
         prisma.sF9GradeItem.create({
@@ -390,9 +399,8 @@ router.post('/sf9/item', verifyAdviser, async (req, res) => {
   }
 });
 
-// -----------------------------
-// [PUT] Update grade item
-// -----------------------------
+// ?[PUT] Update grade item
+// /api/adviser/grades/sf9/item/:itemId
 router.put('/sf9/item/:itemId', verifyAdviser, async (req, res) => {
   try {
     const { itemId } = req.params;
@@ -432,9 +440,8 @@ router.put('/sf9/item/:itemId', verifyAdviser, async (req, res) => {
   }
 });
 
-// -----------------------------
-// [DELETE] Grade items
-// -----------------------------
+// ?[DELETE] Grade items
+// /api/adviser/grades/sf9/item
 router.delete('/sf9/item', verifyAdviser, async (req, res) => {
   try {
     let { itemIds } = req.body;
@@ -462,9 +469,8 @@ router.delete('/sf9/item', verifyAdviser, async (req, res) => {
   }
 });
 
-// -----------------------------
-// [DELETE] SF9 grade
-// -----------------------------
+// ?[DELETE] SF9 grade
+// /api/adviser/grades/sf9:gradeId
 router.delete('/sf9/:gradeId', verifyAdviser, async (req, res) => {
   try {
     const grade = await prisma.sF9Grade.findUnique({
