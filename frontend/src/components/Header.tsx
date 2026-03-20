@@ -1,27 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SidebarLink from "./SidebarLink";
 
 const Header = () => {
     const navigate = useNavigate();
+    // [STATES]
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [role, setRole] = useState<"Adviser" | "Admin" | "">(() => {
       return (localStorage.getItem("role") as "Adviser" | "Admin") || "";
     });
-
     const [isLoggedIn, setIsLoggedIn] = useState(() => {
       return !!localStorage.getItem("token");
     });
-    const [showTokenExpiredModal, setShowTokenExpiredModal] = useState(false);
-
-    const handleApiResponse = async (res: Response) => {
-      if (res.status === 401) {
-        setShowTokenExpiredModal(true);
-        return null; // indicate failure
-      }
-      const data = await res.json();
-      return data;
-    };
 
     // [HANDLE] Toggle sidebar 
     const toggleSidebar = () => { setIsSidebarOpen(prev => !prev); };
@@ -42,22 +32,21 @@ const Header = () => {
 
   return (
     <>
-      <header className="flex justify-between items-center px-6 py-4 bg-[var(--color-primary-700)] text-white">
-        
-        {/* Burger Menu */}
+      <header className="flex justify-between items-center px-6 py-4 bg-[var(--color-primary-700)]">
+        {/* [BUTTON] Burger Menu */}
         {isLoggedIn && (
           <button onClick={toggleSidebar} className="size-8 cursor-pointer">
             <img src="/burger-menu-icon.svg" alt="Burger Menu Icon" />
           </button>
         )}
 
-        {/* Logo */}
+        {/* [UI] Logo */}
         <button onClick={() => navigate("/")} className="cursor-pointer">
           <img src="/pavia-one-banner-white.svg" className="h-7" />
         </button>
       </header>
 
-      {/* Overlay */}
+      {/* [UI] Overlay */}
       {isSidebarOpen && (
         <div
           onClick={closeSidebar}
@@ -79,7 +68,7 @@ const Header = () => {
             {/* Profile Image */}
             <div className="bg-[var(--color-bg-200)] size-18 rounded-full"></div>
 
-            {/* Profile Details */}
+            {/* [SECTION] Profile Details */}
             <div className="">
                 <h2 className="mb-2 text-[var(--color-text-50)]">John Doe</h2>
                 <p className="font-roboto font-semibold text-sm text-[var(--color-text-100)]">Grade 10 - Section A</p>
@@ -97,32 +86,9 @@ const Header = () => {
         <SidebarLink icon="/notifications-and-events-icon.svg" text="Notifications and Events" to={`/${role.toLowerCase()}/notifications`} onClick={closeSidebar} />
         <SidebarLink icon="/profile-icon.svg" text="Profile" to={`/${role.toLowerCase()}/profile`} onClick={closeSidebar} />
         <SidebarLink icon="/settings-icon.svg" text="Settings" to={`/${role.toLowerCase()}/settings`} onClick={closeSidebar} />
-        {/* Logout */}
-        <SidebarLink
-          icon="/logout-icon.svg"
-          text="Logout"
-          to={`/login/${role.toLowerCase()}`}
-          onClick={() => {
-            closeSidebar();
-            handleLogout();
-          }}
-        />
+        <SidebarLink icon="/logout-icon.svg" text="Logout" to={`/login/${role.toLowerCase()}`} onClick={() => { closeSidebar(); handleLogout(); }} />
         </nav>
       </aside>
-      {showTokenExpiredModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-96 text-center space-y-4 shadow-lg">
-            <h2 className="text-lg font-bold">Session Expired</h2>
-            <p>Your session has expired. Please log in again.</p>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)] text-white rounded-md font-medium"
-            >
-              Go to Login
-            </button>
-          </div>
-        </div>
-      )}
     </>
   );
 };
