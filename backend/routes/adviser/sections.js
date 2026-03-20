@@ -12,7 +12,7 @@ const { successResponse, errorResponse } = require('../../utils/response');
 const { getFullName, calculateAge, splitFullName } = require('../../utils/helpers');
 const verifyAdviser = require('../../middleware/authMiddleware').verifyAdviser;
 
-// ?[GET] Retrieve adviser's sections (protected)
+// ?[GET] Get Adviser's Sections
 // /api/adviser/sections
 router.get('/', verifyAdviser, async (req, res) => {
   try {
@@ -54,7 +54,6 @@ router.get('/', verifyAdviser, async (req, res) => {
         .json(errorResponse('No sections found for this adviser'));
     }
 
-    // ⭐ Convert _count → classSize
     const formattedSections = sections.map(section => ({
       id: section.id,
       name: section.name,
@@ -79,7 +78,7 @@ router.get('/', verifyAdviser, async (req, res) => {
   }
 });
 
-// ?[GET] Retrieve a specific section by ID (protected)
+// ?[GET] Get Adviser's Section
 // /api/adviser/sections/:id
 router.get('/:id', verifyAdviser, async (req, res) => {
   const { id } = req.params; // section numeric ID
@@ -136,7 +135,7 @@ router.get('/:id', verifyAdviser, async (req, res) => {
   }
 });
 
-// ?[GET] Students in adviser's section
+// ?[GET] Get Students in Adviser's Section
 // /api/adviser/sections/:id/students
 router.get('/:id/students', verifyAdviser, async (req, res) => {
   try {
@@ -329,7 +328,7 @@ router.get('/:id/students', verifyAdviser, async (req, res) => {
   }
 });
 
-// ?[GET] Get a specific section and its students
+// ?[GET] Get Section /w Students
 // /api/adviser/sections/:sectionId
 router.get('/:sectionId', verifyAdviser, async (req, res) => {
   const { sectionId } = req.params;
@@ -390,7 +389,7 @@ router.get('/:sectionId', verifyAdviser, async (req, res) => {
   }
 });
 
-// [GET] Get a specific student in a section (protected)
+// ?[GET] Get Adviser's Section's Student
 // /api/adviser/sections/:sectionId/students/:studentId
 router.get('/:sectionId/students/:studentId', verifyAdviser, async (req, res) => {
   try {
@@ -483,7 +482,7 @@ router.get('/:sectionId/students/:studentId', verifyAdviser, async (req, res) =>
   }
 });
 
-// ?[PUT] Update a specific student in a section
+// ?[PUT] Update Student in Section
 // /api/adviser/sections/:sectionId/students/:studentId
 router.put('/:sectionId/students/:studentId', verifyAdviser, async (req, res) => {
   try {
