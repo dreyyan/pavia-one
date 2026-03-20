@@ -223,11 +223,40 @@ const AdviserProfile = () => {
             <h2 className="text-[var(--color-primary-700)]">
               Account Information
             </h2>
-            <p className="label-caption text-[var(--color-text-600)]">
-              Coming soon
-            </p>
-          </>
-        )}
+
+            <div>
+              <p className="label-caption text-[var(--color-text-600)]">
+                Username
+              </p>
+              <p className="body-large">
+                {profile?.username || "N/A"}
+              </p>
+            </div>
+
+            <div>
+              <p className="label-caption text-[var(--color-text-600)]">
+                Password
+              </p>
+              <p className="body-large">
+                ********
+              </p>
+            </div>
+
+            <div>
+              <p className="label-caption text-[var(--color-text-600)]">
+                Role
+              </p>
+              <p className="body-large">
+                {profile?.role || "Adviser"}
+              </p>
+            </div>
+
+            <button className="button mt-3 border border-[var(--color-primary-700)] text-[var(--color-primary-700)] px-3 py-1 rounded-md flex items-center gap-2 whitespace-nowrap">
+                Edit
+                <img src="/edit-icon.svg" alt="edit" className="w-4 h-4" />
+                </button>
+            </>
+          )}
       </div>
 
       {/* Pagination */}
