@@ -31,7 +31,7 @@ interface Section {
 type SortOption = "lrn-asc" | "lrn-desc" | "name-asc" | "name-desc";
 
 const AdviserClassStudents = () => {
-  const { id } = useParams<{ id: string }>();
+  const { sectionId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { setShowTokenExpiredModal } = useAuth();
 
@@ -84,7 +84,7 @@ const AdviserClassStudents = () => {
         const token = localStorage.getItem("token");
 
         const res = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/api/adviser/sections/${id}/students`,
+          `${import.meta.env.VITE_API_BASE_URL}/api/adviser/sections/${sectionId}/students`,
           {
             headers: {
               "Content-Type": "application/json",
@@ -137,8 +137,8 @@ const AdviserClassStudents = () => {
       }
     };
 
-    if (id) fetchData();
-  }, [id, setShowTokenExpiredModal]);
+    if (sectionId) fetchData();
+  }, [sectionId, setShowTokenExpiredModal]);
 
   // Filtered and sorted students
   const displayedStudents = students
@@ -161,7 +161,7 @@ const AdviserClassStudents = () => {
 
   const breadcrumbs = [
     { label: "Class Management", path: "/adviser/classes" },
-    { label: section.name, path: `/adviser/classes/${id}` },
+    { label: section.name, path: `/adviser/classes/${sectionId}` },
     { label: "View Students", path: null },
   ];
 
@@ -293,7 +293,7 @@ const AdviserClassStudents = () => {
                 <tr
                   key={student.id}
                   className="border-t border-[var(--color-bg-100)] hover:bg-[var(--color-bg-50)] cursor-pointer transition-color duration-200 ease-in-out"
-                  onClick={() => navigate(`/adviser/classes/${id}/students/${student.id}`)}
+                  onClick={() => navigate(`/adviser/classes/${sectionId}/students/${student.id}`)}
                 >
                   <td className="text-sm py-2 px-4 text-[var(--color-text-900)] border-r border-[var(--color-bg-300)] w-28 truncate">
                     {student.lrn}
