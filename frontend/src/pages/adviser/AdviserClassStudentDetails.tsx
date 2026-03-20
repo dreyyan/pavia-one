@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import PrimaryButton from "../../components/PrimaryButton";
 import InputField from "../../components/InputField";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/useAuth";
 import Modal from "../../components/Modal";
 
 interface Student {
@@ -402,17 +402,21 @@ const AdviserClassStudentDetails = () => {
           {/* Details Table */}
           <div className="overflow-x-auto">
             <table className="min-w-full table-auto border-collapse font-roboto text-[var(--color-text-900)]">
+              <colgroup>
+                <col className="w-22" />
+                <col />
+              </colgroup>
               <tbody>
                 <tr className="border-t border-[var(--color-bg-200)]">
-                  <td className="py-2 pl-4 font-semibold text-sm min-w-[50px]">LRN</td>
+                  <td className="py-2 pl-4 font-semibold text-sm min-w-[40px]">LRN</td>
                   <td className="py-2 pl-2 text-sm">{student.lrn}</td>
                 </tr>
-                <tr className="border-t border-[var(--color-bg-200)]">
-                  <td className="py-2 pl-4 font-semibold text-sm min-w-[50px]">Email</td>
+                <tr className="border-t border-[var(--color-bg-100)]">
+                  <td className="py-2 pl-4 font-semibold text-sm min-w-[40px]">Email</td>
                   <td className="py-2 pl-2 text-sm">{student.email ?? "-"}</td>
                 </tr>
-                <tr className="border-t border-[var(--color-bg-200)]">
-                  <td className="py-2 pl-4 font-semibold text-sm min-w-[50px]">Sex</td>
+                <tr className="border-t border-[var(--color-bg-100)]">
+                  <td className="py-2 pl-4 font-semibold text-sm min-w-[40px]">Sex</td>
                   <td className="py-2 pl-2 text-sm">
                     {student.sex
                       ? student.sex.toUpperCase() === "MALE"
@@ -423,8 +427,8 @@ const AdviserClassStudentDetails = () => {
                       : "-"}
                   </td>
                 </tr>
-                <tr className="border-t border-[var(--color-bg-200)]">
-                  <td className="py-2 pl-4 font-semibold text-sm min-w-[50px]">Birth Date</td>
+                <tr className="border-t border-[var(--color-bg-100)]">
+                  <td className="py-2 pl-4 font-semibold text-sm min-w-[40px]">Birth Date</td>
                   <td className="py-2 pl-2 text-sm">
                     {student.birthDate ? new Date(student.birthDate).toLocaleDateString() : "-"}
                   </td>
@@ -441,7 +445,7 @@ const AdviserClassStudentDetails = () => {
       {/* Multi-page form */}
       <div className="shadow-lg rounded-xl p-6 bg-[var(--color-bg-100)] space-y-2">
         {/* Pagination */}
-        <div className="flex justify-between items-center space-x-4 pb-2">
+        <div className="flex justify-between items-center space-x-4">
           <button
             onClick={handlePrevPage}
             disabled={page === 1}
@@ -471,8 +475,10 @@ const AdviserClassStudentDetails = () => {
           </button>
         </div>
 
+        <hr className="my-4 text-[var(--color-text-300)]"/>
+
         {/* Edit / Cancel */}
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-4">
           <button
             onClick={toggleEdit}
             className="flex items-center gap-2 rounded-md text-sm px-4 py-2 bg-[var(--color-secondary-600)] hover:bg-[var(--color-secondary-700)] transition text-[var(--color-text-50)] font-roboto font-medium"
@@ -482,7 +488,7 @@ const AdviserClassStudentDetails = () => {
             {!isEditing && (
               <img
                 src="/edit-icon.svg"
-                className="w-4 h-4 object-contain"
+                className="size-4 object-contain"
                 alt="edit icon"
               />
             )}
@@ -493,7 +499,7 @@ const AdviserClassStudentDetails = () => {
             <button
               onClick={handleSave}
               disabled={loading}
-              className="rounded-md text-sm px-4 py-2 bg-[var(--color-accent-600)] hover:bg-[var(--color-accent-500)] transition text-white font-roboto font-medium"
+              className="rounded-md text-sm px-4 py-2 bg-[var(--color-accent-600)] hover:bg-[var(--color-accent-700)] transition text-white font-roboto font-medium"
             >
               Save
             </button>
@@ -504,54 +510,61 @@ const AdviserClassStudentDetails = () => {
         {page === 1 && (
           <>
             <h3 className="pb-2 font-semibold">Basic Information</h3>
-            <InputField label="Last Name" value={form.lastName} onChange={(e) => handleChange("lastName", e.target.value)} disabled={!isEditing} />
-            <InputField label="First Name" value={form.firstName} onChange={(e) => handleChange("firstName", e.target.value)} disabled={!isEditing} />
-            <InputField label="Middle Name" value={form.middleName ?? ""} onChange={(e) => handleChange("middleName", e.target.value)} disabled={!isEditing} />
-            <InputField label="Sex (M/F)" type="select" value={form.sex ?? ""} onChange={(e) => handleChange("sex", e.target.value)} options={["M", "F"]} placeholder="Select sex" disabled={!isEditing} />
-            <InputField label="Birth Date" type="date" value={form.birthDate ?? ""} onChange={(e) => handleChange("birthDate", e.target.value)} disabled={!isEditing} />
-            <InputField label="Age" type="number" value={form.age ?? ""} onChange={(e) => { const val = e.target.value; handleChange("age", val !== "" ? parseInt(val) : 0); }} maxLength={3} disabled={true} />
-            <InputField label="Mother Tongue" value={form.motherTongue ?? ""} onChange={(e) => handleChange("motherTongue", e.target.value)} disabled={!isEditing} />
-            <InputField label="IP (Ethnic Group)" value={form.ip ?? ""} onChange={(e) => handleChange("ip", e.target.value)} disabled={!isEditing} />
-            <InputField label="Religion" value={form.religion ?? ""} onChange={(e) => handleChange("religion", e.target.value)} disabled={!isEditing} />
+            <div className="space-y-3">
+              <InputField label="Last Name" value={form.lastName} onChange={(e) => handleChange("lastName", e.target.value)} disabled={!isEditing} />
+              <InputField label="First Name" value={form.firstName} onChange={(e) => handleChange("firstName", e.target.value)} disabled={!isEditing} />
+              <InputField label="Middle Name" value={form.middleName ?? ""} onChange={(e) => handleChange("middleName", e.target.value)} disabled={!isEditing} />
+              <InputField label="Sex (M/F)" type="select" value={form.sex ?? ""} onChange={(e) => handleChange("sex", e.target.value)} options={["M", "F"]} placeholder="Select sex" disabled={!isEditing} />
+              <InputField label="Birth Date" type="date" value={form.birthDate ?? ""} onChange={(e) => handleChange("birthDate", e.target.value)} disabled={!isEditing} />
+              <InputField label="Age" type="number" value={form.age ?? ""} onChange={(e) => { const val = e.target.value; handleChange("age", val !== "" ? parseInt(val) : 0); }} maxLength={3} disabled={true} />
+              <InputField label="Mother Tongue" value={form.motherTongue ?? ""} onChange={(e) => handleChange("motherTongue", e.target.value)} disabled={!isEditing} />
+              <InputField label="IP (Ethnic Group)" value={form.ip ?? ""} onChange={(e) => handleChange("ip", e.target.value)} disabled={!isEditing} />
+              <InputField label="Religion" value={form.religion ?? ""} onChange={(e) => handleChange("religion", e.target.value)} disabled={!isEditing} />
+            </div>
           </>
         )}
 
         {page === 2 && (
           <>
             <h3 className="pb-2 font-semibold">Address</h3>
-            <div className="grid grid-cols-2 gap-2">
-              <InputField label="House #" value={form.houseNo ?? ""} onChange={(e) => handleChange("houseNo", e.target.value)} disabled={!isEditing} />
-              <InputField label="Street" value={form.street ?? ""} onChange={(e) => handleChange("street", e.target.value)} disabled={!isEditing} />
-              <InputField label="Sitio" value={form.sitio ?? ""} onChange={(e) => handleChange("sitio", e.target.value)} disabled={!isEditing} />
-              <InputField label="Purok" value={form.purok ?? ""} onChange={(e) => handleChange("purok", e.target.value)} disabled={!isEditing} />
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2 gap-x-4">
+                <InputField label="House #" value={form.houseNo ?? ""} onChange={(e) => handleChange("houseNo", e.target.value)} disabled={!isEditing} />
+                <InputField label="Street" value={form.street ?? ""} onChange={(e) => handleChange("street", e.target.value)} disabled={!isEditing} />
+                <InputField label="Sitio" value={form.sitio ?? ""} onChange={(e) => handleChange("sitio", e.target.value)} disabled={!isEditing} />
+                <InputField label="Purok" value={form.purok ?? ""} onChange={(e) => handleChange("purok", e.target.value)} disabled={!isEditing} />
+              </div>
+
+              <InputField label="Barangay" value={form.barangay ?? ""} onChange={(e) => handleChange("barangay", e.target.value)} disabled={!isEditing} />
+              <InputField label="Municipality / City" value={form.municipality ?? ""} onChange={(e) => handleChange("municipality", e.target.value)} disabled={!isEditing} />
+              <InputField label="Province" value={form.province ?? ""} onChange={(e) => handleChange("province", e.target.value)} disabled={!isEditing} />
             </div>
-            <InputField label="Barangay" value={form.barangay ?? ""} onChange={(e) => handleChange("barangay", e.target.value)} disabled={!isEditing} />
-            <InputField label="Municipality / City" value={form.municipality ?? ""} onChange={(e) => handleChange("municipality", e.target.value)} disabled={!isEditing} />
-            <InputField label="Province" value={form.province ?? ""} onChange={(e) => handleChange("province", e.target.value)} disabled={!isEditing} />
           </>
         )}
 
         {page === 3 && (
           <>
             <h3 className="pb-2 font-semibold">Parents / Guardian</h3>
-            <InputField label="Father's Name" value={form.fatherName ?? ""} onChange={(e) => handleChange("fatherName", e.target.value)} disabled={!isEditing} />
-            <InputField label="Mother's Maiden Name" value={form.motherName ?? ""} onChange={(e) => handleChange("motherName", e.target.value)} disabled={!isEditing} />
-            <InputField label="Guardian's Name" value={form.guardianName ?? ""} onChange={(e) => handleChange("guardianName", e.target.value)} disabled={!isEditing} />
-            <InputField label="Relationship" value={form.guardianRelationship ?? ""} onChange={(e) => handleChange("guardianRelationship", e.target.value)} disabled={!isEditing} />
-            <InputField label="Contact Number" value={form.guardianContact ?? ""} onChange={(e) => handleChange("guardianContact", e.target.value)} disabled={!isEditing} />
-            <InputField
-              label="Learning Modality"
-              type="select"
-              value={LEARNING_MODALITIES.find(m => m.value === form.learningModality)?.label ?? ""}
-              onChange={(e) => {
-                const selectedLabel = e.target.value;
-                const modality = LEARNING_MODALITIES.find(m => m.label === selectedLabel);
-                handleChange("learningModality", modality?.value ?? "");
-              }}
-              options={LEARNING_MODALITIES.map(m => m.label)}
-              placeholder="Select learning modality"
-              disabled={!isEditing}
-            />
+            <div className="space-y-3">
+              <InputField label="Father's Name" value={form.fatherName ?? ""} onChange={(e) => handleChange("fatherName", e.target.value)} disabled={!isEditing} />
+              <InputField label="Mother's Maiden Name" value={form.motherName ?? ""} onChange={(e) => handleChange("motherName", e.target.value)} disabled={!isEditing} />
+              <InputField label="Guardian's Name" value={form.guardianName ?? ""} onChange={(e) => handleChange("guardianName", e.target.value)} disabled={!isEditing} />
+              <InputField label="Relationship" value={form.guardianRelationship ?? ""} onChange={(e) => handleChange("guardianRelationship", e.target.value)} disabled={!isEditing} />
+              <InputField label="Contact Number" value={form.guardianContact ?? ""} onChange={(e) => handleChange("guardianContact", e.target.value)} disabled={!isEditing} />
+              <InputField
+                label="Learning Modality"
+                type="select"
+                value={LEARNING_MODALITIES.find(m => m.value === form.learningModality)?.label ?? ""}
+                onChange={(e) => {
+                  const selectedLabel = e.target.value;
+                  const modality = LEARNING_MODALITIES.find(m => m.label === selectedLabel);
+                  handleChange("learningModality", modality?.value ?? "");
+                }}
+                options={LEARNING_MODALITIES.map(m => m.label)}
+                placeholder="Select learning modality"
+                disabled={!isEditing}
+              />
+            </div>
           </>
         )}
       </div>

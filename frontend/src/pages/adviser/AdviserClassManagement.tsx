@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import ClassCard from "../../components/ClassCard";
-import { useAuth } from "../../context/AuthContext"; // your modal context
+import { useAuth } from "../../context/useAuth";
 import EmptyState from "../../components/EmptyState";
 
 interface ScheduleItem {

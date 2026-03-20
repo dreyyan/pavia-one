@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import MyClassCard from "../../components/MyClassCard";
-import { useAuth } from "../../context/AuthContext"; // Make sure you have this
+import { useAuth } from "../../context/useAuth";
 
 interface Student {
   id: number;

@@ -1,10 +1,9 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "../../context/AuthContext";
+import { useState } from "react";
+import { useAuth } from "../../context/useAuth";
 import SchoolFormCard from "../../components/SchoolFormCard";
 
 const AdviserClassSchoolForms = () => {
-  const { setShowTokenExpiredModal } = useAuth();
-
+  // [STATES]
   const [students, setStudents] = useState([]);
   const [error, setError] = useState("");
   const [sectionId, setSectionId] = useState(null);

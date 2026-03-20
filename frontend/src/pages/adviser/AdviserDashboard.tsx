@@ -2,7 +2,7 @@ import DashboardButton from "../../components/DashboardButton";
 import DashboardItem from "../../components/DashboardItem";
 import DashboardSkeleton from "../../components/DashboardSkeleton";
 import { useState, useEffect } from "react";
-import { useAuth } from "../../context/AuthContext"; // modal context
+import { useAuth } from "../../context/useAuth";
 
 interface Section {
   id: number;
