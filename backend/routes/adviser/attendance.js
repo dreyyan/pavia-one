@@ -79,7 +79,7 @@ router.post('/', verifyAdviser, async (req, res) => {
   }
 });
 
-// ?[GET] Get all students in a section with their attendance
+// ?[GET] Get all student Attendance in Section
 // /api/adviser/attendance/section/:sectionId
 router.get('/section/:sectionId', verifyAdviser, async (req, res) => {
   try {
@@ -155,7 +155,7 @@ router.get('/section/:sectionId', verifyAdviser, async (req, res) => {
   }
 });
 
-// ?[GET] Get attendance of a specific student
+// ?[GET] Get Student Attendance
 // /api/adviser/attendance/:studentId
 router.get('/:studentId', verifyAdviser, async (req, res) => {
   try {
@@ -188,7 +188,7 @@ router.get('/:studentId', verifyAdviser, async (req, res) => {
   }
 });
 
-// ?[DELETE] Remove a wrongly recorded attendance (protected)
+// ?[DELETE] Remove student attendance
 // /api/attendance/:attendanceId
 router.delete('/:attendanceId', verifyAdviser, async (req, res) => {
   try {
@@ -214,7 +214,6 @@ router.delete('/:attendanceId', verifyAdviser, async (req, res) => {
     res.status(500).json(errorResponse('Failed to delete attendance record', err.message));
   }
 });
-
 
 // ?[GET] Generate weekly attendance report for a section (protected)
 // /api/adviser/attendance/weekly-report/:sectionId
@@ -312,7 +311,7 @@ router.get('/monthly-report/:sectionId', verifyAdviser, async (req, res) => {
   }
 });
 
-// ?[GET] Generate full SF2 attendance for a student
+// ?[GET] Generate Student SF2
 // /api/adviser/attendance/sf2/:studentId
 router.get('/sf2/:studentId', verifyAdviser, async (req, res) => {
   try {
