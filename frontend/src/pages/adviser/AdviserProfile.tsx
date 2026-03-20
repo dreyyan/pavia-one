@@ -84,9 +84,9 @@ const AdviserProfile = () => {
 
         <div className="bg-[var(--color-bg-300)] size-24 rounded-full my-4"></div>
 
-        <h3>
+        <h2>
           Grade {profile?.gradeLevel} - Section {profile?.sectionName}
-        </h3>
+        </h2>
 
         <h4>
           Class Adviser
@@ -139,14 +139,51 @@ const AdviserProfile = () => {
           </>
         )}
 
-        {currentPage === 2 && (
+       {currentPage === 2 && (
           <>
             <h2 className="text-[var(--color-primary-700)]">
               Academic Information
             </h2>
-            <p className="label-caption text-[var(--color-text-600)]">
-              Coming soon
-            </p>
+
+            <div>
+              <p className="label-caption text-[var(--color-text-600)]">
+                Teacher ID
+              </p>
+              <p className="body-large">{profile?.teacherId || "N/A"}</p>
+            </div>
+
+            <div>
+              <p className="label-caption text-[var(--color-text-600)]">
+                Teacher Rank
+              </p>
+              <p className="body-large">{profile?.teacherRank || "N/A"}</p>
+            </div>
+
+            <div>
+              <p className="label-caption text-[var(--color-text-600)]">
+                Advisory Grade
+              </p>
+              <p className="body-large">{profile?.gradeLevel || "N/A"}</p>
+            </div>
+
+            <div>
+              <p className="label-caption text-[var(--color-text-600)]">
+                Section
+              </p>
+              <p className="body-large">{profile?.sectionName || "N/A"}</p>
+            </div>
+
+            <div>
+              <p className="label-caption text-[var(--color-text-600)]">
+                Date Hired
+              </p>
+              <p className="body-large">{profile?.dateHired || "N/A"}</p>
+            </div>
+
+            <button className="button mt-3 border border-[var(--color-primary-700)] text-[var(--color-primary-700)] px-3 py-1 rounded-md flex items-center gap-2 whitespace-nowrap">
+            Edit
+            <img src="/edit-icon.svg" alt="edit" className="w-4 h-4" />
+            </button>  {/* idk paano change button colors */}
           </>
         )}
 
