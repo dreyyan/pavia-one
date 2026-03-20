@@ -188,15 +188,35 @@ const AdviserProfile = () => {
         )}
 
         {currentPage === 3 && (
-          <>
-            <h2 className="text-[var(--color-primary-700)]">
-              Contact Information
-            </h2>
-            <p className="label-caption text-[var(--color-text-600)]">
-              Coming soon
-            </p>
-          </>
-        )}
+            <>
+              <h2 className="text-[var(--color-primary-700)]">
+                Contact Information
+              </h2>
+
+              <div>
+                <p className="label-caption text-[var(--color-text-600)]">
+                  Email Address
+                </p>
+                <p className="body-large">
+                  {profile?.email || "N/A"}
+                </p>
+              </div>
+
+              <div>
+                <p className="label-caption text-[var(--color-text-600)]">
+                  Contact No.
+                </p>
+                <p className="body-large">
+                  {profile?.contactNumber || "N/A"}
+                </p>
+              </div>
+
+              <button className="button mt-3 border border-[var(--color-primary-700)] text-[var(--color-primary-700)] px-3 py-1 rounded-md flex items-center gap-2 whitespace-nowrap">
+              Edit
+              <img src="/edit-icon.svg" alt="edit" className="w-4 h-4" />
+              </button>  {/* idk paano change button colors */}
+            </>
+          )}
 
         {currentPage === 4 && (
           <>
