@@ -16,7 +16,8 @@ import AdviserClassStudentDetails from "./pages/adviser/AdviserClassStudentDetai
 import AdviserClassSchoolForms from "./pages/adviser/AdviserClassSchoolForms";
 import AdviserSchoolForms from "./pages/adviser/AdviserSchoolForms";
 import AdviserClassGrades from "./pages/adviser/AdviserClassGrades";
-import AdviserStudentGradesDetails from "./AdviserStudentGradesDetails";
+import AdviserClassStudentGradesOverview from "./AdviserClassStudentGradesOverview";
+import AdviserClassStudentGradesDetails from "./AdviserClassStudentGradesDetails";
 
 function App() {
   return (
@@ -40,7 +41,9 @@ function App() {
         <Route path="/adviser/classes/:sectionId/students/:studentId" element={<AdviserClassStudentDetails />} />
         {/* [3] Grades */}
         <Route path="/adviser/classes/grades/:sectionId" element={<AdviserClassGrades />} />
-        <Route path="/adviser/classes/grades/:sectionId/:studentId" element={<AdviserStudentGradesDetails />} />
+        <Route path="/adviser/classes/grades/:sectionId/:studentId" element={<AdviserClassStudentGradesOverview />} />
+        <Route path="/adviser/classes/grades/:sectionId/:studentId/subjects/:subjectId" element={<AdviserClassStudentGradesDetails />}
+        />
 
         {/* School Forms */}
         <Route path="/adviser/school-forms" element={<AdviserSchoolForms />} />
