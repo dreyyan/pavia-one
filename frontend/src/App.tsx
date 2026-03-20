@@ -11,6 +11,7 @@ import AboutUs from "./AboutUs";
 import AdviserDashboard from "./pages/adviser/AdviserDashboard";
 import AdviserClassManagement from "./pages/adviser/AdviserClassManagement";
 import AdviserMyClass from "./pages/adviser/AdviserMyClass";
+import AdviserNotificationsPage from "./pages/adviser/AdviserNotificationsPage";
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
         <Route path="/adviser/dashboard" element={<AdviserDashboard />} />
         <Route path="/adviser/classes" element={<AdviserClassManagement />} />
         <Route path="/adviser/classes/:id" element={<AdviserMyClass />} />
+        <Route path="/adviser/notifications" element={<AdviserNotificationsPage />} />
 
         {/* Shared Endpoints */}
         <Route path="/about-us" element={<AboutUs />} />
