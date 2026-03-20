@@ -1,11 +1,31 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import Modal from "../../components/Modal";
+interface GradeItemApi {
+  id: number;
+  type: string;
+  score: number | null;
+  maxScore?: number;
+  createdAt?: string;
+  quarter?: number;
+}
+
+interface SubjectGradeApi {
+  id: number;
+  learningArea?: {
+    name: string;
+  };
+  items?: GradeItemApi[];
+}
 
 interface GradingItem {
   id: number;
   criteria: string;
   score: number | null;
   maxScore?: number;
+  createdAt?: string;
+  quarter?: number;
+  displayLabel?: string; // For table display
 }
 
 interface SubjectGradeDetail {
@@ -14,7 +34,7 @@ interface SubjectGradeDetail {
   gradingItems: GradingItem[];
 }
 
-// Add this mapping at the top
+// Abbreviations
 const CRITERIA_ABBREVIATIONS: Record<string, string> = {
   WRITTEN_WORK: "WW",
   PERFORMANCE_TASK: "PT",
@@ -22,13 +42,13 @@ const CRITERIA_ABBREVIATIONS: Record<string, string> = {
 };
 
 const SUBJECT_ABBREVIATIONS: Record<string, string> = {
-  "Filipino": "FIL",
-  "English": "ENG",
-  "Mathematics": "MATH",
-  "Science": "SCI",
+  Filipino: "FIL",
+  English: "ENG",
+  Mathematics: "MATH",
+  Science: "SCI",
   "Araling Panlipunan": "AP",
   "Edukasyon sa Pagpapakatao": "ESP",
-  "MAPEH": "MAPEH",
+  MAPEH: "MAPEH",
   "Edukasyong Pantahanan at Pangkabuhayan": "EPP/TLE",
 };
 
@@ -56,6 +76,15 @@ const AdviserClassStudentGradesDetails = () => {
   const [newItemScore, setNewItemScore] = useState<number | "">("");
   const [newItemMaxScore, setNewItemMaxScore] = useState<number | "">(100);
   const [newItemCriteria, setNewItemCriteria] = useState<string>("WRITTEN_WORK");
+  const [selectedQuarter, setSelectedQuarter] = useState<number>(1);
+  const [filterQuarter, setFilterQuarter] = useState<number | "All">("All");
+
+  const [showModal, setShowModal] = useState(false);
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalMessage, setModalMessage] = useState("");
+  const [modalType, setModalType] = useState<"default" | "error" | "success" | "info" | "warning">("default");
+
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
   const token = localStorage.getItem("token");
 
@@ -67,7 +96,7 @@ const AdviserClassStudentGradesDetails = () => {
     return await res.json();
   };
 
-  const fetchGradeDetails = async () => {
+  const fetchGradeDetails = useCallback(async () => {
     if (!sectionId || !studentId || !subjectId) return;
     setLoading(true);
     setError(null);
@@ -98,130 +127,243 @@ const AdviserClassStudentGradesDetails = () => {
         return;
       }
 
-      const subjectGradeData = gradesData.data.find((g: any) => String(g.id) === subjectId);
+      const subjectGradeData = gradesData.data.find((g: SubjectGradeApi) => String(g.id) === subjectId);
       if (!subjectGradeData) {
         setError("Subject grade not found");
         setGrade(null);
         return;
       }
 
-setGrade({
-  id: subjectGradeData.id,
-  subject: SUBJECT_ABBREVIATIONS[subjectGradeData.learningArea?.name] 
-          ?? subjectGradeData.learningArea?.name 
-          ?? "Unknown",
-  gradingItems: (subjectGradeData.items ?? [])
-    .sort((a: any, b: any) => {
-      if (a.createdAt && b.createdAt) {
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-      }
-      return a.id - b.id;
-    })
-    .map((item: any) => ({
-      id: item.id,
-      criteria: item.type,
-      score: item.score,
-      maxScore: item.maxScore ?? 100,
-    }))
-});
+      setGrade({
+        id: subjectGradeData.id,
+        subject:
+          SUBJECT_ABBREVIATIONS[subjectGradeData.learningArea?.name ?? ""] ??
+          subjectGradeData.learningArea?.name ??
+          "Unknown",
+        gradingItems: (subjectGradeData.items ?? [])
+          .sort((a: GradeItemApi, b: GradeItemApi) => {
+            if (a.createdAt && b.createdAt)
+              return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+            return a.id - b.id;
+          })
+          .map((item: GradeItemApi) => ({
+            id: item.id,
+            criteria: item.type,
+            score: item.score,
+            maxScore: item.maxScore ?? 100,
+            createdAt: item.createdAt,
+            quarter: item.quarter,
+          })),
+      });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err));
       setGrade(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [sectionId, studentId, subjectId, token]);
 
+  // ✅ useEffect now just calls the stable callback
   useEffect(() => {
     fetchGradeDetails();
-  }, [sectionId, studentId, subjectId]);
+  }, [fetchGradeDetails]);
 
-  // Numbered criteria labels (abbreviated)
   const getNumberedItems = (items: GradingItem[]) => {
     const counters: Record<string, number> = {};
     return items.map(item => {
       counters[item.criteria] = (counters[item.criteria] ?? 0) + 1;
       let abbrev = CRITERIA_ABBREVIATIONS[item.criteria] ?? item.criteria;
-      
-      // Add numbering for WW and PT only
       if (item.criteria === "WRITTEN_WORK" || item.criteria === "PERFORMANCE_TASK") {
         abbrev = `${abbrev} ${counters[item.criteria]}`;
       }
-
       return { ...item, displayLabel: abbrev };
     });
   };
 
   const filteredItems = getNumberedItems(
-    selectedCriteria === "All"
-      ? grade?.gradingItems ?? []
-      : (grade?.gradingItems ?? []).filter(item => item.criteria === selectedCriteria)
+    (grade?.gradingItems ?? []).filter(item => {
+      const quarterMatch = filterQuarter === "All" || item.quarter === filterQuarter;
+      const criteriaMatch = selectedCriteria === "All" || item.criteria === selectedCriteria;
+      return quarterMatch && criteriaMatch;
+    })
   );
 
-  // CRUD handlers
   const createGradeItem = async () => {
-    if (!grade || newItemScore === "" || newItemMaxScore === "" || !newItemCriteria)
-      return alert("Enter score, max score, and criteria");
+    if (!grade || newItemScore === "" || newItemMaxScore === "" || !newItemCriteria) {
+      setModalTitle("Validation Error");
+      setModalMessage("Please enter a score, max score, and select a criteria.");
+      setModalType("error");
+      setShowModal(true);
+      return;
+    }
 
-    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/sf9/item`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({
-        sf9GradeId: grade.id,
-        quarter: 1,
-        type: newItemCriteria,
-        score: Number(newItemScore),
-        maxScore: Number(newItemMaxScore)
-      })
-    });
-    const data = await handleApiResponse(res);
-    if (data?.success) {
-      setNewItemScore("");
-      setNewItemMaxScore(100);
-      setNewItemCriteria("WRITTEN_WORK");
-      fetchGradeDetails();
+    if (newItemCriteria === "QUARTERLY_ASSESSMENT") {
+      const existingQA = grade.gradingItems.find(
+        item => item.criteria === "QUARTERLY_ASSESSMENT" && item.quarter === selectedQuarter
+      );
+      if (existingQA) {
+        setModalTitle("Duplicate Quarterly Assessment");
+        setModalMessage(`A Quarterly Assessment already exists for Quarter ${selectedQuarter}. You cannot add another.`);
+        setModalType("error");
+        setShowModal(true);
+        return;
+      }
+    }
+
+    if (newItemScore < 0 || newItemMaxScore <= 0 || newItemScore > newItemMaxScore) {
+      setModalTitle("Invalid Scores");
+      setModalMessage("Score must be >= 0 and <= Max Score. Max Score must be > 0.");
+      setModalType("error");
+      setShowModal(true);
+      return;
+    }
+
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/sf9/item`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          sf9GradeId: grade.id,
+          quarter: selectedQuarter,
+          type: newItemCriteria,
+          score: Number(newItemScore),
+          maxScore: Number(newItemMaxScore)
+        })
+      });
+      const data = await handleApiResponse(res);
+      if (data?.success) {
+        setNewItemScore("");
+        setNewItemMaxScore(100);
+        setNewItemCriteria("WRITTEN_WORK");
+        fetchGradeDetails();
+      }
+    } catch (err) {
+      console.log(err);
+      setModalTitle("Error");
+      setModalMessage("Failed to add grade item. Please try again.");
+      setModalType("error");
+      setShowModal(true);
     }
   };
 
-  const updateGradeItem = async () => {
+  const updateGradeItem = () => {
     if (!editingItem) return;
 
-    const res = await fetch(
-      `${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/sf9/item/${editingItem.id}`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          quarter: 1,
-          type: newItemCriteria,  // ← use the new selected criteria
-          score: Number(newItemScore),
-          maxScore: Number(newItemMaxScore),
-        }),
-      }
-    );
-
-    const data = await handleApiResponse(res);
-    if (data?.success) {
-      setEditingItem(null);
-      setNewItemScore("");
-      setNewItemMaxScore(100);
-      setNewItemCriteria("WRITTEN_WORK");
-      fetchGradeDetails();
+    if (newItemScore === "" || newItemMaxScore === "" || !newItemCriteria) {
+      setModalTitle("Validation Error");
+      setModalMessage("Please enter a score, max score, and select a criteria.");
+      setModalType("error");
+      setShowModal(true);
+      return;
     }
+
+    if (newItemCriteria === "QUARTERLY_ASSESSMENT") {
+      const existingQA = grade?.gradingItems.find(
+        item => item.criteria === "QUARTERLY_ASSESSMENT" &&
+                item.quarter === selectedQuarter &&
+                item.id !== editingItem.id
+      );
+      if (existingQA) {
+        setModalTitle("Duplicate Quarterly Assessment");
+        setModalMessage(`A Quarterly Assessment already exists for Quarter ${selectedQuarter}. You cannot add another.`);
+        setModalType("error");
+        setShowModal(true);
+        return;
+      }
+    }
+
+    if (newItemScore < 0 || newItemMaxScore <= 0 || newItemScore > newItemMaxScore) {
+      setModalTitle("Invalid Scores");
+      setModalMessage("Score must be >= 0 and <= Max Score. Max Score must be > 0.");
+      setModalType("error");
+      setShowModal(true);
+      return;
+    }
+
+    setModalTitle("Confirm Update");
+    setModalMessage("Are you sure you want to update this grade item?");
+    setModalType("info");
+
+    setPendingAction(() => async () => {
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/sf9/item/${editingItem.id}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              quarter: selectedQuarter,
+              type: newItemCriteria,
+              score: Number(newItemScore),
+              maxScore: Number(newItemMaxScore),
+            }),
+          }
+        );
+        const data = await handleApiResponse(res);
+        if (data?.success) {
+          setEditingItem(null);
+          setNewItemScore("");
+          setNewItemMaxScore(100);
+          setNewItemCriteria("WRITTEN_WORK");
+          fetchGradeDetails();
+
+          setModalTitle("Success");
+          setModalMessage("Grade item updated successfully.");
+          setModalType("success");
+          setShowModal(true);
+        } else {
+          setModalTitle("Error");
+          setModalMessage(data?.message || "Failed to update grade item.");
+          setModalType("error");
+          setShowModal(true);
+        }
+      } catch (err) {
+        console.log(err);
+        setModalTitle("Error");
+        setModalMessage("Failed to update grade item. Please try again.");
+        setModalType("error");
+        setShowModal(true);
+      }
+    });
+
+    setShowModal(true);
   };
 
-  const deleteGradeItem = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this item?")) return;
-    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/sf9/item`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ itemIds: [id] })
+  const confirmDeleteGradeItem = (id: number) => {
+    setModalTitle("Confirm Delete");
+    setModalMessage("Are you sure you want to delete this item?");
+    setModalType("warning");
+    setPendingAction(() => async () => {
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/sf9/item`,
+          {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ itemIds: [id] }),
+          }
+        );
+        const data = await handleApiResponse(res);
+        if (data?.success) {
+          fetchGradeDetails();
+        } else {
+          setModalTitle("Error");
+          setModalMessage(data?.message || "Failed to delete item.");
+          setModalType("error");
+          setShowModal(true);
+        }
+      } catch (err) {
+        console.log(err);
+        setModalTitle("Error");
+        setModalMessage("Failed to delete item. Please try again.");
+        setModalType("error");
+        setShowModal(true);
+      }
     });
-    const data = await handleApiResponse(res);
-    if (data?.success) fetchGradeDetails();
+    setShowModal(true);
   };
 
   if (loading) return <p className="text-center py-4">Loading subject grade...</p>;
@@ -238,6 +380,26 @@ setGrade({
 
   return (
     <div className="py-10 px-4 space-y-6 max-w-md mx-auto">
+      {showModal && (
+        <Modal
+          isOpen={showModal}
+          onClose={() => {
+            setShowModal(false);
+            setPendingAction(null);
+          }}
+          onConfirm={() => {
+            if (pendingAction) pendingAction();
+            setShowModal(false);
+            setPendingAction(null);
+          }}
+          title={modalTitle}
+          message={modalMessage}
+          type={modalType}
+          closeOnBackdrop={true}
+          isCancelable={true}
+        />
+      )}
+
       {/* Breadcrumb */}
       <nav className="font-roboto text-sm text-[var(--color-text-700)] px-2 pb-2">
         {breadcrumbs.map((crumb, idx) => (
@@ -268,8 +430,21 @@ setGrade({
       </div>
 
       <div className="bg-[var(--color-bg-100)] p-4 rounded-lg space-y-4">
-        {/* Filter */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+          {/* Quarter filter */}
+          <select
+            value={filterQuarter}
+            onChange={e => setFilterQuarter(e.target.value === "All" ? "All" : Number(e.target.value))}
+            className="font-roboto text-sm border border-[var(--color-bg-200)] bg-[var(--color-bg-50)] rounded px-3 py-2 w-full sm:w-auto"
+          >
+            <option value="All">All Quarters</option>
+            <option value={1}>Quarter 1</option>
+            <option value={2}>Quarter 2</option>
+            <option value={3}>Quarter 3</option>
+            <option value={4}>Quarter 4</option>
+          </select>
+
+          {/* Criteria filter */}
           <select
             className="font-roboto text-sm border border-[var(--color-bg-200)] bg-[var(--color-bg-50)] rounded px-3 py-2 w-full sm:w-auto"
             value={selectedCriteria}
@@ -312,11 +487,12 @@ setGrade({
                         setNewItemScore(item.score ?? "");
                         setNewItemMaxScore(item.maxScore ?? 100);
                         setNewItemCriteria(item.criteria);
+                        setSelectedQuarter(item.quarter ?? 1);
                       }}
                     >
                       Edit
                     </button>
-                    <button className="text-red-600 font-medium" onClick={() => deleteGradeItem(item.id)}>Delete</button>
+                    <button className="text-red-600 font-medium" onClick={() => confirmDeleteGradeItem(item.id)}>Delete</button>
                   </td>
                 </tr>
               ))}
@@ -327,38 +503,64 @@ setGrade({
 
       {/* Add/Edit Form */}
       <div className="bg-[var(--color-bg-100)] p-4 rounded-lg shadow space-y-3">
-        <h4 className="font-medium">{editingItem ? "Edit Grade Item" : "Add New Grade Item"}</h4>
+        <h4 className="font-medium">
+          {editingItem ? "Edit Grade Item" : "Add New Grade Item"}
+        </h4>
+
         <div className="flex flex-col sm:flex-row gap-2">
+
+          {/* ⭐ Quarter Dropdown */}
+          <select
+            value={selectedQuarter}
+            onChange={e => setSelectedQuarter(Number(e.target.value))}
+            className="font-roboto text-sm border border-[var(--color-bg-200)] bg-[var(--color-bg-50)] rounded px-3 py-2 w-full sm:w-auto"
+          >
+            <option value={1}>Quarter 1</option>
+            <option value={2}>Quarter 2</option>
+            <option value={3}>Quarter 3</option>
+            <option value={4}>Quarter 4</option>
+          </select>
+
+          {/* Criteria */}
           <select
             value={newItemCriteria}
             onChange={e => setNewItemCriteria(e.target.value)}
             className="font-roboto text-sm border border-[var(--color-bg-200)] bg-[var(--color-bg-50)] rounded px-3 py-2 w-full sm:w-auto"
           >
             {Object.entries(CRITERIA_LABELS).map(([key, label]) => (
-              <option key={key} value={key}>{label}</option>
+              <option key={key} value={key}>
+                {label}
+              </option>
             ))}
           </select>
+
+          {/* Score */}
           <input
             type="number"
             placeholder="Score"
             value={newItemScore}
-            onChange={e => setNewItemScore(e.target.value)}
+            onChange={e => setNewItemScore(Number(e.target.value))}
             className="font-roboto text-sm border border-[var(--color-bg-200)] bg-[var(--color-bg-50)] rounded px-3 py-2 w-full sm:w-auto"
           />
+
+          {/* Max Score */}
           <input
             type="number"
             placeholder="Max Score"
             value={newItemMaxScore}
-            onChange={e => setNewItemMaxScore(e.target.value)}
+            onChange={e => setNewItemMaxScore(Number(e.target.value))}
             className="font-roboto text-sm border border-[var(--color-bg-200)] bg-[var(--color-bg-50)] rounded px-3 py-2 w-full sm:w-auto"
           />
+
+          {/* Buttons */}
           <div className="flex gap-2">
             <button
-              onClick={() => editingItem ? updateGradeItem() : createGradeItem()}
+              onClick={() => (editingItem ? updateGradeItem() : createGradeItem())}
               className="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700"
             >
               {editingItem ? "Update" : "Add"}
             </button>
+
             {editingItem && (
               <button
                 onClick={() => {
@@ -366,6 +568,7 @@ setGrade({
                   setNewItemScore("");
                   setNewItemMaxScore(100);
                   setNewItemCriteria("WRITTEN_WORK");
+                  setSelectedQuarter(1); // reset
                 }}
                 className="bg-gray-300 px-4 py-1 rounded hover:bg-gray-400"
               >
