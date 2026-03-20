@@ -1,10 +1,14 @@
+// [IMPORT] Hooks
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/useAuth";
+
+// [IMPORT] Components
 import PrimaryButton from "../../components/PrimaryButton";
 import InputField from "../../components/InputField";
-import { useAuth } from "../../context/useAuth";
 import Modal from "../../components/Modal";
 
+// ?[INTERFACES]
 interface Student {
   id: number;
   lrn: string;
@@ -53,7 +57,9 @@ const AdviserClassStudentDetails = () => {
     studentId: string;
   }>();
   const navigate = useNavigate();
+  const { setShowTokenExpiredModal } = useAuth();
 
+  // [STATES]
   const [student, setStudent] = useState<Student | null>(null);
   const [form, setForm] = useState<StudentForm>({
     lastName: "",
@@ -91,20 +97,13 @@ const AdviserClassStudentDetails = () => {
   const [modalMessage, setModalMessage] = useState("");
   const [modalType, setModalType] = useState<"default" | "error" | "success" | "info" | "warning">("default");
   const [redirectOnConfirm, setRedirectOnConfirm] = useState(false);
-  const { setShowTokenExpiredModal } = useAuth();
 
-  const handleApiResponse = async (res: Response) => {
-    if (res.status === 401) {
-      setShowTokenExpiredModal(true);
-      return null;
-    }
-    return await res.json();
-  };
-
+  // [HANDLE] Student form update
   const handleChange = (field: keyof StudentForm, value: string | number) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  // [HANDLE] Toggle form edit state
   const toggleEdit = () => {
     if (isEditing && originalForm) {
       setForm(originalForm);
@@ -114,6 +113,15 @@ const AdviserClassStudentDetails = () => {
     setIsEditing((prev) => !prev);
   };
 
+  // [HANDLE] Form navigation
+  const handleNextPage = () => {
+    if (page < totalPages) setPage((p) => p + 1);
+  };
+  const handlePrevPage = () => {
+    if (page > 1) setPage((p) => p - 1);
+  };
+
+  // *[HANDLE] Form save
   const handleSave = async () => {
     if (!form) return;
 
@@ -124,20 +132,27 @@ const AdviserClassStudentDetails = () => {
       "birthDate",
       "learningModality",
     ];
+
+    // *[VALIDATION] Check for missing required fields
     const missingFields = requiredFields.filter(
       (field) => !form[field] || form[field]?.toString().trim() === ""
     );
 
     if (missingFields.length > 0) {
+      // ![ERROR] Missing required fields
       setModalTitle("Validation Error");
-      setModalMessage(`Please fill in the following required fields: ${missingFields.join(", ")}`);
+      setModalMessage(
+        `Please fill in the following required fields: ${missingFields.join(", ")}`
+      );
       setModalType("error");
       setRedirectOnConfirm(false);
       setShowModal(true);
       return;
     }
 
+    // *[VALIDATION] Check for invalid age
     if (form.age !== undefined && (isNaN(form.age) || form.age < 0)) {
+      // ![ERROR] Invalid age
       setModalTitle("Validation Error");
       setModalMessage("Please enter a valid non-negative age.");
       setModalType("error");
@@ -146,7 +161,9 @@ const AdviserClassStudentDetails = () => {
       return;
     }
 
+    // *[VALIDATION] Check guardian contact number
     if (form.guardianContact && !/^\d+$/.test(form.guardianContact)) {
+      // ![ERROR] Invalid guardian contact no.
       setModalTitle("Validation Error");
       setModalMessage("Guardian contact number should contain only digits.");
       setModalType("error");
@@ -157,10 +174,13 @@ const AdviserClassStudentDetails = () => {
 
     try {
       setLoading(true);
+
       const token = localStorage.getItem("token");
+      // *[PREP] Remove `age` from payload if present
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { age, ...payload } = form;
 
+      // *[API] Send PUT request to update student
       const res = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/api/adviser/sections/${sectionId}/students/${studentId}`,
         {
@@ -169,14 +189,13 @@ const AdviserClassStudentDetails = () => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          
           body: JSON.stringify(payload),
         }
       );
 
-      const data = await handleApiResponse(res);
-      if (!data) return;
+      const data = await res.json();
 
+      // ![ERROR] Backend failure or missing data
       if (!data.success) {
         setModalTitle("Save Failed");
         setModalMessage(data.message || "Failed to save student data.");
@@ -186,7 +205,7 @@ const AdviserClassStudentDetails = () => {
         return;
       }
 
-      // On success
+      // *[SUCCESS] Student saved
       setModalTitle("Success");
       setModalMessage("Student details saved successfully!");
       setModalType("success");
@@ -195,15 +214,19 @@ const AdviserClassStudentDetails = () => {
       setIsEditing(false);
       setOriginalForm(form);
 
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      alert(errorMessage || "Something went wrong while saving.");
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (err) {
+      setModalTitle("Error");
+      setModalMessage("Something went wrong while saving.");
+      setModalType("success");
+      setRedirectOnConfirm(false);
+      setShowModal(true);
     } finally {
       setLoading(false);
     }
   };
 
-  // Helper function
+  // [HELPER] Format student full name
   const formatFullName = (student: Student) => {
     const first = student.firstName ?? "";
     const middleInitial = student.middleName ? `${student.middleName.charAt(0)}.` : "";
@@ -213,18 +236,7 @@ const AdviserClassStudentDetails = () => {
     return [first, middleInitial, last, extension].filter(Boolean).join(" ");
   };
 
-  const handleNextPage = () => {
-    if (page < totalPages) setPage((p) => p + 1);
-  };
-  const handlePrevPage = () => {
-    if (page > 1) setPage((p) => p - 1);
-  };
-
-  // Placeholder SF9 generator
-  const handleGenerateSF9 = () => {
-    alert("SF9 generation not implemented yet.");
-  };
-
+  // [HELPER] Calculate age using birthdate
   const calculateAgeFromBirthDate = (birthDate?: string) => {
     if (!birthDate) return undefined;
 
@@ -241,6 +253,12 @@ const AdviserClassStudentDetails = () => {
     return age >= 0 ? age : undefined;
   };
 
+  // TODO [HANDLE] Generate SF9
+  const handleGenerateSF9 = () => {
+    alert("SF9 generation not implemented yet.");
+  };
+
+  // *[EFFECT] Fetch student's birthdate
   useEffect(() => {
     setForm((prev) => ({
       ...prev,
@@ -248,6 +266,7 @@ const AdviserClassStudentDetails = () => {
     }));
   }, [form.birthDate]);
 
+  // *[EFFECT] Fetch student information
   useEffect(() => {
     const fetchStudent = async () => {
       if (!sectionId || !studentId) return;
@@ -267,17 +286,24 @@ const AdviserClassStudentDetails = () => {
           }
         );
 
-        const data = await handleApiResponse(res);
-        if (!data) return;
+        // ![ERROR] Expired token
+        if (res.status === 401) {
+          setShowTokenExpiredModal(true);
+          setLoading(false);
+          return;
+        }
 
+        const data = await res.json();
+        const studentData = data.data;
+
+        // ![ERROR] Backend failure or missing data
         if (!data.success || !data.data) {
           setError(data.message || "Failed to fetch student data");
           setStudent(null);
           return;
         }
 
-        const studentData = data.data;
-
+        // Fetch student details
         const studentFlat: Student = {
           ...studentData,
           sectionName: studentData.sectionName ?? "",
@@ -314,9 +340,9 @@ const AdviserClassStudentDetails = () => {
 
         setForm(prefillForm);
         setOriginalForm(prefillForm);
-      } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        setError(errorMessage || "Something went wrong");
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error("Something went wrong");
+        setError(error.message);
         setStudent(null);
       } finally {
         setLoading(false);
@@ -324,13 +350,13 @@ const AdviserClassStudentDetails = () => {
     };
 
     fetchStudent();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sectionId, studentId]);
+  }, [sectionId, studentId, setShowTokenExpiredModal]);
 
   if (loading) return <p>Loading student details...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
   if (!student) return <p>Student not found.</p>;
 
+  // [DATA] Learning Modalities
   const LEARNING_MODALITIES = [
     { label: "Face to Face", value: "FACE_TO_FACE" },
     { label: "Distance Learning", value: "DISTANCE_LEARNING" },
@@ -340,6 +366,7 @@ const AdviserClassStudentDetails = () => {
     { label: "Other", value: "OTHER" },
   ];
 
+  // Breadcrumbs navigation
   const breadcrumbs = [
     { label: "Class Management", path: "/adviser/classes" },
     {
@@ -352,20 +379,21 @@ const AdviserClassStudentDetails = () => {
 
   return (
     <div className="py-8 px-4 space-y-4">
+      {/* [COMPONENT] Modal */}
       {showModal && (
         <Modal
           isOpen={showModal}
           onClose={() => setShowModal(false)}
           onConfirm={() => {
             setShowModal(false);
-            if (redirectOnConfirm) navigate("/adviser/classes"); // optional redirect
+            if (redirectOnConfirm) navigate("/adviser/classes");
           }}
           title={modalTitle}
           message={modalMessage}
           type={modalType}
         />
       )}
-      {/* Breadcrumbs */}
+      {/* [SECTION] Breadcrumbs Navigation */}
       <nav className="font-roboto text-sm text-[var(--color-text-700)] px-2 pb-2">
         {breadcrumbs.map((crumb, index) => (
           <span key={index}>
@@ -381,10 +409,10 @@ const AdviserClassStudentDetails = () => {
         ))}
       </nav>
 
-      {/* Student Card (Profile + Full Name + Details Table) */}
+      {/* [SECTION] Student Information */}
       <div className="bg-[var(--color-bg-50)] shadow-lg rounded-lg flex flex-col md:flex-row md:items-start gap-y-4">
         <div className="flex justify-center items-center text-center pt-4">
-          {/* Left: Profile Picture */}
+          {/* [UI] Profile Picture */}
           <img
             src={student.profilePic ?? "/default-profile.png"}
             alt=""
@@ -392,14 +420,14 @@ const AdviserClassStudentDetails = () => {
           />
         </div>
 
-        {/* Right: Name + Details */}
+        {/* [SECTION] Name + Details */}
         <div className="flex-1 flex flex-col gap-4">
-          {/* Full Name */}
+          {/* [UI] Full Name */}
           <p className="font-figtree font-bold text-xl text-[var(--color-text-900)] md:text-left text-center">
             {formatFullName(student)}
           </p>
 
-          {/* Details Table */}
+          {/* [SECTION] Details Table */}
           <div className="overflow-x-auto">
             <table className="min-w-full table-auto border-collapse font-roboto text-[var(--color-text-900)]">
               <colgroup>
@@ -439,13 +467,14 @@ const AdviserClassStudentDetails = () => {
         </div>
       </div>
 
-      {/* Generate SF9 */}
+      {/* [PRIMARY BUTTON] Generate SF9 */}
       <PrimaryButton text="Generate SF9" onClick={handleGenerateSF9} />
 
-      {/* Multi-page form */}
+      {/* [SECTION] Multi-page Student Information */}
       <div className="shadow-lg rounded-xl p-6 bg-[var(--color-bg-100)] space-y-2">
-        {/* Pagination */}
+        {/* [SECTION] Pagination */}
         <div className="flex justify-between items-center space-x-4">
+          {/* [BUTTON] Previous */}
           <button
             onClick={handlePrevPage}
             disabled={page === 1}
@@ -458,10 +487,12 @@ const AdviserClassStudentDetails = () => {
             &lt; Previous
           </button>
 
+          {/* [UI] Page Number */}
           <span className="flex gap-x-1 text-sm text-[var(--color-text-900)] font-medium">
             Page <span className="font-bold">{page}</span> of <span className="font-bold">{totalPages}</span>
           </span>
 
+          {/* [BUTTON] Next */}
           <button
             onClick={handleNextPage}
             disabled={page === totalPages}
@@ -475,9 +506,10 @@ const AdviserClassStudentDetails = () => {
           </button>
         </div>
 
+        {/* [UI] Separator */}
         <hr className="my-4 text-[var(--color-text-300)]"/>
 
-        {/* Edit / Cancel */}
+        {/* [BUTTON] Edit / Cancel */}
         <div className="flex justify-end gap-4">
           <button
             onClick={toggleEdit}
@@ -494,7 +526,7 @@ const AdviserClassStudentDetails = () => {
             )}
           </button>
 
-          {/* Save — only visible in edit mode */}
+          {/* [BUTTON] Save */}
           {isEditing && (
             <button
               onClick={handleSave}
@@ -506,7 +538,7 @@ const AdviserClassStudentDetails = () => {
           )}
         </div>
 
-        {/* Form Pages */}
+        {/* [SECTION] Form Pages */}
         {page === 1 && (
           <>
             <h3 className="pb-2 font-semibold">Basic Information</h3>
