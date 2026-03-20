@@ -1,11 +1,11 @@
+// [IMPORT] Hooks
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+
+// [IMPORT] Components
 import Modal from "../../components/Modal";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
+// ?[INTERFACES]
 interface GradeItemApi {
   id: number;
   type: string;
@@ -28,7 +28,6 @@ interface GradingItem {
   maxScore: number;
   createdAt?: string;
   quarter: number;
-  /** Populated by getNumberedItems – never store in state */
   displayLabel?: string;
 }
 
@@ -38,10 +37,7 @@ interface SubjectGradeDetail {
   gradingItems: GradingItem[];
 }
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
+// ?[CONSTANTS]
 const CRITERIA_ABBREVIATIONS: Record<string, string> = {
   WRITTEN_WORK: "WW",
   PERFORMANCE_TASK: "PT",
@@ -65,22 +61,14 @@ const CRITERIA_LABELS: Record<string, string> = {
   QUARTERLY_ASSESSMENT: "Quarterly Assessment",
 };
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+// ?[HELPERS]
 
-/**
- * Assigns sequential display labels (e.g., "WW 1", "PT 2", "QA") to items.
- *
- * IMPORTANT: This must be called on the FULL (unfiltered) list so that numbers
- * remain stable regardless of the active filter.  The returned array preserves
- * the original order and can be filtered afterwards.
- */
+// [HELPER] Assigns sequential display labels (e.g., "WW 1", "PT 2", "QA") to items.
 const buildNumberedItems = (items: GradingItem[]): GradingItem[] => {
-  // counters keyed by "criteria-quarter" so WW numbering resets per quarter
+  // Counters keyed by "criteria-quarter" so WW numbering resets per quarter
   const counters: Record<string, number> = {};
 
-  return items.map(item => {
+  return items.map((item) => {
     const key = `${item.criteria}-${item.quarter}`;
     counters[key] = (counters[key] ?? 0) + 1;
 
@@ -94,17 +82,6 @@ const buildNumberedItems = (items: GradingItem[]): GradingItem[] => {
   });
 };
 
-const getRemarks = (finalGrade: number) => {
-  if (finalGrade >= 98) return "With Highest Honors";
-  if (finalGrade >= 95) return "With High Honors";
-  if (finalGrade >= 90) return "With Honors";
-  return "";
-};
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-
 const AdviserClassStudentGradesDetails = () => {
   const { sectionId, studentId, subjectId } = useParams<{
     sectionId: string;
@@ -113,7 +90,7 @@ const AdviserClassStudentGradesDetails = () => {
   }>();
   const navigate = useNavigate();
 
-  // -- Core data state ------------------------------------------------------
+  // [STATES] Core data
   const [grade, setGrade] = useState<SubjectGradeDetail | null>(null);
   const [profileName, setProfileName] = useState("Unknown Name");
   const [advisorySection, setAdvisorySection] = useState<{
@@ -123,33 +100,21 @@ const AdviserClassStudentGradesDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // -- Filter / form state --------------------------------------------------
+  // [STATES] Filter
   const [selectedCriteria, setSelectedCriteria] = useState<string>("All");
   const [filterQuarter, setFilterQuarter] = useState<number | "All">("All");
   const [selectedQuarter, setSelectedQuarter] = useState<number>(1);
 
-  // -- Edit/add form state --------------------------------------------------
+  // [STATES] Add / edit form
   const [editingItem, setEditingItem] = useState<GradingItem | null>(null);
   const [newItemScore, setNewItemScore] = useState<number | "">("");
   const [newItemMaxScore, setNewItemMaxScore] = useState<number | "">(100);
   const [newItemCriteria, setNewItemCriteria] = useState<string>("WRITTEN_WORK");
 
-  // -- Quarter lock ---------------------------------------------------------
+  // [STATES] Quarter lock
   const [quarterLocked, setQuarterLocked] = useState<Record<number, boolean>>({});
 
-  // Derived per-quarter status
-  const quarterStatus: Record<number, { hasGrades: boolean; locked: boolean }> = [1,2,3,4].reduce(
-    (acc, q) => {
-      const itemsInQuarter = grade?.gradingItems.filter(item => item.quarter === q) ?? [];
-      acc[q] = {
-        hasGrades: itemsInQuarter.length > 0,
-        locked: !!quarterLocked[q],
-      };
-      return acc;
-    }, {} as Record<number, { hasGrades: boolean; locked: boolean }>
-  );
-
-  // -- Modal ----------------------------------------------------------------
+  // [STATES] Modal
   const [showModal, setShowModal] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
@@ -158,22 +123,38 @@ const AdviserClassStudentGradesDetails = () => {
   >("default");
 
   /**
-   * FIX: Use a ref instead of state for pendingAction.
-   *
-   * React's setState(fn) treats `fn` as an *updater function* and immediately
-   * calls it with the previous state, so `setPendingAction(() => myAsyncFn)`
-   * would invoke `myAsyncFn(previousState)` and store the returned Promise –
-   * not `myAsyncFn` itself.  Using a ref avoids this pitfall entirely.
+   * Use a ref instead of state for pendingAction.
+   * React's setState(fn) treats `fn` as an updater and calls it immediately —
+   * storing an async function via setState would invoke it. A ref avoids this.
    */
   const pendingActionRef = useRef<(() => Promise<void>) | null>(null);
 
   const token = localStorage.getItem("token");
+
+  // ?[DERIVED] Per-quarter status for the status indicator row
+  const quarterStatus: Record<number, { hasGrades: boolean; locked: boolean }> =
+    [1, 2, 3, 4].reduce(
+      (acc, q) => {
+        const itemsInQuarter =
+          grade?.gradingItems.filter((item) => item.quarter === q) ?? [];
+        acc[q] = {
+          hasGrades: itemsInQuarter.length > 0,
+          locked: !!quarterLocked[q],
+        };
+        return acc;
+      },
+      {} as Record<number, { hasGrades: boolean; locked: boolean }>
+    );
+
+  // ?[DERIVED] Lock state for the currently selected form quarter
+  const isLocked = !!quarterLocked[selectedQuarter];
 
   // ---------------------------------------------------------------------------
   // API helpers
   // ---------------------------------------------------------------------------
 
   const handleApiResponse = async (res: Response) => {
+    // ![ERROR] Expired token
     if (res.status === 401) {
       alert("Session expired. Please login again.");
       return null;
@@ -181,10 +162,7 @@ const AdviserClassStudentGradesDetails = () => {
     return res.json();
   };
 
-  // ---------------------------------------------------------------------------
-  // Data fetching
-  // ---------------------------------------------------------------------------
-
+  // *[EFFECT] Fetch student info + SF9 grades (single request — sf9Grades is embedded in the student response)
   const fetchGradeDetails = useCallback(async () => {
     if (!sectionId || !studentId || !subjectId) return;
 
@@ -192,49 +170,59 @@ const AdviserClassStudentGradesDetails = () => {
     setError(null);
 
     try {
-      // Student info
+      // Single fetch — student endpoint already includes sf9Grades with items & learningArea
       const studentRes = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/api/adviser/sections/${sectionId}/students/${studentId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const studentData = await handleApiResponse(studentRes);
-      if (studentData?.success) {
-        setProfileName(studentData.data.fullName ?? "Unknown Name");
-        setAdvisorySection({
-          gradeLevel: String(studentData.data.gradeLevel),
-          name: studentData.data.sectionName,
-        });
-      }
 
-      // SF9 grades
-      const gradesRes = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/sf9/${studentId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const gradesData = await handleApiResponse(gradesRes);
-
-      if (!gradesData?.success || !gradesData.data) {
-        setError(gradesData?.message || "Failed to fetch grades");
+      // ![ERROR] Backend failure or missing data
+      if (!studentData?.success || !studentData.data) {
+        setError(studentData?.message || "Failed to fetch student");
         setGrade(null);
         return;
       }
 
-      const subjectGradeData: SubjectGradeApi | undefined = gradesData.data.find(
-        (g: SubjectGradeApi) => g.id === Number(subjectId)
+      const s = studentData.data;
+
+      setProfileName(s.fullName ?? "Unknown Name");
+      setAdvisorySection({
+        gradeLevel: String(s.gradeLevel),
+        name: s.sectionName,
+      });
+
+      // sf9Grades is an array embedded directly in the student response
+      const gradesArray: SubjectGradeApi[] = Array.isArray(s.sf9Grades)
+        ? s.sf9Grades
+        : [];
+
+      // ![ERROR] No grades array on the student record
+      if (gradesArray.length === 0) {
+        setError("No SF9 grades found for this student");
+        setGrade(null);
+        return;
+      }
+
+      const subjectGradeData = gradesArray.find(
+        (g: SubjectGradeApi) => g?.id === Number(subjectId)
       );
 
+      // ![ERROR] Subject grade not found in response
       if (!subjectGradeData) {
         setError("Subject grade not found");
         setGrade(null);
         return;
       }
 
-      // FIX: Always sort by createdAt then id so numbering is deterministic
+      // Sort items by createdAt then id so numbering is deterministic
       const sortedItems: GradingItem[] = (subjectGradeData.items ?? [])
         .slice()
         .sort((a: GradeItemApi, b: GradeItemApi) => {
           if (a.createdAt && b.createdAt)
-            return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+            return (
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            );
           return a.id - b.id;
         })
         .map((item: GradeItemApi) => ({
@@ -243,8 +231,7 @@ const AdviserClassStudentGradesDetails = () => {
           score: item.score,
           maxScore: item.maxScore ?? 100,
           createdAt: item.createdAt,
-          // FIX: default quarter to 1 so it is never undefined
-          quarter: item.quarter ?? 1,
+          quarter: item.quarter ?? 1, // default to Q1 if undefined
         }));
 
       const gradeId = subjectGradeData.id;
@@ -258,14 +245,7 @@ const AdviserClassStudentGradesDetails = () => {
         gradingItems: sortedItems,
       });
 
-      // FIX: Fetch quarter lock status using the SF9 *grade* ID (not studentId).
-      //
-      // The backend has two routes with identical-looking paths:
-      //   GET /sf9/:studentId/quarter-status  → returns locks for grades[0] (WRONG for us)
-      //   GET /sf9/:gradeId/quarter-status    → returns locks for this exact grade (CORRECT)
-      //
-      // We must use the gradeId obtained above so the lock state is always for
-      // the current subject, regardless of how many SF9 grades the student has.
+      // Fetch quarter lock status using the SF9 *grade* ID (not studentId)
       try {
         const lockRes = await fetch(
           `${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/sf9/${gradeId}/quarter-status`,
@@ -279,6 +259,7 @@ const AdviserClassStudentGradesDetails = () => {
         console.warn("Failed to fetch quarter status", lockErr);
       }
     } catch (err: unknown) {
+      // ![ERROR] Network or unexpected failure
       setError(err instanceof Error ? err.message : String(err));
       setGrade(null);
     } finally {
@@ -291,86 +272,78 @@ const AdviserClassStudentGradesDetails = () => {
   }, [fetchGradeDetails]);
 
   // ---------------------------------------------------------------------------
-  // Quarter lock
+  // Quarter lock toggle
   // ---------------------------------------------------------------------------
 
-const toggleQuarterLock = async (quarter: number) => {
-  if (!grade?.id) return;
+  const toggleQuarterLock = async (quarter: number) => {
+    if (!grade?.id) return;
 
-  // Check if there are items in this quarter
-  const quarterItems = grade.gradingItems.filter(item => item.quarter === quarter);
-  if (quarterItems.length === 0) {
-    setModalTitle("Cannot Lock Quarter");
-    setModalMessage(`Quarter ${quarter} has no grade items. Add at least one item before locking.`);
-    setModalType("error");
-    setShowModal(true);
-    return; // stop here
-  }
-
-  const isCurrentlyLocked = !!quarterLocked[quarter];
-
-  try {
-    const res = await fetch(
-      `${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/sf9/${grade.id}/quarter-ready`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          quarter: `q${quarter}`,
-          ready: !isCurrentlyLocked,
-        }),
-      }
+    // ![ERROR] Cannot lock a quarter with no items
+    const quarterItems = grade.gradingItems.filter(
+      (item) => item.quarter === quarter
     );
-    const data = await handleApiResponse(res);
-    if (data?.success) {
-      const newLockValue: boolean = data.data[`q${quarter}Ready`] ?? !isCurrentlyLocked;
-      setQuarterLocked(prev => ({ ...prev, [quarter]: newLockValue }));
-
-      setModalTitle("Success");
+    if (quarterItems.length === 0) {
+      setModalTitle("Cannot Lock Quarter");
       setModalMessage(
-        `Quarter ${quarter} has been ${newLockValue ? "locked" : "unlocked"} successfully.`
+        `Quarter ${quarter} has no grade items. Add at least one item before locking.`
       );
-      setModalType("success");
+      setModalType("error");
       setShowModal(true);
-    } else {
-      throw new Error(data?.message || "Unknown error");
+      return;
     }
-  } catch (err) {
-    console.error(err);
-    setModalTitle("Error");
-    setModalMessage(`Failed to ${!isCurrentlyLocked ? "lock" : "unlock"} Quarter ${quarter}.`);
-    setModalType("error");
-    setShowModal(true);
-  }
-};
 
-  // ---------------------------------------------------------------------------
-  // Derived / filtered data
-  // ---------------------------------------------------------------------------
+    const isCurrentlyLocked = !!quarterLocked[quarter];
 
-  /**
-   * FIX: Build display labels from the FULL list first, then filter.
-   * This keeps "WW 1", "WW 2" stable even when other items are hidden.
-   */
-  const numberedItems = buildNumberedItems(grade?.gradingItems ?? []);
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/sf9/${grade.id}/quarter-ready`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            quarter: `q${quarter}`,
+            ready: !isCurrentlyLocked,
+          }),
+        }
+      );
+      const data = await handleApiResponse(res);
 
-  const filteredItems = numberedItems.filter(item => {
-    const quarterMatch = filterQuarter === "All" || item.quarter === filterQuarter;
-    const criteriaMatch = selectedCriteria === "All" || item.criteria === selectedCriteria;
-    return quarterMatch && criteriaMatch;
-  });
-
-  // Derived lock state for the currently selected form quarter
-  const isLocked = !!quarterLocked[selectedQuarter];
+      if (data?.success) {
+        const newLockValue: boolean =
+          data.data[`q${quarter}Ready`] ?? !isCurrentlyLocked;
+        setQuarterLocked((prev) => ({ ...prev, [quarter]: newLockValue }));
+        setModalTitle("Success");
+        setModalMessage(
+          `Quarter ${quarter} has been ${newLockValue ? "locked" : "unlocked"} successfully.`
+        );
+        setModalType("success");
+        setShowModal(true);
+      } else {
+        throw new Error(data?.message || "Unknown error");
+      }
+    } catch (err) {
+      console.error(err);
+      setModalTitle("Error");
+      setModalMessage(
+        `Failed to ${!isCurrentlyLocked ? "lock" : "unlock"} Quarter ${quarter}.`
+      );
+      setModalType("error");
+      setShowModal(true);
+    }
+  };
 
   // ---------------------------------------------------------------------------
   // CRUD helpers
   // ---------------------------------------------------------------------------
 
-  const showInfoModal = (title: string, message: string, type: typeof modalType) => {
+  const showInfoModal = (
+    title: string,
+    message: string,
+    type: typeof modalType
+  ) => {
     setModalTitle(title);
     setModalMessage(message);
     setModalType(type);
@@ -378,8 +351,12 @@ const toggleQuarterLock = async (quarter: number) => {
     setShowModal(true);
   };
 
-  const validateScores = (score: number | "", maxScore: number | ""): string | null => {
-    if (score === "" || maxScore === "") return "Please enter a score and max score.";
+  const validateScores = (
+    score: number | "",
+    maxScore: number | ""
+  ): string | null => {
+    if (score === "" || maxScore === "")
+      return "Please enter a score and max score.";
     if (maxScore <= 0) return "Max Score must be greater than 0.";
     if (score < 0) return "Score cannot be negative.";
     if (score > maxScore) return "Score cannot exceed Max Score.";
@@ -393,8 +370,7 @@ const toggleQuarterLock = async (quarter: number) => {
     setNewItemCriteria("WRITTEN_WORK");
   };
 
-  // -- Create ----------------------------------------------------------------
-
+  // [CREATE] Add a new grade item
   const createGradeItem = async () => {
     if (!grade) return;
 
@@ -409,10 +385,12 @@ const toggleQuarterLock = async (quarter: number) => {
       return;
     }
 
-    // FIX: Duplicate QA guard
+    // ![ERROR] Duplicate QA guard
     if (newItemCriteria === "QUARTERLY_ASSESSMENT") {
       const existingQA = grade.gradingItems.find(
-        item => item.criteria === "QUARTERLY_ASSESSMENT" && item.quarter === selectedQuarter
+        (item) =>
+          item.criteria === "QUARTERLY_ASSESSMENT" &&
+          item.quarter === selectedQuarter
       );
       if (existingQA) {
         showInfoModal(
@@ -443,10 +421,10 @@ const toggleQuarterLock = async (quarter: number) => {
         }
       );
       const data = await handleApiResponse(res);
+
       if (data?.success) {
         resetForm();
-        // FIX: Optimistic update – append new item immediately from API response,
-        // then do a background refresh for consistency.
+        // Optimistic update — append new item immediately, then background refresh
         if (data.data) {
           const newItem: GradingItem = {
             id: data.data.id,
@@ -456,8 +434,10 @@ const toggleQuarterLock = async (quarter: number) => {
             createdAt: data.data.createdAt,
             quarter: data.data.quarter ?? selectedQuarter,
           };
-          setGrade(prev =>
-            prev ? { ...prev, gradingItems: [...prev.gradingItems, newItem] } : prev
+          setGrade((prev) =>
+            prev
+              ? { ...prev, gradingItems: [...prev.gradingItems, newItem] }
+              : prev
           );
         }
         await fetchGradeDetails();
@@ -470,8 +450,7 @@ const toggleQuarterLock = async (quarter: number) => {
     }
   };
 
-  // -- Update ----------------------------------------------------------------
-
+  // [UPDATE] Edit an existing grade item
   const updateGradeItem = () => {
     if (!editingItem) return;
 
@@ -481,10 +460,10 @@ const toggleQuarterLock = async (quarter: number) => {
       return;
     }
 
-    // FIX: Duplicate QA guard (exclude the item being edited)
+    // ![ERROR] Duplicate QA guard — exclude the item being edited
     if (newItemCriteria === "QUARTERLY_ASSESSMENT") {
       const existingQA = grade?.gradingItems.find(
-        item =>
+        (item) =>
           item.criteria === "QUARTERLY_ASSESSMENT" &&
           item.quarter === selectedQuarter &&
           item.id !== editingItem.id
@@ -499,7 +478,7 @@ const toggleQuarterLock = async (quarter: number) => {
       }
     }
 
-    // FIX: Use ref to store pending async action so React doesn't call it as an updater
+    // Use ref to store the pending async action (avoids React treating it as a state updater)
     pendingActionRef.current = async () => {
       try {
         const res = await fetch(
@@ -519,14 +498,15 @@ const toggleQuarterLock = async (quarter: number) => {
           }
         );
         const data = await handleApiResponse(res);
+
         if (data?.success) {
           resetForm();
-          // FIX: Optimistic update – patch in-place, then refresh
-          setGrade(prev => {
+          // Optimistic update — patch in-place, then background refresh
+          setGrade((prev) => {
             if (!prev) return prev;
             return {
               ...prev,
-              gradingItems: prev.gradingItems.map(item =>
+              gradingItems: prev.gradingItems.map((item) =>
                 item.id === editingItem.id
                   ? {
                       ...item,
@@ -556,10 +536,9 @@ const toggleQuarterLock = async (quarter: number) => {
     setShowModal(true);
   };
 
-  // -- Delete ----------------------------------------------------------------
-
+  // [DELETE] Remove a grade item
   const confirmDeleteGradeItem = (id: number) => {
-    // FIX: Use ref to store pending async action
+    // Use ref to store the pending async action
     pendingActionRef.current = async () => {
       try {
         const res = await fetch(
@@ -574,13 +553,14 @@ const toggleQuarterLock = async (quarter: number) => {
           }
         );
         const data = await handleApiResponse(res);
+
         if (data?.success) {
-          // FIX: Optimistic update – remove item immediately, then refresh
-          setGrade(prev => {
+          // Optimistic update — remove item immediately, then refresh
+          setGrade((prev) => {
             if (!prev) return prev;
             return {
               ...prev,
-              gradingItems: prev.gradingItems.filter(item => item.id !== id),
+              gradingItems: prev.gradingItems.filter((item) => item.id !== id),
             };
           });
           await fetchGradeDetails();
@@ -617,18 +597,26 @@ const toggleQuarterLock = async (quarter: number) => {
     }
   };
 
-  // ---------------------------------------------------------------------------
-  // Loading / error guards
-  // ---------------------------------------------------------------------------
+  // ?[DERIVED] Build display labels from the full list, then filter
+  const numberedItems = buildNumberedItems(grade?.gradingItems ?? []);
 
-  if (loading) return <p className="text-center py-4">Loading subject grade...</p>;
-  if (error) return <p className="text-red-500 text-center py-4">{error}</p>;
-  if (!grade) return <p className="text-center py-4">Grade not available.</p>;
+  const filteredItems = numberedItems.filter((item) => {
+    const quarterMatch =
+      filterQuarter === "All" || item.quarter === filterQuarter;
+    const criteriaMatch =
+      selectedCriteria === "All" || item.criteria === selectedCriteria;
+    return quarterMatch && criteriaMatch;
+  });
 
-  // ---------------------------------------------------------------------------
-  // Breadcrumbs
-  // ---------------------------------------------------------------------------
+  // [LOADING STATE] Wait for data fetch
+  if (loading)
+    return <p className="text-center py-4">Loading subject grade...</p>;
+  if (error)
+    return <p className="text-red-500 text-center py-4">{error}</p>;
+  if (!grade)
+    return <p className="text-center py-4">Grade not available.</p>;
 
+  // Breadcrumbs navigation
   const breadcrumbs = [
     { label: "Class Management", path: "/adviser/classes" },
     {
@@ -645,13 +633,9 @@ const toggleQuarterLock = async (quarter: number) => {
     { label: grade.subject, path: null },
   ];
 
-  // ---------------------------------------------------------------------------
-  // Render
-  // ---------------------------------------------------------------------------
-
   return (
     <div className="py-10 px-4 space-y-6 max-w-md mx-auto">
-      {/* Modal */}
+      {/* [COMPONENT] Confirmation / info modal */}
       {showModal && (
         <Modal
           isOpen={showModal}
@@ -665,7 +649,7 @@ const toggleQuarterLock = async (quarter: number) => {
         />
       )}
 
-      {/* Breadcrumb */}
+      {/* [SECTION] Breadcrumbs Navigation */}
       <nav className="font-roboto text-sm text-[var(--color-text-700)] px-2 pb-2">
         {breadcrumbs.map((crumb, idx) => (
           <span key={idx}>
@@ -686,7 +670,7 @@ const toggleQuarterLock = async (quarter: number) => {
         ))}
       </nav>
 
-      {/* Student header */}
+      {/* [SECTION] Student Header */}
       <div className="flex items-center bg-[var(--color-primary-600)] border-3 border-[var(--color-primary-700)]/60 rounded-xl px-5 py-6 gap-x-4 shadow-md">
         <div className="bg-[var(--color-bg-200)] w-18 h-18 rounded-full flex-shrink-0" />
         <div className="flex-1">
@@ -710,8 +694,9 @@ const toggleQuarterLock = async (quarter: number) => {
         </div>
       </div>
 
+      {/* [SECTION] Quarter Status Indicators */}
       <div className="flex justify-center gap-4 mb-4 bg-[var(--color-bg-100)] p-4 rounded-lg">
-        {[1, 2, 3, 4].map(q => {
+        {[1, 2, 3, 4].map((q) => {
           const status = quarterStatus[q];
 
           let bgColor = "bg-gray-300";
@@ -730,7 +715,7 @@ const toggleQuarterLock = async (quarter: number) => {
 
           return (
             <div key={q} className="flex flex-col items-center gap-1">
-              <div className={`w-6 h-6 rounded-full ${bgColor}`}></div>
+              <div className={`w-6 h-6 rounded-full ${bgColor}`} />
               <span className="text-sm font-semibold font-figtree">Q{q}</span>
               <span className="text-xs text-[var(--color-text-800)]">{label}</span>
             </div>
@@ -738,14 +723,16 @@ const toggleQuarterLock = async (quarter: number) => {
         })}
       </div>
 
-      {/* Filters + Table */}
+      {/* [SECTION] Filters & Grade Table */}
       <div className="bg-[var(--color-bg-100)] p-4 rounded-lg space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-          {/* Quarter filter */}
+          {/* [COMPONENT] Quarter Filter */}
           <select
             value={filterQuarter}
-            onChange={e =>
-              setFilterQuarter(e.target.value === "All" ? "All" : Number(e.target.value))
+            onChange={(e) =>
+              setFilterQuarter(
+                e.target.value === "All" ? "All" : Number(e.target.value)
+              )
             }
             className="font-roboto text-sm border border-[var(--color-bg-200)] bg-[var(--color-bg-50)] rounded px-3 py-2 w-full sm:w-auto"
           >
@@ -756,11 +743,11 @@ const toggleQuarterLock = async (quarter: number) => {
             <option value={4}>Quarter 4</option>
           </select>
 
-          {/* Criteria filter */}
+          {/* [COMPONENT] Criteria Filter */}
           <select
             className="font-roboto text-sm border border-[var(--color-bg-200)] bg-[var(--color-bg-50)] rounded px-3 py-2 w-full sm:w-auto"
             value={selectedCriteria}
-            onChange={e => setSelectedCriteria(e.target.value)}
+            onChange={(e) => setSelectedCriteria(e.target.value)}
           >
             <option value="All">All</option>
             {Object.entries(CRITERIA_LABELS).map(([key, label]) => (
@@ -770,7 +757,7 @@ const toggleQuarterLock = async (quarter: number) => {
             ))}
           </select>
 
-          {/* Lock / Unlock — only visible when a specific quarter is selected */}
+          {/* [COMPONENT] Lock / Unlock Button — only visible when a specific quarter is selected */}
           {filterQuarter !== "All" && (
             <button
               onClick={() => toggleQuarterLock(filterQuarter as number)}
@@ -787,7 +774,7 @@ const toggleQuarterLock = async (quarter: number) => {
           )}
         </div>
 
-        {/* Table */}
+        {/* [SECTION] Grade Items Table */}
         <div className="bg-white rounded-t-lg shadow overflow-x-auto">
           <table className="table-fixed w-full divide-y divide-gray-200">
             <colgroup>
@@ -805,13 +792,16 @@ const toggleQuarterLock = async (quarter: number) => {
             <tbody className="text-sm text-gray-700">
               {filteredItems.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="px-2 py-4 text-center text-gray-400">
+                  <td
+                    colSpan={3}
+                    className="px-2 py-4 text-center text-gray-400"
+                  >
                     No grade items found.
                   </td>
                 </tr>
               ) : (
-                filteredItems.map(item => {
-                  // FIX: lock status is per the item's quarter, not the form's quarter
+                filteredItems.map((item) => {
+                  // Lock status is per the item's own quarter, not the form's quarter
                   const itemLocked = !!quarterLocked[item.quarter];
                   return (
                     <tr key={item.id} className="hover:bg-gray-50">
@@ -822,7 +812,9 @@ const toggleQuarterLock = async (quarter: number) => {
                         {item.displayLabel}
                       </td>
                       <td className="px-2 py-2 text-left">
-                        {item.score != null ? `${item.score} / ${item.maxScore}` : "-"}
+                        {item.score != null
+                          ? `${item.score} / ${item.maxScore}`
+                          : "-"}
                       </td>
                       <td className="px-2 py-2 flex justify-center gap-2">
                         <button
@@ -862,17 +854,17 @@ const toggleQuarterLock = async (quarter: number) => {
         </div>
       </div>
 
-      {/* Add / Edit Form */}
+      {/* [SECTION] Add / Edit Grade Item Form */}
       <div className="bg-[var(--color-bg-100)] p-4 rounded-lg shadow space-y-3">
         <h4 className="font-medium">
           {editingItem ? "Edit Grade Item" : "Add New Grade Item"}
         </h4>
 
         <div className="flex flex-col sm:flex-row gap-2">
-          {/* Quarter */}
+          {/* [COMPONENT] Quarter Selector */}
           <select
             value={selectedQuarter}
-            onChange={e => setSelectedQuarter(Number(e.target.value))}
+            onChange={(e) => setSelectedQuarter(Number(e.target.value))}
             className="font-roboto text-sm border border-[var(--color-bg-200)] bg-[var(--color-bg-50)] rounded px-3 py-2 w-full sm:w-auto"
           >
             <option value={1}>Quarter 1</option>
@@ -881,10 +873,10 @@ const toggleQuarterLock = async (quarter: number) => {
             <option value={4}>Quarter 4</option>
           </select>
 
-          {/* Criteria */}
+          {/* [COMPONENT] Criteria Selector */}
           <select
             value={newItemCriteria}
-            onChange={e => setNewItemCriteria(e.target.value)}
+            onChange={(e) => setNewItemCriteria(e.target.value)}
             disabled={isLocked}
             className="font-roboto text-sm border border-[var(--color-bg-200)] bg-[var(--color-bg-50)] rounded px-3 py-2 w-full sm:w-auto"
           >
@@ -895,33 +887,37 @@ const toggleQuarterLock = async (quarter: number) => {
             ))}
           </select>
 
-          {/* Score */}
+          {/* [COMPONENT] Score Input */}
           <input
             type="number"
             placeholder="Score"
             value={newItemScore}
-            onChange={e =>
-              setNewItemScore(e.target.value === "" ? "" : Number(e.target.value))
+            onChange={(e) =>
+              setNewItemScore(
+                e.target.value === "" ? "" : Number(e.target.value)
+              )
             }
             disabled={isLocked}
             min={0}
             className="font-roboto text-sm border border-[var(--color-bg-200)] bg-[var(--color-bg-50)] rounded px-3 py-2 w-full sm:w-auto"
           />
 
-          {/* Max Score */}
+          {/* [COMPONENT] Max Score Input */}
           <input
             type="number"
             placeholder="Max Score"
             value={newItemMaxScore}
-            onChange={e =>
-              setNewItemMaxScore(e.target.value === "" ? "" : Number(e.target.value))
+            onChange={(e) =>
+              setNewItemMaxScore(
+                e.target.value === "" ? "" : Number(e.target.value)
+              )
             }
             disabled={isLocked}
             min={1}
             className="font-roboto text-sm border border-[var(--color-bg-200)] bg-[var(--color-bg-50)] rounded px-3 py-2 w-full sm:w-auto"
           />
 
-          {/* Action buttons */}
+          {/* [COMPONENT] Action Buttons */}
           <div className="flex gap-2">
             <button
               onClick={() => (editingItem ? updateGradeItem() : createGradeItem())}
@@ -944,13 +940,13 @@ const toggleQuarterLock = async (quarter: number) => {
               </button>
             )}
           </div>
-
         </div>
 
         {/* Locked hint for the selected form quarter */}
         {isLocked && (
           <p className="text-xs text-amber-600 font-medium">
-            Quarter {selectedQuarter} is locked. Switch to a different quarter or unlock it from the filter above.
+            Quarter {selectedQuarter} is locked. Switch to a different quarter
+            or unlock it from the filter above.
           </p>
         )}
       </div>
