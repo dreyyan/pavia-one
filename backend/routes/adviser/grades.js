@@ -5,6 +5,7 @@ const prisma = require('../../lib/prisma');
 
 // [IMPORT] Tools
 const { successResponse, errorResponse } = require('../../utils/response');
+const { updateGeneralAverage } = require('../../utils/helpers');
 const verifyAdviser = require('../../middleware/authMiddleware').verifyAdviser;
 
 // -----------------------------
@@ -36,15 +37,19 @@ router.get('/sf9/:studentId', verifyAdviser, async (req, res) => {
     if (!grades.length)
       return res.status(404).json(errorResponse('No SF9 grades found'));
 
-    // Compute finalAverage only if all subjects have finalRating
-    const allFinalized = grades.every(g => g.finalRating !== null);
-    const finalAverage = allFinalized
-      ? Math.round(grades.reduce((sum, g) => sum + g.finalRating, 0) / grades.length)
-      : null;
+    // 🔥 Get official general average from SF9Summary
+    const summary = await prisma.sF9Summary.findUnique({
+      where: {
+        studentId_schoolYear: {
+          studentId: Number(studentId),
+          schoolYear: grades[0].schoolYear
+        }
+      }
+    });
 
     res.json(successResponse('SF9 grades retrieved', {
-      finalAverage,
-      grades,
+      generalAverage: summary?.generalAverage ?? null,
+      grades
     }));
 
   } catch (err) {
@@ -64,29 +69,25 @@ router.get('/section/:sectionId', verifyAdviser, async (req, res) => {
         enrollments: { some: { sectionId: Number(sectionId) } }
       },
       include: {
-        sf9Grades: { select: { finalRating: true } }
+        sfSummaries: true,
       },
       orderBy: { lastName: 'asc' }
     });
 
     const responseData = students.map(s => {
-      // Only compute finalAverage if all subjects have finalRating
-      const allFinalized = s.sf9Grades.every(g => g.finalRating !== null);
+      const summary = s.sf9Summaries[0];
 
-      const finalAverage = allFinalized
-        ? Math.round(s.sf9Grades.reduce((sum, g) => sum + g.finalRating, 0) / s.sf9Grades.length)
-        : null;
-
-      const remarks = finalAverage !== null
-        ? finalAverage >= 75 ? 'PASSED' : 'FAILED'
-        : null;
+      const avg = summary?.generalAverage ?? null;
 
       return {
         id: s.id,
         lrn: s.lrn,
         fullName: `${s.firstName} ${s.lastName}`,
-        average: finalAverage,
-        remarks,
+        average: avg,
+        remarks:
+          avg !== null
+            ? avg >= 75 ? 'PASSED' : 'FAILED'
+            : null
       };
     });
 
@@ -249,6 +250,11 @@ router.patch('/sf9/:gradeId/quarter-ready', verifyAdviser, async (req, res) => {
       where: { id: Number(gradeId) },
       data: updateData
     });
+
+    await updateGeneralAverage(
+      updatedGrade.studentId,
+      updatedGrade.schoolYear
+    );
 
     res.json(successResponse('Quarter lock status updated', updatedGrade));
   } catch (err) {
