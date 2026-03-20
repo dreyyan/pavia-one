@@ -1,6 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Modal from "../../components/Modal";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
 interface GradeItemApi {
   id: number;
   type: string;
@@ -12,9 +17,7 @@ interface GradeItemApi {
 
 interface SubjectGradeApi {
   id: number;
-  learningArea?: {
-    name: string;
-  };
+  learningArea?: { name: string };
   items?: GradeItemApi[];
 }
 
@@ -22,10 +25,11 @@ interface GradingItem {
   id: number;
   criteria: string;
   score: number | null;
-  maxScore?: number;
+  maxScore: number;
   createdAt?: string;
-  quarter?: number;
-  displayLabel?: string; // For table display
+  quarter: number;
+  /** Populated by getNumberedItems – never store in state */
+  displayLabel?: string;
 }
 
 interface SubjectGradeDetail {
@@ -34,7 +38,10 @@ interface SubjectGradeDetail {
   gradingItems: GradingItem[];
 }
 
-// Abbreviations
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
 const CRITERIA_ABBREVIATIONS: Record<string, string> = {
   WRITTEN_WORK: "WW",
   PERFORMANCE_TASK: "PT",
@@ -58,6 +65,46 @@ const CRITERIA_LABELS: Record<string, string> = {
   QUARTERLY_ASSESSMENT: "Quarterly Assessment",
 };
 
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Assigns sequential display labels (e.g., "WW 1", "PT 2", "QA") to items.
+ *
+ * IMPORTANT: This must be called on the FULL (unfiltered) list so that numbers
+ * remain stable regardless of the active filter.  The returned array preserves
+ * the original order and can be filtered afterwards.
+ */
+const buildNumberedItems = (items: GradingItem[]): GradingItem[] => {
+  // counters keyed by "criteria-quarter" so WW numbering resets per quarter
+  const counters: Record<string, number> = {};
+
+  return items.map(item => {
+    const key = `${item.criteria}-${item.quarter}`;
+    counters[key] = (counters[key] ?? 0) + 1;
+
+    const abbrev = CRITERIA_ABBREVIATIONS[item.criteria] ?? item.criteria;
+    const displayLabel =
+      item.criteria === "WRITTEN_WORK" || item.criteria === "PERFORMANCE_TASK"
+        ? `${abbrev} ${counters[key]}`
+        : abbrev; // QA has no sequence number
+
+    return { ...item, displayLabel };
+  });
+};
+
+const getRemarks = (finalGrade: number) => {
+  if (finalGrade >= 98) return "With Highest Honors";
+  if (finalGrade >= 95) return "With High Honors";
+  if (finalGrade >= 90) return "With Honors";
+  return "";
+};
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
 const AdviserClassStudentGradesDetails = () => {
   const { sectionId, studentId, subjectId } = useParams<{
     sectionId: string;
@@ -66,42 +113,86 @@ const AdviserClassStudentGradesDetails = () => {
   }>();
   const navigate = useNavigate();
 
+  // -- Core data state ------------------------------------------------------
   const [grade, setGrade] = useState<SubjectGradeDetail | null>(null);
   const [profileName, setProfileName] = useState("Unknown Name");
-  const [advisorySection, setAdvisorySection] = useState<{ gradeLevel: string; name: string } | null>(null);
+  const [advisorySection, setAdvisorySection] = useState<{
+    gradeLevel: string;
+    name: string;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // -- Filter / form state --------------------------------------------------
   const [selectedCriteria, setSelectedCriteria] = useState<string>("All");
+  const [filterQuarter, setFilterQuarter] = useState<number | "All">("All");
+  const [selectedQuarter, setSelectedQuarter] = useState<number>(1);
+
+  // -- Edit/add form state --------------------------------------------------
   const [editingItem, setEditingItem] = useState<GradingItem | null>(null);
   const [newItemScore, setNewItemScore] = useState<number | "">("");
   const [newItemMaxScore, setNewItemMaxScore] = useState<number | "">(100);
   const [newItemCriteria, setNewItemCriteria] = useState<string>("WRITTEN_WORK");
-  const [selectedQuarter, setSelectedQuarter] = useState<number>(1);
-  const [filterQuarter, setFilterQuarter] = useState<number | "All">("All");
 
+  // -- Quarter lock ---------------------------------------------------------
+  const [quarterLocked, setQuarterLocked] = useState<Record<number, boolean>>({});
+
+  // Derived per-quarter status
+  const quarterStatus: Record<number, { hasGrades: boolean; locked: boolean }> = [1,2,3,4].reduce(
+    (acc, q) => {
+      const itemsInQuarter = grade?.gradingItems.filter(item => item.quarter === q) ?? [];
+      acc[q] = {
+        hasGrades: itemsInQuarter.length > 0,
+        locked: !!quarterLocked[q],
+      };
+      return acc;
+    }, {} as Record<number, { hasGrades: boolean; locked: boolean }>
+  );
+
+  // -- Modal ----------------------------------------------------------------
   const [showModal, setShowModal] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
-  const [modalType, setModalType] = useState<"default" | "error" | "success" | "info" | "warning">("default");
+  const [modalType, setModalType] = useState<
+    "default" | "error" | "success" | "info" | "warning"
+  >("default");
 
-  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  /**
+   * FIX: Use a ref instead of state for pendingAction.
+   *
+   * React's setState(fn) treats `fn` as an *updater function* and immediately
+   * calls it with the previous state, so `setPendingAction(() => myAsyncFn)`
+   * would invoke `myAsyncFn(previousState)` and store the returned Promise –
+   * not `myAsyncFn` itself.  Using a ref avoids this pitfall entirely.
+   */
+  const pendingActionRef = useRef<(() => Promise<void>) | null>(null);
 
   const token = localStorage.getItem("token");
+
+  // ---------------------------------------------------------------------------
+  // API helpers
+  // ---------------------------------------------------------------------------
 
   const handleApiResponse = async (res: Response) => {
     if (res.status === 401) {
       alert("Session expired. Please login again.");
       return null;
     }
-    return await res.json();
+    return res.json();
   };
+
+  // ---------------------------------------------------------------------------
+  // Data fetching
+  // ---------------------------------------------------------------------------
 
   const fetchGradeDetails = useCallback(async () => {
     if (!sectionId || !studentId || !subjectId) return;
+
     setLoading(true);
     setError(null);
+
     try {
-      // Fetch student info
+      // Student info
       const studentRes = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/api/adviser/sections/${sectionId}/students/${studentId}`,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -115,46 +206,78 @@ const AdviserClassStudentGradesDetails = () => {
         });
       }
 
-      // Fetch SF9 grades
+      // SF9 grades
       const gradesRes = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/sf9/${studentId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const gradesData = await handleApiResponse(gradesRes);
+
       if (!gradesData?.success || !gradesData.data) {
         setError(gradesData?.message || "Failed to fetch grades");
         setGrade(null);
         return;
       }
 
-      const subjectGradeData = gradesData.data.find((g: SubjectGradeApi) => String(g.id) === subjectId);
+      const subjectGradeData: SubjectGradeApi | undefined = gradesData.data.find(
+        (g: SubjectGradeApi) => g.id === Number(subjectId)
+      );
+
       if (!subjectGradeData) {
         setError("Subject grade not found");
         setGrade(null);
         return;
       }
 
+      // FIX: Always sort by createdAt then id so numbering is deterministic
+      const sortedItems: GradingItem[] = (subjectGradeData.items ?? [])
+        .slice()
+        .sort((a: GradeItemApi, b: GradeItemApi) => {
+          if (a.createdAt && b.createdAt)
+            return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          return a.id - b.id;
+        })
+        .map((item: GradeItemApi) => ({
+          id: item.id,
+          criteria: item.type,
+          score: item.score,
+          maxScore: item.maxScore ?? 100,
+          createdAt: item.createdAt,
+          // FIX: default quarter to 1 so it is never undefined
+          quarter: item.quarter ?? 1,
+        }));
+
+      const gradeId = subjectGradeData.id;
+
       setGrade({
-        id: subjectGradeData.id,
+        id: gradeId,
         subject:
           SUBJECT_ABBREVIATIONS[subjectGradeData.learningArea?.name ?? ""] ??
           subjectGradeData.learningArea?.name ??
           "Unknown",
-        gradingItems: (subjectGradeData.items ?? [])
-          .sort((a: GradeItemApi, b: GradeItemApi) => {
-            if (a.createdAt && b.createdAt)
-              return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-            return a.id - b.id;
-          })
-          .map((item: GradeItemApi) => ({
-            id: item.id,
-            criteria: item.type,
-            score: item.score,
-            maxScore: item.maxScore ?? 100,
-            createdAt: item.createdAt,
-            quarter: item.quarter,
-          })),
+        gradingItems: sortedItems,
       });
+
+      // FIX: Fetch quarter lock status using the SF9 *grade* ID (not studentId).
+      //
+      // The backend has two routes with identical-looking paths:
+      //   GET /sf9/:studentId/quarter-status  → returns locks for grades[0] (WRONG for us)
+      //   GET /sf9/:gradeId/quarter-status    → returns locks for this exact grade (CORRECT)
+      //
+      // We must use the gradeId obtained above so the lock state is always for
+      // the current subject, regardless of how many SF9 grades the student has.
+      try {
+        const lockRes = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/sf9/${gradeId}/quarter-status`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const lockData = await handleApiResponse(lockRes);
+        if (lockData?.success) {
+          setQuarterLocked(lockData.data ?? {});
+        }
+      } catch (lockErr) {
+        console.warn("Failed to fetch quarter status", lockErr);
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err));
       setGrade(null);
@@ -163,128 +286,221 @@ const AdviserClassStudentGradesDetails = () => {
     }
   }, [sectionId, studentId, subjectId, token]);
 
-  // ✅ useEffect now just calls the stable callback
   useEffect(() => {
     fetchGradeDetails();
   }, [fetchGradeDetails]);
 
-  const getNumberedItems = (items: GradingItem[]) => {
-    const counters: Record<string, number> = {};
-    return items.map(item => {
-      counters[item.criteria] = (counters[item.criteria] ?? 0) + 1;
-      let abbrev = CRITERIA_ABBREVIATIONS[item.criteria] ?? item.criteria;
-      if (item.criteria === "WRITTEN_WORK" || item.criteria === "PERFORMANCE_TASK") {
-        abbrev = `${abbrev} ${counters[item.criteria]}`;
+  // ---------------------------------------------------------------------------
+  // Quarter lock
+  // ---------------------------------------------------------------------------
+
+const toggleQuarterLock = async (quarter: number) => {
+  if (!grade?.id) return;
+
+  // Check if there are items in this quarter
+  const quarterItems = grade.gradingItems.filter(item => item.quarter === quarter);
+  if (quarterItems.length === 0) {
+    setModalTitle("Cannot Lock Quarter");
+    setModalMessage(`Quarter ${quarter} has no grade items. Add at least one item before locking.`);
+    setModalType("error");
+    setShowModal(true);
+    return; // stop here
+  }
+
+  const isCurrentlyLocked = !!quarterLocked[quarter];
+
+  try {
+    const res = await fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/sf9/${grade.id}/quarter-ready`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          quarter: `q${quarter}`,
+          ready: !isCurrentlyLocked,
+        }),
       }
-      return { ...item, displayLabel: abbrev };
-    });
+    );
+    const data = await handleApiResponse(res);
+    if (data?.success) {
+      const newLockValue: boolean = data.data[`q${quarter}Ready`] ?? !isCurrentlyLocked;
+      setQuarterLocked(prev => ({ ...prev, [quarter]: newLockValue }));
+
+      setModalTitle("Success");
+      setModalMessage(
+        `Quarter ${quarter} has been ${newLockValue ? "locked" : "unlocked"} successfully.`
+      );
+      setModalType("success");
+      setShowModal(true);
+    } else {
+      throw new Error(data?.message || "Unknown error");
+    }
+  } catch (err) {
+    console.error(err);
+    setModalTitle("Error");
+    setModalMessage(`Failed to ${!isCurrentlyLocked ? "lock" : "unlock"} Quarter ${quarter}.`);
+    setModalType("error");
+    setShowModal(true);
+  }
+};
+
+  // ---------------------------------------------------------------------------
+  // Derived / filtered data
+  // ---------------------------------------------------------------------------
+
+  /**
+   * FIX: Build display labels from the FULL list first, then filter.
+   * This keeps "WW 1", "WW 2" stable even when other items are hidden.
+   */
+  const numberedItems = buildNumberedItems(grade?.gradingItems ?? []);
+
+  const filteredItems = numberedItems.filter(item => {
+    const quarterMatch = filterQuarter === "All" || item.quarter === filterQuarter;
+    const criteriaMatch = selectedCriteria === "All" || item.criteria === selectedCriteria;
+    return quarterMatch && criteriaMatch;
+  });
+
+  // Derived lock state for the currently selected form quarter
+  const isLocked = !!quarterLocked[selectedQuarter];
+
+  // ---------------------------------------------------------------------------
+  // CRUD helpers
+  // ---------------------------------------------------------------------------
+
+  const showInfoModal = (title: string, message: string, type: typeof modalType) => {
+    setModalTitle(title);
+    setModalMessage(message);
+    setModalType(type);
+    pendingActionRef.current = null;
+    setShowModal(true);
   };
 
-  const filteredItems = getNumberedItems(
-    (grade?.gradingItems ?? []).filter(item => {
-      const quarterMatch = filterQuarter === "All" || item.quarter === filterQuarter;
-      const criteriaMatch = selectedCriteria === "All" || item.criteria === selectedCriteria;
-      return quarterMatch && criteriaMatch;
-    })
-  );
+  const validateScores = (score: number | "", maxScore: number | ""): string | null => {
+    if (score === "" || maxScore === "") return "Please enter a score and max score.";
+    if (maxScore <= 0) return "Max Score must be greater than 0.";
+    if (score < 0) return "Score cannot be negative.";
+    if (score > maxScore) return "Score cannot exceed Max Score.";
+    return null;
+  };
+
+  const resetForm = () => {
+    setEditingItem(null);
+    setNewItemScore("");
+    setNewItemMaxScore(100);
+    setNewItemCriteria("WRITTEN_WORK");
+  };
+
+  // -- Create ----------------------------------------------------------------
 
   const createGradeItem = async () => {
-    if (!grade || newItemScore === "" || newItemMaxScore === "" || !newItemCriteria) {
-      setModalTitle("Validation Error");
-      setModalMessage("Please enter a score, max score, and select a criteria.");
-      setModalType("error");
-      setShowModal(true);
+    if (!grade) return;
+
+    const validationError = validateScores(newItemScore, newItemMaxScore);
+    if (validationError) {
+      showInfoModal("Validation Error", validationError, "error");
       return;
     }
 
+    if (!newItemCriteria) {
+      showInfoModal("Validation Error", "Please select a criteria.", "error");
+      return;
+    }
+
+    // FIX: Duplicate QA guard
     if (newItemCriteria === "QUARTERLY_ASSESSMENT") {
       const existingQA = grade.gradingItems.find(
         item => item.criteria === "QUARTERLY_ASSESSMENT" && item.quarter === selectedQuarter
       );
       if (existingQA) {
-        setModalTitle("Duplicate Quarterly Assessment");
-        setModalMessage(`A Quarterly Assessment already exists for Quarter ${selectedQuarter}. You cannot add another.`);
-        setModalType("error");
-        setShowModal(true);
+        showInfoModal(
+          "Duplicate Quarterly Assessment",
+          `A Quarterly Assessment already exists for Quarter ${selectedQuarter}. You cannot add another.`,
+          "error"
+        );
         return;
       }
     }
 
-    if (newItemScore < 0 || newItemMaxScore <= 0 || newItemScore > newItemMaxScore) {
-      setModalTitle("Invalid Scores");
-      setModalMessage("Score must be >= 0 and <= Max Score. Max Score must be > 0.");
-      setModalType("error");
-      setShowModal(true);
-      return;
-    }
-
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/sf9/item`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          sf9GradeId: grade.id,
-          quarter: selectedQuarter,
-          type: newItemCriteria,
-          score: Number(newItemScore),
-          maxScore: Number(newItemMaxScore)
-        })
-      });
+      const res = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/sf9/item`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            sf9GradeId: grade.id,
+            quarter: selectedQuarter,
+            type: newItemCriteria,
+            score: Number(newItemScore),
+            maxScore: Number(newItemMaxScore),
+          }),
+        }
+      );
       const data = await handleApiResponse(res);
       if (data?.success) {
-        setNewItemScore("");
-        setNewItemMaxScore(100);
-        setNewItemCriteria("WRITTEN_WORK");
-        fetchGradeDetails();
+        resetForm();
+        // FIX: Optimistic update – append new item immediately from API response,
+        // then do a background refresh for consistency.
+        if (data.data) {
+          const newItem: GradingItem = {
+            id: data.data.id,
+            criteria: data.data.type,
+            score: data.data.score,
+            maxScore: data.data.maxScore ?? 100,
+            createdAt: data.data.createdAt,
+            quarter: data.data.quarter ?? selectedQuarter,
+          };
+          setGrade(prev =>
+            prev ? { ...prev, gradingItems: [...prev.gradingItems, newItem] } : prev
+          );
+        }
+        await fetchGradeDetails();
+      } else {
+        showInfoModal("Error", data?.message || "Failed to add grade item.", "error");
       }
     } catch (err) {
-      console.log(err);
-      setModalTitle("Error");
-      setModalMessage("Failed to add grade item. Please try again.");
-      setModalType("error");
-      setShowModal(true);
+      console.error(err);
+      showInfoModal("Error", "Failed to add grade item. Please try again.", "error");
     }
   };
+
+  // -- Update ----------------------------------------------------------------
 
   const updateGradeItem = () => {
     if (!editingItem) return;
 
-    if (newItemScore === "" || newItemMaxScore === "" || !newItemCriteria) {
-      setModalTitle("Validation Error");
-      setModalMessage("Please enter a score, max score, and select a criteria.");
-      setModalType("error");
-      setShowModal(true);
+    const validationError = validateScores(newItemScore, newItemMaxScore);
+    if (validationError) {
+      showInfoModal("Validation Error", validationError, "error");
       return;
     }
 
+    // FIX: Duplicate QA guard (exclude the item being edited)
     if (newItemCriteria === "QUARTERLY_ASSESSMENT") {
       const existingQA = grade?.gradingItems.find(
-        item => item.criteria === "QUARTERLY_ASSESSMENT" &&
-                item.quarter === selectedQuarter &&
-                item.id !== editingItem.id
+        item =>
+          item.criteria === "QUARTERLY_ASSESSMENT" &&
+          item.quarter === selectedQuarter &&
+          item.id !== editingItem.id
       );
       if (existingQA) {
-        setModalTitle("Duplicate Quarterly Assessment");
-        setModalMessage(`A Quarterly Assessment already exists for Quarter ${selectedQuarter}. You cannot add another.`);
-        setModalType("error");
-        setShowModal(true);
+        showInfoModal(
+          "Duplicate Quarterly Assessment",
+          `A Quarterly Assessment already exists for Quarter ${selectedQuarter}.`,
+          "error"
+        );
         return;
       }
     }
 
-    if (newItemScore < 0 || newItemMaxScore <= 0 || newItemScore > newItemMaxScore) {
-      setModalTitle("Invalid Scores");
-      setModalMessage("Score must be >= 0 and <= Max Score. Max Score must be > 0.");
-      setModalType("error");
-      setShowModal(true);
-      return;
-    }
-
-    setModalTitle("Confirm Update");
-    setModalMessage("Are you sure you want to update this grade item?");
-    setModalType("info");
-
-    setPendingAction(() => async () => {
+    // FIX: Use ref to store pending async action so React doesn't call it as an updater
+    pendingActionRef.current = async () => {
       try {
         const res = await fetch(
           `${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/sf9/item/${editingItem.id}`,
@@ -304,94 +520,143 @@ const AdviserClassStudentGradesDetails = () => {
         );
         const data = await handleApiResponse(res);
         if (data?.success) {
-          setEditingItem(null);
-          setNewItemScore("");
-          setNewItemMaxScore(100);
-          setNewItemCriteria("WRITTEN_WORK");
-          fetchGradeDetails();
-
-          setModalTitle("Success");
-          setModalMessage("Grade item updated successfully.");
-          setModalType("success");
-          setShowModal(true);
+          resetForm();
+          // FIX: Optimistic update – patch in-place, then refresh
+          setGrade(prev => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              gradingItems: prev.gradingItems.map(item =>
+                item.id === editingItem.id
+                  ? {
+                      ...item,
+                      criteria: newItemCriteria,
+                      score: Number(newItemScore),
+                      maxScore: Number(newItemMaxScore),
+                      quarter: selectedQuarter,
+                    }
+                  : item
+              ),
+            };
+          });
+          await fetchGradeDetails();
+          showInfoModal("Success", "Grade item updated successfully.", "success");
         } else {
-          setModalTitle("Error");
-          setModalMessage(data?.message || "Failed to update grade item.");
-          setModalType("error");
-          setShowModal(true);
+          showInfoModal("Error", data?.message || "Failed to update grade item.", "error");
         }
       } catch (err) {
-        console.log(err);
-        setModalTitle("Error");
-        setModalMessage("Failed to update grade item. Please try again.");
-        setModalType("error");
-        setShowModal(true);
+        console.error(err);
+        showInfoModal("Error", "Failed to update grade item. Please try again.", "error");
       }
-    });
+    };
 
+    setModalTitle("Confirm Update");
+    setModalMessage("Are you sure you want to update this grade item?");
+    setModalType("info");
     setShowModal(true);
   };
 
+  // -- Delete ----------------------------------------------------------------
+
   const confirmDeleteGradeItem = (id: number) => {
-    setModalTitle("Confirm Delete");
-    setModalMessage("Are you sure you want to delete this item?");
-    setModalType("warning");
-    setPendingAction(() => async () => {
+    // FIX: Use ref to store pending async action
+    pendingActionRef.current = async () => {
       try {
         const res = await fetch(
           `${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/sf9/item`,
           {
             method: "DELETE",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
             body: JSON.stringify({ itemIds: [id] }),
           }
         );
         const data = await handleApiResponse(res);
         if (data?.success) {
-          fetchGradeDetails();
+          // FIX: Optimistic update – remove item immediately, then refresh
+          setGrade(prev => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              gradingItems: prev.gradingItems.filter(item => item.id !== id),
+            };
+          });
+          await fetchGradeDetails();
         } else {
-          setModalTitle("Error");
-          setModalMessage(data?.message || "Failed to delete item.");
-          setModalType("error");
-          setShowModal(true);
+          showInfoModal("Error", data?.message || "Failed to delete item.", "error");
         }
       } catch (err) {
-        console.log(err);
-        setModalTitle("Error");
-        setModalMessage("Failed to delete item. Please try again.");
-        setModalType("error");
-        setShowModal(true);
+        console.error(err);
+        showInfoModal("Error", "Failed to delete item. Please try again.", "error");
       }
-    });
+    };
+
+    setModalTitle("Confirm Delete");
+    setModalMessage("Are you sure you want to delete this grade item?");
+    setModalType("warning");
     setShowModal(true);
   };
+
+  // ---------------------------------------------------------------------------
+  // Modal handlers
+  // ---------------------------------------------------------------------------
+
+  const handleModalClose = () => {
+    setShowModal(false);
+    pendingActionRef.current = null;
+  };
+
+  const handleModalConfirm = async () => {
+    setShowModal(false);
+    if (pendingActionRef.current) {
+      const action = pendingActionRef.current;
+      pendingActionRef.current = null; // clear before calling to prevent double-fire
+      await action();
+    }
+  };
+
+  // ---------------------------------------------------------------------------
+  // Loading / error guards
+  // ---------------------------------------------------------------------------
 
   if (loading) return <p className="text-center py-4">Loading subject grade...</p>;
   if (error) return <p className="text-red-500 text-center py-4">{error}</p>;
   if (!grade) return <p className="text-center py-4">Grade not available.</p>;
 
+  // ---------------------------------------------------------------------------
+  // Breadcrumbs
+  // ---------------------------------------------------------------------------
+
   const breadcrumbs = [
     { label: "Class Management", path: "/adviser/classes" },
-    { label: advisorySection ? `${advisorySection.gradeLevel} — ${advisorySection.name}` : "Unknown Section", path: `/adviser/classes/${sectionId}` },
+    {
+      label: advisorySection
+        ? `${advisorySection.gradeLevel} — ${advisorySection.name}`
+        : "Unknown Section",
+      path: `/adviser/classes/${sectionId}`,
+    },
     { label: "Grades", path: `/adviser/classes/grades/${sectionId}` },
-    { label: profileName, path: `/adviser/classes/grades/${sectionId}/${studentId}` },
+    {
+      label: profileName,
+      path: `/adviser/classes/grades/${sectionId}/${studentId}`,
+    },
     { label: grade.subject, path: null },
   ];
 
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
+
   return (
     <div className="py-10 px-4 space-y-6 max-w-md mx-auto">
+      {/* Modal */}
       {showModal && (
         <Modal
           isOpen={showModal}
-          onClose={() => {
-            setShowModal(false);
-            setPendingAction(null);
-          }}
-          onConfirm={() => {
-            if (pendingAction) pendingAction();
-            setShowModal(false);
-            setPendingAction(null);
-          }}
+          onClose={handleModalClose}
+          onConfirm={handleModalConfirm}
           title={modalTitle}
           message={modalMessage}
           type={modalType}
@@ -405,36 +670,83 @@ const AdviserClassStudentGradesDetails = () => {
         {breadcrumbs.map((crumb, idx) => (
           <span key={idx}>
             {crumb.path ? (
-              <span className="hover:underline cursor-pointer" onClick={() => navigate(crumb.path!)}>{crumb.label}</span>
+              <span
+                className="hover:underline cursor-pointer"
+                onClick={() => navigate(crumb.path!)}
+              >
+                {crumb.label}
+              </span>
             ) : (
-              <span className="font-roboto font-medium text-[var(--color-text-900)]">{crumb.label}</span>
+              <span className="font-roboto font-medium text-[var(--color-text-900)]">
+                {crumb.label}
+              </span>
             )}
             {idx < breadcrumbs.length - 1 && " / "}
           </span>
         ))}
       </nav>
 
+      {/* Student header */}
       <div className="flex items-center bg-[var(--color-primary-600)] border-3 border-[var(--color-primary-700)]/60 rounded-xl px-5 py-6 gap-x-4 shadow-md">
-        <div className="bg-[var(--color-bg-200)] w-18 h-18 rounded-full flex-shrink-0"></div>
+        <div className="bg-[var(--color-bg-200)] w-18 h-18 rounded-full flex-shrink-0" />
         <div className="flex-1">
-          <p className="font-roboto font-extrabold text-xl mb-2 text-[var(--color-text-50)]">{profileName}</p>
+          <p className="font-roboto font-extrabold text-xl mb-2 text-[var(--color-text-50)]">
+            {profileName}
+          </p>
           {advisorySection ? (
             <>
-              <p className="font-roboto font-semibold text-sm text-[var(--color-text-100)]">Grade {advisorySection.gradeLevel} — {advisorySection.name}</p>
-              <p className="font-roboto font-medium text-xs text-[var(--color-text-100)]">Student</p>
+              <p className="font-roboto font-semibold text-sm text-[var(--color-text-100)]">
+                Grade {advisorySection.gradeLevel} — {advisorySection.name}
+              </p>
+              <p className="font-roboto font-medium text-xs text-[var(--color-text-100)]">
+                Student
+              </p>
             </>
           ) : (
-            <p className="text-red-600 font-semibold text-sm">You are not assigned to any advisory section.</p>
+            <p className="text-red-600 font-semibold text-sm">
+              You are not assigned to any advisory section.
+            </p>
           )}
         </div>
       </div>
 
+      <div className="flex justify-center gap-4 mb-4 bg-[var(--color-bg-100)] p-4 rounded-lg">
+        {[1, 2, 3, 4].map(q => {
+          const status = quarterStatus[q];
+
+          let bgColor = "bg-gray-300";
+          let label = "No grades";
+
+          if (status.hasGrades && status.locked) {
+            bgColor = "bg-green-600";
+            label = "Locked";
+          } else if (status.hasGrades && !status.locked) {
+            bgColor = "bg-yellow-400";
+            label = "Has grades";
+          } else {
+            bgColor = "bg-red-600";
+            label = "No grades";
+          }
+
+          return (
+            <div key={q} className="flex flex-col items-center gap-1">
+              <div className={`w-6 h-6 rounded-full ${bgColor}`}></div>
+              <span className="text-sm font-semibold font-figtree">Q{q}</span>
+              <span className="text-xs text-[var(--color-text-800)]">{label}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Filters + Table */}
       <div className="bg-[var(--color-bg-100)] p-4 rounded-lg space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
           {/* Quarter filter */}
           <select
             value={filterQuarter}
-            onChange={e => setFilterQuarter(e.target.value === "All" ? "All" : Number(e.target.value))}
+            onChange={e =>
+              setFilterQuarter(e.target.value === "All" ? "All" : Number(e.target.value))
+            }
             className="font-roboto text-sm border border-[var(--color-bg-200)] bg-[var(--color-bg-50)] rounded px-3 py-2 w-full sm:w-auto"
           >
             <option value="All">All Quarters</option>
@@ -452,9 +764,27 @@ const AdviserClassStudentGradesDetails = () => {
           >
             <option value="All">All</option>
             {Object.entries(CRITERIA_LABELS).map(([key, label]) => (
-              <option key={key} value={key}>{label}</option>
+              <option key={key} value={key}>
+                {label}
+              </option>
             ))}
           </select>
+
+          {/* Lock / Unlock — only visible when a specific quarter is selected */}
+          {filterQuarter !== "All" && (
+            <button
+              onClick={() => toggleQuarterLock(filterQuarter as number)}
+              className={`sm:ml-auto px-4 py-2 rounded font-medium text-sm whitespace-nowrap ${
+                quarterLocked[filterQuarter as number]
+                  ? "bg-gray-400 text-white hover:bg-gray-500"
+                  : "bg-green-600 text-white hover:bg-green-700"
+              }`}
+            >
+              {quarterLocked[filterQuarter as number]
+                ? `Q${filterQuarter} Locked`
+                : `Lock Q${filterQuarter}`}
+            </button>
+          )}
         </div>
 
         {/* Table */}
@@ -473,43 +803,73 @@ const AdviserClassStudentGradesDetails = () => {
               </tr>
             </thead>
             <tbody className="text-sm text-gray-700">
-              {filteredItems.map(item => (
-                <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="px-2 py-2 truncate cursor-pointer" title={item.displayLabel}>
-                    {item.displayLabel}
-                  </td>
-                  <td className="px-2 py-2 text-left">{item.score != null ? `${item.score} / ${item.maxScore}` : "-"}</td>
-                  <td className="px-2 py-2 flex justify-center gap-2">
-                    <button
-                      className="text-blue-600 font-medium"
-                      onClick={() => {
-                        setEditingItem(item);
-                        setNewItemScore(item.score ?? "");
-                        setNewItemMaxScore(item.maxScore ?? 100);
-                        setNewItemCriteria(item.criteria);
-                        setSelectedQuarter(item.quarter ?? 1);
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button className="text-red-600 font-medium" onClick={() => confirmDeleteGradeItem(item.id)}>Delete</button>
+              {filteredItems.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="px-2 py-4 text-center text-gray-400">
+                    No grade items found.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredItems.map(item => {
+                  // FIX: lock status is per the item's quarter, not the form's quarter
+                  const itemLocked = !!quarterLocked[item.quarter];
+                  return (
+                    <tr key={item.id} className="hover:bg-gray-50">
+                      <td
+                        className="px-2 py-2 truncate cursor-pointer"
+                        title={item.displayLabel}
+                      >
+                        {item.displayLabel}
+                      </td>
+                      <td className="px-2 py-2 text-left">
+                        {item.score != null ? `${item.score} / ${item.maxScore}` : "-"}
+                      </td>
+                      <td className="px-2 py-2 flex justify-center gap-2">
+                        <button
+                          className={`text-blue-600 font-medium ${
+                            itemLocked ? "opacity-50 cursor-not-allowed" : ""
+                          }`}
+                          onClick={() => {
+                            if (itemLocked) return;
+                            setEditingItem(item);
+                            setNewItemScore(item.score ?? "");
+                            setNewItemMaxScore(item.maxScore);
+                            setNewItemCriteria(item.criteria);
+                            setSelectedQuarter(item.quarter);
+                          }}
+                          disabled={itemLocked}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className={`text-red-600 font-medium ${
+                            itemLocked ? "opacity-50 cursor-not-allowed" : ""
+                          }`}
+                          onClick={() => {
+                            if (!itemLocked) confirmDeleteGradeItem(item.id);
+                          }}
+                          disabled={itemLocked}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Add/Edit Form */}
+      {/* Add / Edit Form */}
       <div className="bg-[var(--color-bg-100)] p-4 rounded-lg shadow space-y-3">
         <h4 className="font-medium">
           {editingItem ? "Edit Grade Item" : "Add New Grade Item"}
         </h4>
 
         <div className="flex flex-col sm:flex-row gap-2">
-
-          {/* ⭐ Quarter Dropdown */}
+          {/* Quarter */}
           <select
             value={selectedQuarter}
             onChange={e => setSelectedQuarter(Number(e.target.value))}
@@ -525,6 +885,7 @@ const AdviserClassStudentGradesDetails = () => {
           <select
             value={newItemCriteria}
             onChange={e => setNewItemCriteria(e.target.value)}
+            disabled={isLocked}
             className="font-roboto text-sm border border-[var(--color-bg-200)] bg-[var(--color-bg-50)] rounded px-3 py-2 w-full sm:w-auto"
           >
             {Object.entries(CRITERIA_LABELS).map(([key, label]) => (
@@ -539,7 +900,11 @@ const AdviserClassStudentGradesDetails = () => {
             type="number"
             placeholder="Score"
             value={newItemScore}
-            onChange={e => setNewItemScore(Number(e.target.value))}
+            onChange={e =>
+              setNewItemScore(e.target.value === "" ? "" : Number(e.target.value))
+            }
+            disabled={isLocked}
+            min={0}
             className="font-roboto text-sm border border-[var(--color-bg-200)] bg-[var(--color-bg-50)] rounded px-3 py-2 w-full sm:w-auto"
           />
 
@@ -548,35 +913,46 @@ const AdviserClassStudentGradesDetails = () => {
             type="number"
             placeholder="Max Score"
             value={newItemMaxScore}
-            onChange={e => setNewItemMaxScore(Number(e.target.value))}
+            onChange={e =>
+              setNewItemMaxScore(e.target.value === "" ? "" : Number(e.target.value))
+            }
+            disabled={isLocked}
+            min={1}
             className="font-roboto text-sm border border-[var(--color-bg-200)] bg-[var(--color-bg-50)] rounded px-3 py-2 w-full sm:w-auto"
           />
 
-          {/* Buttons */}
+          {/* Action buttons */}
           <div className="flex gap-2">
             <button
               onClick={() => (editingItem ? updateGradeItem() : createGradeItem())}
-              className="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700"
+              disabled={isLocked}
+              className={`px-4 py-1 rounded font-medium ${
+                isLocked
+                  ? "bg-gray-400 cursor-not-allowed text-white"
+                  : "bg-blue-600 hover:bg-blue-700 text-white"
+              }`}
             >
               {editingItem ? "Update" : "Add"}
             </button>
 
             {editingItem && (
               <button
-                onClick={() => {
-                  setEditingItem(null);
-                  setNewItemScore("");
-                  setNewItemMaxScore(100);
-                  setNewItemCriteria("WRITTEN_WORK");
-                  setSelectedQuarter(1); // reset
-                }}
+                onClick={resetForm}
                 className="bg-gray-300 px-4 py-1 rounded hover:bg-gray-400"
               >
                 Cancel
               </button>
             )}
           </div>
+
         </div>
+
+        {/* Locked hint for the selected form quarter */}
+        {isLocked && (
+          <p className="text-xs text-amber-600 font-medium">
+            Quarter {selectedQuarter} is locked. Switch to a different quarter or unlock it from the filter above.
+          </p>
+        )}
       </div>
     </div>
   );
