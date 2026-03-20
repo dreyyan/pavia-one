@@ -1,8 +1,12 @@
+// [IMPORT] Hooks
 import { useState, useEffect, useRef } from "react";
-import ClassCard from "../../components/ClassCard";
 import { useAuth } from "../../context/useAuth";
+
+// [IMPORT] Components
+import ClassCard from "../../components/ClassCard";
 import EmptyState from "../../components/EmptyState";
 
+// ?[INTERFACES]
 interface ScheduleItem {
   day: string;
   time: string;
@@ -21,6 +25,7 @@ interface Section {
 const AdviserClassManagement = () => {
   const { setShowTokenExpiredModal } = useAuth();
 
+  // [STATES]
   const [classes, setClasses] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +34,7 @@ const AdviserClassManagement = () => {
   const [selectedGrade, setSelectedGrade] = useState<string | null>(null);
   const filterRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
+  // [EFFECT] Close dropdown when clicking outside
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
@@ -39,15 +44,6 @@ const AdviserClassManagement = () => {
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
-
-  // Centralized API response handler
-  const handleApiResponse = async (res: Response) => {
-    if (res.status === 401) {
-      setShowTokenExpiredModal(true); // show modal
-      return null;
-    }
-    return await res.json();
-  };
 
   // Fetch adviser's sections from API
   useEffect(() => {
@@ -64,13 +60,23 @@ const AdviserClassManagement = () => {
           },
         });
 
-        const data = await handleApiResponse(res);
-        if (!data) return; // token expired → modal shows automatically
+        // 
+        if (res.status === 401) {
+          setShowTokenExpiredModal(true);
+          return;
+        }
 
+        const data = await res.json();
+
+        // ![ERROR] Expired token
+        if (!data) return;
+
+        // ![ERROR] Backend failure response
         if (!data.success) {
           setError(data.message || "Failed to fetch sections");
           setClasses([]);
         } else {
+          // Fetch adviser's section details
           const sectionsWithDefaults: Section[] = data.data.map((sec: Section) => ({
             id: sec.id,
             name: `${sec.gradeLevel} — ${sec.name}`,
@@ -80,10 +86,10 @@ const AdviserClassManagement = () => {
             classSize: sec.classSize || 0,
             schedule: sec.schedule || [],
           }));
+
           setClasses(sectionsWithDefaults);
         }
       } catch (err: unknown) {
-        // Type guard: make sure err is an Error
         if (err instanceof Error) {
           setError(err.message);
         } else {
@@ -96,28 +102,32 @@ const AdviserClassManagement = () => {
     };
 
     fetchSections();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setShowTokenExpiredModal]);
 
-  // Apply grade filter
+  // ?Apply grade filter
   const filteredClasses = selectedGrade
     ? classes.filter((cls) => cls.gradeLevel.toString() === selectedGrade)
     : classes;
 
   return (
     <div className="py-10 px-4 space-y-4">
-      {/* Header */}
+      {/* [COMPONENT] Header */}
       <div>
+        {/* [UI] My Classes */}
         <div className="bg-[var(--color-primary-700)] py-2 rounded-t-lg">
           <h1 className="text-center text-[var(--color-text-50)]">My Classes</h1>
         </div>
+
+        {/* [UI] School Year */}
         <div className="bg-[var(--color-primary-600)] py-2 rounded-b-lg">
           <h4 className="text-center text-[var(--color-text-50)]">S.Y. 2025–2026</h4>
         </div>
       </div>
 
-      {/* Search & Filter */}
+      {/* [SECTION] Search & Filter */}
       <div className="flex items-center gap-4">
+
+        {/* [COMPONENT] Search Bar */}
         <div className="relative flex-1">
           <input
             type="text"
@@ -125,7 +135,10 @@ const AdviserClassManagement = () => {
             className="w-full bg-[var(--color-bg-50)] font-roboto rounded-sm py-2 pl-4 pr-3 outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm"
           />
         </div>
+
+        {/* [COMPONENT] Filter Class */}
         <div ref={filterRef} className="relative">
+          {/* [BUTTON] Filter */}
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`flex items-center justify-center text-[var(--color-text-50)] rounded-sm p-2 border transition cursor-pointer ${
@@ -170,11 +183,11 @@ const AdviserClassManagement = () => {
         </div>
       </div>
 
-      {/* Class Cards */}
+      {/* [SECTION] Class Cards */}
       <div className="grid grid-cols-1 space-y-8 py-4">
         {loading && <p className="text-center text-[var(--color-text-500)]">Loading classes...</p>}
 
-        {/* No sections */}
+        {/* [COMPONENT] No Sections Display */}
         {!loading && classes.length === 0 && !error && (
           <EmptyState
             title="No sections found for this adviser"
@@ -183,7 +196,7 @@ const AdviserClassManagement = () => {
           />
         )}
 
-        {/* API or fetch errors */}
+        {/* [COMPONENT] API or Fetch Errors */}
         {!loading && error && (
           <EmptyState
             title="Error fetching sections"
@@ -192,7 +205,7 @@ const AdviserClassManagement = () => {
           />
         )}
 
-        {/* Render class cards */}
+        {/* Class Cards Dynamic Display */}
         {!loading &&
           !error &&
           classes.length > 0 &&
@@ -207,7 +220,7 @@ const AdviserClassManagement = () => {
             />
           ))}
 
-        {/* Filters applied but no matching classes */}
+        {/* [COMPONENT] No Matching Classes /w Filters Applied */}
         {!loading &&
           !error &&
           classes.length > 0 &&
