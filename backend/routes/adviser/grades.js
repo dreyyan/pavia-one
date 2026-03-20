@@ -28,11 +28,7 @@ router.get('/sf9/:studentId', verifyAdviser, async (req, res) => {
       where: { studentId: Number(studentId) },
       include: {
         learningArea: true,
-        items: {
-          ...(type
-            ? { where: { type } }
-            : {})
-        }
+        items: type ? { where: { type } } : {}
       },
       orderBy: { learningAreaId: 'asc' }
     });
@@ -40,7 +36,17 @@ router.get('/sf9/:studentId', verifyAdviser, async (req, res) => {
     if (!grades.length)
       return res.status(404).json(errorResponse('No SF9 grades found'));
 
-    res.json(successResponse('SF9 grades retrieved', grades));
+    // Compute finalAverage only if all subjects have finalRating
+    const allFinalized = grades.every(g => g.finalRating !== null);
+    const finalAverage = allFinalized
+      ? Math.round(grades.reduce((sum, g) => sum + g.finalRating, 0) / grades.length)
+      : null;
+
+    res.json(successResponse('SF9 grades retrieved', {
+      finalAverage,
+      grades,
+    }));
+
   } catch (err) {
     res.status(500).json(errorResponse('Failed to fetch SF9 grades', err.message));
   }
@@ -64,23 +70,22 @@ router.get('/section/:sectionId', verifyAdviser, async (req, res) => {
     });
 
     const responseData = students.map(s => {
-      const valid = s.sf9Grades.filter(g => g.finalRating !== null);
+      // Only compute finalAverage if all subjects have finalRating
+      const allFinalized = s.sf9Grades.every(g => g.finalRating !== null);
 
-      const average =
-        valid.length > 0
-          ? Math.round(valid.reduce((sum, g) => sum + g.finalRating, 0) / valid.length)
-          : null;
+      const finalAverage = allFinalized
+        ? Math.round(s.sf9Grades.reduce((sum, g) => sum + g.finalRating, 0) / s.sf9Grades.length)
+        : null;
 
-      const remarks =
-        average !== null
-          ? average >= 75 ? 'PASSED' : 'FAILED'
-          : null;
+      const remarks = finalAverage !== null
+        ? finalAverage >= 75 ? 'PASSED' : 'FAILED'
+        : null;
 
       return {
         id: s.id,
         lrn: s.lrn,
         fullName: `${s.firstName} ${s.lastName}`,
-        average,
+        finalAverage,
         remarks,
       };
     });
@@ -133,6 +138,31 @@ router.post('/sf9', verifyAdviser, async (req, res) => {
 });
 
 // -----------------------------
+// [GET] Get quarter lock status for SF9
+// -----------------------------
+router.get('/sf9/:gradeId/quarter-status', verifyAdviser, async (req, res) => {
+  try {
+    const { gradeId } = req.params;
+
+    const grade = await prisma.sF9Grade.findUnique({
+      where: { id: Number(gradeId) },
+      select: { q1Ready: true, q2Ready: true, q3Ready: true, q4Ready: true }
+    });
+
+    if (!grade) return res.status(404).json(errorResponse('Grade not found'));
+
+    res.json(successResponse('Quarter status fetched', {
+      1: grade.q1Ready,
+      2: grade.q2Ready,
+      3: grade.q3Ready,
+      4: grade.q4Ready
+    }));
+  } catch (err) {
+    res.status(500).json(errorResponse('Failed to fetch quarter status', err.message));
+  }
+});
+
+// -----------------------------
 // [PATCH] Finalize / Unfinalize Quarter
 // -----------------------------
 router.patch('/sf9/:gradeId/quarter-ready', verifyAdviser, async (req, res) => {
@@ -140,52 +170,60 @@ router.patch('/sf9/:gradeId/quarter-ready', verifyAdviser, async (req, res) => {
     const { gradeId } = req.params;
     const { quarter, ready } = req.body;
 
-    if (!ALLOWED_QUARTERS.includes(quarter))
+    if (!ALLOWED_QUARTERS.includes(quarter)) {
       return res.status(400).json(errorResponse('Invalid quarter'));
+    }
 
     const grade = await prisma.sF9Grade.findUnique({
       where: { id: Number(gradeId) },
       include: { learningArea: true }
     });
 
-    if (!grade) return res.status(404).json(errorResponse('Grade not found'));
+    if (!grade) {
+      return res.status(404).json(errorResponse('Grade not found'));
+    }
 
     const quarterNum = parseInt(quarter.slice(1));
     const quarterFlag = `${quarter}Ready`;
 
-    if (grade[quarterFlag] && ready)
-      return res.status(400).json(errorResponse('Already finalized'));
+    if (grade[quarterFlag] === ready) {
+      return res.json(successResponse('Quarter already updated', grade));
+    }
 
-    let updateData = { [quarterFlag]: ready };
+    const updateData = { [quarterFlag]: ready };
 
     if (ready) {
       const items = await prisma.sF9GradeItem.findMany({
         where: { sf9GradeId: Number(gradeId), quarter: quarterNum }
       });
 
-      if (!items.length)
-        return res.status(400).json(errorResponse('No items for this quarter'));
+      if (!items.length) {
+        return res.status(400).json(errorResponse('Cannot lock quarter: no items for this quarter'));
+      }
 
-      const grouped = {
-        WRITTEN_WORK: [],
-        PERFORMANCE_TASK: [],
-        QUARTERLY_ASSESSMENT: []
+      const grouped = { WRITTEN_WORK: [], PERFORMANCE_TASK: [], QUARTERLY_ASSESSMENT: [] };
+      items.forEach(i => grouped[i.type] && grouped[i.type].push(i));
+
+      const getPS = (arr) => {
+        const totalScore = arr.reduce((sum, i) => sum + (i.score ?? 0), 0);
+        const totalMax = arr.reduce((sum, i) => sum + (i.maxScore ?? 0), 0);
+        return totalMax > 0 ? (totalScore / totalMax) * 100 : 0;
       };
 
-      items.forEach(i => grouped[i.type].push(i));
+      const la = grade.learningArea || {};
+      const wwWeight = la.writtenWorkWeight ?? 30;
+      const ptWeight = la.performanceTaskWeight ?? 50;
+      const qaWeight = la.quarterlyAssessmentWeight ?? 20;
 
-      const getPS = arr => {
-        const totalScore = arr.reduce((s, i) => s + i.score, 0);
-        const totalMax = arr.reduce((s, i) => s + i.maxScore, 0);
-        return (totalScore / totalMax) * 100;
-      };
-
-      const la = grade.learningArea;
+      const totalWeight = wwWeight + ptWeight + qaWeight;
+      const normalizedWW = wwWeight / totalWeight;
+      const normalizedPT = ptWeight / totalWeight;
+      const normalizedQA = qaWeight / totalWeight;
 
       const score = Math.round(
-        getPS(grouped.WRITTEN_WORK) * (la.writtenWorkWeight / 100) +
-        getPS(grouped.PERFORMANCE_TASK) * (la.performanceTaskWeight / 100) +
-        getPS(grouped.QUARTERLY_ASSESSMENT) * (la.quarterlyAssessmentWeight / 100)
+        getPS(grouped.WRITTEN_WORK) * normalizedWW +
+        getPS(grouped.PERFORMANCE_TASK) * normalizedPT +
+        getPS(grouped.QUARTERLY_ASSESSMENT) * normalizedQA
       );
 
       updateData[quarter] = score;
@@ -193,32 +231,61 @@ router.patch('/sf9/:gradeId/quarter-ready', verifyAdviser, async (req, res) => {
       updateData[quarter] = null;
     }
 
-    let updatedGrade = await prisma.sF9Grade.update({
+    const allQuarterScores = ['q1','q2','q3','q4'].map(q =>
+      q === quarter ? updateData[q] : grade[q]
+    );
+
+    const allQuartersHaveGrades = allQuarterScores.every(s => typeof s === 'number');
+
+    updateData.finalRating = allQuartersHaveGrades
+      ? Math.round(allQuarterScores.reduce((a, b) => a + b, 0) / 4)
+      : null;
+
+    updateData.remarks = allQuartersHaveGrades
+      ? updateData.finalRating >= 75 ? 'PASSED' : 'FAILED'
+      : null;
+
+    const updatedGrade = await prisma.sF9Grade.update({
       where: { id: Number(gradeId) },
       data: updateData
     });
 
-    const allReady = ALLOWED_QUARTERS.every(q =>
-      updatedGrade[`${q}Ready`] && updatedGrade[q] !== null
-    );
-
-    if (allReady) {
-      const finalRating = Math.ceil(
-        (updatedGrade.q1 + updatedGrade.q2 + updatedGrade.q3 + updatedGrade.q4) / 4
-      );
-
-      const remarks = finalRating >= 75 ? 'PASSED' : 'FAILED';
-
-      updatedGrade = await prisma.sF9Grade.update({
-        where: { id: Number(gradeId) },
-        data: { finalRating, remarks }
-      });
-    }
-
-    res.json(successResponse('Quarter updated', updatedGrade));
-
+    res.json(successResponse('Quarter lock status updated', updatedGrade));
   } catch (err) {
     res.status(500).json(errorResponse('Failed to update quarter', err.message));
+  }
+});
+
+// -----------------------------
+// [GET] Quarter lock status
+// -----------------------------
+router.get('/sf9/:studentId/quarter-status', verifyAdviser, async (req, res) => {
+  try {
+    const { studentId } = req.params;
+
+    const grades = await prisma.sF9Grade.findMany({
+      where: { studentId: Number(studentId) },
+      select: {
+        id: true,
+        q1Ready: true,
+        q2Ready: true,
+        q3Ready: true,
+        q4Ready: true
+      }
+    });
+
+    if (!grades.length) return res.json(successResponse({}));
+
+    // Return as {1: true, 2: false, 3: false, 4: true} (for the first grade)
+    const g = grades[0];
+    res.json(successResponse({
+      1: g.q1Ready,
+      2: g.q2Ready,
+      3: g.q3Ready,
+      4: g.q4Ready
+    }));
+  } catch (err) {
+    res.status(500).json(errorResponse('Failed to fetch quarter status', err.message));
   }
 });
 
