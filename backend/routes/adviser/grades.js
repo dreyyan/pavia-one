@@ -85,7 +85,7 @@ router.get('/section/:sectionId', verifyAdviser, async (req, res) => {
         id: s.id,
         lrn: s.lrn,
         fullName: `${s.firstName} ${s.lastName}`,
-        finalAverage,
+        average: finalAverage,
         remarks,
       };
     });
