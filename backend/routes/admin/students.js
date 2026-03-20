@@ -13,7 +13,7 @@ const { successResponse, errorResponse } = require('../../utils/response');
 const { getFullName, isValidSex, splitFullName } = require('../../utils/helpers')
 const verifyAdmin = require('../../middleware/authMiddleware').verifyAdmin;
 
-// ?[GET] List all students (paginated, searchable, admin-only)
+// ?[GET] Get all students (paginated, searchable, admin-only)
 // /api/admin/students
 router.get('/', verifyAdmin, async (req, res) => {
   try {
@@ -145,7 +145,7 @@ router.get('/', verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[GET] Get a single student by LRN or ID (admin-only)
+// ?[GET] Get Student
 // /api/admin/students/:identifier
 router.get('/:identifier', verifyAdmin, async (req, res) => {
   const { identifier } = req.params; // can be LRN or internal ID
@@ -367,6 +367,8 @@ router.post('/', verifyAdmin, async (req, res) => {
   }
 });
 
+// ?[PUT] Update student(s)
+// /api/admin/students
 router.put('/', verifyAdmin, async (req, res) => {
   try {
     const studentsInput = Array.isArray(req.body) ? req.body : [req.body];
@@ -508,6 +510,7 @@ router.put('/', verifyAdmin, async (req, res) => {
 });
 
 // ?[DELETE] Delete all students
+// /api/admin/students/all
 router.delete('/all', verifyAdmin, async (req, res) => {
   try {
     const allStudents = await prisma.student.findMany({ select: { id: true, lrn: true, firstName: true, lastName: true, email: true } });
@@ -530,6 +533,7 @@ router.delete('/all', verifyAdmin, async (req, res) => {
 });
 
 // ?[DELETE] Delete students
+// /api/admin/students
 router.delete('/', verifyAdmin, async (req, res) => {
   const ids = Array.isArray(req.body.ids) ? req.body.ids.map((i) => parseInt(i)) : [];
 
@@ -557,6 +561,7 @@ router.delete('/', verifyAdmin, async (req, res) => {
 });
 
 // ?[DELETE] Delete a student
+// /api/admin/students/:id
 router.delete('/:id', verifyAdmin, async (req, res) => {
   const { id } = req.params;
 
