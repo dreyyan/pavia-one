@@ -123,7 +123,6 @@ const AdviserClassManagement = () => {
 
       {/* [SECTION] Search & Filter */}
       <div className="flex items-center gap-4">
-
         {/* [COMPONENT] Search Bar */}
         <div className="relative flex-1">
           <input
