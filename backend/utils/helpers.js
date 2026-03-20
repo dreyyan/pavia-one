@@ -1,4 +1,5 @@
 const bcrypt = require('bcrypt');
+const prisma = require('../lib/prisma');
 
 // [HELPER] Hash password
 const hashPassword = async (password) => {
@@ -94,5 +95,36 @@ function splitFullName(fullName) {
   return { firstName, middleName, lastName };
 }
 
+// [HELPER] Recalculate & Save General Average
+async function updateGeneralAverage(studentId, schoolYear) {
+  const grades = await prisma.sF9Grade.findMany({
+    where: { studentId, schoolYear },
+    select: { finalRating: true }
+  });
 
-module.exports = { hashPassword, getFullName, isValidSex, calculateAge, validateSF2Completeness, splitFullName };
+  if (!grades.length) return null;
+
+  const allFinalized = grades.every(g => g.finalRating !== null);
+
+  const generalAverage = allFinalized
+    ? Math.round(
+        grades.reduce((sum, g) => sum + g.finalRating, 0) / grades.length
+      )
+    : null;
+
+  await prisma.sF9Summary.upsert({
+    where: {
+      studentId_schoolYear: { studentId, schoolYear }
+    },
+    update: { generalAverage },
+    create: {
+      studentId,
+      schoolYear,
+      generalAverage
+    }
+  });
+
+  return generalAverage;
+}
+
+module.exports = { hashPassword, getFullName, isValidSex, calculateAge, validateSF2Completeness, splitFullName, updateGeneralAverage };
