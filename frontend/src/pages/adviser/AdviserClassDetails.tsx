@@ -43,7 +43,7 @@ const AdviserClassDetails = () => {
   const [section, setSection] = useState<Section | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile] = useState<Profile | null>(null);
 
   // *[EFFECT] Fetch adviser's class's details
   useEffect(() => {
