@@ -368,7 +368,7 @@ model SF9GradeItem {
   maxScore     Float            // maximum possible score for this item
 
   grade        SF9Grade         @relation(fields: [sf9GradeId], references: [id], onDelete: Cascade)
-
+  createdAt DateTime @default(now())
   @@map("sf9_grade_items")
 }
 
