@@ -64,7 +64,6 @@ const AdviserClassDetails = () => {
         );
 
         const data = await res.json();
-        console.log("Section fetch response:", data);
 
         // ![ERROR] Backend failure response
         if (!data.success) {

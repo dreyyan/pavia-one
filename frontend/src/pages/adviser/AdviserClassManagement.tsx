@@ -60,16 +60,13 @@ const AdviserClassManagement = () => {
           },
         });
 
-        // 
+        // ![ERROR] Expired token
         if (res.status === 401) {
           setShowTokenExpiredModal(true);
           return;
         }
 
         const data = await res.json();
-
-        // ![ERROR] Expired token
-        if (!data) return;
 
         // ![ERROR] Backend failure response
         if (!data.success) {
