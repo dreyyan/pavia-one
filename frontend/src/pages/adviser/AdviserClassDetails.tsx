@@ -1,12 +1,20 @@
+// [IMPORT] Hooks
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+
+// [IMPORT] Components
 import MyClassCard from "../../components/MyClassCard";
 import DashboardButton from "../../components/DashboardButton";
 import ClassSummaryItem from "../../components/ClassSummaryItem";
 
+// ?[INTERFACES]
 interface ScheduleItem {
   day: string;
   time: string;
+}
+
+interface Enrollment {
+  student?: { sex?: "MALE" | "FEMALE" } | null;
 }
 
 interface Section {
@@ -21,15 +29,23 @@ interface Section {
   femaleCount?: number;
 }
 
+interface Profile {
+  attendanceRate: number;
+  classAverage: number;
+  studentsAtRisk: number;
+};
+
 const AdviserClassDetails = () => {
-  const { id } = useParams<{ id: string }>(); // section ID from URL
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
+  // [STATES]
   const [section, setSection] = useState<Section | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
 
+  // *[EFFECT] Fetch adviser's class's details
   useEffect(() => {
     const fetchSection = async () => {
       setLoading(true);
@@ -50,6 +66,7 @@ const AdviserClassDetails = () => {
         const data = await res.json();
         console.log("Section fetch response:", data);
 
+        // ![ERROR] Backend failure response
         if (!data.success) {
           setError(data.message || "Failed to fetch section");
           setSection(null);
@@ -58,7 +75,7 @@ const AdviserClassDetails = () => {
 
           let maleCount = 0;
           let femaleCount = 0;
-          (sec.enrollments || []).forEach((enroll: any) => {
+          (sec.enrollments || []).forEach((enroll: Enrollment) => {
             const sex = enroll.student?.sex;
             if (sex === "MALE") maleCount++;
             else if (sex === "FEMALE") femaleCount++;
@@ -76,8 +93,9 @@ const AdviserClassDetails = () => {
             femaleCount,
           });
         }
-      } catch (err: any) {
-        setError(err.message || "Something went wrong");
+      } catch (err: unknown) {
+        if (err instanceof Error) setError(err.message);
+        else setError("Something went wrong");
         setSection(null);
       } finally {
         setLoading(false);
@@ -87,6 +105,7 @@ const AdviserClassDetails = () => {
     if (id) fetchSection();
   }, [id]);
 
+  // [LOADING STATE] Wait for class fetch
   if (loading) return <p>Loading class...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
   if (!section) return <p>No section found.</p>;
@@ -105,6 +124,7 @@ const AdviserClassDetails = () => {
 
   return (
     <div className="py-10 px-4 space-y-4 relative">
+      {/* [SECTION] Breadcrumbs Navigation */}
       <nav className="font-roboto text-sm text-[var(--color-text-700)] px-2 pb-2">
         {breadcrumbs.map((crumb, index) => (
           <span key={index}>
@@ -125,6 +145,8 @@ const AdviserClassDetails = () => {
           </span>
         ))}
       </nav>
+
+      {/* [COMPONENT] My Class */}
       <MyClassCard
         id={section.id}
         key={section.id}
