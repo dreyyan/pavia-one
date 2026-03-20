@@ -7,8 +7,7 @@ const prisma = require('../../lib/prisma');
 const { successResponse, errorResponse } = require('../../utils/response');
 const verifyAdmin = require('../../middleware/authMiddleware').verifyAdmin;
 
-// ============================
-// ?[GET] Retrieve all learning areas
+// ?[GET] Get All Learning Areas
 // /api/admin/learning-area
 router.get('/', verifyAdmin, async (req, res) => {
   try {
@@ -21,7 +20,6 @@ router.get('/', verifyAdmin, async (req, res) => {
   }
 });
 
-// ============================
 // ?[POST] Auto-create all learning areas for all grades and curriculums
 // /api/admin/learning-area/auto-create-all
 router.post('/auto-create-all', verifyAdmin, async (req, res) => {
@@ -127,8 +125,7 @@ router.post('/auto-create-all', verifyAdmin, async (req, res) => {
   }
 });
 
-// ============================
-// ?[POST] Create one or multiple learning areas
+// ?[POST] Add Learning Area(s)
 // /api/admin/learning-area
 router.post('/', verifyAdmin, async (req, res) => {
   try {
@@ -165,8 +162,7 @@ router.post('/', verifyAdmin, async (req, res) => {
   }
 });
 
-// ============================
-// ?[PUT] Update a learning area (single)
+// ?[PUT] Update a learning Area
 // /api/admin/learning-area/:id
 router.put('/:id', verifyAdmin, async (req, res) => {
   try {
@@ -198,8 +194,7 @@ router.put('/:id', verifyAdmin, async (req, res) => {
   }
 });
 
-// ============================
-// ?[PUT] Bulk update learning areas
+// ?[PUT] Bulk Update learning Areas
 // /api/admin/learning-area
 router.put('/', verifyAdmin, async (req, res) => {
   try {
@@ -228,8 +223,7 @@ router.put('/', verifyAdmin, async (req, res) => {
   }
 });
 
-// ============================
-// ?[DELETE] Delete a single learning area
+// ?[DELETE] Delete a Learning Area
 // /api/admin/learning-area/:id
 router.delete('/:id', verifyAdmin, async (req, res) => {
   try {
@@ -241,8 +235,7 @@ router.delete('/:id', verifyAdmin, async (req, res) => {
   }
 });
 
-// ============================
-// ?[DELETE] Bulk delete learning areas
+// ?[DELETE] Bulk Delete learning Areas
 // /api/admin/learning-area
 router.delete('/', verifyAdmin, async (req, res) => {
   try {
@@ -258,7 +251,6 @@ router.delete('/', verifyAdmin, async (req, res) => {
   }
 });
 
-// ============================
 // ?[DELETE] Delete all learning areas
 // /api/admin/learning-area/all
 router.delete('/all', verifyAdmin, async (req, res) => {
