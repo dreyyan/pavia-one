@@ -40,17 +40,6 @@ const AdviserClassGrades = () => {
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
 
-  // *[HELPER] Handle API response with modal for errors
-  const handleApiResponse = async (res: Response) => {
-    if (res.status === 401) {
-      setModalTitle("Unauthorized");
-      setModalMessage("Your session has expired. Please login again.");
-      setShowModal(true);
-      return null;
-    }
-    return await res.json();
-  };
-
   // *[EFFECT] Fetch section's students' grades
   useEffect(() => {
     const fetchGrades = async () => {
@@ -71,7 +60,14 @@ const AdviserClassGrades = () => {
           }
         );
 
-        const sectionData = await handleApiResponse(resSection);
+        // ![ERROR] Expired token
+        if (resSection.status === 401) {
+          setShowTokenExpiredModal(true);
+          setLoading(false);
+          return;
+        }
+
+        const sectionData = await resSection.json();
 
         // ![ERROR] Backend failure or missing data
         if (!sectionData?.success || !sectionData.data) {
@@ -94,7 +90,7 @@ const AdviserClassGrades = () => {
           femaleCount: sec.femaleCount ?? 0,
           color: sec.color ?? "#4F46E5",
         });
-        
+
         const resGrades = await fetch(
           `${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/section/${sectionId}`,
           {
@@ -105,7 +101,7 @@ const AdviserClassGrades = () => {
           }
         );
 
-        const gradesData = await handleApiResponse(resGrades);
+        const gradesData = await resGrades.json();
 
         // ![ERROR] Backend failure or missing data
         if (!gradesData?.success || !gradesData.data) {
