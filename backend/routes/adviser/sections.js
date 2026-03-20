@@ -124,7 +124,12 @@ router.get('/:id', verifyAdviser, async (req, res) => {
       return res.status(404).json(errorResponse('Section not found for this adviser'));
     }
 
-    res.json(successResponse('Section retrieved', section));
+    const sectionWithCounts = {
+      ...section,
+      classSize: section.enrollments?.length ?? 0
+    };
+
+    res.json(successResponse('Section retrieved', sectionWithCounts));
   } catch (err) {
     console.error('Section fetch error:', err);
     res.status(500).json(errorResponse('Failed to fetch section', err.message));
