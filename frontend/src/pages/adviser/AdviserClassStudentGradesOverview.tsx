@@ -43,6 +43,32 @@ const SUBJECT_ABBREVIATIONS: Record<string, string> = {
   "Edukasyong Pantahanan at Pangkabuhayan": "EPP/TLE",
 };
 
+// [HELPER] Get student remarks
+const getRemarks = (finalGrade: number) => {
+  if (finalGrade >= 98) return "With Highest Honors";
+  if (finalGrade >= 95) return "With High Honors";
+  if (finalGrade >= 90) return "With Honors";
+  return "";
+};
+
+// [HELPER] Function to check if student qualifies and get award
+const calculateAward = (grades: StudentGradeDetail[]): string | null => {
+  // Only consider subjects that have all Q1-Q4 filled
+  const completeGrades = grades.filter(
+    (g) => g.q1 !== null && g.q2 !== null && g.q3 !== null && g.q4 !== null
+  );
+
+  // If not all grades are complete, return null
+  if (completeGrades.length !== grades.length) return null;
+
+  // Compute the average of final ratings
+  const total = completeGrades.reduce((sum, g) => sum + (g.finalRating ?? 0), 0);
+  const avg = total / completeGrades.length;
+
+  // Use your award mapping
+  return getRemarks(avg);
+};
+
 const AdviserClassStudentGradesOverview = () => {
   const { sectionId, studentId } = useParams<{ sectionId: string; studentId: string }>();
   const navigate = useNavigate();
@@ -275,6 +301,13 @@ const AdviserClassStudentGradesOverview = () => {
           </tbody>
         </table>
       </div>
+
+      {/* [SECTION] Student Award */}
+      {grades.length > 0 && calculateAward(grades) && (
+        <div className="mt-4 p-4 bg-[--color-accent-50] border border-[--color-accent-300] rounded-lg text-[--color-accent-800] font-semibold text-center">
+          Award: {calculateAward(grades)}
+        </div>
+      )}
     </div>
   );
 };
