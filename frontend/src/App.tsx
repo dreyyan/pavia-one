@@ -31,9 +31,9 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
 
-        {/* Adviser */}
+        {/* ADVISER ROUTES */}
+        {/* Dashboard */}
         <Route path="/adviser/dashboard" element={<AdviserDashboard />} />
-
         {/* Class Management */}
         <Route path="/adviser/classes" element={<AdviserClassManagement />} />
         <Route path="/adviser/classes/:id" element={<AdviserClassDetails />} />
@@ -43,17 +43,18 @@ function App() {
         {/* [3] Grades */}
         <Route path="/adviser/classes/grades/:sectionId" element={<AdviserClassGrades />} />
         <Route path="/adviser/classes/grades/:sectionId/:studentId" element={<AdviserClassStudentGradesOverview />} />
-        <Route path="/adviser/classes/grades/:sectionId/:studentId/subjects/:subjectId" element={<AdviserClassStudentGradesDetails />}
-        />
-
+        <Route path="/adviser/classes/grades/:sectionId/:studentId/subjects/:subjectId" element={<AdviserClassStudentGradesDetails />}/>
         {/* School Forms */}
         <Route path="/adviser/school-forms" element={<AdviserSchoolForms />} />
         <Route path="/adviser/school-forms/:sectionId" element={<AdviserClassSchoolForms />} />
-
         {/* Profile */}
         <Route path="/adviser/profile" element={<AdviserProfile />} />
 
-        {/* Shared Endpoints */}
+        {/* ADMIN ROUTES */}
+        {/* TODO: Add admin routes below */}
+
+        {/* SHARED ROUTES */}
+        {/* About Us */}
         <Route path="/about-us" element={<AboutUs />} />
       </Route>
     </Routes>
