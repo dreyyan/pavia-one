@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Modal from "../../components/Modal";
+import { createPortal } from "react-dom";
 
 interface StudentGradeDetail {
   id: number;
@@ -36,6 +37,9 @@ const AdviserClassStudentGradesOverview = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
+  const [hoveredGradeId, setHoveredGradeId] = useState<number | null>(null);
+  const [bubblePos, setBubblePos] = useState<{ top: number; left: number } | null>(null);
+  const finalRatingRefs = useRef<Record<number, HTMLTableCellElement>>({});
 
   const handleApiResponse = async (res: Response) => {
     if (res.status === 401) {
@@ -50,7 +54,6 @@ const AdviserClassStudentGradesOverview = () => {
   useEffect(() => {
     const fetchStudentAndGrades = async () => {
       if (!sectionId || !studentId) return;
-
       setLoading(true);
       setError(null);
 
@@ -125,7 +128,7 @@ const AdviserClassStudentGradesOverview = () => {
   ];
 
   return (
-    <div className="py-10 px-4 space-y-4 6 max-w-md mx-auto">
+    <div className="py-10 px-4 space-y-4 max-w-4xl mx-auto">
       <nav className="font-roboto text-sm text-[var(--color-text-700)] px-2 pb-2">
         {breadcrumbs.map((crumb, index) => (
           <span key={index}>
@@ -180,23 +183,66 @@ const AdviserClassStudentGradesOverview = () => {
 
           <tbody className="font-roboto">
             {grades.map((grade) => (
-              <tr key={grade.id} className="border-t border-[var(--color-bg-100)] hover:bg-[var(--color-bg-50)] transition-colors duration-200 ease-in-out relative">
-                {/* Clickable subject */}
-                <td
-                  className="py-2 px-4 text-sm border-r border-[var(--color-bg-300)] w-40 truncate cursor-pointer text-[var(--color-primary-700)] hover:underline"
-                  onClick={() =>
-                    // Correct
-                    navigate(`/adviser/classes/grades/${sectionId}/${studentId}/subjects/${grade.id}`)
-                  }
-                >
-                  {grade.subject}
+              <tr
+                key={grade.id}
+                className="border-t border-[var(--color-bg-100)] hover:bg-[var(--color-bg-50)] transition-colors duration-200 ease-in-out"
+              >
+                {/* Subject */}
+                <td className="py-2 px-4 text-sm border-r border-[var(--color-bg-300)] w-40">
+                  <span
+                    className="cursor-pointer text-[var(--color-primary-700)] hover:underline truncate block"
+                    onClick={() => navigate(`/adviser/classes/grades/${sectionId}/${studentId}/subjects/${grade.id}`)}
+                  >
+                    {grade.subject}
+                  </span>
                 </td>
-                <td className="py-2 px-4 text-sm border-r border-[var(--color-bg-300)] hidden sm:table-cell">{grade.q1 ?? "-"}</td>
-                <td className="py-2 px-4 text-sm border-r border-[var(--color-bg-300)] hidden sm:table-cell">{grade.q2 ?? "-"}</td>
-                <td className="py-2 px-4 text-sm border-r border-[var(--color-bg-300)] hidden sm:table-cell">{grade.q3 ?? "-"}</td>
-                <td className="py-2 px-4 text-sm border-r border-[var(--color-bg-300)] hidden sm:table-cell">{grade.q4 ?? "-"}</td>
-                <td className="py-2 px-4 text-sm border-r border-[var(--color-bg-300)]">{grade.finalRating ?? "-"}</td>
-                <td className="py-2 px-4 text-sm">{grade.remarks ?? "-"}</td>
+
+                <td className="py-2 px-4 text-sm border-r border-[var(--color-bg-300)] hidden sm:table-cell">{grade.q1 ?? "—"}</td>
+                <td className="py-2 px-4 text-sm border-r border-[var(--color-bg-300)] hidden sm:table-cell">{grade.q2 ?? "—"}</td>
+                <td className="py-2 px-4 text-sm border-r border-[var(--color-bg-300)] hidden sm:table-cell">{grade.q3 ?? "—"}</td>
+                <td className="py-2 px-4 text-sm border-r border-[var(--color-bg-300)] hidden sm:table-cell">{grade.q4 ?? "—"}</td>
+
+                {/* Final Rating with bubble */}
+                <td
+                  className="py-2 px-4 text-sm border-r border-[var(--color-bg-300)] relative cursor-default"
+                  ref={(el) => { if (el) finalRatingRefs.current[grade.id] = el }}
+                  onMouseEnter={() => {
+                    setHoveredGradeId(grade.id);
+                    const rect = finalRatingRefs.current[grade.id]?.getBoundingClientRect();
+                    if (rect) {
+                      setBubblePos({ top: rect.top - 8, left: rect.left + rect.width / 2 });
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    setHoveredGradeId(null);
+                    setBubblePos(null);
+                  }}
+                >
+                  {grade.finalRating ?? "—"}
+
+                  {hoveredGradeId === grade.id && bubblePos &&
+                    createPortal(
+                      <div
+                        className="fixed z-50 bg-white border border-gray-200 rounded-xl shadow-lg px-4 py-3 text-xs whitespace-nowrap"
+                        style={{
+                          top: bubblePos.top,
+                          left: bubblePos.left,
+                          transform: "translateX(-50%)",
+                          pointerEvents: "none",
+                        }}
+                      >
+                        {[["Q1", grade.q1], ["Q2", grade.q2], ["Q3", grade.q3], ["Q4", grade.q4]].map(([label, val]) => (
+                          <div key={label} className="flex justify-between gap-4 py-0.5">
+                            <span className="text-gray-500 font-medium">{label}</span>
+                            <span className="font-medium text-gray-800">{val ?? "—"}</span>
+                          </div>
+                        ))}
+                      </div>,
+                      document.body
+                    )}
+                </td>
+
+                <td className="py-2 px-4 text-sm">{grade.remarks ?? "—"}</td>
               </tr>
             ))}
           </tbody>
