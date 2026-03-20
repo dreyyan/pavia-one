@@ -1,3 +1,4 @@
+// [IMPORT] Setup
 const express = require('express');
 const router = express.Router();
 const prisma = require('../../lib/prisma');
@@ -7,18 +8,18 @@ const { execFile } = require('child_process');
 const { errorResponse } = require('../../utils/response');
 const verifyAdviser = require('../../middleware/authMiddleware').verifyAdviser;
 
-// -------------------- PATHS --------------------
-const SERVICES_DIR = path.resolve(__dirname, '../../services'); // Python scripts
-const FORMS_DIR = path.resolve(__dirname, '../../forms');       // Templates & JSON
+// [SETUP] Paths
+const SERVICES_DIR = path.resolve(__dirname, '../../services');
+const FORMS_DIR = path.resolve(__dirname, '../../forms');
 const OUTPUT_DIR = path.join(FORMS_DIR, 'output_data');
 
 const XLSX_PARSER_PATH = path.join(SERVICES_DIR, 'xlsx_parser.py');
 const FILL_SF1_PATH = path.join(SERVICES_DIR, 'fill_sf1_template.py');
 const RAW_JSON_PATH = path.join(FORMS_DIR, 'raw_students.json');
 const FINAL_XLSX_PATH = path.join(FORMS_DIR, 'SF1_filled_output.xlsx');
-const PYTHON_EXE = path.join(__dirname, '../../venv/Scripts/python.exe'); // venv Python
+const PYTHON_EXE = path.join(__dirname, '../../venv/Scripts/python.exe');
 
-// -------------------- HELPER --------------------
+// [HELPER] Run Python Script
 async function runPythonScript(scriptPath, args = []) {
   return new Promise((resolve, reject) => {
     console.log(`Running Python: ${PYTHON_EXE} ${scriptPath} ${args.join(' ')}`);
@@ -34,7 +35,8 @@ async function runPythonScript(scriptPath, args = []) {
   });
 }
 
-// -------------------- ENDPOINT --------------------
+// ?[GET] Get School Register (SF1)
+// /api/adviser/sf1
 router.get('/', verifyAdviser, async (req, res) => {
   try {
     const { sectionId } = req.query;
@@ -95,7 +97,7 @@ const studentsData = enrollments.map(e => {
     fatherName,
     motherMaidenName,
 
-    streetAddress: address.streetAddress || '',        // <-- added streetAddress
+    streetAddress: address.streetAddress || '',
     barangay: address.barangay || '',
     municipality: address.municipalityCity || '',
     province: address.province || '',
