@@ -1,8 +1,12 @@
+// [IMPORT] Hooks
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+
+// [IMPORT] Components
 import MyClassCard from "../../components/MyClassCard";
 import { useAuth } from "../../context/useAuth";
 
+// ?[INTERFACES]
 interface Student {
   id: number;
   lrn: string;
@@ -31,10 +35,11 @@ interface Section {
 type SortOption = "lrn-asc" | "lrn-desc" | "name-asc" | "name-desc";
 
 const AdviserClassStudents = () => {
-  const { sectionId } = useParams<{ id: string }>();
+  const { sectionId } = useParams<{ sectionId: string }>();
   const navigate = useNavigate();
   const { setShowTokenExpiredModal } = useAuth();
 
+  // [STATES]
   const [students, setStudents] = useState<Student[]>([]);
   const [section, setSection] = useState<Section | null>(null);
   const [loading, setLoading] = useState(true);
@@ -66,81 +71,89 @@ const AdviserClassStudents = () => {
     });
   }, []);
 
-  useEffect(() => {
-    // Centralized API response handler
-    const handleApiResponse = async (res: Response) => {
+// *[EFFECT] Fetch adviser's class's students
+useEffect(() => {
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/adviser/sections/${sectionId}/students`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      // ![ERROR] Expired token
       if (res.status === 401) {
-        setShowTokenExpiredModal(true); // Show modal for expired token
-        return null;
+        setShowTokenExpiredModal(true);
+        setLoading(false);
+        return;
       }
-      return await res.json();
-    };
 
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
+      const data = await res.json();
 
-      try {
-        const token = localStorage.getItem("token");
-
-        const res = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/api/adviser/sections/${sectionId}/students`,
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        const data = await handleApiResponse(res);
-        if (!data) return; // token expired → modal will show automatically
-
-        if (!data.success) {
-          setError(data.message || "Failed to fetch data");
-          setStudents([]);
-          setSection(null);
-          return;
-        }
-
-        const studentsData: Student[] = data.data?.students || [];
-        setStudents(studentsData);
-
-        // Calculate male/female counts
-        let maleCount = 0;
-        let femaleCount = 0;
-        studentsData.forEach((s: Student) => {
-          if (s.sex === "MALE") maleCount++;
-          else if (s.sex === "FEMALE") femaleCount++;
-        });
-
-        const sec = data.data?.section;
-        if (sec) {
-          setSection({
-            id: sec.id,
-            name: `${sec.gradeLevel} — ${sec.name}`,
-            gradeLevel: sec.gradeLevel,
-            classSize: studentsData.length,
-            color: sec.color || "#999999",
-            schedule: sec.schedule || [],
-            maleCount,
-            femaleCount,
-          });
-        }
-      } catch (err) {
-        const error = err instanceof Error ? err : new Error("Something went wrong");
-        setError(error.message);
+      // ![ERROR] Backend failure or missing data
+      if (!data || !data.success || !data.data) {
+        setError(data?.message || "Failed to fetch students or section");
         setStudents([]);
         setSection(null);
-      } finally {
         setLoading(false);
+        return;
       }
-    };
 
-    if (sectionId) fetchData();
-  }, [sectionId, setShowTokenExpiredModal]);
+      const { students: studentsData = [], section: sec } = data.data;
 
-  // Filtered and sorted students
+      // ![ERROR] No section returned
+      if (!sec) {
+        setError("Section not found");
+        setStudents([]);
+        setSection(null);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch section's students
+      setStudents(studentsData);
+
+      // Calculate male/female counts
+      let maleCount = 0;
+      let femaleCount = 0;
+      studentsData.forEach((s: Student) => {
+        if (s.sex === "MALE") maleCount++;
+        else if (s.sex === "FEMALE") femaleCount++;
+      });
+
+      // Fetch adviser's section details
+      setSection({
+        id: Number(sectionId),
+        name: `${sec.gradeLevel} — ${sec.name}`,
+        gradeLevel: sec.gradeLevel,
+        classSize: studentsData.length,
+        color: sec.color || "#999999",
+        schedule: sec.schedule || [],
+        maleCount,
+        femaleCount,
+      });
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error("Something went wrong");
+      setError(error.message);
+      setStudents([]);
+      setSection(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (sectionId) fetchData();
+}, [sectionId, setShowTokenExpiredModal]);
+
+  // ?Filtered and sorted students
   const displayedStudents = students
     .filter((s) =>
       s.fullName.toLowerCase().includes(search.toLowerCase()) ||
@@ -155,10 +168,12 @@ const AdviserClassStudents = () => {
       }
     });
 
+  // [LOADING STATE] Wait for data fetch
   if (loading) return <p>Loading students...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
   if (!section) return <p>No section found.</p>;
 
+  // Breadcrumbs navigation
   const breadcrumbs = [
     { label: "Class Management", path: "/adviser/classes" },
     { label: section.name, path: `/adviser/classes/${sectionId}` },
@@ -167,6 +182,7 @@ const AdviserClassStudents = () => {
 
   return (
     <div className="py-10 px-4 space-y-4 relative">
+      {/* [SECTION] Breadcrumbs Navigation */}
       <nav className="font-roboto text-sm text-[var(--color-text-700)] px-2 pb-2">
         {breadcrumbs.map((crumb, index) => (
           <span key={index}>
@@ -182,6 +198,7 @@ const AdviserClassStudents = () => {
         ))}
       </nav>
 
+      {/* [COMPONENT] My Class */}
       <MyClassCard
         id={section.id}
         key={section.id}
@@ -192,9 +209,9 @@ const AdviserClassStudents = () => {
         color={section.color}
       />
       
-      {/* Search & Sort */}
+      {/* [SECTION] Search & Sort */}
       <div className="flex items-center gap-4 mt-4">
-        {/* Search input */}
+        {/* [COMPONENT] Search Bar */}
         <div className="relative flex-1">
           <input
             type="text"
@@ -205,7 +222,7 @@ const AdviserClassStudents = () => {
           />
         </div>
 
-        {/* Sort dropdown */}
+        {/* [COMPONENT] Sort By Dropdown */}
         <div ref={filterRef} className="relative">
           <button
             onClick={() => setShowSortFilters(!showSortFilters)}
@@ -257,7 +274,7 @@ const AdviserClassStudents = () => {
         </div>
       </div>
 
-      {/* Students Table */}
+      {/* [SECTION] Students Table */}
       <div className="overflow-x-auto mt-4 rounded-lg">
         {displayedStudents.length === 0 && (
           <div className="flex flex-col items-center justify-center py-6 space-y-2 text-center text-[var(--color-text-800)]">
