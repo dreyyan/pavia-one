@@ -385,53 +385,53 @@ router.get('/:sectionId', verifyAdviser, async (req, res) => {
   }
 });
 
-// ?[GET] Get a specific student in a section (protected)
+// [GET] Get a specific student in a section (protected)
 // /api/adviser/sections/:sectionId/students/:studentId
 router.get('/:sectionId/students/:studentId', verifyAdviser, async (req, res) => {
   try {
     const sectionId = parseInt(req.params.sectionId);
     const studentId = parseInt(req.params.studentId);
 
-    console.log('[REQUEST] GET /api/adviser/sections/:sectionId/students/:studentId');
-    console.log('Request params:', { sectionId, studentId });
-    console.log('JWT adviserId from token:', req.adviserId);
+    console.log('[REQUEST] GET /api/adviser/sections/:sectionId/students/:studentId', { sectionId, studentId });
 
-    // Get numeric adviser ID
+    // Get numeric adviser ID from token
     const adviser = await prisma.adviser.findUnique({
       where: { adviserId: req.adviserId },
       select: { id: true }
     });
-    console.log('Adviser fetched:', adviser);
-
     if (!adviser) return res.status(404).json(errorResponse('Adviser not found'));
 
     // Verify section belongs to adviser
     const section = await prisma.section.findFirst({
-      where: {
-        id: sectionId,
-        adviserId: adviser.id,
-      },
+      where: { id: sectionId, adviserId: adviser.id },
       select: { id: true, name: true, gradeLevel: true }
     });
-    console.log('Section fetched:', section);
-
     if (!section) return res.status(403).json(errorResponse('You do not manage this section'));
 
-    // Fetch enrollment including address & guardian
+    // Fetch student enrollment including all details
     const enrollment = await prisma.enrollment.findFirst({
       where: { sectionId, studentId },
       include: {
-        student: { include: { address: true, guardian: true } },
-        section: { select: { name: true, gradeLevel: true } }
-      }
+        student: {
+          include: {
+            address: true,
+            guardian: true,
+            sf9Grades: { include: { items: true } }, // include SF9 grades
+            sf9Summaries: true,
+            monthlySummaries: true,
+            dailyAttendances: true,
+            sf5Reports: true,
+            sf9CoreValues: true,
+          },
+        },
+        section: { select: { id: true, name: true, gradeLevel: true } },
+      },
     });
-    console.log('Enrollment fetched:', enrollment);
-
     if (!enrollment) return res.status(404).json(errorResponse('Student not found in this section'));
 
     const s = enrollment.student;
 
-    // Build response
+    // Build flattened student response similar to admin
     const studentResponse = {
       id: s.id,
       lrn: s.lrn,
@@ -456,10 +456,20 @@ router.get('/:sectionId/students/:studentId', verifyAdviser, async (req, res) =>
       guardianName: s.guardian?.guardianName ?? "",
       guardianRelationship: s.guardian?.guardianRelationship ?? "",
       guardianContact: s.guardian?.guardianContactNumber ?? "",
-      learningModality: enrollment.learningModality ?? ""
+      learningModality: enrollment.learningModality ?? "",
+      // Include enrollments (flatten learning areas)
+      enrollments: (s.enrollments ?? []).map((enr) => ({
+        ...enr,
+        learningAreas: (enr.learningAreas ?? []).map((ela) => ela.learningArea),
+      })),
+      // Include grades & related data
+      sf9Grades: s.sf9Grades ?? [],
+      sf9Summaries: s.sf9Summaries ?? [],
+      monthlySummaries: s.monthlySummaries ?? [],
+      dailyAttendances: s.dailyAttendances ?? [],
+      sf5Reports: s.sf5Reports ?? [],
+      sf9CoreValues: s.sf9CoreValues ?? [],
     };
-
-    console.log('Student response built:', studentResponse);
 
     res.json(successResponse('Student retrieved successfully', studentResponse));
   } catch (err) {
