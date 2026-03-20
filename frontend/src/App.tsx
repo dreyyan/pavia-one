@@ -10,12 +10,13 @@ import ForgotPassword from "./pages/ForgotPassword";
 import AboutUs from "./AboutUs";
 import AdviserDashboard from "./pages/adviser/AdviserDashboard";
 import AdviserClassManagement from "./pages/adviser/AdviserClassManagement";
-import AdviserMyClass from "./pages/adviser/AdviserMyClass";
+import AdviserClassDetails from "./pages/adviser/AdviserClassDetails";
 import AdviserClassStudents from "./pages/adviser/AdviserClassStudents";
-import AdviserStudentDetails from "./pages/adviser/AdviserStudentDetails";
+import AdviserClassStudentDetails from "./pages/adviser/AdviserClassStudentDetails";
 import AdviserClassSchoolForms from "./pages/adviser/AdviserClassSchoolForms";
 import AdviserSchoolForms from "./pages/adviser/AdviserSchoolForms";
-import AdviserStudentGrades from "./pages/adviser/AdviserStudentGrades";
+import AdviserClassGrades from "./pages/adviser/AdviserClassGrades";
+import AdviserStudentGradesDetails from "./AdviserStudentGradesDetails";
 
 function App() {
   return (
@@ -33,12 +34,13 @@ function App() {
 
         {/* Class Management */}
         <Route path="/adviser/classes" element={<AdviserClassManagement />} />
-        <Route path="/adviser/classes/:id" element={<AdviserMyClass />} />
+        <Route path="/adviser/classes/:id" element={<AdviserClassDetails />} />
         {/* [1] View Students */}
-        <Route path="/adviser/classes/:id/students" element={<AdviserClassStudents />} />
-        <Route path="/adviser/classes/:id/students/:studentId" element={<AdviserStudentDetails />} />
+        <Route path="/adviser/classes/:sectionId/students" element={<AdviserClassStudents />} />
+        <Route path="/adviser/classes/:sectionId/students/:studentId" element={<AdviserClassStudentDetails />} />
         {/* [3] Grades */}
-        <Route path="/adviser/grades/:sectionId" element={<AdviserStudentGrades />} />
+        <Route path="/adviser/classes/grades/:sectionId" element={<AdviserClassGrades />} />
+        <Route path="/adviser/classes/grades/:sectionId/:studentId" element={<AdviserStudentGradesDetails />} />
 
         {/* School Forms */}
         <Route path="/adviser/school-forms" element={<AdviserSchoolForms />} />
