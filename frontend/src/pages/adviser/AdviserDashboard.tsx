@@ -2,20 +2,58 @@ import DashboardButton from "../../components/DashboardButton";
 import DashboardItem from "../../components/DashboardItem";
 import DashboardSkeleton from "../../components/DashboardSkeleton";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext"; // modal context
 
-const AdviserDashboard = () => {
-  const navigate = useNavigate();
-  const { setShowTokenExpiredModal } = useAuth();
+interface Section {
+  id: number;
+  name: string;
+  gradeLevel: number;
+  classSize: number;
+  isAdvisory: boolean;
+}
 
-  const [profile, setProfile] = useState<any>(null);
+interface Profile {
+  name: string;
+  sections: Section[];
+  presentToday?: number;
+  pendingTasks?: number;
+}
+
+const AdviserDashboard = () => {
+  const { setShowTokenExpiredModal } = useAuth();
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mediaLoaded, setMediaLoaded] = useState(false);
+
+  // Preload all assets
+  useEffect(() => {
+    const assetsToPreload = [
+      "/class-size-icon.svg",
+      "/present-today-icon.svg",
+      "/pending-tasks-icon.svg",
+      "/view-students-icon.svg",
+      "/attendance-icon.svg",
+      "/grades-icon.svg",
+      "/reports-icon.svg",
+    ];
+
+    let loadedCount = 0;
+    assetsToPreload.forEach((src) => {
+      const img = new Image();
+      img.src = src;
+      img.onload = img.onerror = () => {
+        loadedCount++;
+        if (loadedCount === assetsToPreload.length) {
+          setMediaLoaded(true);
+        }
+      };
+    });
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
-      setShowTokenExpiredModal(true); // show modal immediately
+      setShowTokenExpiredModal(true);
       setLoading(false);
       return;
     }
@@ -53,7 +91,11 @@ const AdviserDashboard = () => {
     fetchProfile();
   }, [setShowTokenExpiredModal]);
 
-  if (loading) return <DashboardSkeleton />;
+  // Wait for both profile fetch and media preload
+  if (loading || !mediaLoaded) return <DashboardSkeleton />;
+
+  const advisorySection = profile?.sections?.find((s) => s.isAdvisory);
+  const classSize = advisorySection?.classSize ?? 0;
 
   return (
     <div className="py-6 px-4 space-y-4">
@@ -62,32 +104,69 @@ const AdviserDashboard = () => {
       </div>
 
       {/* Personal Information */}
-      <div className="flex items-center bg-[var(--color-bg-100)] border-2 border-[var(--color-bg-300)]/60 rounded-lg px-5 py-6 gap-x-4 shadow-md">
-        <div className="bg-[var(--color-bg-200)] size-18 rounded-full"></div>
-        <div>
-          <h2 className="mb-2">{profile?.name}</h2>
-          <p className="font-roboto font-semibold text-sm">
-            Grade {profile?.gradeLevel} - Section {profile?.sectionName}
+      <div className="flex items-center bg-[var(--color-primary-600)] border-3 border-[var(--color-primary-700)]/60 rounded-xl px-5 py-6 gap-x-4 shadow-md">
+        {/* Profile Picture */}
+        <div className="bg-[var(--color-bg-200)] size-18 rounded-full flex-shrink-0"></div>
+
+        {/* Info Section */}
+        <div className="flex-1">
+          {/* Primary: Name */}
+          <p className="font-roboto font-extrabold text-xl mb-2 text-[var(--color-text-50)]">
+            {profile?.name}
           </p>
-          <p className="font-roboto font-medium text-xs">Class Adviser</p>
+
+          {advisorySection ? (
+            <>
+              {/* Secondary: Grade and Section */}
+              <p className="font-roboto font-semibold text-sm text-[var(--color-text-100)]">
+                Grade {advisorySection.gradeLevel} — {advisorySection.name}
+              </p>
+              {/* Tertiary: Role */}
+              <p className="font-roboto font-medium text-xs text-[var(--color-text-100)]">
+                Class Adviser
+              </p>
+            </>
+          ) : (
+            <p className="text-red-600 font-semibold text-sm">
+              You are not assigned to any advisory section.
+            </p>
+          )}
         </div>
       </div>
 
       {/* Overview */}
-      <div className="bg-[var(--color-bg-100)] border-2 border-[var(--color-bg-300)]/60 rounded-lg px-5 py-6 gap-x-3 shadow-md">
+      <div className="bg-[var(--color-bg-100)] border-2 border-[var(--color-bg-300)]/60 rounded-xl px-5 py-6 gap-x-3 shadow-md">
         <h2 className="mb-3">Overview</h2>
         <div className="space-y-2">
-          <DashboardItem iconSrc="/class-size-icon.svg" text="Class Size" value={profile?.classSize || 0} />
-          <DashboardItem iconSrc="/present-today-icon.svg" text="Present Today" value={profile?.presentToday || 0} />
-          <DashboardItem iconSrc="/pending-tasks-icon.svg" text="Pending Tasks" value={profile?.pendingTasks || 0} />
+          <DashboardItem iconSrc="/class-size-icon.svg" text="Class Size" value={classSize} />
+          <DashboardItem
+            iconSrc="/present-today-icon.svg"
+            text="Present Today"
+            value={profile?.presentToday || 0}
+          />
+          <DashboardItem
+            iconSrc="/pending-tasks-icon.svg"
+            text="Pending Tasks"
+            value={profile?.pendingTasks || 0}
+          />
         </div>
       </div>
 
       {/* Dashboard Buttons */}
       <div className="grid grid-cols-2 gap-6 px-4">
-        <DashboardButton iconSrc="/view-students-icon.svg" text="View Students" color="#0066CC" />
+        <DashboardButton
+          iconSrc="/view-students-icon.svg"
+          text="View Students"
+          color="#0066CC"
+          to={advisorySection ? `/adviser/classes/${advisorySection.id}/students` : "#"}
+        />
         <DashboardButton iconSrc="/attendance-icon.svg" text="Attendance" color="#28A428" />
-        <DashboardButton iconSrc="/grades-icon.svg" text="Grades" color="#CA8E02" />
+        <DashboardButton
+          iconSrc="/grades-icon.svg"
+          text="Grades"
+          color="#CA8E02"
+          to={advisorySection ? `/adviser/classes/grades/${advisorySection.id}` : "#"}
+        />
         <DashboardButton iconSrc="/reports-icon.svg" text="Reports" color="#8F28A4" />
       </div>
     </div>

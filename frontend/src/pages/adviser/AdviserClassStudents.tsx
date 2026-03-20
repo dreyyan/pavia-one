@@ -31,7 +31,7 @@ interface Section {
 type SortOption = "lrn-asc" | "lrn-desc" | "name-asc" | "name-desc";
 
 const AdviserClassStudents = () => {
-  const { id } = useParams<{ id: string }>();
+  const { sectionId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { setShowTokenExpiredModal } = useAuth();
 
@@ -45,16 +45,37 @@ const AdviserClassStudents = () => {
   const [showSortFilters, setShowSortFilters] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
 
-  // Centralized API response handler
-  const handleApiResponse = async (res: Response) => {
-    if (res.status === 401) {
-      setShowTokenExpiredModal(true); // Show modal for expired token
-      return null;
-    }
-    return await res.json();
-  };
+  // [EFFECT] Preload images
+  useEffect(() => {
+    const assetsToPreload = [
+      "/class-size-icon.svg",
+      "/present-today-icon.svg",
+      "/pending-tasks-icon.svg",
+      "/view-students-icon.svg",
+      "/attendance-icon.svg",
+      "/grades-icon.svg",
+      "/reports-icon.svg",
+      "/filter-icon.svg",
+      "/no-data-icon.svg",
+      "/default-profile.svg",
+    ];
+
+    assetsToPreload.forEach((src) => {
+      const img = new Image();
+      img.src = src;
+    });
+  }, []);
 
   useEffect(() => {
+    // Centralized API response handler
+    const handleApiResponse = async (res: Response) => {
+      if (res.status === 401) {
+        setShowTokenExpiredModal(true); // Show modal for expired token
+        return null;
+      }
+      return await res.json();
+    };
+
     const fetchData = async () => {
       setLoading(true);
       setError(null);
@@ -63,7 +84,7 @@ const AdviserClassStudents = () => {
         const token = localStorage.getItem("token");
 
         const res = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/api/adviser/sections/${id}/students`,
+          `${import.meta.env.VITE_API_BASE_URL}/api/adviser/sections/${sectionId}/students`,
           {
             headers: {
               "Content-Type": "application/json",
@@ -88,7 +109,7 @@ const AdviserClassStudents = () => {
         // Calculate male/female counts
         let maleCount = 0;
         let femaleCount = 0;
-        studentsData.forEach((s: any) => {
+        studentsData.forEach((s: Student) => {
           if (s.sex === "MALE") maleCount++;
           else if (s.sex === "FEMALE") femaleCount++;
         });
@@ -106,8 +127,9 @@ const AdviserClassStudents = () => {
             femaleCount,
           });
         }
-      } catch (err: any) {
-        setError(err.message || "Something went wrong");
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error("Something went wrong");
+        setError(error.message);
         setStudents([]);
         setSection(null);
       } finally {
@@ -115,8 +137,8 @@ const AdviserClassStudents = () => {
       }
     };
 
-    if (id) fetchData();
-  }, [id, setShowTokenExpiredModal]);
+    if (sectionId) fetchData();
+  }, [sectionId, setShowTokenExpiredModal]);
 
   // Filtered and sorted students
   const displayedStudents = students
@@ -139,7 +161,7 @@ const AdviserClassStudents = () => {
 
   const breadcrumbs = [
     { label: "Class Management", path: "/adviser/classes" },
-    { label: section.name, path: `/adviser/classes/${id}` },
+    { label: section.name, path: `/adviser/classes/${sectionId}` },
     { label: "View Students", path: null },
   ];
 
@@ -165,8 +187,8 @@ const AdviserClassStudents = () => {
         key={section.id}
         name={section.name}
         classSize={section.classSize}
-        maleCount={section.maleCount}
-        femaleCount={section.femaleCount}
+        maleCount={section.maleCount ?? 0}
+        femaleCount={section.femaleCount ?? 0}
         color={section.color}
       />
       
@@ -237,32 +259,49 @@ const AdviserClassStudents = () => {
 
       {/* Students Table */}
       <div className="overflow-x-auto mt-4 rounded-lg">
-        {displayedStudents.length === 0 && <p>No students found.</p>}
+        {displayedStudents.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-6 space-y-2 text-center text-[var(--color-text-800)]">
+            <img src="/no-data-icon.svg" alt="No students" className="size-16" />
+            <p className="font-roboto font-semibold text-lg">No students found</p>
+            <p className="font-roboto text-sm text-[var(--color-text-700)]">
+              Try searching for a different LRN or student name.
+            </p>
+          </div>
+        )}
 
         {displayedStudents.length > 0 && (
           <table className="min-w-full bg-white shadow-md table-auto border-collapse">
             <thead className="bg-[var(--color-primary-600)] text-white font-figtree">
               <tr>
-                <th className="py-2 px-4 text-left font-bold border-r border-[var(--color-primary-700)]">LRN</th>
-                <th className="py-2 px-4 text-left font-bold border-r border-[var(--color-primary-700)]">Full Name</th>
-                <th className="py-2 px-4 text-left hidden sm:table-cell border-r border-[var(--color-primary-700)]">Profile</th>
-                <th className="py-2 px-4 text-left hidden md:table-cell">Attendance</th>
+                <th className="py-2 px-4 text-left font-bold border-r border-[var(--color-primary-600)] w-28 truncate">
+                  LRN
+                </th>
+                <th className="py-2 px-4 text-left font-bold border-r border-[var(--color-primary-600)]">
+                  Full Name
+                </th>
+                <th className="py-2 px-4 text-left hidden sm:table-cell border-r border-[var(--color-primary-600)]">
+                  Profile
+                </th>
+                <th className="py-2 px-4 text-left hidden md:table-cell">
+                  Attendance
+                </th>
               </tr>
             </thead>
+
             <tbody className="font-roboto">
               {displayedStudents.map((student) => (
                 <tr
                   key={student.id}
-                  className="border-t border-[var(--color-bg-200)] hover:bg-[var(--color-bg-50)] cursor-pointer"
-                  onClick={() => navigate(`/adviser/classes/${id}/students/${student.id}`)}
+                  className="border-t border-[var(--color-bg-100)] hover:bg-[var(--color-bg-50)] cursor-pointer transition-color duration-200 ease-in-out"
+                  onClick={() => navigate(`/adviser/classes/${sectionId}/students/${student.id}`)}
                 >
-                  <td className="py-2 px-4 text-[var(--color-text-900)] border-r border-[var(--color-primary-800)]">
+                  <td className="text-sm py-2 px-4 text-[var(--color-text-900)] border-r border-[var(--color-bg-300)] w-28 truncate">
                     {student.lrn}
                   </td>
-                  <td className="py-2 px-4 text-[var(--color-text-900)] font-bold border-r border-[var(--color-bg-200)]">
+                  <td className="text-sm py-2 px-4 text-[var(--color-text-900)] font-bold border-r border-[var(--color-bg-300)] truncate max-w-[150px]">
                     {student.fullName}
                   </td>
-                  <td className="py-2 px-4 text-[var(--color-text-900)] hidden sm:table-cell border-r border-[var(--color-bg-200)]">
+                  <td className="py-2 px-4 text-[var(--color-text-900)] hidden sm:table-cell border-r border-[var(--color-bg-300)]">
                     <img
                       src={student.profilePic || "/default-profile.svg"}
                       alt={student.fullName}

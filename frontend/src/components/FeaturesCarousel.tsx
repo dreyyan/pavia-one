@@ -31,51 +31,65 @@ const FeaturesCarousel = () => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
 
-    // [EFFECT] Auto change every 3 seconds
+    // Auto change every 5 seconds
     useEffect(() => {
-    const interval = setInterval(() => {
-        setCurrentIndex((prev) => {
-        const nextIndex = (prev + 1) % images.length;
-        return nextIndex;
-        });
-        setIsLoading(true);
-    }, 10000);
+        const interval = setInterval(() => {
+            setCurrentIndex((prev) => (prev + 1) % images.length);
+            setIsLoading(true);
+        }, 5000);
 
-    return () => clearInterval(interval);
+        return () => clearInterval(interval);
     }, []);
 
-    // [HANDLES] Navigation
-    const handleAdviserLogin = () => {
-        navigate("/login/adviser");
+    // Navigation handlers
+    const handleAdviserLogin = () => navigate("/login/adviser");
+    const handleAdminLogin = () => navigate("/login/admin");
+
+    // Click to go to next image
+    const handleNextImage = () => {
+        setCurrentIndex((prev) => (prev + 1) % images.length);
+        setIsLoading(true);
     };
 
-    const handleAdminLogin = () => {
-        navigate("/login/admin")
+    // Click dot to go to specific image
+    const handleDotClick = (index: number) => {
+        setCurrentIndex(index);
+        setIsLoading(true);
     };
 
     return (
         <div>
-            <div className="relative min-w-[312px] min-h-[312px] rounded-lg">
-                {/* Skeleton (only show while loading) */}
+            {/* Carousel */}
+            <div
+                className="relative min-w-[312px] min-h-[312px] rounded-lg cursor-pointer"
+                onClick={handleNextImage} // click carousel to next
+            >
+                {/* Skeleton */}
                 {isLoading && (
                     <div className="absolute inset-0 bg-[var(--color-bg-200)] rounded-lg animate-pulse" />
                 )}
+
                 <img
-                    key={images[currentIndex]} // forces re-render when src changes
+                    key={images[currentIndex]}
                     src={images[currentIndex]}
                     alt="Feature"
                     onLoad={() => setIsLoading(false)}
                     onError={() => setIsLoading(true)}
                     className={`w-full h-full object-cover rounded-lg transition-opacity duration-500 ${
                         isLoading ? "opacity-0" : "opacity-100"
-                    }`}/>
+                    }`}
+                />
 
                 {/* Dot Indicators */}
                 <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
                     {images.map((_, index) => (
                         <div
                             key={index}
-                            className={`w-3 h-3 rounded-full transition-opacity ${
+                            onClick={(e) => {
+                                e.stopPropagation(); // prevent carousel click
+                                handleDotClick(index);
+                            }}
+                            className={`w-3 h-3 rounded-full transition-opacity cursor-pointer ${
                                 index === currentIndex
                                     ? "bg-[var(--color-bg-50)]"
                                     : "bg-[var(--color-bg-50)] opacity-50"
@@ -84,11 +98,13 @@ const FeaturesCarousel = () => {
                     ))}
                 </div>
             </div>
-            
+
             {/* Carousel Content */}
-            <div className="text-center pt-4 pb-8 space-y-2">
-                <h2 className="text-[var(--color-primary-700)]">{content[currentIndex].title}</h2>
-                <p className="body-small">{content[currentIndex].description}</p>
+            <div className="text-center pt-4 pb-6 space-y-2">
+                <div className="min-h-[4rem] flex items-center justify-center">
+                    <h2 className="text-[var(--color-primary-700)]">{content[currentIndex].title}</h2>
+                </div>
+                <p className="min-h-[4rem] body-small">{content[currentIndex].description}</p>
             </div>
 
             {/* Primary Buttons */}

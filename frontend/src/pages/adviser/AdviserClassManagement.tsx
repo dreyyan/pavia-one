@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import ClassCard from "../../components/ClassCard";
 import { useAuth } from "../../context/AuthContext"; // your modal context
+import EmptyState from "../../components/EmptyState";
 
 interface ScheduleItem {
   day: string;
@@ -70,7 +71,7 @@ const AdviserClassManagement = () => {
           setError(data.message || "Failed to fetch sections");
           setClasses([]);
         } else {
-          const sectionsWithDefaults: Section[] = data.data.map((sec: any) => ({
+          const sectionsWithDefaults: Section[] = data.data.map((sec: Section) => ({
             id: sec.id,
             name: `${sec.gradeLevel} — ${sec.name}`,
             gradeLevel: sec.gradeLevel,
@@ -81,8 +82,13 @@ const AdviserClassManagement = () => {
           }));
           setClasses(sectionsWithDefaults);
         }
-      } catch (err: any) {
-        setError(err.message || "Something went wrong");
+      } catch (err: unknown) {
+        // Type guard: make sure err is an Error
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError("Something went wrong");
+        }
         setClasses([]);
       } finally {
         setLoading(false);
@@ -90,6 +96,7 @@ const AdviserClassManagement = () => {
     };
 
     fetchSections();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setShowTokenExpiredModal]);
 
   // Apply grade filter
@@ -164,12 +171,31 @@ const AdviserClassManagement = () => {
       </div>
 
       {/* Class Cards */}
-      <div className="grid grid-cols-1 space-y-6 py-4">
-        {loading && <p>Loading classes...</p>}
-        {error && <p className="text-red-500">{error}</p>}
-        {!loading && !error && filteredClasses.length === 0 && <p>No classes found.</p>}
+      <div className="grid grid-cols-1 space-y-8 py-4">
+        {loading && <p className="text-center text-[var(--color-text-500)]">Loading classes...</p>}
+
+        {/* No sections */}
+        {!loading && classes.length === 0 && !error && (
+          <EmptyState
+            title="No sections found for this adviser"
+            subtitle="You currently have no assigned sections. Please contact admin if this is an error."
+            iconSrc="/no-data-icon.svg"
+          />
+        )}
+
+        {/* API or fetch errors */}
+        {!loading && error && (
+          <EmptyState
+            title="Error fetching sections"
+            subtitle={error}
+            iconSrc="/error-icon.svg"
+          />
+        )}
+
+        {/* Render class cards */}
         {!loading &&
           !error &&
+          classes.length > 0 &&
           filteredClasses.map((cls) => (
             <ClassCard
               id={cls.id}
@@ -180,6 +206,18 @@ const AdviserClassManagement = () => {
               color={cls.color}
             />
           ))}
+
+        {/* Filters applied but no matching classes */}
+        {!loading &&
+          !error &&
+          classes.length > 0 &&
+          filteredClasses.length === 0 && (
+            <EmptyState
+              title="No classes match the selected grade"
+              subtitle="Try selecting a different grade or clear the filter."
+              iconSrc="/no-data-icon.svg"
+            />
+          )}
       </div>
     </div>
   );

@@ -27,57 +27,46 @@ router.get('/', verifyAdmin, async (req, res) => {
 			? { name: { contains: search, mode: 'insensitive' } }
 			: {};
 
-		const [sections, total] = await Promise.all([
-			prisma.section.findMany({
-				where,
-				select: {
-					id: true,
-					name: true,
-					gradeLevel: true,
-					createdAt: true,
-					adviser: {
-						select: {
-							id: true,
-							name: true,
-							email: true,
-						},
-					},
+    const validSortFields = ['name', 'gradeLevel', 'createdAt'];
+    const sortField = validSortFields.includes(sortBy) ? sortBy : 'name';
+    const orderDirection = sortOrder === 'desc' ? 'desc' : 'asc';
 
-					// Count enrollments instead of students
-					_count: {
-						select: { enrollments: true },
-					},
-
-					// Get students through enrollments
-					enrollments: {
-						where: { status: 'ENROLLED' },
-						select: {
-							student: {
-								select: {
-									id: true,
-									lrn: true,
-									firstName: true,
-									middleName: true,
-									lastName: true,
-									nameExtension: true,
-									email: true,
-									accountStatus: true,
-								},
-							},
-						},
-						orderBy: {
-							student: {
-								firstName: 'asc',
-							},
-						},
-					},
-				},
-				orderBy: { [sortBy]: sortOrder === 'desc' ? 'desc' : 'asc' },
-				skip,
-				take,
-			}),
-			prisma.section.count({ where }),
-		]);
+    const [sections, total] = await Promise.all([
+      prisma.section.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          gradeLevel: true,
+          createdAt: true,
+          adviser: {
+            select: { id: true, name: true, email: true },
+          },
+          _count: { select: { enrollments: true } },
+          enrollments: {
+            where: { status: 'ENROLLED' },
+            select: {
+              student: {
+                select: {
+                  id: true,
+                  lrn: true,
+                  firstName: true,
+                  middleName: true,
+                  lastName: true,
+                  nameExtension: true,
+                  email: true,
+                },
+              },
+            },
+            orderBy: { student: { firstName: 'asc' } },
+          },
+        },
+        orderBy: { [sortField]: orderDirection },
+        skip,
+        take,
+      }),
+      prisma.section.count({ where }),
+    ]);
 
 		const totalPages = Math.ceil(total / take);
 
@@ -156,7 +145,7 @@ router.get('/:id', verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[POST] Add section(s)
+// ?[POST] Add section(s]
 // /api/admin/sections
 router.post('/', verifyAdmin, async (req, res) => {
   try {
@@ -170,7 +159,7 @@ router.post('/', verifyAdmin, async (req, res) => {
     const errors = [];
 
     for (const section of sectionsInput) {
-      const { name, adviserId, gradeLevel, schoolYear, color, classSize, schedule, isAdvisory } = section;
+      const { name, adviserId, gradeLevel, schoolYear, color, schedule, isAdvisory, curriculum } = section;
 
       if (!name || !adviserId || gradeLevel === undefined || !schoolYear) {
         errors.push({ name, message: 'Missing required fields' });
@@ -208,7 +197,16 @@ router.post('/', verifyAdmin, async (req, res) => {
         continue;
       }
 
-      // Create section
+      // Validate curriculum
+      const validCurricula = ['Regular', 'STE', 'SPS', 'SPA', 'SPJ'];
+      const sectionCurriculum = curriculum || 'Regular';
+
+      if (!validCurricula.includes(sectionCurriculum)) {
+        errors.push({ name, curriculum, message: `Invalid curriculum. Must be one of: ${validCurricula.join(', ')}` });
+        continue;
+      }
+
+      // [1] Create the section first
       const newSection = await prisma.section.create({
         data: {
           name,
@@ -216,32 +214,38 @@ router.post('/', verifyAdmin, async (req, res) => {
           schoolYear,
           adviser: { connect: { adviserId } },
           color: color || null,
-          classSize: classSize || null,
           schedule: schedule || null,
-		  isAdvisory: isAdvisory || false,
+          isAdvisory: isAdvisory || false,
+          curriculum: sectionCurriculum
         },
+      });
+
+      // [2] Fetch it including enrollments to calculate classSize
+      const newSectionWithEnrollments = await prisma.section.findUnique({
+        where: { id: newSection.id },
         select: {
           id: true,
           name: true,
           gradeLevel: true,
           schoolYear: true,
           color: true,
-          classSize: true,
           schedule: true,
-		  isAdvisory: true,
+          isAdvisory: true,
           createdAt: true,
           adviser: {
-            select: {
-              id: true,
-              adviserId: true,
-              name: true,
-              email: true,
-            },
+            select: { id: true, adviserId: true, name: true, email: true },
           },
+          enrollments: { select: { id: true } }, // include enrollments
         },
       });
 
-      createdSections.push(newSection);
+      const sectionWithClassSize = {
+        ...newSectionWithEnrollments,
+        classSize: newSectionWithEnrollments.enrollments.length,
+      };
+      delete sectionWithClassSize.enrollments;
+
+      createdSections.push(sectionWithClassSize);
     }
 
     res.status(201).json(
@@ -296,7 +300,7 @@ router.post('/assign-students', verifyAdmin, async (req, res) => {
             sectionId,
             status: 'ENROLLED',
             schoolYear: section.schoolYear,
-			learningModality: "FACE_TO_FACE"
+			      learningModality: "FACE_TO_FACE"
           },
         });
 

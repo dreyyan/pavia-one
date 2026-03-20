@@ -196,6 +196,63 @@ router.get('/:identifier', verifyAdmin, async (req, res) => {
   }
 });
 
+// ?[POST] Assign an adviser to a section
+// /api/admin/advisers/:sectionId/assign-adviser
+router.post(
+  '/:sectionId/assign-adviser',
+  verifyAdmin,
+  async (req, res) => {
+    try {
+      const { sectionId } = req.params;
+      const { adviserId } = req.body; // adviser internal ID
+
+      if (!adviserId)
+        return res
+          .status(400)
+          .json(errorResponse('adviserId is required in request body'));
+
+      // Check if section exists
+      const section = await prisma.section.findUnique({
+        where: { id: parseInt(sectionId) },
+        select: { id: true, name: true, adviserId: true },
+      });
+      if (!section)
+        return res.status(404).json(errorResponse('Section not found'));
+
+      // Check if adviser exists
+      const adviser = await prisma.adviser.findUnique({
+        where: { id: parseInt(adviserId) },
+        select: { id: true, name: true, adviserId: true },
+      });
+      if (!adviser)
+        return res.status(404).json(errorResponse('Adviser not found'));
+
+      // Update section to assign adviser
+      const updatedSection = await prisma.section.update({
+        where: { id: section.id },
+        data: { adviserId: adviser.id },
+        select: {
+          id: true,
+          name: true,
+          gradeLevel: true,
+          schoolYear: true,
+          curriculum: true,
+          adviser: { select: { id: true, name: true, adviserId: true } },
+        },
+      });
+
+      res.json(
+        successResponse('Adviser assigned to section successfully', updatedSection)
+      );
+    } catch (err) {
+      console.error('Assign adviser to section error:', err);
+      res
+        .status(500)
+        .json(errorResponse('Failed to assign adviser', err.message));
+    }
+  }
+);
+
 // ?[POST] Add adviser(s)
 // /api/admin/advisers
 router.post("/", verifyAdmin, async (req, res) => {

@@ -30,8 +30,16 @@ router.get('/profile', verifyAdviser, async (req, res) => {
             id: true,
             name: true,
             gradeLevel: true,
+            isAdvisory: true,
             schoolYear: true,
-            curriculum: true
+            curriculum: true,
+            _count: {
+              select: {
+                enrollments: {
+                  where: { status: "ENROLLED" }
+                }
+              }
+            }
           }
         },
         students: {
@@ -42,13 +50,23 @@ router.get('/profile', verifyAdviser, async (req, res) => {
       }
     });
 
-    // ![ERROR] Adviser not found
     if (!adviser) {
       return res.status(404).json(errorResponse('Adviser not found'));
     }
 
-    // *[SUCCESS] Return adviser profile
-    res.json(successResponse('Adviser profile retrieved', adviser));
+    const sections = adviser.sections.map(s => ({
+      id: s.id,
+      name: s.name,
+      gradeLevel: s.gradeLevel,
+      isAdvisory: s.isAdvisory,
+      schoolYear: s.schoolYear,
+      curriculum: s.curriculum,
+      classSize: s._count.enrollments
+    }));
+
+    const result = { ...adviser, sections };
+
+    res.json(successResponse('Adviser profile retrieved', result));
   } catch (err) {
     res.status(500).json(errorResponse('Failed to fetch adviser profile', err.message));
   }
