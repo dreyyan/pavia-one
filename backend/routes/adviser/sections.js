@@ -421,7 +421,7 @@ router.get('/:sectionId/students/:studentId', verifyAdviser, async (req, res) =>
           include: {
             address: true,
             guardian: true,
-            sf9Grades: { include: { items: true } }, // include SF9 grades
+            sf9Grades: { include: { items: true, learningArea: true } },
             sf9Summaries: true,
             monthlySummaries: true,
             dailyAttendances: true,
