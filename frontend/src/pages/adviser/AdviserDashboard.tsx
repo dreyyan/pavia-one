@@ -55,7 +55,7 @@ const AdviserDashboard = () => {
     });
   }, []);
 
-  // [EFFECT] Fetch adviser's profile
+  // *[EFFECT] Fetch adviser's profile
   useEffect(() => {
     const token = localStorage.getItem("token");
 
