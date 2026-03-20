@@ -117,7 +117,7 @@ const AdviserDashboard = () => {
       </div>
 
       {/* [SECTION] Personal Information */}
-      <div className="flex items-center bg-[var(--color-primary-600)] border-3 border-[var(--color-primary-700)]/60 rounded-xl px-5 py-6 gap-x-4 shadow-md">
+      <div className="flex items-center bg-[var(--color-primary-600)] border-2 border-[var(--color-primary-700)]/60 rounded-xl px-5 py-6 gap-x-4 shadow-md">
 
         {/* [UI] Profile Picture Placeholder */}
         <div className="bg-[var(--color-bg-200)] size-18 rounded-full flex-shrink-0"></div>
