@@ -165,7 +165,7 @@ const AdviserDashboard = () => {
           iconSrc="/grades-icon.svg"
           text="Grades"
           color="#CA8E02"
-          to={advisorySection ? `/adviser/grades/${advisorySection.id}` : "#"}
+          to={advisorySection ? `/adviser/classes/grades/${advisorySection.id}` : "#"}
         />
         <DashboardButton iconSrc="/reports-icon.svg" text="Reports" color="#8F28A4" />
       </div>
