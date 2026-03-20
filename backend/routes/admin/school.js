@@ -4,7 +4,7 @@ const prisma = require('../../lib/prisma');
 const { successResponse, errorResponse } = require('../../utils/response');
 const verifyAdmin = require('../../middleware/authMiddleware').verifyAdmin; // assuming you have admin auth
 
-// ?[GET] Get the single school
+// ?[GET] Get School Data
 // /api/admin/school
 router.get('/', verifyAdmin, async (req, res) => {
   try {
@@ -19,7 +19,7 @@ router.get('/', verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[POST] Create the school (only if none exists)
+// ?[POST] Create School Data
 // /api/admin/school
 router.post('/', verifyAdmin, async (req, res) => {
   try {
@@ -42,7 +42,7 @@ router.post('/', verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[PUT] Update the school
+// ?[PUT] Update School Data
 // /api/admin/school
 router.put('/', verifyAdmin, async (req, res) => {
   try {
@@ -65,7 +65,7 @@ router.put('/', verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[DELETE] Delete the school
+// ?[DELETE] Delete School Data
 // /api/admin/school
 router.delete('/', verifyAdmin, async (req, res) => {
   try {
