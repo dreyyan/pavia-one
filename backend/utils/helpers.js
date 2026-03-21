@@ -51,11 +51,6 @@ const validateSF2Completeness = (sf2Data) => {
         missing.dailyAttendances = 'No attendance records';
     }
 
-    // Monthly summaries
-    if (!sf2Data.monthlySummaries || sf2Data.monthlySummaries.length === 0) {
-        missing.monthlySummaries = 'No monthly summaries';
-    }
-
     // Grades
     if (!sf2Data.sf9Grades || sf2Data.sf9Grades.length === 0) {
         missing.sf9Grades = 'No SF9 grades';

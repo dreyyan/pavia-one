@@ -77,8 +77,6 @@ router.get('/', verifyAdmin, async (req, res) => {
               },
             },
           },
-          monthlySummaries: true,
-          dailyAttendances: true,
           sf9Grades: true,
           sf9Summaries: true,
           sf5Reports: true,
@@ -191,8 +189,6 @@ router.get('/:identifier', verifyAdmin, async (req, res) => {
         guardian: true,
 
         enrollments: { select: { id: true, sectionId: true, schoolYear: true, status: true, learningModality: true } },
-        monthlySummaries: true,
-        dailyAttendances: true,
         sf9Grades: true,
         sf9Summaries: true,
         sf5Reports: true,

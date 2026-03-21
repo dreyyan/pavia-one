@@ -234,7 +234,6 @@ router.get('/:id/students', verifyAdviser, async (req, res) => {
               adviser: {
                 select: { id: true, name: true, adviserId: true },
               },
-
               address: true,
               guardian: true,
 
@@ -248,8 +247,6 @@ router.get('/:id/students', verifyAdviser, async (req, res) => {
                 },
               },
 
-              monthlySummaries: true,
-              dailyAttendances: true,
               sf9Grades: true,
               sf9Summaries: true,
               sf5Reports: true,
@@ -422,8 +419,6 @@ router.get('/:sectionId/students/:studentId', verifyAdviser, async (req, res) =>
             guardian: true,
             sf9Grades: { include: { items: true, learningArea: true } },
             sf9Summaries: true,
-            monthlySummaries: true,
-            dailyAttendances: true,
             sf5Reports: true,
             sf9CoreValues: true,
           },
@@ -469,8 +464,6 @@ router.get('/:sectionId/students/:studentId', verifyAdviser, async (req, res) =>
       // Include grades & related data
       sf9Grades: s.sf9Grades ?? [],
       sf9Summaries: s.sf9Summaries ?? [],
-      monthlySummaries: s.monthlySummaries ?? [],
-      dailyAttendances: s.dailyAttendances ?? [],
       sf5Reports: s.sf5Reports ?? [],
       sf9CoreValues: s.sf9CoreValues ?? [],
     };

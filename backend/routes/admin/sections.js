@@ -127,8 +127,7 @@ router.get('/:id', verifyAdmin, async (req, res) => {
         adviser: { select: { id: true, name: true, adviserId: true } },
         enrollments: {
           select: { id: true, studentId: true, schoolYear: true, status: true, learningModality: true },
-        },
-        dailyTotals: true,
+        }
       },
     });
 

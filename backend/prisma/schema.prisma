@@ -11,13 +11,6 @@ datasource db {
 // *────────────────────────────────────────────────
 // * ENUMS
 // *────────────────────────────────────────────────
-enum Attendance {
-  PRESENT
-  ABSENT
-  LATE
-  EXCUSED
-}
-
 enum Sex {
   MALE
   FEMALE
@@ -107,8 +100,7 @@ enum SF9Remarks {
 }
 
 enum SchoolFormType {
-  SF1
-  SF2
+  SF1  
   SF5
 }
 
@@ -218,7 +210,6 @@ model Section {
   schoolForms SchoolForm[]
 
   enrollments Enrollment[]
-  dailyTotals SF2DailyTotals[]
 
   @@unique([schoolYear, gradeLevel, name])
   @@map("sections")
@@ -246,8 +237,6 @@ model Student {
   address            Address?
   guardian           Guardian?
   enrollments        Enrollment[]
-  monthlySummaries   SF2MonthlySummary[]
-  dailyAttendances   SF2StudentAttendance[]
   sf9Grades          SF9Grade[]
   sf9Summaries       SF9Summary[]
   sf5Reports         SF5Report[]
@@ -333,47 +322,6 @@ model LearningArea {
   enrollments EnrollmentLearningArea[]
 
   @@map("learning_areas")
-}
-
-model SF2DailyTotals {
-  id             Int      @id @default(autoincrement())
-  sectionId      Int
-  attendanceDate DateTime @db.Date
-  totalMale      Int      @default(0)
-  totalFemale    Int      @default(0)
-  totalCombined  Int      @default(0)
-
-  section        Section  @relation(fields: [sectionId], references: [id])
-
-  @@unique([sectionId, attendanceDate])
-  @@map("sf2_daily_totals")
-}
-
-model SF2StudentAttendance {
-  id             Int        @id @default(autoincrement())
-  studentId      Int
-  attendanceDate DateTime
-  status         Attendance?
-
-  student        Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
-
-  @@unique([studentId, attendanceDate])
-  @@map("sf2_student_attendance")
-}
-
-model SF2MonthlySummary {
-  id           Int      @id @default(autoincrement())
-  studentId    Int
-  schoolYear   String
-  month        DateTime @db.Date
-  totalPresent Int      @default(0)
-  totalAbsent  Int      @default(0)
-  remarks      String?
-
-  student      Student  @relation(fields: [studentId], references: [id])
-
-  @@unique([studentId, schoolYear, month])
-  @@map("sf2_monthly_summary")
 }
 
 model SF9Grade {
