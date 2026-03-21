@@ -43,11 +43,12 @@ function App() {
         {/* [1] View Students */}
         <Route path="/adviser/classes/:sectionId/students" element={<AdviserClassStudents />} />
         <Route path="/adviser/classes/:sectionId/students/:studentId" element={<AdviserClassStudentDetails />} />
-        {/* [3] Grades */}
+        {/* [2] Grades */}
         <Route path="/adviser/classes/grades/:sectionId" element={<AdviserClassGrades />} />
         <Route path="/adviser/classes/grades/:sectionId/:studentId" element={<AdviserClassStudentGradesOverview />} />
         <Route path="/adviser/classes/grades/:sectionId/:studentId/subjects/:subjectId" element={<AdviserClassStudentGradesDetails />}/>
-        {/* School Forms */}
+        {/* [3] Reports */}
+        {/* [4] School Forms */}
         <Route path="/adviser/school-forms" element={<AdviserSchoolForms />} />
         <Route path="/adviser/school-forms/:sectionId" element={<AdviserClassSchoolForms />} />
         <Route path="/forms/sf1/:sectionId/view" element={<SF1View />} />
