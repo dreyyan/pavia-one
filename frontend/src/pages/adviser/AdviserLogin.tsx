@@ -24,7 +24,7 @@ const AdviserLogin = () => {
     const handleLogin = async () => {
         // ![ERROR] Empty Adviser ID
         if (adviserId.trim() === "") {
-            setModalTitle("Adviser ID Required");
+            setModalTitle("Adviser ID required");
             setModalMessage("Please enter your Adviser ID  to continue.");
             setIsCancelable(false);
             setRedirectOnConfirm(false);
@@ -34,7 +34,7 @@ const AdviserLogin = () => {
 
         // ![ERROR] Empty Password
         if (!password) {
-            setModalTitle("Passowrd Required");
+            setModalTitle("Passowrd required");
             setModalMessage("Please enter your password  to continue.");
             setIsCancelable(false);
             setRedirectOnConfirm(false);
@@ -58,7 +58,7 @@ const AdviserLogin = () => {
 
             // ![ERROR] Error response from backend
             if (!res.ok || !data.success) {
-                setModalTitle("Login Unsuccessful");
+                setModalTitle("Login unsuccessful");
                 setModalMessage("We couldn't log you in. Please check your Adviser ID and password and try again.");
                 setIsCancelable(false);
                 setRedirectOnConfirm(false);
@@ -69,7 +69,7 @@ const AdviserLogin = () => {
             localStorage.setItem("token", data.data.token);
             localStorage.setItem("role", "Adviser");
 
-            setModalTitle("Login Successful");
+            setModalTitle("Login successful");
             setModalMessage("You have successfully signed in. Redirecting you to your dashboard...");
             setIsCancelable(false);
             setRedirectOnConfirm(true);
@@ -77,7 +77,7 @@ const AdviserLogin = () => {
 
         } catch (err) {
             console.error(err);
-            setModalTitle("Login Unsuccessful");
+            setModalTitle("Login unsuccessful");
             setModalMessage("Something went wrong while trying to sign you in. Please check your internet connection and try again. If the problem continues, contact the school administrator.");
             setIsCancelable(false);
             setRedirectOnConfirm(false);
