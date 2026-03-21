@@ -55,6 +55,7 @@ function calculateAge(birthDate) {
 }
 
 // ?[GET] Get School Register (SF1) and stream Excel safely
+// api/advisers/sf1
 router.get('/', verifyAdviser, async (req, res) => {
   console.log('SF1 route called:', new Date().toISOString());
 
@@ -166,6 +167,51 @@ router.get('/', verifyAdviser, async (req, res) => {
   } catch (err) {
     console.error('SF1 export error:', err);
     if (!res.headersSent) res.status(500).json({ success: false, message: 'Failed to export SF1', data: err });
+  }
+});
+
+// ?[GET] View SF1 PDF
+// GET /api/advisers/sf1/:sectionId/sf1/view
+router.get('/:sectionId/sf1/view', verifyAdviser, async (req, res) => {
+  const { sectionId } = req.params;
+
+  try {
+    const section = await prisma.section.findUnique({ where: { id: Number(sectionId) } });
+    if (!section) return res.status(404).json({ success: false, message: 'Section not found' });
+
+    const enrollments = await prisma.enrollment.findMany({
+      where: { sectionId: section.id, status: 'ENROLLED' },
+      include: { student: { include: { guardian: true, address: true } } },
+      orderBy: { student: { lastName: 'asc' } }
+    });
+
+    const studentsData = enrollments.map(e => {
+      const s = e.student, g = s.guardian || {}, a = s.address || {};
+      return {
+        LRN: s.lrn || '',
+        "First Name": s.firstName || '',
+        "Middle Name": s.middleName || '',
+        "Last Name": s.lastName || '',
+        Sex: s.sex || '',
+        "Birth Date": s.birthDate || '',
+        Age: s.birthDate ? new Date().getFullYear() - new Date(s.birthDate).getFullYear() : '',
+        "Mother Tongue": s.motherTongue || '',
+        Religion: s.religion || '',
+        "Father Name": [g.fatherFirstName,g.fatherMiddleName,g.fatherLastName].filter(Boolean).join(' '),
+        "Mother Maiden Name": [g.motherMaidenFirstName,g.motherMaidenMiddleName,g.motherMaidenLastName].filter(Boolean).join(' '),
+        Barangay: a.barangay || '',
+        Municipality: a.municipalityCity || '',
+        Province: a.province || '',
+        "Learning Modality": e.learningModality || '',
+        Remarks: e.remarks || '',
+      };
+    });
+
+    res.json({ success: true, section: section.name, gradeLevel: section.gradeLevel, students: studentsData });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Failed to get SF1 data', error: err });
   }
 });
 
