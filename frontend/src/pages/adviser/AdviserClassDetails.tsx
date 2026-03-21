@@ -186,12 +186,6 @@ const AdviserClassDetails = () => {
           text="Reports"
           color="#8F28A4"
         />
-        <DashboardButton
-          iconSrc="/school-forms-dashboard.svg"
-          text="School Forms"
-          color="#28A428"
-          to={`/adviser/school-forms/${id}`}
-        />
       </div>
     </div>
   );
