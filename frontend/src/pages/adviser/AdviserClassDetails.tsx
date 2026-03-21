@@ -170,7 +170,7 @@ const AdviserClassDetails = () => {
       {/* [SECTION] Dashboard Buttons */}
       <div className="grid grid-cols-2 gap-6 px-4">
         <DashboardButton iconSrc="/view-students-icon.svg" text="View Students" color="#0066CC" to={`/adviser/classes/${id}/students`} />
-        <DashboardButton iconSrc="/attendance-icon.svg" text="Attendance" color="#28A428" />
+        <DashboardButton iconSrc="/attendance-icon.svg" text="Attendance" color="#28A428" to={id ? `/adviser/classes/grades/${id}` : "#"} />
         <DashboardButton
           iconSrc="/grades-icon.svg"
           text="Grades"
