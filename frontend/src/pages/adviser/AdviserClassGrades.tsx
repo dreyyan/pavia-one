@@ -39,6 +39,7 @@ const AdviserClassGrades = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
+  const [isCancelable, setIsCancelable] = useState(true);
 
   // *[EFFECT] Fetch section's students' grades
   useEffect(() => {
@@ -71,8 +72,9 @@ const AdviserClassGrades = () => {
 
         // ![ERROR] Backend failure or missing data
         if (!sectionData?.success || !sectionData.data) {
-          setModalTitle("Failed to fetch section");
-          setModalMessage(sectionData?.message || "Unable to load section details.");
+          setModalTitle("Unable to open class section");
+          setModalMessage("We couldn’t load the details of this class section right now. Please check your internet connection and try again. If the problem continues, contact the school administrator.");
+          setIsCancelable(false);
           setShowModal(true);
           setSection(null);
           setGrades([]);
@@ -105,8 +107,9 @@ const AdviserClassGrades = () => {
 
         // ![ERROR] Backend failure or missing data
         if (!gradesData?.success || !gradesData.data) {
-          setModalTitle("Failed to fetch grades");
-          setModalMessage(gradesData?.message || "Unable to load students' grades.");
+          setModalTitle("Unable to load grades");
+          setModalMessage("We couldn’t load the students’ grades right now. Please check your internet connection and try again. If the problem continues, contact the school administrator.");
+          setIsCancelable(false);
           setShowModal(true);
           setGrades([]);
           return;
@@ -114,9 +117,10 @@ const AdviserClassGrades = () => {
 
         setGrades(gradesData.data);
       } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        setModalTitle("Error");
-        setModalMessage(errorMessage || "Something went wrong while fetching grades.");
+        console.error(err);
+        setModalTitle("Unable to load grades");
+        setModalMessage("We couldn’t load the students’ grades right now. Please check your internet connection and try again. If the problem continues, contact the school administrator.");
+        setIsCancelable(false);
         setShowModal(true);
         setGrades([]);
       } finally {
@@ -148,6 +152,7 @@ const AdviserClassGrades = () => {
           title={modalTitle}
           message={modalMessage}
           onConfirm={() => setShowModal(false)}
+          isCancelable={isCancelable}
         />
       )}
 
