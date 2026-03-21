@@ -65,9 +65,6 @@ const Header = () => {
       >
         {/* [SECTION] Sidebar Header */}
         <div className="flex items-center bg-[var(--color-primary-700)] shadow-md px-5 py-6 gap-x-4">
-            {/* Profile Image */}
-            <div className="bg-[var(--color-bg-200)] size-18 rounded-full"></div>
-
             {/* [SECTION] Profile Details */}
             <div className="">
                 <h2 className="mb-2 text-[var(--color-text-50)]">John Doe</h2>
