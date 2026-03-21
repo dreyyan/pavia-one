@@ -1,35 +1,42 @@
+// [IMPORT] Hooks
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+// [IMPORT] Components
 import ImageHeader from "../../components/ImageHeader";
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
 import Modal from "../../components/Modal";
-import { useNavigate } from "react-router-dom";
 
 const AdviserLogin = () => {
     const navigate = useNavigate();
 
+    // [STATES]
     const [adviserId, setAdviserId] = useState("");
     const [password, setPassword] = useState("");
     const [showModal, setShowModal] = useState(false);
-    const [modalMessage, setModalMessage] = useState("");
     const [modalTitle, setModalTitle] = useState("");
-    const [modalType, setModalType] = useState<"default" | "error" | "success" | "info" | "warning">("default");
+    const [modalMessage, setModalMessage] = useState("");
+    const [isCancelable, setIsCancelable] = useState(true);
     const [redirectOnConfirm, setRedirectOnConfirm] = useState(false);
 
+    // [HANDLE] Login adviser
     const handleLogin = async () => {
+        // ![ERROR] Empty Adviser ID
         if (adviserId.trim() === "") {
-            setModalTitle("Login Error");
-            setModalMessage("Please enter your Adviser ID.");
-            setModalType("error");
+            setModalTitle("Adviser ID Required");
+            setModalMessage("Please enter your Adviser ID  to continue.");
+            setIsCancelable(false);
             setRedirectOnConfirm(false);
             setShowModal(true);
             return;
         }
 
+        // ![ERROR] Empty Password
         if (!password) {
-            setModalTitle("Login Error");
-            setModalMessage("Please enter your password.");
-            setModalType("error");
+            setModalTitle("Passowrd Required");
+            setModalMessage("Please enter your password  to continue.");
+            setIsCancelable(false);
             setRedirectOnConfirm(false);
             setShowModal(true);
             return;
@@ -49,10 +56,11 @@ const AdviserLogin = () => {
 
             const data = await res.json();
 
+            // ![ERROR] Error response from backend
             if (!res.ok || !data.success) {
-                setModalTitle("Login Error");
-                setModalMessage(data.message || "Login failed.");
-                setModalType("error");
+                setModalTitle("Login Unsuccessful");
+                setModalMessage("We couldn't log you in. Please check your Adviser ID and password and try again.");
+                setIsCancelable(false);
                 setRedirectOnConfirm(false);
                 setShowModal(true);
                 return;
@@ -62,16 +70,16 @@ const AdviserLogin = () => {
             localStorage.setItem("role", "Adviser");
 
             setModalTitle("Login Successful");
-            setModalMessage("Login successful. Redirecting you to your dashboard...");
-            setModalType("success");
+            setModalMessage("You have successfully signed in. Redirecting you to your dashboard...");
+            setIsCancelable(false);
             setRedirectOnConfirm(true);
             setShowModal(true);
 
         } catch (err) {
             console.error(err);
-            setModalTitle("Login Error");
-            setModalMessage("Something went wrong. Please try again.");
-            setModalType("error");
+            setModalTitle("Login Unsuccessful");
+            setModalMessage("Something went wrong while trying to sign you in. Please check your internet connection and try again. If the problem continues, contact the school administrator.");
+            setIsCancelable(false);
             setRedirectOnConfirm(false);
             setShowModal(true);
         }
@@ -79,6 +87,7 @@ const AdviserLogin = () => {
 
     return (
         <div className="pb-20 bg-[var(--color-bg-100)]">
+            {/* [COMPONENT] Modal */}
             {showModal && (
                 <Modal
                     isOpen={showModal}
@@ -89,19 +98,22 @@ const AdviserLogin = () => {
                     }}
                     title={modalTitle}
                     message={modalMessage}
-                    type={modalType}
                     closeOnBackdrop={false}
-                    isCancelable={false}
+                    isCancelable={isCancelable}
                   />
             )}
 
+            {/* [COMPONENT] Image Header */}
             <ImageHeader />
 
+            {/* [SECTION] Login Form */}
             <div className="flex flex-col pt-15 px-6">
+                {/* [UI] Adviser Login */}
                 <h1 className="text-[var(--color-primary-700)]">
                     Adviser Login
                 </h1>
 
+                {/* [SECTION] Input Fields */}
                 <div className="flex flex-col gap-y-4 mt-6 mb-2">
                     <InputField
                         label="Adviser ID Number"
@@ -123,6 +135,7 @@ const AdviserLogin = () => {
                     />
                 </div>
 
+                {/* [SECTION] Auxiliary Actions */}
                 <div className="flex justify-between items-center mt-2 px-2 mb-10">
                     <label className="flex items-center gap-2 label-caption text-[var(--color-text-900)]">
                         <input
@@ -140,9 +153,11 @@ const AdviserLogin = () => {
                     </a>
                 </div>
 
+                {/* [PRIMARY BUTTON] Login */}
                 <PrimaryButton text="Login" onClick={handleLogin} />
             </div>
 
+            {/* [LINK] Admin Login */}
             <div className="flex justify-center items-center gap-x-1 mt-4 text-sm">
                 <span className="label-caption">Not an Adviser?</span>
                 <a
