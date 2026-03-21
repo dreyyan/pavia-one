@@ -1,13 +1,18 @@
 import { Routes, Route } from "react-router-dom";
-import Home from "./pages/Home";
 
 // [IMPORT] Components
 import Layout from "./Layout";
+
+// [IMPORT] Routes
+// [ROUTES] Authentication
+import Home from "./pages/Home";
 import AdminLogin from "./pages/admin/AdminLogin"; 
 import AdviserLogin from "./pages/adviser/AdviserLogin";
 import ResetPassword from "./pages/ResetPassword";
 import ForgotPassword from "./pages/ForgotPassword";
+// [ROUTES] Shared
 import AboutUs from "./AboutUs";
+// [ROUTES] Adviser
 import AdviserDashboard from "./pages/adviser/AdviserDashboard";
 import AdviserClassManagement from "./pages/adviser/AdviserClassManagement";
 import AnnouncementsEvents from "./AnnouncementsEvents";
@@ -22,6 +27,12 @@ import AdviserClassStudentGradesDetails from "./pages/adviser/AdviserClassStuden
 import AdviserProfile from "./pages/adviser/AdviserProfile";
 import AdviserSettings from "./pages/adviser/AdviserSettings";
 import SF1View from "./pages/adviser/school_form_view/SF1View";
+// [ROUTES] Admin
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import Students from "./pages/admin/Students";
+import Advisers from "./pages/admin/Advisers";
+import Sections from "./pages/admin/Sections";
+import Subjects from "./pages/admin/Subjects";
 
 function App() {
   return (
@@ -57,7 +68,12 @@ function App() {
         <Route path="/adviser/settings" element={<AdviserSettings />} />
 
         {/* ADMIN ROUTES */}
-        {/* TODO: Add admin routes below */}
+        {/* Dashboard */}
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/students" element={<Students />} />
+        <Route path="/admin/advisers" element={<Advisers />} />
+        <Route path="/admin/sections" element={<Sections />} />
+        <Route path="/admin/subjects" element={<Subjects />} />
 
         {/* SHARED ROUTES */}
         {/* About Us */}

@@ -10,36 +10,48 @@ const bcrypt = require('bcrypt');
 
 // [IMPORT] Utilities & Middleware
 const { successResponse, errorResponse } = require('../../utils/response');
-const { hashPassword } = require("../../utils/helpers")
+const { hashPassword } = require("../../utils/helpers");
 
 // ?[POST] Admin Sign Up
 // /api/auth/admin/sign-up
 router.post('/sign-up', async (req, res) => {
     const { username, email, password } = req.body;
 
+    // ![ERROR] Missing required fields
+    if (!username || !email || !password) {
+        return res.status(400).json(errorResponse("Username, email, and password are required"));
+    }
+
     try {
-        // Check if username or email already exists
+        // ?[VALIDATION] Check if username or email already exists
         const existing = await prisma.admin.findFirst({
-            where: { username }
+            where: {
+                OR: [
+                    { username },
+                    { email }
+                ]
+            }
         });
 
         // ![ERROR] Username or email already registered
-        if (existing) {
-            return res.status(409).json(errorResponse("Username or email already registered"));
-        }
+        if (existing) return res.status(409).json(errorResponse("Username or email already registered"));
 
+        // ?[HASH] Hash password before storing
         const hashedPassword = await hashPassword(password);
 
+        // ?[CREATE] Admin record
         const newAdmin = await prisma.admin.create({
             data: { username, email, password: hashedPassword }
         });
 
-        const { password: _, ...adminWithoutPassword } = newAdmin; // Remove password
+        const { password: _, ...adminWithoutPassword } = newAdmin;
 
         // *[SUCCESS] Admin created successfully
         res.status(201).json(successResponse("Admin created successfully", adminWithoutPassword));
+
     } catch (err) {
-        res.status(400).json(errorResponse("Failed to create admin", err.message));
+        // ![ERROR] Failed to create admin
+        res.status(500).json(errorResponse("Failed to create admin", err.message));
     }
 });
 
@@ -48,110 +60,104 @@ router.post('/sign-up', async (req, res) => {
 router.post('/login', async (req, res) => {
     const { username, password, rememberMe } = req.body;
 
+    // ![ERROR] Missing credentials
+    if (!username || !password) return res.status(400).json(errorResponse("Username and password are required"));
+
     try {
-        // Find admin by username
-        const admin = await prisma.admin.findFirst({
-            where: { username: username }
-        });
+        // ?[FIND] Admin by username (findFirst avoids unique constraint issues)
+        const admin = await prisma.admin.findFirst({ where: { username } });
 
         // ![ERROR] Admin not found
-        if (!admin) {
-            return res.status(404).json(errorResponse("Admin not found"));
-        }
+        if (!admin) return res.status(404).json(errorResponse("Admin not found"));
 
-        // ?Check if password matches
+        // ?[VERIFY] Compare password
         const isMatch = await bcrypt.compare(password, admin.password);
+        if (!isMatch) return res.status(401).json(errorResponse("Invalid password"));
 
-        // ![ERROR] Invalid password
-        if (!isMatch) {
-            return res.status(401).json(errorResponse("Invalid password"));
-        }
+        // ?[JWT] Set expiration
+        const expiresIn = rememberMe ? "7d" : "16h";
 
-        // Set token expiration
-        const expiresIn = rememberMe ? "7d" : "1h";
-
-        // Generate JWT
+        // ?[JWT GENERATION] Sign token with adminId
         const token = jwt.sign(
-            { adminId: admin.id, role: 'admin' }, 
-            process.env.JWT_SECRET, 
+            { adminId: admin.id, role: 'admin' },
+            process.env.JWT_SECRET,
             { expiresIn }
         );
 
-        // Remove password from response
         const { password: _, ...adminWithoutPassword } = admin;
 
-        // *[SUCCESS] Login Successful
+        // *[SUCCESS] Login successful
         res.status(200).json(successResponse("Login successful", { admin: adminWithoutPassword, token }));
 
     } catch (err) {
-        res.status(400).json(errorResponse("Failed to log in admin", err.message));
+        // ![ERROR] Login failed
+        console.error("Admin login error:", err);
+        res.status(500).json(errorResponse("Failed to log in admin", err.message));
     }
 });
 
 // ?[POST] Bulk Create Admins
 // /api/auth/admin/bulk-sign-up
 router.post('/bulk-sign-up', async (req, res) => {
-  try {
-    const adminsInput = Array.isArray(req.body) ? req.body : [req.body];
+    try {
+        const adminsInput = Array.isArray(req.body) ? req.body : [req.body];
 
-    if (!adminsInput.length) {
-      return res.status(400).json(errorResponse("Request body cannot be empty"));
-    }
+        // ![ERROR] Empty request body
+        if (!adminsInput.length) return res.status(400).json(errorResponse("Request body cannot be empty"));
 
-    const createdAdmins = [];
-    const errors = [];
+        const createdAdmins = [];
+        const errors = [];
 
-    for (const admin of adminsInput) {
-      const { username, email } = admin;
-      // Default password if not provided
-      const password = admin.password || "admin123";
+        for (const admin of adminsInput) {
+            const { username, email } = admin;
+            const password = admin.password || "admin123"; // default password
 
-      if (!username || !email) {
-        errors.push({ username, email, message: "Missing required fields" });
-        continue;
-      }
+            // ![ERROR] Missing fields
+            if (!username || !email) {
+                errors.push({ username, email, message: "Missing required fields" });
+                continue;
+            }
 
-      // Check if username or email already exists
-      const existing = await prisma.admin.findFirst({
-        where: {
-          OR: [
-            { username },
-            { email }
-          ]
+            // ?[VALIDATION] Check if username/email already exists
+            const existing = await prisma.admin.findFirst({
+                where: { OR: [{ username }, { email }] }
+            });
+
+            // ![ERROR] Already registered
+            if (existing) {
+                errors.push({ username, email, message: "Username or email already registered" });
+                continue;
+            }
+
+            try {
+                // ?[HASH] Hash password
+                const hashedPassword = await hashPassword(password);
+
+                // ?[CREATE] Admin
+                const newAdmin = await prisma.admin.create({
+                    data: { username, email, password: hashedPassword }
+                });
+
+                const { password: _, ...adminWithoutPassword } = newAdmin;
+                createdAdmins.push(adminWithoutPassword);
+
+            } catch (err) {
+                // ![ERROR] Failed to create admin
+                errors.push({ username, email, message: err.message });
+            }
         }
-      });
 
-      if (existing) {
-        errors.push({ username, email, message: "Username or email already registered" });
-        continue;
-      }
+        // *[SUCCESS] Bulk admin creation processed
+        res.status(201).json(successResponse("Bulk admin creation processed", {
+            created: createdAdmins,
+            failed: errors
+        }));
 
-      try {
-        const hashedPassword = await hashPassword(password);
-
-        const newAdmin = await prisma.admin.create({
-          data: { username, email, password: hashedPassword }
-        });
-
-        const { password: _, ...adminWithoutPassword } = newAdmin;
-        createdAdmins.push(adminWithoutPassword);
-
-      } catch (err) {
-        errors.push({ username, email, message: err.message });
-      }
+    } catch (err) {
+        // ![ERROR] Failed to process bulk creation
+        console.error("Bulk admin creation error:", err);
+        res.status(500).json(errorResponse("Failed to bulk create admins", err.message));
     }
-
-    res.status(201).json(
-      successResponse("Bulk admin creation processed", {
-        created: createdAdmins,
-        failed: errors
-      })
-    );
-
-  } catch (err) {
-    console.error("Bulk admin creation error:", err);
-    res.status(500).json(errorResponse("Failed to bulk create admins", err.message));
-  }
 });
 
 module.exports = router;

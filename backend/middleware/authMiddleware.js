@@ -31,7 +31,7 @@ const verifyStudent = (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.lrn = decoded.lrn; // <-- use `lrn` instead of `studentId`
+        req.lrn = decoded.lrn;
         next();
     } catch (err) {
         return res.status(401).json(errorResponse('Invalid or expired token'));
@@ -47,7 +47,7 @@ const verifyAdviser = (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.adviserId = decoded.adviserId; // you will need to change token payload later
+        req.adviserId = decoded.adviserId;
         next();
     } catch (err) {
         return res.status(401).json(errorResponse('Invalid or expired token'));
@@ -55,32 +55,30 @@ const verifyAdviser = (req, res, next) => {
 };
 
 // ?[MIDDLEWARE] Verify Admin JWT
-const verifyAdmin = (req, res, next) => {
+function verifyAdmin(req, res, next) {
+    // ?[READ TOKEN] Expect "Bearer <token>"
     const authHeader = req.headers.authorization;
-
-    // ![ERROR] No token provided
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json(errorResponse('No token provided'));
+        return res.status(401).json({ success: false, message: 'Unauthorized: token missing' });
     }
 
     const token = authHeader.split(' ')[1];
 
     try {
+        // ?[DECODE TOKEN] Must match payload { adminId, role }
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-        // ![ERROR] Non-admin
-        if (decoded.role !== 'admin') {
-            return res.status(403).json(errorResponse('Admin access required'));
+        if (!decoded || decoded.role !== 'admin' || !decoded.adminId) {
+            return res.status(401).json({ success: false, message: 'Unauthorized: invalid token' });
         }
 
-        // *[SUCCESS] Attach adminId to request
+        // ?[ATTACH] adminId to request
         req.adminId = decoded.adminId;
-
         next();
     } catch (err) {
-        // ![ERROR] Invalid or expired token
-        return res.status(401).json(errorResponse('Invalid or expired token'));
+        console.error('[DEBUG] verifyAdmin error:', err.message);
+        return res.status(401).json({ success: false, message: 'Unauthorized: invalid token' });
     }
-};
+}
 
 module.exports = { verifyToken, verifyStudent, verifyAdviser, verifyAdmin };

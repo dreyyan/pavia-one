@@ -178,6 +178,7 @@ model Adviser {
 
 model Admin {
   id        Int      @id @default(autoincrement())
+  name      String   @default("Admin")
   username  String   @unique
   email    String @unique
   password  String
