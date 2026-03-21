@@ -121,7 +121,7 @@ const NotificationsPage = () => {
             {visibleEvents < events.length && (
               <button
                 onClick={handleSeeMoreEvents}
-                className="w-full text-center text-[var(--color-text-400)] underline text-sm mt-6 font-medium hover:text-[var(--color-text-600)] cursor-pointer"
+                className="w-full text-center text-[var(--color-text-600)] underline text-sm mt-6 font-medium hover:text-[var(--color-text-800)] cursor-pointer"
               >
                 See More Events
               </button>
