@@ -11,7 +11,7 @@ import AboutUs from "./AboutUs";
 import AdviserDashboard from "./pages/adviser/AdviserDashboard";
 import AdviserClassManagement from "./pages/adviser/AdviserClassManagement";
 import AdviserMyClass from "./pages/adviser/AdviserMyClass";
-import NotificationsPage from "./NotificationsPage";
+import AnnouncementsEvents from "./AnnouncementsEvents";
 import AdviserClassDetails from "./pages/adviser/AdviserClassDetails";
 import AdviserClassStudents from "./pages/adviser/AdviserClassStudents";
 import AdviserClassStudentDetails from "./pages/adviser/AdviserClassStudentDetails";
@@ -59,7 +59,7 @@ function App() {
         {/* SHARED ROUTES */}
         {/* About Us */}
         <Route path="/about-us" element={<AboutUs />} />
-        <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/announcements-and-events" element={<AnnouncementsEvents />} />
       </Route>
     </Routes>
   );

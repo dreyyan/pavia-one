@@ -83,7 +83,7 @@ const Header = () => {
         <SidebarLink icon="/school-forms-icon.svg" text="School Forms" to={`/${role.toLowerCase()}/school-forms`} onClick={closeSidebar} />
         <SidebarLink icon="/transfer-dropout-monitoring-icon.svg" text="Transfer / Dropout Monitoring" to={`/${role.toLowerCase()}/transfer`} onClick={closeSidebar} />
         <SidebarLink icon="/reports-and-statistics-icon.svg" text="Reports & Statistics" to={`/${role.toLowerCase()}/reports`} onClick={closeSidebar} />
-        <SidebarLink icon="/notifications-and-events-icon.svg" text="Notifications and Events" to={`/notifications`} onClick={closeSidebar} />
+        <SidebarLink icon="/announcements-and-events-icon.svg" text="Announcements and Events" to={`/announcements-and-events`} onClick={closeSidebar} />
         <SidebarLink icon="/profile-icon.svg" text="Profile" to={`/${role.toLowerCase()}/profile`} onClick={closeSidebar} />
         <SidebarLink icon="/settings-icon.svg" text="Settings" to={`/${role.toLowerCase()}/settings`} onClick={closeSidebar} />
         <SidebarLink icon="/logout-icon.svg" text="Logout" to={`/login/${role.toLowerCase()}`} onClick={() => { closeSidebar(); handleLogout(); }} />
