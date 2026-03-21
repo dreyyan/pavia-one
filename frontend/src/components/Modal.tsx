@@ -63,7 +63,7 @@ const Modal = ({
   const borderColors = {
     default: "border-t-[var(--color-primary-500)]",
     error: "border-t-[var(--color-red-600)]",
-    success: "border-t-[var(--color-accent-700)]",
+    success: "border-t-[var(--color-accent-500)]",
     info: "border-t-[var(--color-primary-700)]",
     warning: "border-t-[var(--color-secondary-600)]",
   };
@@ -71,7 +71,7 @@ const Modal = ({
   const textColors = {
     default: "text-[var(--color-primary-500)]",
     error: "text-[var(--color-red-600)]",
-    success: "text-[var(--color-accent-700)]",
+    success: "text-[var(--color-accent-600)]",
     info: "text-[var(--color-primary-700)]",
     warning: "text-[var(--color-secondary-500)]",
   };
