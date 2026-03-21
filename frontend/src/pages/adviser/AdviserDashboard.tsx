@@ -186,6 +186,7 @@ const AdviserDashboard = () => {
           iconSrc="/attendance-icon.svg"
           text="Attendance"
           color="#28A428"
+          to={advisorySection ? `/adviser/classes/${advisorySection.id}/attendance` : "#"}
         />
         <DashboardButton
           iconSrc="/grades-icon.svg"
