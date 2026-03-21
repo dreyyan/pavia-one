@@ -88,4 +88,70 @@ router.post('/login', async (req, res) => {
     }
 });
 
+// ?[POST] Bulk Create Admins
+// /api/auth/admin/bulk-sign-up
+router.post('/bulk-sign-up', async (req, res) => {
+  try {
+    const adminsInput = Array.isArray(req.body) ? req.body : [req.body];
+
+    if (!adminsInput.length) {
+      return res.status(400).json(errorResponse("Request body cannot be empty"));
+    }
+
+    const createdAdmins = [];
+    const errors = [];
+
+    for (const admin of adminsInput) {
+      const { username, email } = admin;
+      // Default password if not provided
+      const password = admin.password || "admin123";
+
+      if (!username || !email) {
+        errors.push({ username, email, message: "Missing required fields" });
+        continue;
+      }
+
+      // Check if username or email already exists
+      const existing = await prisma.admin.findFirst({
+        where: {
+          OR: [
+            { username },
+            { email }
+          ]
+        }
+      });
+
+      if (existing) {
+        errors.push({ username, email, message: "Username or email already registered" });
+        continue;
+      }
+
+      try {
+        const hashedPassword = await hashPassword(password);
+
+        const newAdmin = await prisma.admin.create({
+          data: { username, email, password: hashedPassword }
+        });
+
+        const { password: _, ...adminWithoutPassword } = newAdmin;
+        createdAdmins.push(adminWithoutPassword);
+
+      } catch (err) {
+        errors.push({ username, email, message: err.message });
+      }
+    }
+
+    res.status(201).json(
+      successResponse("Bulk admin creation processed", {
+        created: createdAdmins,
+        failed: errors
+      })
+    );
+
+  } catch (err) {
+    console.error("Bulk admin creation error:", err);
+    res.status(500).json(errorResponse("Failed to bulk create admins", err.message));
+  }
+});
+
 module.exports = router;
