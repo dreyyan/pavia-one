@@ -5,12 +5,12 @@ export default function Home() {
 
     return (
         <main className="">
-            {/* Image Header */}
+            {/* [COMPONENT] Image Header */}
             <div>
                 <ImageHeader />
             </div>
             
-            {/* Features Carousel */}
+            {/* [SECTION] Features Carousel */}
             <div className="px-6 py-10 bg-[var(--color-bg-50)]">
                 <FeaturesCarousel />
             </div>
