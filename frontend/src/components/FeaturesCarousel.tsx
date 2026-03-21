@@ -24,7 +24,7 @@ const content = [
   {
     title: "School Registers & Official Forms",
     description:
-      "Digitally manage SF2, SF9, attendance records, and other official school forms with accuracy and compliance.",
+      "Digitally manage SF1, SF5, SF9, SF10 with accuracy and compliance.",
   },
 ];
 
