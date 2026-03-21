@@ -14,7 +14,6 @@ app.use(cors({
 // [REQUEST LOGGING]
 app.use((req, res, next) => {
   console.log(`[REQUEST] ${req.method} ${req.url}`);
-  console.log('Body:', req.body);
   next();
 });
 
