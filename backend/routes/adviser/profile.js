@@ -28,78 +28,8 @@ router.get('/profile', verifyAdviser, async (req, res) => {
         sex: true,
         nationality: true,
         contactNumber: true,
-        sections: {
-          select: {
-            id: true,
-            name: true,
-            gradeLevel: true,
-            isAdvisory: true,
-            schoolYear: true,
-            curriculum: true,
-            _count: {
-              select: {
-                enrollments: {
-                  where: { status: "ENROLLED" }
-                }
-              }
-            }
-          }
-        },
-        students: {
-          select: { id: true, lrn: true, firstName: true, lastName: true }
-        },
-        createdAt: true,
-        updatedAt: true
-      }
-    });
-
-    if (!adviser) {
-      return res.status(404).json(errorResponse('Adviser not found'));
-    }
-
-    // [1] Map all sections
-    const sections = adviser.sections.map(s => ({
-      id: s.id,
-      name: s.name,
-      gradeLevel: s.gradeLevel,
-      isAdvisory: s.isAdvisory,
-      schoolYear: s.schoolYear,
-      curriculum: s.curriculum,
-      classSize: s._count.enrollments
-    }));
-
-    // [2] Find the advisory section
-    const advisorySection = sections.find(s => s.isAdvisory) || null;
-
-    // Build the final result
-    const result = {
-      ...adviser,
-      sections,
-      advisorySection, // frontend can now use this
-    };
-
-    res.json(successResponse('Adviser profile retrieved', result));
-  } catch (err) {
-    res.status(500).json(errorResponse('Failed to fetch adviser profile', err.message));
-  }
-});
-
-// ?[GET] Retrieve adviser's own profile (protected)
-// /api/adviser/profile
-router.get('/profile', verifyAdviser, async (req, res) => {
-  try {
-    const adviser = await prisma.adviser.findUnique({
-      where: { adviserId: req.adviserId },
-      select: {
-        id: true,
-        adviserId: true,
-        name: true,
-        email: true,
-        mustChangePassword: true,
-        signatureUrl: true,
-        sex: true,
-        nationality: true,
-        contactNumber: true,
+        emailNotifications: true, // added
+        darkMode: true,           // added
         sections: {
           select: {
             id: true,
@@ -159,21 +89,18 @@ router.get('/profile', verifyAdviser, async (req, res) => {
 // /api/adviser/profile
 router.put('/profile', verifyAdviser, async (req, res) => {
   try {
-    const { name, email, signatureUrl, sex, nationality, contactNumber } = req.body;
-
-    // Require at least one field
-    if (!name && !email && signatureUrl === undefined && !sex && !nationality && !contactNumber) {
-      return res.status(400).json(
-        errorResponse(
-          'At least one field (name, email, signatureUrl, sex, nationality, contactNumber) is required to update'
-        )
-      );
-    }
+    const { 
+      name, email, signatureUrl, sex, nationality, contactNumber, 
+      emailNotifications, darkMode 
+    } = req.body;
 
     // Fetch current adviser data
     const currentAdviser = await prisma.adviser.findUnique({
       where: { adviserId: req.adviserId },
-      select: { name: true, email: true, signatureUrl: true, sex: true, nationality: true, contactNumber: true }
+      select: { 
+        name: true, email: true, signatureUrl: true, sex: true, nationality: true, contactNumber: true,
+        emailNotifications: true, darkMode: true
+      }
     });
 
     if (!currentAdviser) {
@@ -188,7 +115,10 @@ router.put('/profile', verifyAdviser, async (req, res) => {
     if (sex && sex !== currentAdviser.sex) updateData.sex = sex;
     if (nationality && nationality !== currentAdviser.nationality) updateData.nationality = nationality;
     if (contactNumber && contactNumber !== currentAdviser.contactNumber) updateData.contactNumber = contactNumber;
+    if (emailNotifications !== undefined && emailNotifications !== currentAdviser.emailNotifications) updateData.emailNotifications = emailNotifications;
+    if (darkMode !== undefined && darkMode !== currentAdviser.darkMode) updateData.darkMode = darkMode;
 
+    // If nothing changed, return early
     if (Object.keys(updateData).length === 0) {
       return res.status(400).json(errorResponse('No changes detected. Profile is already up to date.'));
     }
@@ -205,6 +135,8 @@ router.put('/profile', verifyAdviser, async (req, res) => {
         sex: true,
         nationality: true,
         contactNumber: true,
+        emailNotifications: true,
+        darkMode: true,
         createdAt: true,
         updatedAt: true
       }
