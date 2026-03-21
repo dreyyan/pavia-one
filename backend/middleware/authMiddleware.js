@@ -72,9 +72,13 @@ const verifyAdmin = (req, res, next) => {
         if (decoded.role !== 'admin') {
             return res.status(403).json(errorResponse('Admin access required'));
         }
-        req.adminId = decoded.id;
+
+        // *[SUCCESS] Attach adminId to request
+        req.adminId = decoded.adminId;
+
         next();
     } catch (err) {
+        // ![ERROR] Invalid or expired token
         return res.status(401).json(errorResponse('Invalid or expired token'));
     }
 };
