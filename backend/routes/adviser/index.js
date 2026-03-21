@@ -6,5 +6,6 @@ router.use('/sections', require('./sections'));
 router.use('/grades', require('./grades'));
 router.use('/attendance', require('./attendance'));
 router.use('/sf1', require('./sf1'));
+router.use('/forms', require('./forms'));
 
 module.exports = router;
