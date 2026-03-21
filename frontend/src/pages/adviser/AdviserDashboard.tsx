@@ -177,27 +177,27 @@ const AdviserDashboard = () => {
       {/* [SECTION] Dashboard Buttons */}
       <div className="grid grid-cols-2 gap-6 px-4">
         <DashboardButton
-          iconSrc="/view-students-icon.svg"
+          iconSrc="/view-students-dashboard.svg"
           text="View Students"
           color="#0066CC"
           to={advisorySection ? `/adviser/classes/${advisorySection.id}/students` : "#"}
         />
         <DashboardButton
-          iconSrc="/attendance-icon.svg"
-          text="Attendance"
-          color="#28A428"
-          to={advisorySection ? `/adviser/classes/${advisorySection.id}/attendance` : "#"}
-        />
-        <DashboardButton
-          iconSrc="/grades-icon.svg"
+          iconSrc="/grades-dashboard.svg"
           text="Grades"
           color="#CA8E02"
           to={advisorySection ? `/adviser/classes/grades/${advisorySection.id}` : "#"}
         />
         <DashboardButton
-          iconSrc="/reports-icon.svg"
+          iconSrc="/reports-dashboard.svg"
           text="Reports"
           color="#8F28A4"
+        />
+        <DashboardButton
+          iconSrc="/school-forms-dashboard.svg"
+          text="School Forms"
+          color="#28A428"
+          to={advisorySection ? `/adviser/school-forms/${advisorySection.id}` : "#"}
         />
       </div>
     </div>
