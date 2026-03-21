@@ -1,5 +1,8 @@
+// [IMPORT] Hooks
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+
+// [IMPORT] Components
 import ImageHeader from "../components/ImageHeader";
 import InputField from "../components/InputField";
 import PrimaryButton from "../components/PrimaryButton";
@@ -8,22 +11,26 @@ import Modal from "../components/Modal";
 const ForgotPassword = () => {
   const navigate = useNavigate();
   const location = useLocation();
-
-  // *ROLE (from query string)
   const searchParams = new URLSearchParams(location.search);
-  const role = searchParams.get("role") || "adviser"; // default role
+  const role = searchParams.get("role") || "adviser";
 
-  // *STATES
+  // [STATES]
   const [email, setEmail] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
+  const [isCancelable, setIsCancelable] = useState(true);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [redirectOnConfirm, setRedirectOnConfirm] = useState(false);
 
-  // *HANDLES
+  // [HANDLE] Reset password
   const handleReset = async () => {
-    // ![ERROR] Empty Email
+    // ![ERROR] Empty Email Address
     if (!email.trim()) {
-      setModalMessage("Please enter your email address.");
+      setModalTitle("Email address required");
+      setModalMessage("Please enter your email address to continue.");
+      setIsCancelable(false);
+      setRedirectOnConfirm(false);
       setShowModal(true);
       return;
     }
@@ -31,13 +38,15 @@ const ForgotPassword = () => {
     // ![ERROR] Invalid Email Format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
+      setModalTitle("Invalid email address");
       setModalMessage("Please enter a valid email address.");
+      setIsCancelable(false);
+      setRedirectOnConfirm(false);
       setShowModal(true);
       return;
     }
 
     try {
-      // Call backend
       const res = await fetch("/api/auth/password/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -46,16 +55,24 @@ const ForgotPassword = () => {
 
       const data = await res.json();
 
-      if (!res.ok) {
-        setModalMessage(data.message || "Failed to send reset link.");
-        setShowModal(true);
-        return;
+      // ![ERROR] Error response from backend
+      if (!res.ok || !data.success) {
+          setModalTitle("Unable to send reset link");
+          setModalMessage("We couldn’t send the password reset link at this time. Please check your internet connection and try again. If the problem continues, contact the school administrator.");
+          setIsCancelable(false);
+          setRedirectOnConfirm(false);
+          setShowModal(true);
+          return;
       }
 
       setIsSubmitted(true);
+
     } catch (err) {
       console.error(err);
-      setModalMessage("Something went wrong. Please try again.");
+      setModalTitle("Unable to send reset link");
+      setModalMessage("Something went wrong while trying to send the password reset link. Please check your internet connection and try again. If the problem continues, contact the school administrator.");
+      setIsCancelable(false);
+      setRedirectOnConfirm(false);
       setShowModal(true);
     }
   };
@@ -67,18 +84,32 @@ const ForgotPassword = () => {
         <Modal
           isOpen={showModal}
           onClose={() => setShowModal(false)}
-          title="Reset Error"
+          onConfirm={() => {
+            setShowModal(false);
+
+            if (redirectOnConfirm) {
+              const role = localStorage.getItem("role")?.toLowerCase();
+              if (role) {
+                navigate(`/${role}/dashboard`);
+              } else {
+                navigate("/");
+              }
+            }
+          }}
+          title={modalTitle}
           message={modalMessage}
+          closeOnBackdrop={false}
+          isCancelable={isCancelable}
         />
       )}
 
       {/* [COMPONENT] Image Header */}
       <ImageHeader />
 
+      {/* [SECTION] Reset Form */}
       <div className="flex flex-col pt-15 px-6">
-        {/* Header */}
+        {/* [UI] Forgot Password */}
         <h1 className="text-[var(--color-primary-700)]">Forgot Password</h1>
-
         <p className="label-caption text-[var(--color-text-800)] mt-2 mb-6">
           Enter your email address and we’ll send you a password reset link.
         </p>
@@ -97,7 +128,7 @@ const ForgotPassword = () => {
               />
             </div>
 
-            {/* [PRIMARY BUTTON] Send Reset */}
+            {/* [PRIMARY BUTTON] Send Reset Link */}
             <PrimaryButton text="Send Reset Link" onClick={handleReset} />
           </>
         ) : (
@@ -109,6 +140,7 @@ const ForgotPassword = () => {
               </p>
             </div>
 
+            {/* [PRIMARY BUTTON] Return to Login */}
             <PrimaryButton
               text="Return to Login"
               onClick={() =>
