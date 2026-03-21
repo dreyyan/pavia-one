@@ -21,7 +21,7 @@ const DashboardButton: React.FC<DashboardButtonProps> = ({ iconSrc, text, color,
         <button
         style={{backgroundColor: color}}
         onClick={handleClick}
-        className="flex flex-col justify-center items-center aspect-square rounded-lg cursor-pointer transition-all duration-200 hover:opacity-80">
+        className="flex flex-col justify-center items-center aspect-square rounded-lg cursor-pointer transition-all duration-200 hover:opacity-80 shadow-md">
             {/* Icon */}
             <img src={iconSrc} className="size-16"/>
 
