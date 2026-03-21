@@ -19,6 +19,7 @@ const AdminLogin = () => {
     const [modalMessage, setModalMessage] = useState("");
     const [isCancelable, setIsCancelable] = useState(true);
     const [redirectOnConfirm, setRedirectOnConfirm] = useState(false);
+    const [rememberMe, setRememberMe] = useState(false);
 
     // [HANDLE] Login admin
     const handleLogin = async () => {
@@ -34,7 +35,7 @@ const AdminLogin = () => {
 
         // ![ERROR] Empty Password
         if (!password) {
-            setModalTitle("Passowrd required");
+            setModalTitle("Password required"); // <-- fixed typo
             setModalMessage("Please enter your password to continue.");
             setIsCancelable(false);
             setRedirectOnConfirm(false);
@@ -42,21 +43,29 @@ const AdminLogin = () => {
             return;
         }
 
+        // [PAYLOAD] Prepare login request
         const payload = {
-            identifier: username,
+            username,
             password,
+            rememberMe,
         };
 
+        const token = localStorage.getItem("token");
+
         try {
-            const res = await fetch("/api/auth/admin/login", {
+            // [REQUEST] Send login request to backend
+            const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/admin/login`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`,
+                    },
                 body: JSON.stringify(payload),
             });
 
             const data = await res.json();
 
-            // ![ERROR] Error response from backend
+            // ![ERROR] Login failed
             if (!res.ok || !data.success) {
                 setModalTitle("Login unsuccessful");
                 setModalMessage("We couldn't log you in. Please check your username and password and try again.");
@@ -66,6 +75,7 @@ const AdminLogin = () => {
                 return;
             }
 
+            // *[SUCCESS] Store token and role
             localStorage.setItem("token", data.data.token);
             localStorage.setItem("role", "Admin");
 
@@ -77,6 +87,7 @@ const AdminLogin = () => {
 
         } catch (err) {
             console.error(err);
+            // ![ERROR] Network or server issue
             setModalTitle("Login unsuccessful");
             setModalMessage("Something went wrong while trying to sign you in. Please check your internet connection and try again.");
             setIsCancelable(false);
@@ -100,7 +111,7 @@ const AdminLogin = () => {
                     message={modalMessage}
                     closeOnBackdrop={false}
                     isCancelable={isCancelable}
-                  />
+                />
             )}
 
             {/* [COMPONENT] Image Header */}
@@ -141,6 +152,8 @@ const AdminLogin = () => {
                         <input
                             type="checkbox"
                             className="w-4 h-4 accent-[var(--color-primary-600)]"
+                            checked={rememberMe}
+                            onChange={(e) => setRememberMe(e.target.checked)}
                         />
                         Remember Me
                     </label>
