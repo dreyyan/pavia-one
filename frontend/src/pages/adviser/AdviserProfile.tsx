@@ -225,7 +225,6 @@ const AdviserProfile = () => {
 
       {/* Profile Header */}
       <div className="flex items-center bg-[var(--color-primary-600)] border-2 border-[var(--color-primary-700)]/60 rounded-xl px-5 py-6 gap-x-4 shadow-md w-full max-w-md">
-        <div className="bg-[var(--color-bg-200)] w-24 h-24 rounded-full flex-shrink-0"></div>
         <div className="flex-1 flex flex-col">
           <p className="font-roboto font-medium text-sm text-[var(--color-text-50)] mb-1">
             Welcome, Ma'am/Sir
