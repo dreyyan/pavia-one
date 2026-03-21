@@ -21,6 +21,7 @@ import AdviserClassGrades from "./pages/adviser/AdviserClassGrades";
 import AdviserClassStudentGradesOverview from "./pages/adviser/AdviserClassStudentGradesOverview";
 import AdviserClassStudentGradesDetails from "./pages/adviser/AdviserClassStudentGradesDetails";
 import AdviserProfile from "./pages/adviser/AdviserProfile";
+import AdviserSettings from "./pages/adviser/AdviserSettings";
 
 function App() {
   return (
@@ -50,8 +51,9 @@ function App() {
         {/* School Forms */}
         <Route path="/adviser/school-forms" element={<AdviserSchoolForms />} />
         <Route path="/adviser/school-forms/:sectionId" element={<AdviserClassSchoolForms />} />
-        {/* Profile */}
+        {/* Profile & Settings */}
         <Route path="/adviser/profile" element={<AdviserProfile />} />
+        <Route path="/adviser/settings" element={<AdviserSettings />} />
 
         {/* ADMIN ROUTES */}
         {/* TODO: Add admin routes below */}
