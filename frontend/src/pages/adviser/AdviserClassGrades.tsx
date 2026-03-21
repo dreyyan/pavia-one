@@ -26,6 +26,10 @@ interface SectionInfo {
   color: string;
 }
 
+interface Enrollment {
+  student?: { sex?: "MALE" | "FEMALE" | null } | null;
+}
+
 const AdviserClassGrades = () => {
   const { sectionId } = useParams<{ sectionId: string }>();
   const navigate = useNavigate();
@@ -41,7 +45,7 @@ const AdviserClassGrades = () => {
   const [modalMessage, setModalMessage] = useState("");
   const [isCancelable, setIsCancelable] = useState(true);
 
-  // *[EFFECT] Fetch section's students' grades
+  // *[EFFECT] Fetch section info and students' grades
   useEffect(() => {
     const fetchGrades = async () => {
       if (!sectionId) return;
@@ -51,13 +55,12 @@ const AdviserClassGrades = () => {
 
       try {
         const token = localStorage.getItem("token");
+
+        // --- Fetch section info ---
         const resSection = await fetch(
           `${import.meta.env.VITE_API_BASE_URL}/api/adviser/sections/${sectionId}`,
           {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           }
         );
 
@@ -73,7 +76,9 @@ const AdviserClassGrades = () => {
         // ![ERROR] Backend failure or missing data
         if (!sectionData?.success || !sectionData.data) {
           setModalTitle("Unable to open class section");
-          setModalMessage("We couldn’t load the details of this class section right now. Please check your internet connection and try again. If the problem continues, contact the school administrator.");
+          setModalMessage(
+            "We couldn’t load the details of this class section right now. Please check your internet connection and try again. If the problem continues, contact the school administrator."
+          );
           setIsCancelable(false);
           setShowModal(true);
           setSection(null);
@@ -83,23 +88,28 @@ const AdviserClassGrades = () => {
 
         const sec = sectionData.data;
 
+        const maleCount =
+          sec.enrollments?.filter((e: Enrollment) => e.student?.sex === "MALE").length ?? 0;
+
+        const femaleCount =
+          sec.enrollments?.filter((e: Enrollment) => e.student?.sex === "FEMALE").length ?? 0;
+
+        // *[SUCCESS] Set section info
         setSection({
           id: sec.id,
           gradeLevel: String(sec.gradeLevel),
           name: sec.name,
-          classSize: sec.classSize ?? 0,
-          maleCount: sec.maleCount ?? 0,
-          femaleCount: sec.femaleCount ?? 0,
+          classSize: sec.classSize ?? sec.enrollments?.length ?? 0,
+          maleCount,
+          femaleCount,
           color: sec.color ?? "#4F46E5",
         });
 
+        // --- Fetch students' grades ---
         const resGrades = await fetch(
           `${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/section/${sectionId}`,
           {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           }
         );
 
@@ -108,18 +118,23 @@ const AdviserClassGrades = () => {
         // ![ERROR] Backend failure or missing data
         if (!gradesData?.success || !gradesData.data) {
           setModalTitle("Unable to load grades");
-          setModalMessage("We couldn’t load the students’ grades right now. Please check your internet connection and try again. If the problem continues, contact the school administrator.");
+          setModalMessage(
+            "We couldn’t load the students’ grades right now. Please check your internet connection and try again. If the problem continues, contact the school administrator."
+          );
           setIsCancelable(false);
           setShowModal(true);
           setGrades([]);
           return;
         }
 
+        // *[SUCCESS] Set grades
         setGrades(gradesData.data);
       } catch (err: unknown) {
         console.error(err);
         setModalTitle("Unable to load grades");
-        setModalMessage("We couldn’t load the students’ grades right now. Please check your internet connection and try again. If the problem continues, contact the school administrator.");
+        setModalMessage(
+          "We couldn’t load the students’ grades right now. Please check your internet connection and try again. If the problem continues, contact the school administrator."
+        );
         setIsCancelable(false);
         setShowModal(true);
         setGrades([]);
@@ -161,10 +176,7 @@ const AdviserClassGrades = () => {
         {breadcrumbs.map((crumb, index) => (
           <span key={index}>
             {crumb.path ? (
-              <span
-                className="cursor-pointer hover:underline"
-                onClick={() => navigate(crumb.path!)}
-              >
+              <span className="cursor-pointer hover:underline" onClick={() => navigate(crumb.path!)}>
                 {crumb.label}
               </span>
             ) : (
@@ -222,9 +234,7 @@ const AdviserClassGrades = () => {
                 <tr
                   key={student.id}
                   className="border-t border-[var(--color-bg-100)] hover:bg-[var(--color-bg-50)] transition-color duration-200 ease-in-out cursor-pointer"
-                  onClick={() =>
-                    navigate(`/adviser/classes/grades/${sectionId}/${student.id}`)
-                  }
+                  onClick={() => navigate(`/adviser/classes/grades/${sectionId}/${student.id}`)}
                 >
                   <td className="text-sm py-2 px-4 text-[var(--color-text-900)] border-r border-[var(--color-bg-300)] w-28 truncate">
                     {student.lrn}
