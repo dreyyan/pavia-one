@@ -25,6 +25,9 @@ router.get('/profile', verifyAdviser, async (req, res) => {
         email: true,
         mustChangePassword: true,
         signatureUrl: true,
+        sex: true,
+        nationality: true,
+        contactNumber: true,
         sections: {
           select: {
             id: true,
@@ -54,6 +57,7 @@ router.get('/profile', verifyAdviser, async (req, res) => {
       return res.status(404).json(errorResponse('Adviser not found'));
     }
 
+    // [1] Map all sections
     const sections = adviser.sections.map(s => ({
       id: s.id,
       name: s.name,
@@ -64,7 +68,86 @@ router.get('/profile', verifyAdviser, async (req, res) => {
       classSize: s._count.enrollments
     }));
 
-    const result = { ...adviser, sections };
+    // [2] Find the advisory section
+    const advisorySection = sections.find(s => s.isAdvisory) || null;
+
+    // Build the final result
+    const result = {
+      ...adviser,
+      sections,
+      advisorySection, // frontend can now use this
+    };
+
+    res.json(successResponse('Adviser profile retrieved', result));
+  } catch (err) {
+    res.status(500).json(errorResponse('Failed to fetch adviser profile', err.message));
+  }
+});
+
+// ?[GET] Retrieve adviser's own profile (protected)
+// /api/adviser/profile
+router.get('/profile', verifyAdviser, async (req, res) => {
+  try {
+    const adviser = await prisma.adviser.findUnique({
+      where: { adviserId: req.adviserId },
+      select: {
+        id: true,
+        adviserId: true,
+        name: true,
+        email: true,
+        mustChangePassword: true,
+        signatureUrl: true,
+        sex: true,
+        nationality: true,
+        contactNumber: true,
+        sections: {
+          select: {
+            id: true,
+            name: true,
+            gradeLevel: true,
+            isAdvisory: true,
+            schoolYear: true,
+            curriculum: true,
+            _count: {
+              select: {
+                enrollments: {
+                  where: { status: "ENROLLED" }
+                }
+              }
+            }
+          }
+        },
+        students: {
+          select: { id: true, lrn: true, firstName: true, lastName: true }
+        },
+        createdAt: true,
+        updatedAt: true
+      }
+    });
+
+    if (!adviser) {
+      return res.status(404).json(errorResponse('Adviser not found'));
+    }
+
+    // Map sections
+    const sections = adviser.sections.map(s => ({
+      id: s.id,
+      name: s.name,
+      gradeLevel: s.gradeLevel,
+      isAdvisory: s.isAdvisory,
+      schoolYear: s.schoolYear,
+      curriculum: s.curriculum,
+      classSize: s._count.enrollments
+    }));
+
+    const advisorySection = sections.find(s => s.isAdvisory) || null;
+
+    // Build final result
+    const result = {
+      ...adviser,
+      sections,
+      advisorySection,
+    };
 
     res.json(successResponse('Adviser profile retrieved', result));
   } catch (err) {
@@ -76,30 +159,36 @@ router.get('/profile', verifyAdviser, async (req, res) => {
 // /api/adviser/profile
 router.put('/profile', verifyAdviser, async (req, res) => {
   try {
-    const { name, email, signatureUrl } = req.body;
+    const { name, email, signatureUrl, sex, nationality, contactNumber } = req.body;
 
-    // ![ERROR] Nothing to update
-    if (!name && !email && signatureUrl === undefined) {
-      return res.status(400).json(errorResponse('At least one field (name, email, or signatureUrl) is required to update'));
+    // Require at least one field
+    if (!name && !email && signatureUrl === undefined && !sex && !nationality && !contactNumber) {
+      return res.status(400).json(
+        errorResponse(
+          'At least one field (name, email, signatureUrl, sex, nationality, contactNumber) is required to update'
+        )
+      );
     }
 
     // Fetch current adviser data
     const currentAdviser = await prisma.adviser.findUnique({
       where: { adviserId: req.adviserId },
-      select: { name: true, email: true, signatureUrl: true }
+      select: { name: true, email: true, signatureUrl: true, sex: true, nationality: true, contactNumber: true }
     });
 
     if (!currentAdviser) {
       return res.status(404).json(errorResponse('Adviser not found'));
     }
 
-    // Build update data only if values are actually different
+    // Build update object only for changed fields
     const updateData = {};
     if (name && name !== currentAdviser.name) updateData.name = name;
     if (email && email !== currentAdviser.email) updateData.email = email;
     if (signatureUrl !== undefined && signatureUrl !== currentAdviser.signatureUrl) updateData.signatureUrl = signatureUrl;
+    if (sex && sex !== currentAdviser.sex) updateData.sex = sex;
+    if (nationality && nationality !== currentAdviser.nationality) updateData.nationality = nationality;
+    if (contactNumber && contactNumber !== currentAdviser.contactNumber) updateData.contactNumber = contactNumber;
 
-    // If nothing changed, return a message instead of updating
     if (Object.keys(updateData).length === 0) {
       return res.status(400).json(errorResponse('No changes detected. Profile is already up to date.'));
     }
@@ -113,12 +202,14 @@ router.put('/profile', verifyAdviser, async (req, res) => {
         name: true,
         email: true,
         signatureUrl: true,
+        sex: true,
+        nationality: true,
+        contactNumber: true,
         createdAt: true,
         updatedAt: true
       }
     });
 
-    // *[SUCCESS] Return updated profile
     res.json(successResponse('Adviser profile updated successfully', updatedAdviser));
   } catch (err) {
     // Prisma unique constraint handling
