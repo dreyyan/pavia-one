@@ -56,28 +56,26 @@ router.get('/sf9/:studentId', verifyAdviser, async (req, res) => {
 
 // ?[GET] Section Grades Summary
 // /api/adviser/grades/section/:sectionId
-// TODO: Fix Error
-// {
-//     "success": false,
-//     "message": "[ERROR] Failed to fetch section grades.",
-//     "data": "\nInvalid `prisma.student.findMany()` invocation in\nC:\\Users\\dreyyan\\Downloads\\code\\Projects\\pavia-one\\backend\\routes\\adviser\\grades.js:63:43\n\n  60 try {\n  61   const { sectionId } = req.params;\n  62 \n→ 63   const students = await prisma.student.findMany({\n         where: {\n           enrollments: {\n             some: {\n               sectionId: 1\n             }\n           }\n         },\n         include: {\n           sfSummaries: true,\n           ~~~~~~~~~~~\n       ?   adviser?: true,\n       ?   address?: true,\n       ?   guardian?: true,\n       ?   enrollments?: true,\n       ?   monthlySummaries?: true,\n       ?   dailyAttendances?: true,\n       ?   sf9Grades?: true,\n       ?   sf9Summaries?: true,\n       ?   sf5Reports?: true,\n       ?   sf9CoreValues?: true\n         },\n         orderBy: {\n           lastName: \"asc\"\n         }\n       })\n\nUnknown field `sfSummaries` for include statement on model `Student`. Available options are marked with ?."
-// }
 router.get('/section/:sectionId', verifyAdviser, async (req, res) => {
   try {
     const { sectionId } = req.params;
 
+    // --- Fetch students enrolled in the section ---
     const students = await prisma.student.findMany({
       where: {
-        enrollments: { some: { sectionId: Number(sectionId) } }
+        enrollments: { some: { sectionId: Number(sectionId) } },
       },
       include: {
-        sfSummaries: true,
+        // *[FIX] Use correct relation: sf9Summaries
+        sf9Summaries: true,
       },
-      orderBy: { lastName: 'asc' }
+      orderBy: { lastName: 'asc' },
     });
 
-    const responseData = students.map(s => {
-      const summary = s.sf9Summaries[0];
+    // --- Map student data to summary response ---
+    const responseData = students.map((s) => {
+      // *[FIX] Take first summary (assuming latest school year is first)
+      const summary = s.sf9Summaries?.[0];
 
       const avg = summary?.generalAverage ?? null;
 
@@ -88,14 +86,27 @@ router.get('/section/:sectionId', verifyAdviser, async (req, res) => {
         average: avg,
         remarks:
           avg !== null
-            ? avg >= 75 ? 'PASSED' : 'FAILED'
-            : null
+            ? avg >= 75
+              ? 'PASSED'
+              : 'FAILED'
+            : null,
       };
     });
 
-    res.json(successResponse('Section grades retrieved', responseData));
+    // *[SUCCESS] Send section grades summary
+    res.json({
+      success: true,
+      message: 'Section grades retrieved',
+      data: responseData,
+    });
   } catch (err) {
-    res.status(500).json(errorResponse('Failed to fetch section grades', err.message));
+    // ![ERROR] Server failure
+    console.error('Failed to fetch section grades:', err);
+    res.status(500).json({
+      success: false,
+      message: '[ERROR] Failed to fetch section grades.',
+      data: err.message || err,
+    });
   }
 });
 
