@@ -35,7 +35,7 @@ const AdminLogin = () => {
         // ![ERROR] Empty Password
         if (!password) {
             setModalTitle("Passowrd required");
-            setModalMessage("Please enter your password  to continue.");
+            setModalMessage("Please enter your password to continue.");
             setIsCancelable(false);
             setRedirectOnConfirm(false);
             setShowModal(true);

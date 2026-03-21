@@ -25,7 +25,7 @@ const AdviserLogin = () => {
         // ![ERROR] Empty Adviser ID
         if (adviserId.trim() === "") {
             setModalTitle("Adviser ID required");
-            setModalMessage("Please enter your Adviser ID  to continue.");
+            setModalMessage("Please enter your Adviser ID to continue.");
             setIsCancelable(false);
             setRedirectOnConfirm(false);
             setShowModal(true);
@@ -35,7 +35,7 @@ const AdviserLogin = () => {
         // ![ERROR] Empty Password
         if (!password) {
             setModalTitle("Passowrd required");
-            setModalMessage("Please enter your password  to continue.");
+            setModalMessage("Please enter your password to continue.");
             setIsCancelable(false);
             setRedirectOnConfirm(false);
             setShowModal(true);
