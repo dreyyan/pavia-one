@@ -1,31 +1,43 @@
+// [IMPORT] Hooks
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+// [IMPORT] Components
 import ImageHeader from "../../components/ImageHeader";
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
 import Modal from "../../components/Modal";
-import { useNavigate } from "react-router-dom";
 
 const AdminLogin = () => {
     const navigate = useNavigate();
 
-    // *STATES
+    // [STATES]
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [showModal, setShowModal] = useState(false);
+    const [modalTitle, setModalTitle] = useState("");
     const [modalMessage, setModalMessage] = useState("");
+    const [isCancelable, setIsCancelable] = useState(true);
+    const [redirectOnConfirm, setRedirectOnConfirm] = useState(false);
 
-    // *HANDLES
+    // [HANDLE] Login admin
     const handleLogin = async () => {
         // ![ERROR] Empty Username
         if (username.trim() === "") {
-            setModalMessage("Please enter your username.");
+            setModalTitle("Username Required");
+            setModalMessage("Please enter your username to continue.");
+            setIsCancelable(false);
+            setRedirectOnConfirm(false);
             setShowModal(true);
             return;
         }
 
         // ![ERROR] Empty Password
         if (!password) {
-            setModalMessage("Please enter your password.");
+            setModalTitle("Passowrd Required");
+            setModalMessage("Please enter your password  to continue.");
+            setIsCancelable(false);
+            setRedirectOnConfirm(false);
             setShowModal(true);
             return;
         }
@@ -45,19 +57,30 @@ const AdminLogin = () => {
             const data = await res.json();
 
             // ![ERROR] Error response from backend
-            if (!res.ok) {
-                setModalMessage(data.message || "Login failed.");
+            if (!res.ok || !data.success) {
+                setModalTitle("Login Unsuccessful");
+                setModalMessage("We couldn't log you in. Please check your username and password and try again.");
+                setIsCancelable(false);
+                setRedirectOnConfirm(false);
                 setShowModal(true);
                 return;
             }
 
-            // *[SUCCESS] Navigate to Dashboard
-            localStorage.setItem("token", data.token);
-            navigate("/admin/dashboard");
+            localStorage.setItem("token", data.data.token);
+            localStorage.setItem("role", "Admin");
+
+            setModalTitle("Login Successful");
+            setModalMessage("You have successfully signed in. Redirecting you to your dashboard...");
+            setIsCancelable(false);
+            setRedirectOnConfirm(true);
+            setShowModal(true);
 
         } catch (err) {
             console.error(err);
-            setModalMessage("Something went wrong. Please try again.");
+            setModalTitle("Login Unsuccessful");
+            setModalMessage("Something went wrong while trying to sign you in. Please check your internet connection and try again.");
+            setIsCancelable(false);
+            setRedirectOnConfirm(false);
             setShowModal(true);
         }
     };
@@ -69,16 +92,23 @@ const AdminLogin = () => {
                 <Modal
                     isOpen={showModal}
                     onClose={() => setShowModal(false)}
-                    title="Login Error"
+                    onConfirm={() => {
+                        setShowModal(false);
+                        if (redirectOnConfirm) navigate("/admin/dashboard");
+                    }}
+                    title={modalTitle}
                     message={modalMessage}
-                />
+                    closeOnBackdrop={false}
+                    isCancelable={isCancelable}
+                  />
             )}
 
             {/* [COMPONENT] Image Header */}
             <ImageHeader />
 
+            {/* [SECTION] Login Form */}
             <div className="flex flex-col pt-15 px-6">
-                {/* Header */}
+                {/* [UI] Admin Login */}
                 <h1 className="text-[var(--color-primary-700)]">
                     Admin Login
                 </h1>
@@ -127,7 +157,7 @@ const AdminLogin = () => {
                 <PrimaryButton text="Login" onClick={handleLogin} />
             </div>
 
-            {/* [SECTION] Switch Login Role Link */}
+            {/* [LINK] Adviser Login */}
             <div className="flex justify-center mt-4">
                 <p className="label-caption">
                     Not an Admin?{" "}
