@@ -22,6 +22,7 @@ import AdviserClassStudentGradesOverview from "./pages/adviser/AdviserClassStude
 import AdviserClassStudentGradesDetails from "./pages/adviser/AdviserClassStudentGradesDetails";
 import AdviserProfile from "./pages/adviser/AdviserProfile";
 import AdviserSettings from "./pages/adviser/AdviserSettings";
+import SF1View from "./pages/adviser/school_form_view/SF1View";
 
 function App() {
   return (
@@ -51,6 +52,7 @@ function App() {
         {/* School Forms */}
         <Route path="/adviser/school-forms" element={<AdviserSchoolForms />} />
         <Route path="/adviser/school-forms/:sectionId" element={<AdviserClassSchoolForms />} />
+        <Route path="/forms/sf1/:sectionId/view" element={<SF1View />} />
         {/* Profile & Settings */}
         <Route path="/adviser/profile" element={<AdviserProfile />} />
         <Route path="/adviser/settings" element={<AdviserSettings />} />
