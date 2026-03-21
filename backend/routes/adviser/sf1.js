@@ -170,7 +170,7 @@ router.get('/', verifyAdviser, async (req, res) => {
   }
 });
 
-// ?[GET] View SF1 PDF
+// ?[GET] View SF1
 // GET /api/advisers/sf1/:sectionId/sf1/view
 router.get('/:sectionId/sf1/view', verifyAdviser, async (req, res) => {
   const { sectionId } = req.params;
