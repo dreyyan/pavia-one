@@ -103,12 +103,48 @@ enum SF5ActionTaken {
 enum SF9Remarks {
   PASSED
   FAILED
-  INC   // Incomplete
+  INC 
+}
+
+enum SchoolFormType {
+  SF1
+  SF2
+  SF5
+}
+
+enum SchoolFormStatus {
+  DRAFT
+  GENERATED
+  SUBMITTED
+  APPROVED
+  LOCKED
 }
 
 // *────────────────────────────────────────────────
 // * MODELS
 // *────────────────────────────────────────────────
+model SchoolForm {
+  id           Int                @id @default(autoincrement())
+  sectionId    Int
+  schoolYear   String
+
+  type         SchoolFormType
+  status       SchoolFormStatus   @default(DRAFT)
+
+  generatedAt  DateTime?
+  submittedAt  DateTime?
+  approvedAt   DateTime?
+  lockedAt     DateTime?
+
+  generatedBy  Int?               // Adviser ID
+  approvedBy   Int?               // Admin ID
+
+  section      Section            @relation(fields: [sectionId], references: [id])
+
+  @@unique([sectionId, schoolYear, type])
+  @@map("school_forms")
+}
+
 model School {
   id             Int      @id @default(autoincrement())
   schoolIdNumber String   @unique
@@ -179,6 +215,7 @@ model Section {
   updatedAt   DateTime  @updatedAt
 
   adviser     Adviser @relation("AdviserSections", fields: [adviserId], references: [id], onDelete: Cascade)
+  schoolForms SchoolForm[]
 
   enrollments Enrollment[]
   dailyTotals SF2DailyTotals[]
