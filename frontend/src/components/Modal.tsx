@@ -1,3 +1,4 @@
+// [IMPORT] Hooks
 import { useState, useEffect, useRef } from "react";
 
 type ModalProps = {
@@ -12,8 +13,8 @@ type ModalProps = {
   children?: React.ReactNode;
   type?: "default" | "error" | "success" | "info" | "warning";
   showInput?: boolean;
-  closeOnBackdrop?: boolean; // click outside closes
-  isCancelable?: boolean;    // whether the modal can be canceled at all
+  closeOnBackdrop?: boolean;
+  isCancelable?: boolean;
 };
 
 const Modal = ({
@@ -31,13 +32,13 @@ const Modal = ({
   closeOnBackdrop = true,
   isCancelable = true,
 }: ModalProps) => {
+  // [STATES]
   const [textInput, setTextInput] = useState(inputValue);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // [EFFECT] Keyboard Shortcuts
   useEffect(() => {
     if (!isOpen) return;
-
-    setTextInput(inputValue);
 
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isCancelable) onClose();
@@ -54,24 +55,25 @@ const Modal = ({
       document.removeEventListener("keydown", handleEsc);
       document.body.style.overflow = "";
     };
-  }, [isOpen, inputValue, onClose, showInput, isCancelable]);
+  }, [isOpen, onClose, showInput, isCancelable]);
 
   if (!isOpen) return null;
 
+  // [STYLES]
   const borderColors = {
-    default: "border-t-blue-500",
-    error: "border-t-red-500",
-    success: "border-t-green-500",
-    info: "border-t-blue-500",
-    warning: "border-t-amber-500",
+    default: "border-t-[var(--color-primary-500)]",
+    error: "border-t-[var(--color-red-600)]",
+    success: "border-t-[var(--color-accent-700)]",
+    info: "border-t-[var(--color-primary-700)]",
+    warning: "border-t-[var(--color-secondary-600)]",
   };
 
   const textColors = {
-    default: "text-blue-700",
-    error: "text-red-700",
-    success: "text-green-700",
-    info: "text-blue-700",
-    warning: "text-amber-800",
+    default: "text-[var(--color-primary-500)]",
+    error: "text-[var(--color-red-600)]",
+    success: "text-[var(--color-accent-700)]",
+    info: "text-[var(--color-primary-700)]",
+    warning: "text-[var(--color-secondary-500)]",
   };
 
   const borderClass = borderColors[type];
@@ -91,7 +93,8 @@ const Modal = ({
       aria-modal="true"
     >
       <div
-        className={`bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 sm:p-7 flex flex-col border-t-4 ${borderClass} animate-[scaleIn_.18s_ease-out]`}
+        key={isOpen ? "modal-open" : "modal-closed"}
+        className={`bg-[var(--color-bg-50)] rounded-2xl shadow-2xl w-full max-w-md p-6 sm:p-7 flex flex-col border-t-4 ${borderClass} animate-[scaleIn_.18s_ease-out]`}
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className={`text-xl sm:text-2xl font-semibold mb-3 ${textClass}`}>
@@ -132,7 +135,7 @@ const Modal = ({
 
           <button
             onClick={() => {
-              if (onConfirm) onConfirm(textInput);
+              onConfirm?.(textInput);
               onClose();
             }}
             className="px-4 py-2 rounded-lg font-roboto text-[var(--color-text-50)] text-sm sm:text-base font-semibold bg-[var(--color-primary-500)] hover:bg-[var(--color-primary-600)] transition-colors"
