@@ -143,7 +143,7 @@ const StudentFormModal = ({
     setFormError("");
     if (step === 1) {
       if (!(formData.lrn || "").trim()) { setFormError("LRN is required"); return false; }
-      if ((formData.lrn || "").trim().length !== 12) { setFormError("LRN must be exactly 12 digits"); return false; }
+      if (!/^\d{12}$/.test((formData.lrn || "").trim())) { setFormError("LRN must be exactly 12 digits (numbers only)"); return false; }
       if (!(formData.firstName || "").trim()) { setFormError("First name is required"); return false; }
       if (!(formData.lastName || "").trim()) { setFormError("Last name is required"); return false; }
     }
