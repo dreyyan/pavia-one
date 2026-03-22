@@ -149,6 +149,10 @@ const StudentFormModal = ({
     }
     if (step === 2) {
       if (!formData.sex) { setFormError("Sex is required"); return false; }
+      if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        setFormError("Email must be in format: something@something.com");
+        return false;
+      }
     }
     if (step === 3 && !isEditMode) {
       if (!formData.createdByAdviserId) { setFormError("Please select an adviser"); return false; }
