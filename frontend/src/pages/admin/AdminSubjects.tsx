@@ -420,7 +420,7 @@ const AdminSubjects = () => {
             ? handleSubmit 
             : modalTitle.includes("Delete") && !modalTitle.includes("Failed") 
             ? onConfirmAction 
-            : async () => setShowModal(false)
+            : () => setShowModal(false)
         }
         loading={loading}
         formData={formData}
