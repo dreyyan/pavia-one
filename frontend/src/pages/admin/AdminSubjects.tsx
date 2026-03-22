@@ -95,7 +95,7 @@ const AdminSubjects = () => {
       const token = localStorage.getItem("token");
 
       const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area/bulk-update`,
+        `${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -120,9 +120,14 @@ const AdminSubjects = () => {
 
       setSelectedSubjects([]);
       setBulkCurriculum("");
+      
+      // Show success message
+      setModalTitle("Subjects Updated Successfully");
+      setIsCancelable(true);
+      setShowModal(true);
     } catch (err) {
       console.error("Bulk update error:", err);
-      setModalTitle("Bulk Update Failed");
+      setModalTitle(`Bulk Update Failed: ${err instanceof Error ? err.message : "Unknown error"}`);
       setIsCancelable(true);
       setShowModal(true);
     } finally {
@@ -144,7 +149,7 @@ const AdminSubjects = () => {
       try {
         const token = localStorage.getItem("token");
         const res = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area/bulk-delete`,
+          `${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area`,
           {
             method: "DELETE",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -158,9 +163,14 @@ const AdminSubjects = () => {
         // Remove deleted subjects from local state
         setSubjects((prev) => prev.filter((s) => !selectedSubjects.includes(s.id)));
         setSelectedSubjects([]);
+        
+        // Show success message
+        setModalTitle("Subjects Deleted Successfully");
+        setIsCancelable(true);
+        setShowModal(true);
       } catch (err) {
         console.error("Bulk delete error:", err);
-        setModalTitle("Bulk Delete Failed");
+        setModalTitle(`Bulk Delete Failed: ${err instanceof Error ? err.message : "Unknown error"}`);
         setIsCancelable(true);
         setShowModal(true);
       } finally {
@@ -405,7 +415,13 @@ const AdminSubjects = () => {
         title={modalTitle}
         isCancelable={isCancelable}
         onClose={() => setShowModal(false)}
-        onConfirm={isEditMode || modalTitle.includes("Create") ? handleSubmit : onConfirmAction}
+        onConfirm={
+          modalTitle === "Create Subject" || modalTitle === "Edit Subject" 
+            ? handleSubmit 
+            : modalTitle.includes("Delete") && !modalTitle.includes("Failed") 
+            ? onConfirmAction 
+            : () => setShowModal(false)
+        }
         loading={loading}
         formData={formData}
         setFormData={setFormData}
