@@ -275,6 +275,7 @@ const AdminSubjects = () => {
     const dataToSubmit = {
       ...formData,
       name,
+      gradeLevel: gradeLevelNum,
       writtenWorkWeight: ww,
       performanceTaskWeight: pt,
       quarterlyAssessmentWeight: qa,
