@@ -10,6 +10,7 @@ type ModalProps = {
   cancelText?: string;
   inputValue?: string;
   onConfirm?: (value: string) => void;
+  confirmButton?: React.ReactNode; // <- custom button support
   children?: React.ReactNode;
   type?: "default" | "error" | "success" | "info" | "warning";
   showInput?: boolean;
@@ -26,6 +27,7 @@ const Modal = ({
   cancelText = "Cancel",
   inputValue = "",
   onConfirm,
+  confirmButton,
   children,
   type = "default",
   showInput = false,
@@ -47,9 +49,7 @@ const Modal = ({
     document.addEventListener("keydown", handleEsc);
     document.body.style.overflow = "hidden";
 
-    if (showInput) {
-      setTimeout(() => inputRef.current?.focus(), 0);
-    }
+    if (showInput) setTimeout(() => inputRef.current?.focus(), 0);
 
     return () => {
       document.removeEventListener("keydown", handleEsc);
@@ -59,7 +59,7 @@ const Modal = ({
 
   if (!isOpen) return null;
 
-  // [STYLES]
+  // [STYLES] border + text colors
   const borderColors = {
     default: "border-t-[var(--color-primary-500)]",
     error: "border-t-[var(--color-red-600)]",
@@ -67,7 +67,6 @@ const Modal = ({
     info: "border-t-[var(--color-primary-700)]",
     warning: "border-t-[var(--color-secondary-600)]",
   };
-
   const textColors = {
     default: "text-[var(--color-primary-500)]",
     error: "text-[var(--color-red-600)]",
@@ -75,7 +74,6 @@ const Modal = ({
     info: "text-[var(--color-primary-700)]",
     warning: "text-[var(--color-secondary-500)]",
   };
-
   const borderClass = borderColors[type];
   const textClass = textColors[type];
 
@@ -94,13 +92,15 @@ const Modal = ({
     >
       <div
         key={isOpen ? "modal-open" : "modal-closed"}
-        className={`bg-[var(--color-bg-50)] rounded-2xl shadow-2xl w-full max-w-md p-6 sm:p-7 flex flex-col border-t-4 ${borderClass} animate-[scaleIn_.18s_ease-out]`}
+        className={`bg-[var(--color-bg-100)] rounded-2xl shadow-2xl w-full max-w-md p-6 sm:p-7 flex flex-col border-t-4 ${borderClass} animate-[scaleIn_.18s_ease-out]`}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* [TITLE] */}
         <h2 className={`text-xl sm:text-2xl font-semibold mb-3 ${textClass}`}>
           {title}
         </h2>
 
+        {/* [MESSAGE OR CHILDREN] */}
         {children ? (
           <div className="mb-4">{children}</div>
         ) : (
@@ -112,6 +112,7 @@ const Modal = ({
           )
         )}
 
+        {/* [OPTIONAL INPUT] */}
         {showInput && (
           <input
             ref={inputRef}
@@ -123,8 +124,9 @@ const Modal = ({
           />
         )}
 
+        {/* [BUTTONS] */}
         <div className="flex justify-end gap-3 mt-2">
-          {isCancelable && (
+          {isCancelable && !confirmButton && (
             <button
               onClick={onClose}
               className="px-4 py-2 rounded-lg font-roboto text-[var(--color-text-700)] bg-[var(--color-bg-100)] hover:bg-[var(--color-bg-200)] transition-colors text-sm sm:text-base"
@@ -133,15 +135,20 @@ const Modal = ({
             </button>
           )}
 
-          <button
-            onClick={() => {
-              onConfirm?.(textInput);
-              onClose();
-            }}
-            className="px-4 py-2 rounded-lg font-roboto text-[var(--color-text-50)] text-sm sm:text-base font-semibold bg-[var(--color-primary-500)] hover:bg-[var(--color-primary-600)] transition-colors"
-          >
-            {confirmText}
-          </button>
+          {/* Use custom confirmButton if provided */}
+          {confirmButton ? (
+            confirmButton
+          ) : (
+            <button
+              onClick={() => {
+                onConfirm?.(textInput);
+                onClose();
+              }}
+              className="px-4 py-2 rounded-lg font-roboto text-[var(--color-text-50)] text-sm sm:text-base font-semibold bg-[var(--color-primary-500)] hover:bg-[var(--color-primary-600)] transition-colors"
+            >
+              {confirmText}
+            </button>
+          )}
         </div>
       </div>
     </div>
