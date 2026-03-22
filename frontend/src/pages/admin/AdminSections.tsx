@@ -266,8 +266,11 @@ const AdminSections = () => {
       curriculum: formData.curriculum,
       // Ensure adviserId and schoolYear are always included when creating
       ...(isEditMode ? {} : {
-        adviserId: formData.adviserId,
-        schoolYear: formData.schoolYear,
+        ...(isEditMode ? {} : {
+          adviserId: formData.adviserId,
+          schoolYear: formData.schoolYear,
+          isAdvisory: !!formData.adviserId,
+        }),
       }),
     };
 
