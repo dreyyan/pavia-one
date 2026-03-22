@@ -26,6 +26,7 @@ interface CrudModalProps<T extends Record<string, unknown>> {
   disableConfirm?: boolean;
 
   formFields?: FormField<T>[];
+  extraContent?: React.ReactNode;
 }
 
 function CrudModal<T extends Record<string, unknown>>({
@@ -44,6 +45,7 @@ function CrudModal<T extends Record<string, unknown>>({
   disableConfirm = false,
 
   formFields = [],
+  extraContent,
 }: CrudModalProps<T>) {
   if (!isOpen) return null;
 
@@ -106,6 +108,10 @@ function CrudModal<T extends Record<string, unknown>>({
                 );
               }
             })}
+
+            {/* [SLOT] Extra content injected after generated fields (e.g. custom adviser picker) */}
+            {extraContent}
+
             {formError && <p className="text-red-500 text-sm mt-1">{formError}</p>}
           </div>
         )}
