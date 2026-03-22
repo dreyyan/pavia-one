@@ -68,7 +68,7 @@ const InputField = ({
   } ${
     disabled
       ? "bg-[var(--color-bg-50)] border-[var(--color-text-50)] text-[var(--color-text-700)] cursor-not-allowed"
-      : "bg-[var(--color-bg-50)] border-[var(--color-text-600)] text-[var(--color-text-950)]"
+      : "bg-[var(--color-bg-50)] border-[var(--color-text-300)] text-[var(--color-text-950)]"
   }`;
 
   return (
