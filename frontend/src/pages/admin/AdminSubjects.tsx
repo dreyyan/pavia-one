@@ -70,6 +70,16 @@ const AdminSubjects = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [formError, setFormError] = useState("");
 
+  // [STATES] Filters
+  const [selectedCurriculum, setSelectedCurriculum] = useState<string | "All">("All");
+  const [selectedGradeLevel, setSelectedGradeLevel] = useState<string | "All">("All");
+
+  const gradeLevelOptions = ["7", "8", "9", "10"];
+
+  // [PAGINATION STATES]
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 5;
+
   // *[HANDLE] Fetch Subjects
   const fetchSubjects = async () => {
     setLoading(true);
@@ -125,116 +135,110 @@ const AdminSubjects = () => {
     setShowModal(true);
   };
 
-// [HANDLE] Open edit
-const handleOpenEdit = (subject: Subject) => {
-  setFormData({
-    ...subject,
-    name: subject.name ?? "",
-    gradeLevel: String(subject.gradeLevel),
-    writtenWorkWeight: String(subject.writtenWorkWeight),
-    performanceTaskWeight: String(subject.performanceTaskWeight),
-    quarterlyAssessmentWeight: String(subject.quarterlyAssessmentWeight),
-  });
-  setIsEditMode(true);
-  setModalTitle("Edit Subject");
-  setIsCancelable(true);
-  setFormError("");
-  setShowModal(true);
-};
-
-// [HANDLE] Submit form
-const handleSubmit = async () => {
-  const name = (formData.name || "").trim();
-
-  // ![ERROR] Blank subject name
-  if (!name) {
-    setFormError("Subject name is required");
-    return;
-  }
-
-  const gradeLevelNum = parseInt(formData.gradeLevel, 10);
-
-  // ![ERROR] Invalid grade level
-  if (isNaN(gradeLevelNum) || gradeLevelNum < 7 || gradeLevelNum > 10) {
-    setFormError("Grade level must be a valid number between 7 and 10");
-    return;
-  }
-
-  // Parse weights
-  const ww = parseFloat(formData.writtenWorkWeight!);
-  const pt = parseFloat(formData.performanceTaskWeight!);
-  const qa = parseFloat(formData.quarterlyAssessmentWeight!);
-
-  // ![ERROR] Invalid weight
-  if ([ww, pt, qa].some(w => isNaN(w) || w < 0 || w > 1)) {
-    setFormError("Each weight must be between 0 and 1");
-    return;
-  }
-
-  // ![ERROR] Invalid weight sum
-  if (Math.abs(ww + pt + qa - 1) > 0.001) {
-    setFormError("Weights must sum up to 1");
-    return;
-  }
-
-  const dataToSubmit = {
-    ...formData,
-    name,
-    writtenWorkWeight: ww,
-    performanceTaskWeight: pt,
-    quarterlyAssessmentWeight: qa,
+  // [HANDLE] Open edit
+  const handleOpenEdit = (subject: Subject) => {
+    setFormData({
+      ...subject,
+      name: subject.name ?? "",
+      gradeLevel: String(subject.gradeLevel),
+      writtenWorkWeight: String(subject.writtenWorkWeight),
+      performanceTaskWeight: String(subject.performanceTaskWeight),
+      quarterlyAssessmentWeight: String(subject.quarterlyAssessmentWeight),
+    });
+    setIsEditMode(true);
+    setModalTitle("Edit Subject");
+    setIsCancelable(true);
+    setFormError("");
+    setShowModal(true);
   };
 
-  setLoading(true);
-  try {
-    const token = localStorage.getItem("token");
-    const url = isEditMode
-      ? `${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area/${formData.id}`
-      : `${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area`;
-    const method = isEditMode ? "PUT" : "POST";
+  // [HANDLE] Submit form
+  const handleSubmit = async () => {
+    const name = (formData.name || "").trim();
 
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify(dataToSubmit),
-    });
-
-    const data = await res.json();
-    if (!data.success) throw new Error(data.message || "Operation failed");
-
-    if (isEditMode) {
-      setSubjects(prev =>
-        prev.map(s =>
-          s.id === data.data.id
-            ? {
-                ...data.data,
-                writtenWorkWeight: String(data.data.writtenWorkWeight),
-                performanceTaskWeight: String(data.data.performanceTaskWeight),
-                quarterlyAssessmentWeight: String(data.data.quarterlyAssessmentWeight),
-              }
-            : s
-        )
-      );
-    } else {
-      setSubjects(prev => [
-        ...prev,
-        {
-          ...data.data[0] || data.data,
-          writtenWorkWeight: String(data.data[0]?.writtenWorkWeight || 0),
-          performanceTaskWeight: String(data.data[0]?.performanceTaskWeight || 0),
-          quarterlyAssessmentWeight: String(data.data[0]?.quarterlyAssessmentWeight || 0),
-        },
-      ]);
+    if (!name) {
+      setFormError("Subject name is required");
+      return;
     }
 
-    setShowModal(false);
-  } catch (err) {
-    console.error(err);
-    setFormError("Operation failed");
-  } finally {
-    setLoading(false);
-  }
-};
+    const gradeLevelNum = parseInt(formData.gradeLevel, 10);
+    if (isNaN(gradeLevelNum) || gradeLevelNum < 7 || gradeLevelNum > 10) {
+      setFormError("Grade level must be a valid number between 7 and 10");
+      return;
+    }
+
+    const ww = parseFloat(formData.writtenWorkWeight!);
+    const pt = parseFloat(formData.performanceTaskWeight!);
+    const qa = parseFloat(formData.quarterlyAssessmentWeight!);
+
+    if ([ww, pt, qa].some(w => isNaN(w) || w < 0 || w > 1)) {
+      setFormError("Each weight must be between 0 and 1");
+      return;
+    }
+
+    if (Math.abs(ww + pt + qa - 1) > 0.001) {
+      setFormError("Weights must sum up to 1");
+      return;
+    }
+
+    const dataToSubmit = {
+      ...formData,
+      name,
+      writtenWorkWeight: ww,
+      performanceTaskWeight: pt,
+      quarterlyAssessmentWeight: qa,
+    };
+
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const url = isEditMode
+        ? `${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area/${formData.id}`
+        : `${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area`;
+      const method = isEditMode ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(dataToSubmit),
+      });
+
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message || "Operation failed");
+
+      if (isEditMode) {
+        setSubjects(prev =>
+          prev.map(s =>
+            s.id === data.data.id
+              ? {
+                  ...data.data,
+                  writtenWorkWeight: String(data.data.writtenWorkWeight),
+                  performanceTaskWeight: String(data.data.performanceTaskWeight),
+                  quarterlyAssessmentWeight: String(data.data.quarterlyAssessmentWeight),
+                }
+              : s
+          )
+        );
+      } else {
+        setSubjects(prev => [
+          ...prev,
+          {
+            ...data.data[0] || data.data,
+            writtenWorkWeight: String(data.data[0]?.writtenWorkWeight || 0),
+            performanceTaskWeight: String(data.data[0]?.performanceTaskWeight || 0),
+            quarterlyAssessmentWeight: String(data.data[0]?.quarterlyAssessmentWeight || 0),
+          },
+        ]);
+      }
+
+      setShowModal(false);
+    } catch (err) {
+      console.error(err);
+      setFormError("Operation failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // [HANDLE] Delete subject
   const handleDelete = (id: number) => {
@@ -270,7 +274,8 @@ const handleSubmit = async () => {
   // [LOADING STATE]
   if (loading) return <DashboardSkeleton />;
 
-  const displayedSubjects = subjects
+  // [HANDLE] Sorting and Searching
+  const filteredSubjects = subjects
     .filter((s) => s.name.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
       switch (sortOption) {
@@ -282,7 +287,14 @@ const handleSubmit = async () => {
       }
     });
 
-    
+  // [PAGINATION CALCULATIONS]
+  const totalPages = Math.ceil(filteredSubjects.length / itemsPerPage);
+  const displayedSubjects = filteredSubjects.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+
+  // [HANDLE] Pagination
+  const handlePrevPage = () => setPage(prev => Math.max(prev - 1, 1));
+  const handleNextPage = () => setPage(prev => Math.min(prev + 1, totalPages));
+
   // *[BREADCRUMBS] Admin Dashboard navigation
   const breadcrumbs = [
     { label: "Admin Dashboard", path: "/admin/dashboard" },
@@ -308,32 +320,14 @@ const handleSubmit = async () => {
           { 
             key: "gradeLevel",
             label: "Grade Level",
-            type: "text", // changed from number
+            type: "text",
             value: String(formData.gradeLevel || ""),
             onChange: (value: string) => setFormData(prev => ({ ...prev, gradeLevel: value }))
           },
           { key: "curriculum", label: "Curriculum", type: "select", options: curriculumOptions },
-          { 
-            key: "writtenWorkWeight",
-            label: "Written Work Weight",
-            type: "text", // changed from number
-            value: formData.writtenWorkWeight,
-            onChange: (value: string) => setFormData(prev => ({ ...prev, writtenWorkWeight: value }))
-          },
-          { 
-            key: "performanceTaskWeight",
-            label: "Performance Task Weight",
-            type: "text", // changed from number
-            value: formData.performanceTaskWeight,
-            onChange: (value: string) => setFormData(prev => ({ ...prev, performanceTaskWeight: value }))
-          },
-          { 
-            key: "quarterlyAssessmentWeight",
-            label: "Quarterly Assessment Weight",
-            type: "text", // changed from number
-            value: formData.quarterlyAssessmentWeight,
-            onChange: (value: string) => setFormData(prev => ({ ...prev, quarterlyAssessmentWeight: value }))
-          },
+          { key: "writtenWorkWeight", label: "Written Work Weight", type: "text", value: formData.writtenWorkWeight, onChange: (value) => setFormData(prev => ({ ...prev, writtenWorkWeight: value })) },
+          { key: "performanceTaskWeight", label: "Performance Task Weight", type: "text", value: formData.performanceTaskWeight, onChange: (value) => setFormData(prev => ({ ...prev, performanceTaskWeight: value })) },
+          { key: "quarterlyAssessmentWeight", label: "Quarterly Assessment Weight", type: "text", value: formData.quarterlyAssessmentWeight, onChange: (value) => setFormData(prev => ({ ...prev, quarterlyAssessmentWeight: value })) },
         ]}
       />
 
@@ -385,6 +379,32 @@ const handleSubmit = async () => {
         </div>
       </div>
 
+      <div className="flex md:flex-row gap-2 md:gap-4 md:items-center w-full">
+        {/* Curriculum Filter */}
+        <select
+          value={selectedCurriculum}
+          onChange={(e) => setSelectedCurriculum(e.target.value)}
+          className="flex-1 bg-[var(--color-bg-50)] text-sm font-roboto rounded-sm py-2 px-3 outline-none focus:ring-2 focus:ring-[var(--color-primary-600)]"
+        >
+          <option value="All">All Curriculums</option>
+          {curriculumOptions.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+
+        {/* Grade Level Filter */}
+        <select
+          value={selectedGradeLevel}
+          onChange={(e) => setSelectedGradeLevel(e.target.value)}
+          className="bg-[var(--color-bg-50)] text-sm font-roboto rounded-sm py-2 px-3 outline-none focus:ring-2 focus:ring-[var(--color-primary-600)]"
+        >
+          <option value="All">All Grades</option>
+          {gradeLevelOptions.map((g) => (
+            <option key={g} value={g}>{g}</option>
+          ))}
+        </select>
+      </div>
+
       {/* [PRIMARY BUTTON] Add Subject */}
       <div className="mt-2">
         <PrimaryButton text="Add Subject" iconSrc="/add-icon.svg" onClick={handleAddSubject} />
@@ -430,6 +450,39 @@ const handleSubmit = async () => {
           </table>
         )}
       </div>
+
+      {/* [SECTION] Pagination */}
+      {displayedSubjects.length !== 0 && (
+        <div className="flex justify-between items-center space-x-4 mt-4">
+          <button
+            onClick={handlePrevPage}
+            disabled={page === 1}
+            className={`w-24 py-2 rounded-md text-[var(--color-text-50)] font-roboto text-xs font-semibold transition-colors duration-150 ${
+              page === 1
+                ? "bg-[var(--color-bg-400)] cursor-not-allowed opacity-50"
+                : "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)]"
+            }`}
+          >
+            &lt; Previous
+          </button>
+
+          <span className="flex gap-x-1 text-sm text-[var(--color-text-900)] font-medium">
+            Page <span className="font-bold">{page}</span> of <span className="font-bold">{totalPages}</span>
+          </span>
+
+          <button
+            onClick={handleNextPage}
+            disabled={page === totalPages}
+            className={`w-24 py-2 rounded-md text-[var(--color-text-50)] font-roboto text-xs font-semibold transition-colors duration-150 ${
+              page === totalPages
+                ? "bg-[var(--color-bg-400)] cursor-not-allowed opacity-50"
+                : "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)]"
+            }`}
+          >
+            Next &gt;
+          </button>
+        </div>
+      )}
     </div>
   );
 };
