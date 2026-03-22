@@ -76,9 +76,100 @@ const AdminSubjects = () => {
 
   const gradeLevelOptions = ["7", "8", "9", "10"];
 
-  // [PAGINATION STATES]
+  // [STATES] Pagination
   const [page, setPage] = useState(1);
   const itemsPerPage = 5;
+
+  // [STATE] Selected subjects for bulk operations
+  const [selectedSubjects, setSelectedSubjects] = useState<number[]>([]);
+
+  // [STATE] Bulk operations
+  const [bulkCurriculum, setBulkCurriculum] = useState<string>("");
+
+  // [HANDLE] Bulk Update
+  const handleBulkUpdate = async () => {
+    if (selectedSubjects.length === 0 || !bulkCurriculum) return;
+
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area/bulk-update`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            ids: selectedSubjects,
+            curriculum: bulkCurriculum,
+          }),
+        }
+      );
+
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message || "Bulk update failed");
+
+      // Update local state
+      setSubjects((prev) =>
+        prev.map((s) =>
+          selectedSubjects.includes(s.id)
+            ? { ...s, curriculum: bulkCurriculum }
+            : s
+        )
+      );
+
+      setSelectedSubjects([]);
+      setBulkCurriculum("");
+    } catch (err) {
+      console.error("Bulk update error:", err);
+      setModalTitle("Bulk Update Failed");
+      setIsCancelable(true);
+      setShowModal(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // [HANDLE] Bulk Delete
+  const handleBulkDelete = async () => {
+    if (selectedSubjects.length === 0) return;
+
+    setModalTitle(`Delete ${selectedSubjects.length} Selected Subjects`);
+    setIsCancelable(true);
+    setShowModal(true);
+
+    const onBulkDeleteConfirm = async () => {
+      setShowModal(false);
+      setLoading(true);
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area/bulk-delete`,
+          {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ ids: selectedSubjects }),
+          }
+        );
+
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || "Bulk delete failed");
+
+        // Remove deleted subjects from local state
+        setSubjects((prev) => prev.filter((s) => !selectedSubjects.includes(s.id)));
+        setSelectedSubjects([]);
+      } catch (err) {
+        console.error("Bulk delete error:", err);
+        setModalTitle("Bulk Delete Failed");
+        setIsCancelable(true);
+        setShowModal(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    setOnConfirmAction(() => onBulkDeleteConfirm);
+  };
 
   // *[HANDLE] Fetch Subjects
   const fetchSubjects = async () => {
@@ -176,7 +267,7 @@ const AdminSubjects = () => {
       return;
     }
 
-    if (Math.abs(ww + pt + qa - 1) > 0.001) {
+    if (Math.abs(Number((ww + pt + qa).toFixed(3)) - 1) > 0.001) {
       setFormError("Weights must sum up to 1");
       return;
     }
@@ -276,7 +367,11 @@ const AdminSubjects = () => {
 
   // [HANDLE] Sorting and Searching
   const filteredSubjects = subjects
-    .filter((s) => s.name.toLowerCase().includes(search.toLowerCase()))
+    .filter((s) =>
+      s.name.toLowerCase().includes(search.toLowerCase()) &&
+      (selectedCurriculum === "All" || s.curriculum === selectedCurriculum) &&
+      (selectedGradeLevel === "All" || String(s.gradeLevel) === selectedGradeLevel)
+    )
     .sort((a, b) => {
       switch (sortOption) {
         case "name-asc": return a.name.localeCompare(b.name);
@@ -317,12 +412,12 @@ const AdminSubjects = () => {
         formError={formError}
         formFields={[
           { key: "name", label: "Name", type: "text" },
-          { 
-            key: "gradeLevel",
+          { key: "gradeLevel",
             label: "Grade Level",
-            type: "text",
-            value: String(formData.gradeLevel || ""),
-            onChange: (value: string) => setFormData(prev => ({ ...prev, gradeLevel: value }))
+            type: "select",
+            options: gradeLevelOptions,
+            value: formData.gradeLevel,
+            onChange: (value) => setFormData(prev => ({ ...prev, gradeLevel: value }))
           },
           { key: "curriculum", label: "Curriculum", type: "select", options: curriculumOptions },
           { key: "writtenWorkWeight", label: "Written Work Weight", type: "text", value: formData.writtenWorkWeight, onChange: (value) => setFormData(prev => ({ ...prev, writtenWorkWeight: value })) },
@@ -405,9 +500,45 @@ const AdminSubjects = () => {
         </select>
       </div>
 
-      {/* [PRIMARY BUTTON] Add Subject */}
-      <div className="mt-2">
+      {/* [SECTOIN] Add Subject & Auto Create Learning Areas */}
+      <div className="mt-2 space-y-2">
         <PrimaryButton text="Add Subject" iconSrc="/add-icon.svg" onClick={handleAddSubject} />
+
+      {/* [PRIMARY BUTTON] Auto-create All Subjects */}
+      <PrimaryButton
+        text="Auto-create All Subjects"
+        color="FCB103"
+        onClick={async () => {
+          setLoading(true);
+          try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area/auto-create-all`, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message);
+
+            // Add new subjects from backend
+            setSubjects(prev => [
+              ...prev,
+              ...data.data.map((s: SubjectResponse) => ({
+                ...s,
+                writtenWorkWeight: String(s.writtenWorkWeight),
+                performanceTaskWeight: String(s.performanceTaskWeight),
+                quarterlyAssessmentWeight: String(s.quarterlyAssessmentWeight),
+              })),
+            ]);
+          } catch (err) {
+            console.error(err);
+            setModalTitle("Failed to auto-create subjects");
+            setIsCancelable(true);
+            setShowModal(true);
+          } finally {
+            setLoading(false);
+          }
+        }}
+      />
       </div>
 
       {/* [SECTION] Subjects Table */}
@@ -419,35 +550,97 @@ const AdminSubjects = () => {
             <p className="font-roboto text-sm text-[var(--color-text-700)]">Try searching for a different subject name.</p>
           </div>
         ) : (
-          <table className="min-w-full bg-white shadow-md table-auto border-collapse">
-            <thead className="bg-[var(--color-primary-600)] text-white font-figtree">
-              <tr>
-                <th className="py-2 px-4 text-left font-bold border-r border-[var(--color-primary-600)] truncate">Name</th>
-                <th className="py-2 px-4 text-left font-bold border-r border-[var(--color-primary-600)]">Grade Level</th>
-                <th className="py-2 px-4 text-left hidden md:table-cell font-bold border-r border-[var(--color-primary-600)]">Curriculum</th>
-                <th className="py-2 px-4 text-left hidden md:table-cell border-r border-[var(--color-primary-600)]">WW</th>
-                <th className="py-2 px-4 text-left hidden md:table-cell border-r border-[var(--color-primary-600)]">PT</th>
-                <th className="py-2 px-4 text-left hidden md:table-cell">QA</th>
-                <th className="py-2 px-4 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="font-roboto">
-              {displayedSubjects.map((s) => (
-                <tr key={s.id} className="border-t border-[var(--color-bg-100)] transition-colors">
-                  <td className="text-md font-bold py-2 px-4 text-[var(--color-text-900)] border-r border-[var(--color-bg-300)] truncate max-w-[200px]">{s.name}</td>
-                  <td className="text-sm text-center py-2 px-4 text-[var(--color-text-900)] border-r border-[var(--color-bg-300)]">{s.gradeLevel}</td>
-                  <td className="text-sm text-center py-2 px-4 text-[var(--color-text-900)] hidden md:table-cell border-r border-[var(--color-bg-300)]">{s.curriculum}</td>
-                  <td className="py-2 px-4 text-[var(--color-text-900)] hidden md:table-cell border-r border-[var(--color-bg-300)]">{s.writtenWorkWeight}</td>
-                  <td className="py-2 px-4 text-[var(--color-text-900)] hidden md:table-cell border-r border-[var(--color-bg-300)]">{s.performanceTaskWeight}</td>
-                  <td className="py-2 px-4 text-[var(--color-text-900)] hidden md:table-cell">{s.quarterlyAssessmentWeight}</td>
-                  <td className="py-2 px-4 flex gap-4">
-                    <button className="text-[var(--color-primary-500)] text-sm font-medium cursor-pointer hover:underline" onClick={() => handleOpenEdit(s)}>Edit</button>
-                    <button className="text-[var(--color-red-500)] text-sm font-medium cursor-pointer hover:underline" onClick={() => handleDelete(s.id)}>Delete</button>
-                  </td>
-                </tr>
+          <div className="">
+            {/* [DROPDOWN] Bulk Change Curriculum */}
+            <select
+              value={bulkCurriculum}
+              onChange={(e) => setBulkCurriculum(e.target.value)}
+              className="flex-1 w-full bg-[var(--color-bg-50)] text-sm font-roboto py-2 px-3 outline-none focus:ring-0"
+            >
+              <option value="">Change Curriculum...</option>
+              {curriculumOptions.map((c) => (
+                <option key={c} value={c}>{c}</option>
               ))}
-            </tbody>
-          </table>
+            </select>
+
+            {/* Bulk update inputs */}
+            <div className="flex flex-col bg-[var(--color-bg-50)] p-2 gap-2 items-center mb-2 rounded-md">
+              <PrimaryButton
+                text={`Apply to Selected (${selectedSubjects.length})`}
+                onClick={handleBulkUpdate}
+                disabled={selectedSubjects.length === 0 || !bulkCurriculum}
+              />
+              <PrimaryButton
+                text={`Delete Selected (${selectedSubjects.length})`}
+                onClick={handleBulkDelete}
+                disabled={selectedSubjects.length === 0}
+                iconSrc="/delete-icon.svg"
+              />
+            </div>
+
+            <table className="overflow-hidden rounded-lg min-w-full bg-white shadow-md table-auto border-collapse">
+              <thead className="bg-[var(--color-primary-600)] text-white font-figtree">
+                <tr className="">
+                  <th className="py-2 px-4 pr-2 text-center">
+                    <input
+                      type="checkbox"
+                      onChange={(e) => {
+                        if (e.target.checked) setSelectedSubjects(filteredSubjects.map(s => s.id));
+                        else setSelectedSubjects([]);
+                      }}
+                      checked={selectedSubjects.length === filteredSubjects.length && filteredSubjects.length > 0}
+                    />
+                  </th>
+                  <th className="py-2 px-4 text-left font-bold border-r border-[var(--color-primary-600)] truncate max-w-[180px]">
+                    Name
+                  </th>
+                  <th className="py-2 px-2 text-center font-bold border-r border-[var(--color-primary-600)] w-16">
+                    Grade
+                  </th>
+                  <th className="py-2 px-4 text-left hidden md:table-cell font-bold border-r border-[var(--color-primary-600)]">Curriculum</th>
+                  <th className="py-2 px-4 text-left hidden md:table-cell border-r border-[var(--color-primary-600)]">WW</th>
+                  <th className="py-2 px-4 text-left hidden md:table-cell border-r border-[var(--color-primary-600)]">PT</th>
+                  <th className="py-2 px-4 text-left hidden md:table-cell">QA</th>
+                  <th className="py-2 px-4 text-left">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="font-roboto">
+                {displayedSubjects.map((s) => (
+                  <tr key={s.id} className="border-t border-[var(--color-bg-100)] transition-colors">
+                    <td className="text-center py-2 px-4 pr-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedSubjects.includes(s.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) setSelectedSubjects(prev => [...prev, s.id]);
+                          else setSelectedSubjects(prev => prev.filter(id => id !== s.id));
+                        }}
+                      />
+                    </td>
+
+                    <td className="text-md font-bold py-2 px-4 text-[var(--color-text-900)] border-r border-[var(--color-bg-300)] truncate whitespace-nowrap max-w-[110px]">
+                      {s.name}
+                    </td>
+
+                    <td className="text-sm text-center py-2 px-2 text-[var(--color-text-900)] border-r border-[var(--color-bg-300)] w-16">
+                      {s.gradeLevel}
+                    </td>
+
+                    <td className="text-sm text-center py-2 px-4 text-[var(--color-text-900)] hidden md:table-cell border-r border-[var(--color-bg-300)]">
+                      {s.curriculum}
+                    </td>
+                    <td className="py-2 px-4 text-[var(--color-text-900)] hidden md:table-cell border-r border-[var(--color-bg-300)]">{s.writtenWorkWeight}</td>
+                    <td className="py-2 px-4 text-[var(--color-text-900)] hidden md:table-cell border-r border-[var(--color-bg-300)]">{s.performanceTaskWeight}</td>
+                    <td className="py-2 px-4 text-[var(--color-text-900)] hidden md:table-cell">{s.quarterlyAssessmentWeight}</td>
+                    <td className="py-2 px-4 flex gap-4">
+                      <button className="text-[var(--color-primary-500)] text-sm font-medium cursor-pointer hover:underline" onClick={() => handleOpenEdit(s)}>Edit</button>
+                      <button className="text-[var(--color-red-500)] text-sm font-medium cursor-pointer hover:underline" onClick={() => handleDelete(s.id)}>Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
