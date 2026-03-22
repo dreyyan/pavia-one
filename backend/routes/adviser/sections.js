@@ -490,8 +490,12 @@ router.put('/:sectionId/students/:studentId', verifyAdviser, async (req, res) =>
       lastName,
       firstName,
       middleName,
+      nameExtension,
       sex,
       birthDate,
+      motherTongue,
+      ethnicGroup,
+      religion,
       houseNo,
       street,
       sitio,
@@ -543,8 +547,12 @@ router.put('/:sectionId/students/:studentId', verifyAdviser, async (req, res) =>
         lastName,
         firstName,
         middleName,
+        nameExtension: nameExtension || null,
         sex,
         birthDate: birthDate ? new Date(birthDate) : null,
+        motherTongue: motherTongue || null,
+        ethnicGroup: ethnicGroup || null,
+        religion : religion || null
       },
     });
 
