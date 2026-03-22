@@ -177,6 +177,10 @@ const AdminAdvisers = () => {
     if (!adviserId) { setFormError("Adviser ID is required"); return; }
     if (!name) { setFormError("Name is required"); return; }
     if (!email) { setFormError("Email is required"); return; }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) { setFormError("Email must be in a valid format (e.g., user@example.com)"); return; }
+    
     if (!isEditMode && !password) { setFormError("Password is required"); return; }
 
     const dataToSubmit = isEditMode
