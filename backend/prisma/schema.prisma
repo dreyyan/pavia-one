@@ -323,7 +323,7 @@ model LearningArea {
   grades      SF9Grade[]
   enrollments EnrollmentLearningArea[]
 
-  @@unique([name, curriculum])
+  @@unique([name, gradeLevel, curriculum])
   @@map("learning_areas")
 }
 
