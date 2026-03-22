@@ -39,6 +39,7 @@ router.get('/', verifyAdmin, async (req, res) => {
           id: true,
           name: true,
           gradeLevel: true,
+          isAdvisory: true,
           createdAt: true,
           adviser: { select: { id: true, name: true, email: true } },
           _count: { select: { enrollments: true } },
@@ -194,6 +195,9 @@ router.post('/', verifyAdmin, async (req, res) => {
         continue;
       }
 
+      // Determine if the section should be advisory
+      const sectionIsAdvisory = !!adviserId; // true if an adviser is selected
+
       // [CREATE] Section
       const newSection = await prisma.section.create({
         data: {
@@ -203,7 +207,7 @@ router.post('/', verifyAdmin, async (req, res) => {
           adviser: { connect: { adviserId } },
           color: color || null,
           schedule: schedule || null,
-          isAdvisory: isAdvisory || false,
+          isAdvisory: sectionIsAdvisory,
           curriculum: sectionCurriculum,
         },
       });

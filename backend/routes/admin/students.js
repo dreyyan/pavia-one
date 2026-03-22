@@ -225,6 +225,22 @@ router.post('/', verifyAdmin, async (req, res) => {
     const createdStudents = [];
     const errors = [];
 
+    // Map possible input strings to Prisma LearningModality enum
+    const modalityMap = {
+      'FACE_TO_FACE': 'FACE_TO_FACE',
+      'Face to Face': 'FACE_TO_FACE',
+      'DISTANCE_LEARNING': 'DISTANCE_LEARNING',
+      'Distance Learning': 'DISTANCE_LEARNING',
+      'BLENDED': 'BLENDED',
+      'Blended': 'BLENDED',
+      'ONLINE': 'ONLINE',
+      'Online': 'ONLINE',
+      'HOMESCHOOL': 'HOMESCHOOL',
+      'Homeschool': 'HOMESCHOOL',
+      'OTHER': 'OTHER',
+      'Other': 'OTHER',
+    };
+
     for (const student of studentsInput) {
       const {
         lrn,
@@ -233,7 +249,6 @@ router.post('/', verifyAdmin, async (req, res) => {
         lastName,
         nameExtension,
         email,
-        password,
         sex,
         birthDate,
         sectionId,
@@ -241,82 +256,71 @@ router.post('/', verifyAdmin, async (req, res) => {
         motherTongue,
         religion,
         barangay,
-        municipality,
+        municipalityCity,
         province,
-        fatherName,
-        motherMaidenName,
         learningModality,
-        remarks,
       } = student;
 
-      // ![ERROR] Missing required fields
-      if (!lrn || !firstName || !lastName || !email || !password || !sex || !createdByAdviserId) {
+      // Required fields
+      if (!lrn || !firstName || !lastName || !sex || !createdByAdviserId) {
         errors.push({ lrn, message: 'Missing required fields' });
         continue;
       }
 
-      // ![ERROR] Invalid sex value
       if (!isValidSex(sex)) {
         errors.push({ lrn, message: 'Invalid sex value' });
         continue;
       }
 
       const existing = await prisma.student.findFirst({ where: { OR: [{ email }, { lrn }] } });
-
-      // ![ERROR] Student already exists
       if (existing) {
         errors.push({ lrn, message: 'Student already exists' });
         continue;
       }
 
-      // --- Parse birth date and calculate age ---
       const parsedBirthDate = birthDate ? new Date(birthDate) : null;
-      let age = null;
-      if (parsedBirthDate) {
-        const today = new Date();
-        age = today.getFullYear() - parsedBirthDate.getFullYear();
-        if (
-          today.getMonth() < parsedBirthDate.getMonth() ||
-          (today.getMonth() === parsedBirthDate.getMonth() && today.getDate() < parsedBirthDate.getDate())
-        ) {
-          age--;
-        }
-      }
 
-      const hashedPassword = await bcrypt.hash(password, 10);
+      // Map learningModality to enum or default to FACE_TO_FACE
+      const safeModality = modalityMap[learningModality] || 'FACE_TO_FACE';
 
+      // Build student data
       const studentData = {
         lrn,
         firstName,
         middleName: middleName || null,
         lastName,
         nameExtension: nameExtension || null,
-        email,
-        password: hashedPassword,
+        email: email || null,
         sex: sex.toUpperCase(),
         birthDate: parsedBirthDate,
-        age,
         motherTongue: motherTongue || null,
         religion: religion || null,
-        barangay: barangay || null,
-        municipality: municipality || 'Pavia',
-        province: province || 'Iloilo',
-        fatherName: fatherName || null,
-        motherMaidenName: motherMaidenName || null,
-        learningModality: learningModality || null,
-        remarks: remarks || null,
         createdByAdviserId,
+        address: {
+          create: {
+            barangay: barangay || null,
+            municipalityCity: municipalityCity || null,
+            province: province || null,
+          },
+        },
       };
 
+      // If sectionId provided, create enrollment
       if (sectionId) {
         const section = await prisma.section.findUnique({ where: { id: sectionId } });
-
-        // ![ERROR] Section not found
         if (!section) {
           errors.push({ lrn, sectionId, message: 'Section not found' });
           continue;
         }
-        studentData.enrollments = { create: { sectionId, status: 'ENROLLED' } };
+
+        studentData.enrollments = {
+          create: {
+            sectionId,
+            schoolYear: section.schoolYear,
+            learningModality: safeModality,
+            status: 'ENROLLED',
+          },
+        };
       }
 
       const newStudent = await prisma.student.create({
@@ -331,19 +335,16 @@ router.post('/', verifyAdmin, async (req, res) => {
           email: true,
           sex: true,
           birthDate: true,
-          age: true,
           motherTongue: true,
           religion: true,
-          barangay: true,
-          municipality: true,
-          province: true,
-          fatherName: true,
-          motherMaidenName: true,
-          learningModality: true,
-          remarks: true,
           createdAt: true,
           adviser: { select: { id: true, name: true, adviserId: true } },
-          enrollments: { where: { status: 'ENROLLED' }, select: { section: { select: { id: true, name: true } } }, take: 1 },
+          address: { select: { barangay: true, municipalityCity: true, province: true } },
+          enrollments: {
+            where: { status: 'ENROLLED' },
+            select: { section: { select: { id: true, name: true } }, learningModality: true, status: true },
+            take: 1,
+          },
         },
       });
 
@@ -355,7 +356,6 @@ router.post('/', verifyAdmin, async (req, res) => {
       });
     }
 
-    // *[SUCCESS] Student(s) processed successfully
     res.status(201).json(successResponse('Student(s) processed successfully', { created: createdStudents, failed: errors }));
   } catch (err) {
     console.error('Create student(s) error:', err);
@@ -420,12 +420,6 @@ router.put('/', verifyAdmin, async (req, res) => {
         continue;
       }
 
-      // Hash password if provided
-      let hashedPassword = existing.password;
-      if (password) {
-        hashedPassword = await bcrypt.hash(password, 10);
-      }
-
       // Update student base fields
       const studentUpdate = await prisma.student.update({
         where: { id: existing.id },
@@ -435,7 +429,6 @@ router.put('/', verifyAdmin, async (req, res) => {
           lastName: lastName || existing.lastName,
           nameExtension: nameExtension !== undefined ? nameExtension : existing.nameExtension,
           email: email || existing.email,
-          password: hashedPassword,
           sex: sex ? sex.toUpperCase() : existing.sex,
           birthDate: birthDate ? new Date(birthDate) : existing.birthDate,
           motherTongue: motherTongue !== undefined ? motherTongue : existing.motherTongue,
