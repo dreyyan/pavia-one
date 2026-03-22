@@ -87,7 +87,7 @@ router.post('/auto-create-all', verifyAdmin, async (req, res) => {
         const allSubjects = [...coreSubjects, ...specializedSubjects];
 
         const existing = await prisma.learningArea.findMany({
-          where: { gradeLevel, name: { in: allSubjects.map((s) => s.name) } },
+          where: { gradeLevel, curriculum, name: { in: allSubjects.map((s) => s.name) } },
         });
         const existingNames = existing.map((la) => la.name);
 
@@ -99,6 +99,7 @@ router.post('/auto-create-all', verifyAdmin, async (req, res) => {
           data: toCreate.map((s) => ({
             name: s.name,
             gradeLevel,
+            curriculum,
             writtenWorkWeight: s.ww,
             performanceTaskWeight: s.pt,
             quarterlyAssessmentWeight: s.qa,
@@ -134,7 +135,7 @@ router.post('/', verifyAdmin, async (req, res) => {
     if (Array.isArray(req.body)) {
       areasToCreate = req.body;
     } else if (req.body.name) {
-      areasToCreate = [{ name: req.body.name }];
+      areasToCreate = [{ name: req.body.name, curriculum: req.body.curriculum ?? 'Regular' }];
     } else {
       return res.status(400).json(errorResponse('Name is required to create a learning area'));
     }
@@ -145,6 +146,7 @@ router.post('/', verifyAdmin, async (req, res) => {
           data: {
             name: area.name,
             gradeLevel: area.gradeLevel ?? 7,
+            curriculum: area.curriculum ?? 'Regular',
             writtenWorkWeight: area.writtenWorkWeight ?? 0.3,
             performanceTaskWeight: area.performanceTaskWeight ?? 0.5,
             quarterlyAssessmentWeight: area.quarterlyAssessmentWeight ?? 0.2,
@@ -167,9 +169,9 @@ router.post('/', verifyAdmin, async (req, res) => {
 router.put('/:id', verifyAdmin, async (req, res) => {
   try {
     const id = Number(req.params.id);
-    const { name, writtenWorkWeight, performanceTaskWeight, quarterlyAssessmentWeight, gradeLevel } = req.body;
+    const { name, writtenWorkWeight, performanceTaskWeight, quarterlyAssessmentWeight, gradeLevel, curriculum } = req.body;
 
-    if (!name && writtenWorkWeight === undefined && performanceTaskWeight === undefined && quarterlyAssessmentWeight === undefined && gradeLevel === undefined) {
+    if (!name && writtenWorkWeight === undefined && performanceTaskWeight === undefined && quarterlyAssessmentWeight === undefined && gradeLevel === undefined && !curriculum) {
       return res.status(400).json(errorResponse('At least one field is required to update'));
     }
 
@@ -182,13 +184,14 @@ router.put('/:id', verifyAdmin, async (req, res) => {
     if (performanceTaskWeight !== undefined) updateData.performanceTaskWeight = performanceTaskWeight;
     if (quarterlyAssessmentWeight !== undefined) updateData.quarterlyAssessmentWeight = quarterlyAssessmentWeight;
     if (gradeLevel !== undefined) updateData.gradeLevel = gradeLevel;
+    if (curriculum) updateData.curriculum = curriculum;
 
     const updated = await prisma.learningArea.update({ where: { id }, data: updateData });
 
     res.json(successResponse('Learning area updated successfully', updated));
   } catch (err) {
     if (err.code === 'P2002') {
-      return res.status(409).json(errorResponse('Learning area with this name already exists'));
+      return res.status(409).json(errorResponse('Learning area with this name and curriculum already exists'));
     }
     res.status(500).json(errorResponse('Failed to update learning area', err.message));
   }
@@ -198,9 +201,9 @@ router.put('/:id', verifyAdmin, async (req, res) => {
 // /api/admin/learning-area
 router.put('/', verifyAdmin, async (req, res) => {
   try {
-    const { ids, name, writtenWorkWeight, performanceTaskWeight, quarterlyAssessmentWeight, gradeLevel } = req.body;
+    const { ids, name, writtenWorkWeight, performanceTaskWeight, quarterlyAssessmentWeight, gradeLevel, curriculum } = req.body;
 
-    if (!Array.isArray(ids) || ids.length === 0 || (!name && writtenWorkWeight === undefined && performanceTaskWeight === undefined && quarterlyAssessmentWeight === undefined && gradeLevel === undefined)) {
+    if (!Array.isArray(ids) || ids.length === 0 || (!name && writtenWorkWeight === undefined && performanceTaskWeight === undefined && quarterlyAssessmentWeight === undefined && gradeLevel === undefined && !curriculum)) {
       return res.status(400).json(errorResponse('ids array is required and at least one field must be provided'));
     }
 
@@ -210,6 +213,7 @@ router.put('/', verifyAdmin, async (req, res) => {
     if (performanceTaskWeight !== undefined) updateData.performanceTaskWeight = performanceTaskWeight;
     if (quarterlyAssessmentWeight !== undefined) updateData.quarterlyAssessmentWeight = quarterlyAssessmentWeight;
     if (gradeLevel !== undefined) updateData.gradeLevel = gradeLevel;
+    if (curriculum) updateData.curriculum = curriculum;
 
     const updated = await prisma.learningArea.updateMany({
       where: { id: { in: ids } },
@@ -218,20 +222,21 @@ router.put('/', verifyAdmin, async (req, res) => {
 
     res.json(successResponse('Learning areas updated successfully', { count: updated.count }));
   } catch (err) {
-    if (err.code === 'P2002') return res.status(409).json(errorResponse('Duplicate name conflict'));
+    if (err.code === 'P2002') return res.status(409).json(errorResponse('Duplicate name and curriculum conflict'));
     res.status(500).json(errorResponse('Failed to bulk update learning areas', err.message));
   }
 });
 
-// ?[DELETE] Delete a Learning Area
-// /api/admin/learning-area/:id
-router.delete('/:id', verifyAdmin, async (req, res) => {
+// ?[DELETE] Delete all learning areas
+// /api/admin/learning-area/all
+router.delete('/all', verifyAdmin, async (req, res) => {
   try {
-    const id = Number(req.params.id);
-    await prisma.learningArea.delete({ where: { id } });
-    res.json(successResponse('Learning area deleted successfully'));
+    const total = await prisma.learningArea.count();
+    if (total === 0) return res.status(404).json(errorResponse('No learning areas found'));
+    const deleted = await prisma.learningArea.deleteMany({});
+    res.json(successResponse('All learning areas deleted successfully', { count: deleted.count }));
   } catch (err) {
-    res.status(500).json(errorResponse('Failed to delete learning area', err.message));
+    res.status(500).json(errorResponse('Failed to delete all learning areas', err.message));
   }
 });
 
@@ -251,16 +256,15 @@ router.delete('/', verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[DELETE] Delete all learning areas
-// /api/admin/learning-area/all
-router.delete('/all', verifyAdmin, async (req, res) => {
+// ?[DELETE] Delete a Learning Area
+// /api/admin/learning-area/:id
+router.delete('/:id', verifyAdmin, async (req, res) => {
   try {
-    const total = await prisma.learningArea.count();
-    if (total === 0) return res.status(404).json(errorResponse('No learning areas found'));
-    const deleted = await prisma.learningArea.deleteMany({});
-    res.json(successResponse('All learning areas deleted successfully', { count: deleted.count }));
+    const id = Number(req.params.id);
+    await prisma.learningArea.delete({ where: { id } });
+    res.json(successResponse('Learning area deleted successfully'));
   } catch (err) {
-    res.status(500).json(errorResponse('Failed to delete all learning areas', err.message));
+    res.status(500).json(errorResponse('Failed to delete learning area', err.message));
   }
 });
 
