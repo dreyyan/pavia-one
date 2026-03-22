@@ -29,10 +29,10 @@ import AdviserSettings from "./pages/adviser/AdviserSettings";
 import SF1View from "./pages/adviser/school_form_view/SF1View";
 // [ROUTES] Admin
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import Students from "./pages/admin/Students";
-import Advisers from "./pages/admin/Advisers";
-import Sections from "./pages/admin/Sections";
-import Subjects from "./pages/admin/Subjects";
+import AdminStudents from "./pages/admin/AdminStudents";
+import AdminAdvisers from "./pages/admin/AdminAdvisers";
+import AdminSections from "./pages/admin/AdminSections";
+import AdminSubjects from "./pages/admin/AdminSubjects";
 
 function App() {
   return (
@@ -70,10 +70,10 @@ function App() {
         {/* ADMIN ROUTES */}
         {/* Dashboard */}
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        <Route path="/admin/students" element={<Students />} />
-        <Route path="/admin/advisers" element={<Advisers />} />
-        <Route path="/admin/sections" element={<Sections />} />
-        <Route path="/admin/subjects" element={<Subjects />} />
+        <Route path="/admin/students" element={<AdminStudents />} />
+        <Route path="/admin/advisers" element={<AdminAdvisers />} />
+        <Route path="/admin/sections" element={<AdminSections />} />
+        <Route path="/admin/subjects" element={<AdminSubjects />} />
 
         {/* SHARED ROUTES */}
         {/* About Us */}
