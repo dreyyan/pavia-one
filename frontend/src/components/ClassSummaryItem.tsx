@@ -7,7 +7,7 @@ interface ClassSummaryItemProps {
   maxValue?: number;
 }
 
-const ClassSummaryItem: React.FC<ClassSummaryItemProps> = ({ iconSrc, text, value, maxValue }) => {
+const ClassSummaryItem: React.FC<ClassSummaryItemProps> = ({ iconSrc, text, value = 0, maxValue = 100 }) => {
   const [progress, setProgress] = useState(0);
 
   // Compute progress dynamically
@@ -35,7 +35,7 @@ const ClassSummaryItem: React.FC<ClassSummaryItemProps> = ({ iconSrc, text, valu
           {/* Icon */}
           {iconSrc && (
             <div className="bg-[var(--color-primary-700)] rounded-l-sm">
-              <img src={iconSrc} className="size-6" />
+              <img src={iconSrc} alt="icon" className="size-6" />
             </div>
           )}
 

@@ -84,26 +84,30 @@ const AdminDashboard = () => {
         });
 
         if (res.status === 401) {
-          setShowTokenExpiredModal(true);
-          return;
-        }
-
-        const data: { success: boolean; data: DashboardSummary } = await res.json();
-
-        // ![ERROR] Backend failure response
-        if (!data.success) {
-          console.error("Profile fetch error:", data);
           localStorage.removeItem("token");
           setShowTokenExpiredModal(true);
           return;
         }
 
-        // Map backend response
-        setProfile(data.data.adminProfile);
-        setTotalStudents(data.data.totalStudents);
-        setTotalAdvisers(data.data.totalAdvisers);
-        setTotalSections(data.data.totalSections);
-        setTotalAdmins(data.data.totalAdmins);
+        const data = await res.json();
+
+        if (!res.ok || !data?.success) {
+          console.error("Dashboard summary fetch failed", { status: res.status, data });
+          localStorage.removeItem("token");
+          setShowTokenExpiredModal(true);
+          return;
+        }
+
+        const summary: DashboardSummary = data.data;
+        if (!summary || !summary.adminProfile) {
+          throw new Error("Dashboard summary payload missing");
+        }
+
+        setProfile(summary.adminProfile);
+        setTotalStudents(summary.totalStudents);
+        setTotalAdvisers(summary.totalAdvisers);
+        setTotalSections(summary.totalSections);
+        setTotalAdmins(summary.totalAdmins);
       } catch (err) {
         console.error("Failed to fetch dashboard:", err);
         localStorage.removeItem("token");
