@@ -60,6 +60,7 @@ const NotificationsPage = () => {
         title="Event Details"
         type="info"
         confirmText="Close"
+        isCancelable={false}
       >
         <div className="p-1">
           <p className="text-[var(--color-primary-600)] font-bold text-sm mb-1">{selectedEvent?.month} {selectedEvent?.day}</p>
