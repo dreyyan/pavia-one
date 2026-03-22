@@ -1,5 +1,6 @@
 // [IMPORT] Hooks
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
@@ -33,6 +34,7 @@ const curriculumOptions = ["Regular", "STE", "SPS", "SPA", "SPJ"];
 
 const AdminSubjects = () => {
   const { setShowTokenExpiredModal } = useAuth();
+  const navigate = useNavigate();
 
   // [STATES]
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -280,6 +282,13 @@ const handleSubmit = async () => {
       }
     });
 
+    
+  // *[BREADCRUMBS] Admin Dashboard navigation
+  const breadcrumbs = [
+    { label: "Admin Dashboard", path: "/admin/dashboard" },
+    { label: "Subjects", path: null },
+  ];
+
   return (
     <div className="py-10 px-4 space-y-4 relative">
       {/* [COMPONENT] CRUD Modal */}
@@ -328,6 +337,20 @@ const handleSubmit = async () => {
         ]}
       />
 
+      {/* [BREADCRUMBS] */}
+      <nav className="font-roboto text-sm text-[var(--color-text-700)] px-2 pb-2">
+        {breadcrumbs.map((crumb, idx) => (
+          <span key={idx}>
+            {crumb.path ? (
+              <span className="cursor-pointer hover:underline" onClick={() => navigate(crumb.path!)}>{crumb.label}</span>
+            ) : (
+              <span className="font-medium text-[var(--color-text-900)]">{crumb.label}</span>
+            )}
+            {idx < breadcrumbs.length - 1 && " / "}
+          </span>
+        ))}
+      </nav>
+
       {/* [UI] Page Title */}
       <PageTitle title="Subjects" />
 
@@ -364,7 +387,7 @@ const handleSubmit = async () => {
 
       {/* [PRIMARY BUTTON] Add Subject */}
       <div className="mt-2">
-        <PrimaryButton text="Add Subject" onClick={handleAddSubject} />
+        <PrimaryButton text="Add Subject" iconSrc="/add-icon.svg" onClick={handleAddSubject} />
       </div>
 
       {/* [SECTION] Subjects Table */}
