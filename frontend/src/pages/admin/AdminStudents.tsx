@@ -145,7 +145,11 @@ const StudentFormModal = ({
       if (!(formData.lrn || "").trim()) { setFormError("LRN is required"); return false; }
       if (!/^\d{12}$/.test((formData.lrn || "").trim())) { setFormError("LRN must be exactly 12 digits (numbers only)"); return false; }
       if (!(formData.firstName || "").trim()) { setFormError("First name is required"); return false; }
+      if (/[0-9]/.test(formData.firstName)) { setFormError("First name cannot contain numbers"); return false; }
       if (!(formData.lastName || "").trim()) { setFormError("Last name is required"); return false; }
+      if (/[0-9]/.test(formData.lastName)) { setFormError("Last name cannot contain numbers"); return false; }
+      if (formData.middleName && /[0-9]/.test(formData.middleName)) { setFormError("Middle name cannot contain numbers"); return false; }
+      if (formData.nameExtension && /[0-9]/.test(formData.nameExtension)) { setFormError("Name extension cannot contain numbers"); return false; }
     }
     if (step === 2) {
       if (!formData.sex) { setFormError("Sex is required"); return false; }
@@ -220,22 +224,22 @@ const StudentFormModal = ({
             <div className="flex flex-col">
               <label className="font-roboto text-sm mb-1">First Name <span className="text-[var(--color-red-500)]">*</span></label>
               <input type="text" value={formData.firstName}
-                onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))} className={inputCls} />
+                onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value.replace(/[0-9]/g, '') }))} className={inputCls} />
             </div>
             <div className="flex flex-col">
               <label className="font-roboto text-sm mb-1">Middle Name <span className="text-[var(--color-text-500)] text-xs">(optional)</span></label>
               <input type="text" value={formData.middleName}
-                onChange={(e) => setFormData(prev => ({ ...prev, middleName: e.target.value }))} className={inputCls} />
+                onChange={(e) => setFormData(prev => ({ ...prev, middleName: e.target.value.replace(/[0-9]/g, '') }))} className={inputCls} />
             </div>
             <div className="flex flex-col">
               <label className="font-roboto text-sm mb-1">Last Name <span className="text-[var(--color-red-500)]">*</span></label>
               <input type="text" value={formData.lastName}
-                onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))} className={inputCls} />
+                onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value.replace(/[0-9]/g, '') }))} className={inputCls} />
             </div>
             <div className="flex flex-col">
               <label className="font-roboto text-sm mb-1">Name Extension <span className="text-[var(--color-text-500)] text-xs">(e.g. Jr., Sr., III)</span></label>
               <input type="text" value={formData.nameExtension}
-                onChange={(e) => setFormData(prev => ({ ...prev, nameExtension: e.target.value }))} className={inputCls} />
+                onChange={(e) => setFormData(prev => ({ ...prev, nameExtension: e.target.value.replace(/[0-9]/g, '') }))} className={inputCls} />
             </div>
           </div>
         )}
