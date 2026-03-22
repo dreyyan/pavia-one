@@ -30,6 +30,7 @@ interface StudentForm {
   lastName: string;
   firstName: string;
   middleName?: string;
+  nameExtension?: string;
   sex?: string;
   birthDate?: string;
   age?: number;
@@ -98,8 +99,65 @@ const AdviserClassStudentDetails = () => {
   const [modalType, setModalType] = useState<"default" | "error" | "success" | "info" | "warning">("default");
   const [redirectOnConfirm, setRedirectOnConfirm] = useState(false);
 
+  const fieldLabels: Record<string, string> = {
+    firstName: "First Name",
+    lastName: "Last Name",
+    middleName: "Middle Name",
+    motherTongue: "Mother Tongue",
+    religion: "Religion",
+    ip: "IP (Ethnic Group)",
+    barangay: "Barangay",
+    municipality: "Municipality / City",
+    province: "Province",
+    fatherName: "Father's Name",
+    motherName: "Mother's Maiden Name",
+    guardianName: "Guardian's Name",
+    guardianRelationship: "Relationship"
+  };
+
+
   // [HANDLE] Student form update
   const handleChange = (field: keyof StudentForm, value: string | number) => {
+    if (typeof value === "string") {
+      switch (field) {
+        // RULE: Only Letters & Spaces (Blocks numbers and symbols)
+        case "firstName":
+        case "lastName":
+        case "middleName":
+        case "motherTongue":
+        case "religion":
+        case "ip":
+        case "barangay":
+        case "municipality":
+        case "province":
+        case "fatherName":
+        case "motherName":
+        case "guardianName":
+        case "guardianRelationship":
+          if (value !== "" && !/^[a-zA-Z\s.-]*$/.test(value)) return;
+          break;
+
+        // RULE: Exactly 12 Digits (Blocks letters and symbols)
+        case "guardianContact":
+          if (value !== "" && !/^\d*$/.test(value)) return; // Block non-digits
+          if (value.length > 12) return; // Block typing past 12
+          break;
+
+        // RULE: Only Digits for House Number
+        case "houseNo":
+          if (value !== "" && !/^\d*$/.test(value)) return;
+          break;
+
+        // RULE: Street/Sitio/Purok (Allow Alphanumeric, block most symbols)
+        case "street":
+        case "sitio":
+        case "purok":
+          if (value !== "" && !/^[a-zA-Z0-9\s.,-]*$/.test(value)) return;
+          break;
+      }
+    }
+
+    // UPDATE STATE: If it passes the checks above, update the form
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -139,46 +197,64 @@ const AdviserClassStudentDetails = () => {
     );
 
     if (missingFields.length > 0) {
-      // ![ERROR] Missing required fields
       setModalTitle("Validation Error");
       setModalMessage(
         `Please fill in the following required fields: ${missingFields.join(", ")}`
       );
       setModalType("error");
-      setRedirectOnConfirm(false);
+      setShowModal(true);
+      return;
+    }
+
+    // *[VALIDATION] Define the list of fields to check for letters/spaces only
+    const alphaFields = Object.keys(fieldLabels) as (keyof StudentForm)[];
+
+    // *[VALIDATION] Check for numbers/symbols in Name-only fields
+    const invalidFieldKey = alphaFields.find(field => 
+      form[field] && !/^[a-zA-Z\s.-]*$/.test(form[field] as string)
+    );
+
+    if (invalidFieldKey) {
+      setModalTitle("Validation Error");
+      setModalMessage(`${fieldLabels[invalidFieldKey]} should only contain letters and spaces.`);
+      setModalType("error");
       setShowModal(true);
       return;
     }
 
     // *[VALIDATION] Check for invalid age
     if (form.age !== undefined && (isNaN(form.age) || form.age < 0)) {
-      // ![ERROR] Invalid age
       setModalTitle("Validation Error");
       setModalMessage("Please enter a valid non-negative age.");
       setModalType("error");
-      setRedirectOnConfirm(false);
       setShowModal(true);
       return;
     }
 
-    // *[VALIDATION] Check guardian contact number
-    if (form.guardianContact && !/^\d+$/.test(form.guardianContact)) {
-      // ![ERROR] Invalid guardian contact no.
-      setModalTitle("Validation Error");
-      setModalMessage("Guardian contact number should contain only digits.");
-      setModalType("error");
-      setRedirectOnConfirm(false);
-      setShowModal(true);
-      return;
+    // *[VALIDATION] Check guardian contact number (Strict 12 Digits)
+    if (form.guardianContact) {
+      if (!/^\d{11}$/.test(form.guardianContact)) {
+        setModalTitle("Validation Error");
+        setModalMessage("Guardian contact number must be exactly 12 digits.");
+        setModalType("error");
+        setShowModal(true);
+        return;
+      }
     }
 
     try {
       setLoading(true);
 
       const token = localStorage.getItem("token");
-      // *[PREP] Remove `age` from payload if present
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { age, ...payload } = form;
+      // *[PREP] Remove `age` from payload
+      const { age, ip, ...restOfForm } = form;
+      const payload = {
+        ...restOfForm,
+        nameExtension: form.nameExtension || "",
+        ethnicGroup : ip,
+        motherTongue: form.motherTongue || "",
+        religion: form.religion || ""
+      }
 
       // *[API] Send PUT request to update student
       const res = await fetch(
@@ -195,12 +271,10 @@ const AdviserClassStudentDetails = () => {
 
       const data = await res.json();
 
-      // ![ERROR] Backend failure or missing data
       if (!data.success) {
         setModalTitle("Save Failed");
         setModalMessage(data.message || "Failed to save student data.");
         setModalType("error");
-        setRedirectOnConfirm(false);
         setShowModal(true);
         return;
       }
@@ -209,17 +283,14 @@ const AdviserClassStudentDetails = () => {
       setModalTitle("Success");
       setModalMessage("Student details saved successfully!");
       setModalType("success");
-      setRedirectOnConfirm(false);
       setShowModal(true);
       setIsEditing(false);
       setOriginalForm(form);
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       setModalTitle("Error");
       setModalMessage("Something went wrong while saving.");
-      setModalType("success");
-      setRedirectOnConfirm(false);
+      setModalType("error"); // Fixed: previously "success" in your catch block
       setShowModal(true);
     } finally {
       setLoading(false);
@@ -546,6 +617,7 @@ const AdviserClassStudentDetails = () => {
               <InputField label="Last Name" value={form.lastName} onChange={(e) => handleChange("lastName", e.target.value)} disabled={!isEditing} />
               <InputField label="First Name" value={form.firstName} onChange={(e) => handleChange("firstName", e.target.value)} disabled={!isEditing} />
               <InputField label="Middle Name" value={form.middleName ?? ""} onChange={(e) => handleChange("middleName", e.target.value)} disabled={!isEditing} />
+              <InputField label="Extension Name" value={form.nameExtension ?? ""} onChange={(e) => handleChange("nameExtension", e.target.value)} placeholder="Jr., III, etc." />
               <InputField label="Sex (M/F)" type="select" value={form.sex ?? ""} onChange={(e) => handleChange("sex", e.target.value)} options={["M", "F"]} placeholder="Select sex" disabled={!isEditing} />
               <InputField label="Birth Date" type="date" value={form.birthDate ?? ""} onChange={(e) => handleChange("birthDate", e.target.value)} disabled={!isEditing} />
               <InputField label="Age" type="number" value={form.age ?? ""} onChange={(e) => { const val = e.target.value; handleChange("age", val !== "" ? parseInt(val) : 0); }} maxLength={3} disabled={true} />
