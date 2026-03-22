@@ -314,6 +314,7 @@ model LearningArea {
   id          Int        @id @default(autoincrement())
   name        String
   gradeLevel  Int        @default(7)
+  curriculum  Curriculum @default(Regular)
 
   writtenWorkWeight       Float @default(0.3)   // 20–40%
   performanceTaskWeight   Float @default(0.5)   // 40–60%
@@ -322,6 +323,7 @@ model LearningArea {
   grades      SF9Grade[]
   enrollments EnrollmentLearningArea[]
 
+  @@unique([name, curriculum])
   @@map("learning_areas")
 }
 
