@@ -61,10 +61,12 @@ const FeaturesCarousel = () => {
     };
 
     return (
-        <div>
-            {/* [COMPONENT] Carousel */}
+        <div className="w-full">
+            {/* [COMPONENT] Carousel 
+                Increased min-width and added 2xl:min-h to fill 1440px space better
+            */}
             <div
-                className="relative min-w-[312px] min-h-[312px] rounded-lg cursor-pointer"
+                className="relative w-full aspect-square min-w-[312px] xl:min-w-[450px] 2xl:min-w-[550px] rounded-lg cursor-pointer overflow-hidden shadow-sm"
                 onClick={handleNextImage}
             >
                 {/* [COMPONENT] Skeleton */}
@@ -83,38 +85,64 @@ const FeaturesCarousel = () => {
                     }`}
                 />
 
-                {/* [SECTION] Dot Indicators */}
-                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+                {/* [SECTION] Dot Indicators - Scaled up for Desktop */}
+                <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-3">
                     {images.map((_, index) => (
                         <div
                             key={index}
                             onClick={(e) => {
-                                e.stopPropagation(); // prevent carousel click
+                                e.stopPropagation(); 
                                 handleDotClick(index);
                             }}
-                            className={`w-3 h-3 rounded-full transition-opacity cursor-pointer ${
+                            className={`rounded-full transition-all cursor-pointer ${
                                 index === currentIndex
-                                    ? "bg-[var(--color-bg-50)]"
-                                    : "bg-[var(--color-bg-50)] opacity-50"
+                                    ? "bg-white w-4 h-4 shadow-md"
+                                    : "bg-white opacity-50 w-3 h-3 hover:opacity-80"
                             }`}
                         />
                     ))}
                 </div>
             </div>
 
-            {/* [SECTION] Carousel Content */}
-            <div className="text-center pt-4 pb-6 space-y-2">
-                <div className="min-h-[4rem] flex items-center justify-center">
-                    <h2 className="text-[var(--color-primary-700)]">{content[currentIndex].title}</h2>
+            {/* [SECTION] Carousel Content - Heavily scaled typography */}
+            <div className="text-center pt-10 pb-6 space-y-4">
+                <div className="min-h-[4rem] xl:min-h-[6rem] flex items-center justify-center">
+                    {/* text-xl -> xl:text-4xl -> 2xl:text-5xl */}
+                    <h2 className="text-[var(--color-primary-700)] font-bold text-xl xl:text-3xl 2xl:text-4xl tracking-tight leading-tight">
+                        {content[currentIndex].title}
+                    </h2>
                 </div>
-                <p className="min-h-[4rem] body-small">{content[currentIndex].description}</p>
+                {/* text-sm -> xl:text-lg -> 2xl:text-xl */}
+                <p className="min-h-[4rem] text-gray-600 text-sm xl:text-lg 2xl:text-xl leading-relaxed max-w-[90%] mx-auto">
+                    {content[currentIndex].description}
+                </p>
             </div>
 
-            {/* [SECTION] Primary Buttons */}
-            <div className="flex flex-col gap-y-2 mb-4">
-                <PrimaryButton text="Login as Adviser" onClick={handleAdviserLogin} />
-                <PrimaryButton text="Login as Admin" color="FCB103" onClick={handleAdminLogin} />
-                <a href="about-us" className="link block text-center underline text-[var(--color-primary-700)]">Learn More</a>
+            {/* [SECTION] Primary Buttons - Side by Side with larger Gaps */}
+            <div className="flex flex-col sm:flex-row gap-4 xl:gap-6 mt-6 mb-10">
+                <div className="flex-1">
+                    <PrimaryButton 
+                        text="Login as Adviser" 
+                        onClick={handleAdviserLogin} 
+                    />
+                </div>
+                <div className="flex-1">
+                    <PrimaryButton 
+                        text="Login as Admin" 
+                        color="FCB103" 
+                        onClick={handleAdminLogin} 
+                    />
+                </div>
+            </div>
+
+            {/* [SECTION] Footer Link */}
+            <div className="text-center">
+                <a 
+                    href="about-us" 
+                    className="text-sm xl:text-lg font-semibold underline text-[var(--color-primary-700)] hover:text-[var(--color-primary-800)] transition-colors"
+                >
+                    Learn More
+                </a>
             </div>
         </div>
     );
