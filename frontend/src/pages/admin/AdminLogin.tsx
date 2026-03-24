@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Components
+import BrandPanel from "../../components/BrandPanel";
 import ImageHeader from "../../components/ImageHeader";
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
@@ -80,7 +81,9 @@ const AdminLogin = () => {
     };
 
     return (
-        <div className="min-h-screen pb-20 bg-[var(--color-bg-100)]">
+        /* The main wrapper uses flex-col for mobile and flex-row for desktop split-screen */
+        <div className="flex flex-col lg:flex-row min-h-screen w-full bg-white overflow-x-hidden">
+            
             {/* [COMPONENT] Modal */}
             {showModal && (
                 <Modal
@@ -97,79 +100,96 @@ const AdminLogin = () => {
                 />
             )}
 
-            {/* [COMPONENT] Image Header */}
-            <ImageHeader />
+            {/* --- LEFT SIDE: FORM & MOBILE HEADER --- */}
+            <div className="flex flex-col w-full lg:w-[45%] min-h-screen">
+                
+                {/* [MOBILE ONLY HEADER] 
+                    Only visible on screens smaller than 1024px (lg)
+                */}
+                <div className="lg:hidden">
+                    <ImageHeader />
+                </div>
 
-            {/* [MAIN WRAPPER] Responsive Container */}
-            <main className="max-w-md mx-auto pt-10 px-6 sm:pt-20 lg:max-w-lg">
-                <div className="flex flex-col">
-                    {/* [UI] Admin Login Title */}
-                    <h1 className="text-3xl font-bold text-[var(--color-primary-700)] text-center sm:text-left">
-                        Admin Login
-                    </h1>
-                    <p className="text-[var(--color-text-700)] mt-2 text-center sm:text-left">
-                        Secure access for PaviaOne Administrators
-                    </p>
+                {/* [FORM AREA] 
+                    Takes the rest of the space and centers the content
+                */}
+                <div className="flex-1 flex flex-col justify-center items-center p-8 sm:p-12 lg:p-16">
+                    <div className="w-full max-w-[360px]">
+                        
+                        {/* [UI] Admin Login Title */}
+                        <div className="text-center lg:text-left mb-8">
+                            <h2 className="text-[var(--color-primary-600)] font-bold text-xl tracking-tight">Welcome back!</h2>
+                            <h1 className="text-[var(--color-primary-800)] font-black text-3xl md:text-4xl">
+                                Admin Login
+                            </h1>
+                            <p className="text-gray-500 mt-2 text-sm">
+                                Secure access for PaviaOne Administrators
+                            </p>
+                        </div>
 
-                    {/* [SECTION] Input Fields */}
-                    <div className="flex flex-col gap-y-4 mt-8 mb-2">
-                        <InputField
-                            label="Username"
-                            type="text"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            maxLength={7}
-                            placeholder="Enter your username"
-                            iconSrc="username-icon.svg"
-                        />
-
-                        <InputField
-                            label="Password"
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="********"
-                            iconSrc="password-icon.svg"
-                        />
-                    </div>
-
-                    {/* [SECTION] Auxiliary Actions */}
-                    <div className="flex flex-col sm:flex-row justify-between items-center mt-4 gap-y-3 px-1 mb-10">
-                        <label className="flex items-center gap-2 text-sm text-[var(--color-text-900)] cursor-pointer">
-                            <input
-                                type="checkbox"
-                                className="w-4 h-4 rounded accent-[var(--color-primary-600)]"
-                                checked={rememberMe}
-                                onChange={(e) => setRememberMe(e.target.checked)}
+                        {/* [SECTION] Input Fields */}
+                        <div className="space-y-5">
+                            <InputField
+                                label="Username"
+                                type="text"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                maxLength={7}
+                                placeholder="Enter your username"
+                                iconSrc="username-icon.svg"
                             />
-                            <span>Remember Me</span>
-                        </label>
 
-                        <a
-                            href={`/forgot-password?role=admin`}
-                            className="text-sm font-medium text-[var(--color-primary-700)] hover:underline"
-                        >
-                            Forgot Password?
-                        </a>
-                    </div>
+                            <InputField
+                                label="Password"
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="********"
+                                iconSrc="password-icon.svg"
+                            />
+                        </div>
 
-                    {/* [PRIMARY BUTTON] Login */}
-                    <div className="w-full">
+                        {/* [SECTION] Auxiliary Actions */}
+                        <div className="flex justify-between items-center my-6 text-sm">
+                            <label className="flex items-center gap-2 text-gray-500 cursor-pointer hover:text-gray-700 transition-colors">
+                                <input
+                                    type="checkbox"
+                                    className="w-4 h-4 rounded accent-[var(--color-primary-600)] cursor-pointer"
+                                    checked={rememberMe}
+                                    onChange={(e) => setRememberMe(e.target.checked)}
+                                />
+                                <span>Remember Me</span>
+                            </label>
+
+                            <a
+                                href={`/forgot-password?role=admin`}
+                                className="font-semibold text-[var(--color-primary-700)] hover:underline"
+                            >
+                                Forgot Password?
+                            </a>
+                        </div>
+
+                        {/* [PRIMARY BUTTON] Login */}
                         <PrimaryButton text="Login" onClick={handleLogin} />
+
+                        {/* [LINK] Switch to Adviser Login */}
+                        <div className="mt-12 pt-6 border-t border-gray-100 text-center">
+                            <span className="text-sm text-gray-400">Not an Admin? </span>
+                            <a
+                                href="/login/adviser"
+                                className="text-sm font-bold text-[var(--color-primary-600)] hover:underline"
+                            >
+                                Login as Adviser
+                            </a>
+                        </div>
                     </div>
                 </div>
+            </div>
 
-                {/* [LINK] Switch to Adviser Login */}
-                <div className="mt-12 pt-6 border-t border-gray-200 text-center">
-                    <span className="text-sm text-gray-600">Not an Admin? </span>
-                    <a
-                        href="/login/adviser"
-                        className="text-sm font-bold text-[var(--color-primary-600)] hover:underline"
-                    >
-                        Login as Adviser
-                    </a>
-                </div>
-            </main>
+            {/* --- RIGHT SIDE: DESKTOP BRAND PANEL --- 
+                Visible only on desktop screens (lg:flex)
+            */}
+            <BrandPanel />
         </div>
     );
 };
