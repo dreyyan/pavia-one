@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Components
 import BrandPanel from "../../components/BrandPanel";
-import ImageHeader from "../../components/ImageHeader"; // Your existing header
+import ImageHeader from "../../components/ImageHeader"; 
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
 import Modal from "../../components/Modal";
@@ -26,11 +26,10 @@ const AdviserLogin = () => {
             setShowModal(true);
             return;
         }
-        // ... (Your login fetch logic)
     };
 
     return (
-        <div className="flex flex-col lg:flex-row min-h-screen w-full bg-white">
+        <div className="flex flex-col lg:flex-row h-screen w-full bg-white overflow-hidden">
             {showModal && (
                 <Modal 
                     isOpen={showModal} 
@@ -45,26 +44,29 @@ const AdviserLogin = () => {
             )}
 
             {/* --- LEFT SIDE: FORM & MOBILE HEADER --- */}
-            <div className="flex flex-col w-full lg:w-[45%] min-h-screen">
+            {/* Added overflow-y-auto so the form is scrollable on small screens */}
+            <div className="flex flex-col w-full lg:w-[55%] h-full overflow-y-auto">
                 
-                {/* [MOBILE ONLY HEADER] 
-                    This uses your ImageHeader.tsx but only shows it on mobile (hidden on lg)
-                */}
-                <div className="lg:hidden">
+                <div className="lg:hidden shrink-0">
                     <ImageHeader />
                 </div>
 
                 {/* [FORM AREA] 
-                    Takes the rest of the space. On Desktop, it centers itself.
+                    Heavily scaled for 1440px (xl: and 2xl: modifiers)
                 */}
-                <div className="flex-1 flex flex-col justify-center items-center p-8 sm:p-12 lg:p-16">
-                    <div className="w-full max-w-[360px]">
-                        <div className="text-center lg:text-left mb-8">
-                            <h2 className="text-[var(--color-primary-600)] font-bold text-xl">Welcome Back!</h2>
-                            <h1 className="text-[var(--color-primary-800)] font-black text-3xl md:text-4xl">Adviser Login</h1>
+                <div className="flex-1 flex flex-col justify-center items-center p-8 sm:p-16 lg:p-20 xl:p-32 2xl:p-40">
+                    <div className="w-full max-w-[360px] xl:max-w-[480px] 2xl:max-w-[550px] transition-all duration-300">
+                        
+                        <div className="text-center lg:text-left mb-10 xl:mb-14">
+                            <h2 className="text-[var(--color-primary-600)] font-bold text-xl xl:text-2xl 2xl:text-3xl">
+                                Welcome Back!
+                            </h2>
+                            <h1 className="text-[var(--color-primary-800)] font-black text-3xl xl:text-5xl 2xl:text-6xl mt-2">
+                                Adviser Login
+                            </h1>
                         </div>
 
-                        <div className="space-y-5">
+                        <div className="space-y-6 xl:space-y-8">
                             <InputField
                                 label="Adviser ID Number"
                                 value={adviserId}
@@ -82,20 +84,24 @@ const AdviserLogin = () => {
                             />
                         </div>
 
-                        <div className="flex justify-between items-center my-6 text-sm">
+                        <div className="flex justify-between items-center my-8 xl:my-10 text-sm xl:text-lg">
                             <label className="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" className="accent-[var(--color-primary-600)] w-4 h-4" />
-                                <span className="text-gray-500">Remember Me</span>
+                                <input type="checkbox" className="accent-[var(--color-primary-600)] w-4 h-4 xl:w-5 xl:h-5" />
+                                <span className="text-gray-500 font-medium">Remember Me</span>
                             </label>
-                            <a href="/forgot" className="text-[var(--color-primary-600)] font-semibold hover:underline">Forgot Password?</a>
+                            <a href="/forgot" className="text-[var(--color-primary-600)] font-bold hover:underline">
+                                Forgot Password?
+                            </a>
                         </div>
 
                         <PrimaryButton text="Login" onClick={handleLogin} />
 
-                        <div className="mt-12 text-center border-t pt-6 border-gray-100">
-                            <p className="text-gray-500 text-sm">
+                        <div className="mt-12 xl:mt-16 text-center border-t pt-8 border-gray-100">
+                            <p className="text-gray-500 text-sm xl:text-lg">
                                 Not an Adviser?{" "}
-                                <a href="/login/admin" className="text-[var(--color-primary-600)] font-bold hover:underline">Login as Admin</a>
+                                <a href="/login/admin" className="text-[var(--color-primary-600)] font-bold hover:underline">
+                                    Login as Admin
+                                </a>
                             </p>
                         </div>
                     </div>
@@ -103,8 +109,10 @@ const AdviserLogin = () => {
             </div>
 
             {/* --- RIGHT SIDE: DESKTOP BRAND PANEL --- */}
-            {/* This is hidden on mobile, shown on desktop */}
-            <BrandPanel />
+            {/* Added h-full and fixed width to match the Home page split */}
+            <div className="hidden lg:flex lg:w-[45%] h-full border-l border-gray-100 shadow-2xl">
+                <BrandPanel />
+            </div>
         </div>
     );
 };

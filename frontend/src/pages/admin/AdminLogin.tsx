@@ -24,7 +24,6 @@ const AdminLogin = () => {
 
     // [HANDLE] Login admin
     const handleLogin = async () => {
-        // Validation
         if (username.trim() === "") {
             setModalTitle("Username required");
             setModalMessage("Please enter your username to continue.");
@@ -63,7 +62,6 @@ const AdminLogin = () => {
                 return;
             }
 
-            // *[SUCCESS] Store session
             localStorage.setItem("token", data.data.token);
             localStorage.setItem("role", "Admin");
 
@@ -81,10 +79,12 @@ const AdminLogin = () => {
     };
 
     return (
-        /* The main wrapper uses flex-col for mobile and flex-row for desktop split-screen */
-        <div className="flex flex-col lg:flex-row min-h-screen w-full bg-white overflow-x-hidden">
+        /**
+         * Updated wrapper to match Home.tsx: 
+         * Uses h-screen and overflow-hidden to prevent the bottom white gap.
+         */
+        <div className="flex flex-col lg:flex-row h-screen w-full bg-white overflow-hidden">
             
-            {/* [COMPONENT] Modal */}
             {showModal && (
                 <Modal
                     isOpen={showModal}
@@ -101,34 +101,38 @@ const AdminLogin = () => {
             )}
 
             {/* --- LEFT SIDE: FORM & MOBILE HEADER --- */}
-            <div className="flex flex-col w-full lg:w-[45%] min-h-screen">
+            {/* Using w-[55%] on desktop to match the splitter logic */}
+            <div className="flex flex-col w-full lg:w-[55%] h-full overflow-y-auto">
                 
-                {/* [MOBILE ONLY HEADER] 
-                    Only visible on screens smaller than 1024px (lg)
-                */}
-                <div className="lg:hidden">
+                <div className="lg:hidden shrink-0">
                     <ImageHeader />
                 </div>
 
                 {/* [FORM AREA] 
-                    Takes the rest of the space and centers the content
+                    Added xl:p-32 to give it that breathing room on 1440px
                 */}
-                <div className="flex-1 flex flex-col justify-center items-center p-8 sm:p-12 lg:p-16">
-                    <div className="w-full max-w-[360px]">
+                <div className="flex-1 flex flex-col justify-center items-center p-8 sm:p-16 lg:p-20 xl:p-32">
+                    
+                    {/* [CONTAINER SCALING]
+                        Updated to xl:max-w-[480px] and 2xl:max-w-[520px]
+                    */}
+                    <div className="w-full max-w-[340px] xl:max-w-[480px] 2xl:max-w-[520px] transition-all duration-300">
                         
-                        {/* [UI] Admin Login Title */}
-                        <div className="text-center lg:text-left mb-8">
-                            <h2 className="text-[var(--color-primary-600)] font-bold text-xl tracking-tight">Welcome back!</h2>
-                            <h1 className="text-[var(--color-primary-800)] font-black text-3xl md:text-4xl">
+                        {/* Header Section */}
+                        <div className="text-center lg:text-left mb-10 xl:mb-14">
+                            <h2 className="text-[var(--color-primary-600)] font-bold text-xl xl:text-2xl 2xl:text-3xl tracking-tight">
+                                Welcome back!
+                            </h2>
+                            <h1 className="text-[var(--color-primary-800)] font-black text-3xl xl:text-5xl 2xl:text-6xl mt-2">
                                 Admin Login
                             </h1>
-                            <p className="text-gray-500 mt-2 text-sm">
+                            <p className="text-gray-500 mt-2 text-sm xl:text-lg">
                                 Secure access for PaviaOne Administrators
                             </p>
                         </div>
 
-                        {/* [SECTION] Input Fields */}
-                        <div className="space-y-5">
+                        {/* Input Fields */}
+                        <div className="space-y-6 xl:space-y-8">
                             <InputField
                                 label="Username"
                                 type="text"
@@ -149,47 +153,50 @@ const AdminLogin = () => {
                             />
                         </div>
 
-                        {/* [SECTION] Auxiliary Actions */}
-                        <div className="flex justify-between items-center my-6 text-sm">
+                        {/* Auxiliary Actions */}
+                        <div className="flex justify-between items-center my-6 xl:my-8 text-sm xl:text-base">
                             <label className="flex items-center gap-2 text-gray-500 cursor-pointer hover:text-gray-700 transition-colors">
                                 <input
                                     type="checkbox"
-                                    className="w-4 h-4 rounded accent-[var(--color-primary-600)] cursor-pointer"
+                                    className="w-4 h-4 xl:w-5 xl:h-5 rounded accent-[var(--color-primary-600)] cursor-pointer"
                                     checked={rememberMe}
                                     onChange={(e) => setRememberMe(e.target.checked)}
                                 />
-                                <span>Remember Me</span>
+                                <span className="font-medium">Remember Me</span>
                             </label>
 
                             <a
                                 href={`/forgot-password?role=admin`}
-                                className="font-semibold text-[var(--color-primary-700)] hover:underline"
+                                className="font-bold text-[var(--color-primary-700)] hover:underline"
                             >
                                 Forgot Password?
                             </a>
                         </div>
 
-                        {/* [PRIMARY BUTTON] Login */}
+                        {/* Login Button */}
                         <PrimaryButton text="Login" onClick={handleLogin} />
 
-                        {/* [LINK] Switch to Adviser Login */}
-                        <div className="mt-12 pt-6 border-t border-gray-100 text-center">
-                            <span className="text-sm text-gray-400">Not an Admin? </span>
-                            <a
-                                href="/login/adviser"
-                                className="text-sm font-bold text-[var(--color-primary-600)] hover:underline"
-                            >
-                                Login as Adviser
-                            </a>
+                        {/* Switch to Adviser Login */}
+                        <div className="mt-12 xl:mt-16 pt-8 border-t border-gray-100 text-center">
+                            <p className="text-gray-500 text-sm xl:text-lg">
+                                Not an Admin?{" "}
+                                <a
+                                    href="/login/adviser"
+                                    className="font-bold text-[var(--color-primary-600)] hover:underline"
+                                >
+                                    Login as Adviser
+                                </a>
+                            </p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* --- RIGHT SIDE: DESKTOP BRAND PANEL --- 
-                Visible only on desktop screens (lg:flex)
-            */}
-            <BrandPanel />
+            {/* --- RIGHT SIDE: DESKTOP BRAND PANEL --- */}
+            {/* Wrapped in a 45% container to ensure the layout doesn't shift */}
+            <div className="hidden lg:flex lg:w-[45%] h-full border-l border-gray-100 shadow-2xl">
+                <BrandPanel />
+            </div>
         </div>
     );
 };
