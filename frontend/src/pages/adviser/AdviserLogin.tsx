@@ -1,4 +1,3 @@
-// [IMPORT] Hooks
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -22,30 +21,16 @@ const AdviserLogin = () => {
 
     // [HANDLE] Login adviser
     const handleLogin = async () => {
-        // ![ERROR] Empty Adviser ID
-        if (adviserId.trim() === "") {
-            setModalTitle("Adviser ID required");
-            setModalMessage("Please enter your Adviser ID to continue.");
+        // Validation
+        if (adviserId.trim() === "" || !password) {
+            setModalTitle("Missing Information");
+            setModalMessage("Please enter both your Adviser ID and password.");
             setIsCancelable(false);
-            setRedirectOnConfirm(false);
             setShowModal(true);
             return;
         }
 
-        // ![ERROR] Empty Password
-        if (!password) {
-            setModalTitle("Passowrd required");
-            setModalMessage("Please enter your password to continue.");
-            setIsCancelable(false);
-            setRedirectOnConfirm(false);
-            setShowModal(true);
-            return;
-        }
-
-        const payload = {
-            identifier: adviserId,
-            password,
-        };
+        const payload = { identifier: adviserId, password };
 
         try {
             const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/adviser/login`, {
@@ -56,38 +41,32 @@ const AdviserLogin = () => {
 
             const data = await res.json();
 
-            // ![ERROR] Error response from backend
             if (!res.ok || !data.success) {
-                setModalTitle("Login unsuccessful");
-                setModalMessage("We couldn't log you in. Please check your Adviser ID and password and try again.");
+                setModalTitle("Login Unsuccessful");
+                setModalMessage(data.message || "Invalid credentials. Please try again.");
                 setIsCancelable(false);
-                setRedirectOnConfirm(false);
                 setShowModal(true);
                 return;
             }
 
+            // Save session
             localStorage.setItem("token", data.data.token);
             localStorage.setItem("role", "Adviser");
 
-            setModalTitle("Login successful");
-            setModalMessage("You have successfully signed in. Redirecting you to your dashboard...");
-            setIsCancelable(false);
+            setModalTitle("Welcome!");
+            setModalMessage("Login successful. Redirecting to your dashboard...");
             setRedirectOnConfirm(true);
             setShowModal(true);
 
         } catch (err) {
-            console.error(err);
-            setModalTitle("Login unsuccessful");
-            setModalMessage("Something went wrong while trying to sign you in. Please check your internet connection and try again. If the problem continues, contact the school administrator.");
-            setIsCancelable(false);
-            setRedirectOnConfirm(false);
+            setModalTitle("Connection Error");
+            setModalMessage("Could not connect to the server. Please check your internet.");
             setShowModal(true);
         }
     };
 
     return (
-        <div className="pb-20 bg-[var(--color-bg-100)]">
-            {/* [COMPONENT] Modal */}
+        <div className="min-h-screen pb-20 bg-[var(--color-bg-100)]">
             {showModal && (
                 <Modal
                     isOpen={showModal}
@@ -98,75 +77,59 @@ const AdviserLogin = () => {
                     }}
                     title={modalTitle}
                     message={modalMessage}
-                    closeOnBackdrop={false}
                     isCancelable={isCancelable}
-                  />
+                />
             )}
 
-            {/* [COMPONENT] Image Header */}
             <ImageHeader />
 
-            {/* [SECTION] Login Form */}
-            <div className="flex flex-col pt-15 px-6">
-                {/* [UI] Adviser Login */}
-                <h1 className="text-[var(--color-primary-700)]">
-                    Adviser Login
-                </h1>
+            <main className="max-w-md mx-auto pt-10 px-6 sm:pt-20 lg:max-w-lg">
+                <div className="flex flex-col">
+                    <h1 className="text-3xl font-bold text-[var(--color-primary-700)] text-center sm:text-left">
+                        Adviser Login
+                    </h1>
+                    
+                    <div className="flex flex-col gap-y-4 mt-8 mb-6">
+                        <InputField
+                            label="Adviser ID Number"
+                            type="text"
+                            value={adviserId}
+                            onChange={(e) => setAdviserId(e.target.value)}
+                            maxLength={8}
+                            placeholder="12345678"
+                            iconSrc="adviser-id-number-icon.svg"
+                        />
 
-                {/* [SECTION] Input Fields */}
-                <div className="flex flex-col gap-y-4 mt-6 mb-2">
-                    <InputField
-                        label="Adviser ID Number"
-                        type="text"
-                        value={adviserId}
-                        onChange={(e) => setAdviserId(e.target.value)}
-                        maxLength={8}
-                        placeholder="12345678"
-                        iconSrc="adviser-id-number-icon.svg"
-                    />
+                        <InputField
+                            label="Password"
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="********"
+                            iconSrc="password-icon.svg"
+                        />
+                    </div>
 
-                    <InputField
-                        label="Password"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="********"
-                        iconSrc="password-icon.svg"
-                    />
+                    <div className="flex justify-between items-center mb-10 px-1">
+                        <label className="flex items-center gap-2 text-sm cursor-pointer">
+                            <input type="checkbox" className="w-4 h-4 accent-[var(--color-primary-600)]" />
+                            Remember Me
+                        </label>
+                        <a href="/forgot-password?role=adviser" className="text-sm text-[var(--color-primary-700)] hover:underline">
+                            Forgot Password?
+                        </a>
+                    </div>
+
+                    <PrimaryButton text="Login" onClick={handleLogin} />
                 </div>
 
-                {/* [SECTION] Auxiliary Actions */}
-                <div className="flex justify-between items-center mt-2 px-2 mb-10">
-                    <label className="flex items-center gap-2 label-caption text-[var(--color-text-900)]">
-                        <input
-                            type="checkbox"
-                            className="w-4 h-4 accent-[var(--color-primary-600)]"
-                        />
-                        Remember Me
-                    </label>
-
-                    <a
-                        href={`/forgot-password?role=adviser`}
-                        className="link text-[var(--color-primary-700)] hover:underline"
-                    >
-                        Forgot Password?
+                <div className="mt-10 pt-6 border-t border-gray-200 text-center">
+                    <span className="text-sm text-gray-600">Not an Adviser? </span>
+                    <a href="/login/admin" className="text-sm font-bold text-[var(--color-primary-600)] hover:underline">
+                        Login as Admin
                     </a>
                 </div>
-
-                {/* [PRIMARY BUTTON] Login */}
-                <PrimaryButton text="Login" onClick={handleLogin} />
-            </div>
-
-            {/* [LINK] Admin Login */}
-            <div className="flex justify-center items-center gap-x-1 mt-4 text-sm">
-                <span className="label-caption">Not an Adviser?</span>
-                <a
-                    href="/login/admin"
-                    className="link hover:underline text-[var(--color-primary-600)]"
-                >
-                    Login as Admin
-                </a>
-            </div>
+            </main>
         </div>
     );
 };
