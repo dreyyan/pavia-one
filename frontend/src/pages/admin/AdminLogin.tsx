@@ -23,7 +23,7 @@ const AdminLogin = () => {
 
     // [HANDLE] Login admin
     const handleLogin = async () => {
-        // ![ERROR] Empty Username
+        // Validation
         if (username.trim() === "") {
             setModalTitle("Username required");
             setModalMessage("Please enter your username to continue.");
@@ -33,9 +33,8 @@ const AdminLogin = () => {
             return;
         }
 
-        // ![ERROR] Empty Password
         if (!password) {
-            setModalTitle("Password required"); // <-- fixed typo
+            setModalTitle("Password required");
             setModalMessage("Please enter your password to continue.");
             setIsCancelable(false);
             setRedirectOnConfirm(false);
@@ -43,61 +42,45 @@ const AdminLogin = () => {
             return;
         }
 
-        // [PAYLOAD] Prepare login request
-        const payload = {
-            username,
-            password,
-            rememberMe,
-        };
-
-        const token = localStorage.getItem("token");
+        const payload = { username, password, rememberMe };
 
         try {
-            // [REQUEST] Send login request to backend
             const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/admin/login`, {
                 method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${token}`,
-                    },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
             });
 
             const data = await res.json();
 
-            // ![ERROR] Login failed
             if (!res.ok || !data.success) {
                 setModalTitle("Login unsuccessful");
-                setModalMessage("We couldn't log you in. Please check your username and password and try again.");
+                setModalMessage("Invalid username or password. Please try again.");
                 setIsCancelable(false);
                 setRedirectOnConfirm(false);
                 setShowModal(true);
                 return;
             }
 
-            // *[SUCCESS] Store token and role
+            // *[SUCCESS] Store session
             localStorage.setItem("token", data.data.token);
             localStorage.setItem("role", "Admin");
 
             setModalTitle("Login successful");
-            setModalMessage("You have successfully signed in. Redirecting you to your dashboard...");
-            setIsCancelable(false);
+            setModalMessage("Welcome, Admin! Redirecting you to your dashboard...");
             setRedirectOnConfirm(true);
             setShowModal(true);
 
         } catch (err) {
             console.error(err);
-            // ![ERROR] Network or server issue
             setModalTitle("Login unsuccessful");
-            setModalMessage("Something went wrong while trying to sign you in. Please check your internet connection and try again.");
-            setIsCancelable(false);
-            setRedirectOnConfirm(false);
+            setModalMessage("Could not connect to the server. Please check your connection.");
             setShowModal(true);
         }
     };
 
     return (
-        <div className="pb-20 bg-[var(--color-bg-100)]">
+        <div className="min-h-screen pb-20 bg-[var(--color-bg-100)]">
             {/* [COMPONENT] Modal */}
             {showModal && (
                 <Modal
@@ -117,71 +100,76 @@ const AdminLogin = () => {
             {/* [COMPONENT] Image Header */}
             <ImageHeader />
 
-            {/* [SECTION] Login Form */}
-            <div className="flex flex-col pt-15 px-6">
-                {/* [UI] Admin Login */}
-                <h1 className="text-[var(--color-primary-700)]">
-                    Admin Login
-                </h1>
+            {/* [MAIN WRAPPER] Responsive Container */}
+            <main className="max-w-md mx-auto pt-10 px-6 sm:pt-20 lg:max-w-lg">
+                <div className="flex flex-col">
+                    {/* [UI] Admin Login Title */}
+                    <h1 className="text-3xl font-bold text-[var(--color-primary-700)] text-center sm:text-left">
+                        Admin Login
+                    </h1>
+                    <p className="text-[var(--color-text-700)] mt-2 text-center sm:text-left">
+                        Secure access for PaviaOne Administrators
+                    </p>
 
-                {/* [SECTION] Input Fields */}
-                <div className="flex flex-col gap-y-4 mt-6 mb-2">
-                    <InputField
-                        label="Username"
-                        type="text"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        maxLength={7}
-                        placeholder="Enter your username"
-                        iconSrc="username-icon.svg"
-                    />
-
-                    <InputField
-                        label="Password"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="********"
-                        iconSrc="password-icon.svg"
-                    />
-                </div>
-
-                {/* [SECTION] Auxiliary Actions */}
-                <div className="flex justify-between items-center mt-2 px-2 mb-10">
-                    <label className="flex items-center gap-2 label-caption text-[var(--color-text-900)]">
-                        <input
-                            type="checkbox"
-                            className="w-4 h-4 accent-[var(--color-primary-600)]"
-                            checked={rememberMe}
-                            onChange={(e) => setRememberMe(e.target.checked)}
+                    {/* [SECTION] Input Fields */}
+                    <div className="flex flex-col gap-y-4 mt-8 mb-2">
+                        <InputField
+                            label="Username"
+                            type="text"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            maxLength={7}
+                            placeholder="Enter your username"
+                            iconSrc="username-icon.svg"
                         />
-                        Remember Me
-                    </label>
 
-                    <a
-                        href={`/forgot-password?role=admin`}
-                        className="link text-[var(--color-primary-700)] hover:underline"
-                    >
-                        Forgot Password?
-                    </a>
+                        <InputField
+                            label="Password"
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="********"
+                            iconSrc="password-icon.svg"
+                        />
+                    </div>
+
+                    {/* [SECTION] Auxiliary Actions */}
+                    <div className="flex flex-col sm:flex-row justify-between items-center mt-4 gap-y-3 px-1 mb-10">
+                        <label className="flex items-center gap-2 text-sm text-[var(--color-text-900)] cursor-pointer">
+                            <input
+                                type="checkbox"
+                                className="w-4 h-4 rounded accent-[var(--color-primary-600)]"
+                                checked={rememberMe}
+                                onChange={(e) => setRememberMe(e.target.checked)}
+                            />
+                            <span>Remember Me</span>
+                        </label>
+
+                        <a
+                            href={`/forgot-password?role=admin`}
+                            className="text-sm font-medium text-[var(--color-primary-700)] hover:underline"
+                        >
+                            Forgot Password?
+                        </a>
+                    </div>
+
+                    {/* [PRIMARY BUTTON] Login */}
+                    <div className="w-full">
+                        <PrimaryButton text="Login" onClick={handleLogin} />
+                    </div>
                 </div>
 
-                {/* [PRIMARY BUTTON] Login */}
-                <PrimaryButton text="Login" onClick={handleLogin} />
-            </div>
-
-            {/* [LINK] Adviser Login */}
-            <div className="flex justify-center mt-4">
-                <p className="label-caption">
-                    Not an Admin?{" "}
+                {/* [LINK] Switch to Adviser Login */}
+                <div className="mt-12 pt-6 border-t border-gray-200 text-center">
+                    <span className="text-sm text-gray-600">Not an Admin? </span>
                     <a
                         href="/login/adviser"
-                        className="link text-[var(--color-primary-600)] hover:underline"
+                        className="text-sm font-bold text-[var(--color-primary-600)] hover:underline"
                     >
                         Login as Adviser
                     </a>
-                </p>
-            </div>
+                </div>
+            </main>
         </div>
     );
 };
