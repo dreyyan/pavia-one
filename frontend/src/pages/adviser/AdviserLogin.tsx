@@ -1,171 +1,114 @@
-// [IMPORT] Hooks
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Components
-import ImageHeader from "../../components/ImageHeader";
+// Remove the BrandPanel import since it was integrated into ImageHeader
+import ImageHeader from "../../components/ImageHeader"; 
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
 import Modal from "../../components/Modal";
 
 const AdviserLogin = () => {
     const navigate = useNavigate();
-
+    
     // [STATES]
     const [adviserId, setAdviserId] = useState("");
     const [password, setPassword] = useState("");
     const [showModal, setShowModal] = useState(false);
     const [modalTitle, setModalTitle] = useState("");
     const [modalMessage, setModalMessage] = useState("");
-    const [isCancelable, setIsCancelable] = useState(true);
     const [redirectOnConfirm, setRedirectOnConfirm] = useState(false);
 
-    // [HANDLE] Login adviser
     const handleLogin = async () => {
-        // ![ERROR] Empty Adviser ID
-        if (adviserId.trim() === "") {
-            setModalTitle("Adviser ID required");
-            setModalMessage("Please enter your Adviser ID to continue.");
-            setIsCancelable(false);
-            setRedirectOnConfirm(false);
+        if (!adviserId || !password) {
+            setModalTitle("Required Fields");
+            setModalMessage("Please fill in all fields.");
             setShowModal(true);
             return;
-        }
-
-        // ![ERROR] Empty Password
-        if (!password) {
-            setModalTitle("Passowrd required");
-            setModalMessage("Please enter your password to continue.");
-            setIsCancelable(false);
-            setRedirectOnConfirm(false);
-            setShowModal(true);
-            return;
-        }
-
-        const payload = {
-            identifier: adviserId,
-            password,
-        };
-
-        try {
-            const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/adviser/login`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-            });
-
-            const data = await res.json();
-
-            // ![ERROR] Error response from backend
-            if (!res.ok || !data.success) {
-                setModalTitle("Login unsuccessful");
-                setModalMessage("We couldn't log you in. Please check your Adviser ID and password and try again.");
-                setIsCancelable(false);
-                setRedirectOnConfirm(false);
-                setShowModal(true);
-                return;
-            }
-
-            localStorage.setItem("token", data.data.token);
-            localStorage.setItem("role", "Adviser");
-
-            setModalTitle("Login successful");
-            setModalMessage("You have successfully signed in. Redirecting you to your dashboard...");
-            setIsCancelable(false);
-            setRedirectOnConfirm(true);
-            setShowModal(true);
-
-        } catch (err) {
-            console.error(err);
-            setModalTitle("Login unsuccessful");
-            setModalMessage("Something went wrong while trying to sign you in. Please check your internet connection and try again. If the problem continues, contact the school administrator.");
-            setIsCancelable(false);
-            setRedirectOnConfirm(false);
-            setShowModal(true);
         }
     };
 
     return (
-        <div className="pb-20 bg-[var(--color-bg-100)]">
-            {/* [COMPONENT] Modal */}
+        <div className="flex flex-col lg:flex-row h-screen w-full bg-white overflow-hidden">
             {showModal && (
-                <Modal
-                    isOpen={showModal}
-                    onClose={() => setShowModal(false)}
+                <Modal 
+                    isOpen={showModal} 
+                    onClose={() => setShowModal(false)} 
                     onConfirm={() => {
                         setShowModal(false);
                         if (redirectOnConfirm) navigate("/adviser/dashboard");
                     }}
-                    title={modalTitle}
-                    message={modalMessage}
-                    closeOnBackdrop={false}
-                    isCancelable={isCancelable}
-                  />
+                    title={modalTitle} 
+                    message={modalMessage} 
+                />
             )}
 
-            {/* [COMPONENT] Image Header */}
-            <ImageHeader />
-
-            {/* [SECTION] Login Form */}
-            <div className="flex flex-col pt-15 px-6">
-                {/* [UI] Adviser Login */}
-                <h1 className="text-[var(--color-primary-700)]">
-                    Adviser Login
-                </h1>
-
-                {/* [SECTION] Input Fields */}
-                <div className="flex flex-col gap-y-4 mt-6 mb-2">
-                    <InputField
-                        label="Adviser ID Number"
-                        type="text"
-                        value={adviserId}
-                        onChange={(e) => setAdviserId(e.target.value)}
-                        maxLength={8}
-                        placeholder="12345678"
-                        iconSrc="adviser-id-number-icon.svg"
-                    />
-
-                    <InputField
-                        label="Password"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="********"
-                        iconSrc="password-icon.svg"
-                    />
+            {/* --- LEFT SIDE: FORM & MOBILE HEADER --- */}
+            <div className="flex flex-col w-full lg:w-[55%] h-full overflow-y-auto">
+                
+                <div className="lg:hidden shrink-0">
+                    <ImageHeader />
                 </div>
 
-                {/* [SECTION] Auxiliary Actions */}
-                <div className="flex justify-between items-center mt-2 px-2 mb-10">
-                    <label className="flex items-center gap-2 label-caption text-[var(--color-text-900)]">
-                        <input
-                            type="checkbox"
-                            className="w-4 h-4 accent-[var(--color-primary-600)]"
-                        />
-                        Remember Me
-                    </label>
+                {/* [FORM AREA] */}
+                <div className="flex-1 flex flex-col justify-center items-center p-8 sm:p-16 lg:p-20 xl:p-32 2xl:p-40">
+                    <div className="w-full max-w-[360px] xl:max-w-[480px] 2xl:max-w-[550px] transition-all duration-300">
+                        
+                        <div className="text-center lg:text-left mb-10 xl:mb-14">
+                            <h2 className="text-[var(--color-primary-600)] font-bold text-xl xl:text-2xl 2xl:text-3xl">
+                                Welcome Back!
+                            </h2>
+                            <h1 className="text-[var(--color-primary-800)] font-black text-3xl xl:text-5xl 2xl:text-6xl mt-2">
+                                Adviser Login
+                            </h1>
+                        </div>
 
-                    <a
-                        href={`/forgot-password?role=adviser`}
-                        className="link text-[var(--color-primary-700)] hover:underline"
-                    >
-                        Forgot Password?
-                    </a>
+                        <div className="space-y-6 xl:space-y-8">
+                            <InputField
+                                label="Adviser ID Number"
+                                value={adviserId}
+                                onChange={(e) => setAdviserId(e.target.value)}
+                                placeholder="e.g. 2024-0001"
+                                iconSrc="adviser-id-number-icon.svg"
+                            />
+                            <InputField
+                                label="Password"
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="********"
+                                iconSrc="password-icon.svg"
+                            />
+                        </div>
+
+                        <div className="flex justify-between items-center my-8 xl:my-10 text-sm xl:text-lg">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" className="accent-[var(--color-primary-600)] w-4 h-4 xl:w-5 xl:h-5" />
+                                <span className="text-gray-500 font-medium">Remember Me</span>
+                            </label>
+                            <a href="/forgot" className="text-[var(--color-primary-600)] font-bold hover:underline">
+                                Forgot Password?
+                            </a>
+                        </div>
+
+                        <PrimaryButton text="Login" onClick={handleLogin} />
+
+                        <div className="mt-12 xl:mt-16 text-center border-t pt-8 border-gray-100">
+                            <p className="text-gray-500 text-sm xl:text-lg">
+                                Not an Adviser?{" "}
+                                <a href="/login/admin" className="text-[var(--color-primary-600)] font-bold hover:underline">
+                                    Login as Admin
+                                </a>
+                            </p>
+                        </div>
+                    </div>
                 </div>
-
-                {/* [PRIMARY BUTTON] Login */}
-                <PrimaryButton text="Login" onClick={handleLogin} />
             </div>
 
-            {/* [LINK] Admin Login */}
-            <div className="flex justify-center items-center gap-x-1 mt-4 text-sm">
-                <span className="label-caption">Not an Adviser?</span>
-                <a
-                    href="/login/admin"
-                    className="link hover:underline text-[var(--color-primary-600)]"
-                >
-                    Login as Admin
-                </a>
+            {/* --- RIGHT SIDE: DESKTOP BRAND PANEL --- */}
+            {/* Swapped BrandPanel for ImageHeader here to match the Home page fix */}
+            <div className="hidden lg:flex lg:w-[45%] h-full border-l border-gray-100 shadow-2xl overflow-hidden">
+                <ImageHeader />
             </div>
         </div>
     );

@@ -7,6 +7,7 @@ import Modal from "./components/Modal";
 export default function Layout() {
   const location = useLocation();
   const hideHeaderFooter =
+    location.pathname === "/" ||
     location.pathname === "/login/admin" ||
     location.pathname === "/login/adviser" ||
     location.pathname === "/forgot-password";

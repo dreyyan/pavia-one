@@ -53,8 +53,9 @@ router.get("/", verifyAdmin, async (req, res) => {
 				gradeLevel: true,
 				schoolYear: true,
 				curriculum: true,
+				isAdvisory: true,
 				_count: {
-					select: { enrollments: true }, // class size
+					select: { enrollments: true },
 				},
 				},
 			},
@@ -75,6 +76,7 @@ router.get("/", verifyAdmin, async (req, res) => {
 			gradeLevel: section.gradeLevel,
 			schoolYear: section.schoolYear,
 			curriculum: section.curriculum,
+			isAdvisory: section.isAdvisory,
 			classSize: section._count.enrollments,
 		})),
 		}));

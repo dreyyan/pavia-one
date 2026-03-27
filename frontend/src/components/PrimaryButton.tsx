@@ -3,17 +3,21 @@ interface PrimaryButtonProps {
     onClick?: () => void;
     disabled?: boolean;
     color?: string;
+    iconSrc?: string;
 }
 
-const PrimaryButton = (props: PrimaryButtonProps) => {
+const PrimaryButton: React.FC<PrimaryButtonProps> = ({ text, onClick, disabled, color, iconSrc }) => {
     return (
         <button
-            onClick={props.onClick}
-            disabled={props.disabled}
-            style={props.color ? { backgroundColor: `#${props.color}` } : undefined}
-            className="w-full py-3 rounded-md cursor-pointer bg-[var(--color-primary-600)] transition-all duration-200 hover:opacity-80 disabled:opacity-50"
+            onClick={onClick}
+            disabled={disabled}
+            style={color ? { backgroundColor: `#${color}` } : undefined}
+            className="flex justify-center gap-x-1 w-full py-3 rounded-md cursor-pointer bg-[var(--color-primary-600)] transition-all duration-200 hover:opacity-80 disabled:opacity-50"
         >
-            <p className="button text-white">{props.text}</p>
+            {iconSrc && (
+                <img src={iconSrc} />
+            )}
+            <p className="button text-white">{text}</p>
         </button>
     );
 };

@@ -38,60 +38,66 @@ router.post('/auto-create-all', verifyAdmin, async (req, res) => {
       { name: 'Edukasyong Pantahanan at Pangkabuhayan', ww: 0.2, pt: 0.6, qa: 0.2 },
     ];
 
+    const steSpecializedSubjects = {
+      7: [
+        { name: 'Environmental Science', ww: 0.4, pt: 0.4, qa: 0.2 },
+        { name: 'Research I', ww: 0.3, pt: 0.5, qa: 0.2 },
+      ],
+      8: [
+        { name: 'Biotechnology', ww: 0.4, pt: 0.4, qa: 0.2 },
+        { name: 'Research II', ww: 0.3, pt: 0.5, qa: 0.2 },
+      ],
+      9: [
+        { name: 'Applied Chemistry', ww: 0.4, pt: 0.4, qa: 0.2 },
+        { name: 'Research III', ww: 0.3, pt: 0.5, qa: 0.2 },
+      ],
+      10: [
+        { name: 'Electronics', ww: 0.4, pt: 0.4, qa: 0.2 },
+        { name: 'Research IV', ww: 0.3, pt: 0.5, qa: 0.2 },
+      ],
+    };
+
+    const curriculumAddons = {
+      SPJ: [
+        { name: 'ICT', ww: 0.3, pt: 0.5, qa: 0.2 },
+        { name: 'Journalism', ww: 0.3, pt: 0.5, qa: 0.2 },
+      ],
+      SPS: [
+        { name: 'Badminton', ww: 0.2, pt: 0.6, qa: 0.2 },
+      ],
+      SPA: [
+        { name: 'Visual Arts', ww: 0.2, pt: 0.6, qa: 0.2 },
+      ],
+    };
+
     const createdSummary = [];
 
     for (const gradeLevel of gradeLevels) {
       for (const curriculum of curriculums) {
-        let specializedSubjects = [];
+        let subjects = [];
 
-        switch (curriculum) {
-          case 'STE':
-            if (gradeLevel === 7)
-              specializedSubjects = [
-                { name: 'Environmental Science', ww: 0.4, pt: 0.4, qa: 0.2 },
-                { name: 'Research I', ww: 0.3, pt: 0.5, qa: 0.2 },
-              ];
-            if (gradeLevel === 8)
-              specializedSubjects = [
-                { name: 'Biotechnology', ww: 0.4, pt: 0.4, qa: 0.2 },
-                { name: 'Research II', ww: 0.3, pt: 0.5, qa: 0.2 },
-              ];
-            if (gradeLevel === 9)
-              specializedSubjects = [
-                { name: 'Applied Chemistry', ww: 0.4, pt: 0.4, qa: 0.2 },
-                { name: 'Research III', ww: 0.3, pt: 0.5, qa: 0.2 },
-              ];
-            if (gradeLevel === 10)
-              specializedSubjects = [
-                { name: 'Electronics', ww: 0.4, pt: 0.4, qa: 0.2 },
-                { name: 'Research IV', ww: 0.3, pt: 0.5, qa: 0.2 },
-              ];
-            break;
-          case 'SPS':
-            specializedSubjects = [{ name: 'Badminton', ww: 0.2, pt: 0.6, qa: 0.2 }];
-            break;
-          case 'SPA':
-            specializedSubjects = [{ name: 'Visual Arts', ww: 0.2, pt: 0.6, qa: 0.2 }];
-            break;
-          case 'SPJ':
-            specializedSubjects = [
-              { name: 'ICT', ww: 0.3, pt: 0.5, qa: 0.2 },
-              { name: 'Journalism', ww: 0.3, pt: 0.5, qa: 0.2 },
-            ];
-            break;
-          case 'Regular':
-          default:
-            specializedSubjects = [];
+        if (curriculum === 'Regular') {
+          subjects = [...coreSubjects]; // Regular = core only
+        } else if (curriculum === 'STE') {
+          // Specialized curriculum = core + specialized
+          subjects = [...coreSubjects, ...steSpecializedSubjects[gradeLevel]];
+        } else {
+          // SPJ, SPS, SPA = core + their specialized
+          subjects = [...coreSubjects, ...(curriculumAddons[curriculum] ?? [])];
         }
 
-        const allSubjects = [...coreSubjects, ...specializedSubjects];
+        if (subjects.length === 0) continue;
 
         const existing = await prisma.learningArea.findMany({
-          where: { gradeLevel, curriculum, name: { in: allSubjects.map((s) => s.name) } },
+          where: {
+            gradeLevel,
+            curriculum,
+            name: { in: subjects.map((s) => s.name) },
+          },
         });
-        const existingNames = existing.map((la) => la.name);
 
-        const toCreate = allSubjects.filter((s) => !existingNames.includes(s.name));
+        const existingNames = new Set(existing.map((la) => la.name));
+        const toCreate = subjects.filter((s) => !existingNames.has(s.name));
 
         if (toCreate.length === 0) continue;
 
@@ -117,10 +123,14 @@ router.post('/auto-create-all', verifyAdmin, async (req, res) => {
     }
 
     if (createdSummary.length === 0) {
-      return res.status(400).json(errorResponse('All learning areas already exist for all grades and curriculums'));
+      return res.status(400).json(
+        errorResponse('All learning areas already exist for all grades and curriculums')
+      );
     }
 
-    res.json(successResponse('Learning areas auto-created for all grades and curriculums', createdSummary));
+    res.json(
+      successResponse('Learning areas auto-created for all grades and curriculums', createdSummary)
+    );
   } catch (err) {
     res.status(500).json(errorResponse('Failed to auto-create learning areas', err.message));
   }
