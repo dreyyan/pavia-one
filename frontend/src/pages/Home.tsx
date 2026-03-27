@@ -1,7 +1,6 @@
 // [IMPORT] Components
 import FeaturesCarousel from "../components/FeaturesCarousel";
 import ImageHeader from "../components/ImageHeader";
-import BrandPanel from "../components/BrandPanel";
 import Footer from "../components/Footer";
 
 export default function Home() {
@@ -35,7 +34,7 @@ export default function Home() {
 
                 {/* RIGHT SIDE: BRAND PANEL */}
                 <div className="hidden lg:flex lg:w-[45%] bg-[var(--color-primary-700)] border-l border-gray-100 shadow-2xl">
-                    <BrandPanel />
+                    <ImageHeader />
                 </div>
             </div>
 
