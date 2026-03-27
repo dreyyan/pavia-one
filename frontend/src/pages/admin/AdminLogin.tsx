@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Components
-import BrandPanel from "../../components/BrandPanel";
+// BrandPanel removed as it's now integrated into ImageHeader
 import ImageHeader from "../../components/ImageHeader";
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
@@ -79,10 +79,6 @@ const AdminLogin = () => {
     };
 
     return (
-        /**
-         * Updated wrapper to match Home.tsx: 
-         * Uses h-screen and overflow-hidden to prevent the bottom white gap.
-         */
         <div className="flex flex-col lg:flex-row h-screen w-full bg-white overflow-hidden">
             
             {showModal && (
@@ -101,24 +97,16 @@ const AdminLogin = () => {
             )}
 
             {/* --- LEFT SIDE: FORM & MOBILE HEADER --- */}
-            {/* Using w-[55%] on desktop to match the splitter logic */}
             <div className="flex flex-col w-full lg:w-[55%] h-full overflow-y-auto">
                 
                 <div className="lg:hidden shrink-0">
                     <ImageHeader />
                 </div>
 
-                {/* [FORM AREA] 
-                    Added xl:p-32 to give it that breathing room on 1440px
-                */}
+                {/* [FORM AREA] */}
                 <div className="flex-1 flex flex-col justify-center items-center p-8 sm:p-16 lg:p-20 xl:p-32">
-                    
-                    {/* [CONTAINER SCALING]
-                        Updated to xl:max-w-[480px] and 2xl:max-w-[520px]
-                    */}
                     <div className="w-full max-w-[340px] xl:max-w-[480px] 2xl:max-w-[520px] transition-all duration-300">
                         
-                        {/* Header Section */}
                         <div className="text-center lg:text-left mb-10 xl:mb-14">
                             <h2 className="text-[var(--color-primary-600)] font-bold text-xl xl:text-2xl 2xl:text-3xl tracking-tight">
                                 Welcome back!
@@ -131,7 +119,6 @@ const AdminLogin = () => {
                             </p>
                         </div>
 
-                        {/* Input Fields */}
                         <div className="space-y-6 xl:space-y-8">
                             <InputField
                                 label="Username"
@@ -153,7 +140,6 @@ const AdminLogin = () => {
                             />
                         </div>
 
-                        {/* Auxiliary Actions */}
                         <div className="flex justify-between items-center my-6 xl:my-8 text-sm xl:text-base">
                             <label className="flex items-center gap-2 text-gray-500 cursor-pointer hover:text-gray-700 transition-colors">
                                 <input
@@ -173,10 +159,8 @@ const AdminLogin = () => {
                             </a>
                         </div>
 
-                        {/* Login Button */}
                         <PrimaryButton text="Login" onClick={handleLogin} />
 
-                        {/* Switch to Adviser Login */}
                         <div className="mt-12 xl:mt-16 pt-8 border-t border-gray-100 text-center">
                             <p className="text-gray-500 text-sm xl:text-lg">
                                 Not an Admin?{" "}
@@ -193,9 +177,9 @@ const AdminLogin = () => {
             </div>
 
             {/* --- RIGHT SIDE: DESKTOP BRAND PANEL --- */}
-            {/* Wrapped in a 45% container to ensure the layout doesn't shift */}
-            <div className="hidden lg:flex lg:w-[45%] h-full border-l border-gray-100 shadow-2xl">
-                <BrandPanel />
+            {/* Swapped BrandPanel for ImageHeader to match AdviserLogin and Home fixes */}
+            <div className="hidden lg:flex lg:w-[45%] h-full border-l border-gray-100 shadow-2xl overflow-hidden">
+                <ImageHeader />
             </div>
         </div>
     );

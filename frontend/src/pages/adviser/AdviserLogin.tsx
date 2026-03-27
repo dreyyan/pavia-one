@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Components
-import BrandPanel from "../../components/BrandPanel";
+// Remove the BrandPanel import since it was integrated into ImageHeader
 import ImageHeader from "../../components/ImageHeader"; 
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
@@ -44,16 +44,13 @@ const AdviserLogin = () => {
             )}
 
             {/* --- LEFT SIDE: FORM & MOBILE HEADER --- */}
-            {/* Added overflow-y-auto so the form is scrollable on small screens */}
             <div className="flex flex-col w-full lg:w-[55%] h-full overflow-y-auto">
                 
                 <div className="lg:hidden shrink-0">
                     <ImageHeader />
                 </div>
 
-                {/* [FORM AREA] 
-                    Heavily scaled for 1440px (xl: and 2xl: modifiers)
-                */}
+                {/* [FORM AREA] */}
                 <div className="flex-1 flex flex-col justify-center items-center p-8 sm:p-16 lg:p-20 xl:p-32 2xl:p-40">
                     <div className="w-full max-w-[360px] xl:max-w-[480px] 2xl:max-w-[550px] transition-all duration-300">
                         
@@ -109,9 +106,9 @@ const AdviserLogin = () => {
             </div>
 
             {/* --- RIGHT SIDE: DESKTOP BRAND PANEL --- */}
-            {/* Added h-full and fixed width to match the Home page split */}
-            <div className="hidden lg:flex lg:w-[45%] h-full border-l border-gray-100 shadow-2xl">
-                <BrandPanel />
+            {/* Swapped BrandPanel for ImageHeader here to match the Home page fix */}
+            <div className="hidden lg:flex lg:w-[45%] h-full border-l border-gray-100 shadow-2xl overflow-hidden">
+                <ImageHeader />
             </div>
         </div>
     );
