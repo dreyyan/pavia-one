@@ -16,43 +16,40 @@ const ImageHeader = () => {
     return (
         <div 
             onClick={() => navigate("/")} 
-            className="w-full bg-[var(--color-primary-700)] cursor-pointer hover:brightness-110 transition-all overflow-hidden"
+            className="group relative w-full flex items-center justify-center cursor-pointer overflow-hidden bg-[var(--color-primary-800)]
+                       min-h-[220px] sm:min-h-[300px] lg:min-h-[350px]" 
         >
-            {/* - Added 'px-4' for mobile padding
-                - Added 'sm:py-12' to give it more height on desktop
-            */}
-            <div className="relative flex flex-col justify-center items-center pt-8 pb-10 px-4 sm:pt-12 sm:pb-14">
-                
-                {/* School Logo - Absolute Positioned
-                    - Adjusted to 'size-12' on mobile and 'sm:size-20' on desktop
-                    - Fixed positioning to stay in the corner or top
-                */}
+            {/* 1. BACKGROUND IMAGE - Using absolute inset-0 to fill the min-h defined above */}
+            <div className="absolute inset-0 z-0">
                 <img 
                     src="/school.png" 
-                    className="absolute top-4 right-4 size-12 sm:size-20 opacity-80 sm:opacity-100 aspect-square object-contain" 
-                    alt="School Logo"
+                    className="w-full h-full object-cover object-center opacity-70 transition-transform duration-700 group-hover:scale-105" 
+                    alt="School Background"
                 />
+                {/* Dark overlay to make white text pop on any background */}
+                <div className="absolute inset-0 bg-black/50 group-hover:bg-black/20 transition-colors" />
+            </div>
 
-                {/* Main Icons 
-                    - Responsive sizing: 'size-24' on mobile, 'sm:size-36' on desktop
-                */}
+            {/* 2. CONTENT LAYER - Using z-10 to stay above the image */}
+            <div className="relative z-10 flex flex-col items-center justify-center p-6 text-center">
+                
+                {/* Icon Sizing: Responsive for split screens */}
                 <img 
                     src="/pavia-one-icon.svg" 
-                    className="size-24 sm:size-36 mb-2" 
+                    className="w-20 h-20 sm:w-28 sm:h-28 lg:w-32 lg:h-32 mb-4 drop-shadow-xl" 
                     alt="PaviaOne Icon"
                 />
                 
+                {/* Text Logo Sizing */}
                 <img 
                     src="/pavia-one-text-white.svg" 
-                    className="w-48 sm:w-64 h-auto" 
+                    className="w-40 sm:w-56 lg:w-64 h-auto drop-shadow-lg" 
                     alt="PaviaOne Text"
                 />
 
-                {/* Tagline Container 
-                    - 'max-w-prose' prevents the text from stretching too wide on desktop
-                */}
-                <div className="mt-4 max-w-xs sm:max-w-md px-4">
-                    <h3 className="text-[var(--color-text-50)] text-center text-sm sm:text-lg font-medium leading-tight">
+                {/* Tagline */}
+                <div className="mt-4 max-w-[250px] sm:max-w-md">
+                    <h3 className="text-white text-xs sm:text-base lg:text-lg font-medium leading-tight drop-shadow-md">
                         Your School's All-in-One Management Platform
                     </h3>
                 </div>
