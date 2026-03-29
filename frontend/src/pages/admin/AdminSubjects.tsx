@@ -5,7 +5,6 @@ import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
 import Skeleton from "../../components/Skeleton";
-import PageTitle from "../../components/PageTitle";
 import PrimaryButton from "../../components/PrimaryButton";
 import CrudModal from "../../components/CrudModal";
 
@@ -441,7 +440,6 @@ const AdminSubjects = () => {
       </nav>
 
       {/* [UI] Page Title */}
-      <PageTitle title="Subjects" />
 
       {/* [SECTION] Search & Sort */}
       <div className="flex md:flex-row gap-2 md:gap-4 items-start md:items-center w-full">
