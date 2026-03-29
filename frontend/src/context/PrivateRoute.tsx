@@ -1,24 +1,33 @@
-// [IMPORT] React & Hooks
-import { type ReactNode } from "react";
+import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "./useAuth";
 
-// [COMPONENT] PrivateRoute
+// ? [INTERFACES]
 interface PrivateRouteProps {
-  children: ReactNode;
+  role?: "admin" | "adviser";
 }
 
-const PrivateRoute = ({ children }: PrivateRouteProps) => {
-  const { setShowTokenExpiredModal } = useAuth();
+const PrivateRoute = ({ role }: PrivateRouteProps) => {
+  const { user, setShowTokenExpiredModal } = useAuth();
   const token = localStorage.getItem("token");
 
-  // ! [CHECK] If missing token, show modal & prevent render
+  // ! [ERROR] No token
   if (!token) {
     setShowTokenExpiredModal(true);
-    return null; // stop rendering protected page
+    return <Navigate to="/login/admin" replace />;
   }
 
-  // * [SUCCESS] Else, render page if token exists
-  return <>{children}</>;
+  // ! [ERROR] No users
+  if (!user) {
+    return <Navigate to="/login/admin" replace />;
+  }
+
+  // ! [ERROR] Role mismatch
+  if (role && user.role !== role) {
+    return <Navigate to="/" replace />;
+  }
+
+  // Allow access to nested routes
+  return <Outlet />;
 };
 
 export default PrivateRoute;

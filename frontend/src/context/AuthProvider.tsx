@@ -1,47 +1,65 @@
-// [IMPORT] Hooks
 import { useState, useEffect, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "./AuthContextOnly";
-
-// [IMPORT] Components
 import Modal from "../components/Modal";
 
+// ? [TYPES & INTERFACES]
+type UserRole = "admin" | "adviser";
+interface User {
+  id: number;
+  name: string;
+  role: UserRole;
+}
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  // [STATES]
+  // * [STATES]
   const [showTokenExpiredModal, setShowTokenExpiredModal] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   const navigate = useNavigate();
 
-  // [EFFECT]
-  // 1. Automatically check if token expires
-  // 2. Notify user via modal
-  // 3. Logout > Redirect to login
+  // * [EFFECT] Sync user state with localStorage on mount
   useEffect(() => {
     const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role");
+    const role = localStorage.getItem("role") as UserRole | null;
 
-    // Show modal only if token is missing and role exists
+    // sync user if token exists
+    if (token && role) {
+      const id = setTimeout(() => setUser({ id: 0, name: "Unknown", role }), 0);
+      return () => clearTimeout(id);
+    }
+
+    // show expired modal if token missing
     if (!token && role) {
-      // Defer setState to next tick
       const id = setTimeout(() => setShowTokenExpiredModal(true), 0);
       return () => clearTimeout(id);
     }
   }, []);
 
-  // [HANDLE] Logout user
+  // * [HANDLE] Logout
   const logout = () => {
-    navigate(`/login/${localStorage.getItem("role")?.toLowerCase()}`);
+    const role = localStorage.getItem("role");
+
     localStorage.removeItem("token");
     localStorage.removeItem("role");
+
+    setUser(null);
     setShowTokenExpiredModal(false);
+
+    navigate(`/login/${role?.toLowerCase() || "admin"}`);
   };
 
   return (
     <AuthContext.Provider
-      value={{ showTokenExpiredModal, setShowTokenExpiredModal, logout }}
+      value={{
+        user,
+        setUser,
+        showTokenExpiredModal,
+        setShowTokenExpiredModal,
+        logout,
+      }}
     >
       {children}
 
-      {/* [UI] Session Expired Modal */}
       <Modal
         isOpen={showTokenExpiredModal}
         onClose={() => {}}
