@@ -1,6 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import SidebarLink from "./SidebarLink";
+
+interface AdminProfile {
+  id: number;
+  name: string;
+  username: string;
+  email: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 const Header = () => {
   const navigate = useNavigate();
@@ -19,6 +28,9 @@ const Header = () => {
 
   const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem("token"));
 
+  // [STATE] Admin profile (fetched from API)
+  const [adminProfile, setAdminProfile] = useState<AdminProfile | null>(null);
+
   // [HANDLE] Toggle sidebar 
   const toggleSidebar = () => setIsSidebarOpen(prev => !prev);
 
@@ -34,15 +46,40 @@ const Header = () => {
     navigate("/");
   };
 
+  // [EFFECT] Fetch admin profile if role is admin
+  useEffect(() => {
+    const fetchAdminProfile = async () => {
+      if (role === "admin") {
+        try {
+          const token = localStorage.getItem("token");
+          const res = await fetch("/api/admin/profile", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          const json = await res.json();
+          if (json.success) {
+            setAdminProfile(json.data);
+          } else {
+            console.error(json.message);
+          }
+        } catch (err) {
+          console.error("Failed to fetch admin profile:", err);
+        }
+      }
+    };
+
+    fetchAdminProfile();
+  }, [role]);
+
   // [DATA] Sidebar header info based on role
   const sidebarHeader = role === "adviser"
     ? { name: "John Doe", info1: "Grade 10 - Section A", info2: "Class Adviser" }
     : role === "admin"
-    ? { name: "Admin User", info1: "Administrator", info2: "" }
+    ? { name: adminProfile?.name || "Admin User", info1: "Administrator", info2: "" }
     : { name: "", info1: "", info2: "" };
 
   // [DATA] Define menu items for each role (keys in lowercase)
-  // Use default -black.svg for icon
   const menuItems: Record<string, { iconBase: string; text: string; to: string }[]> = {
     adviser: [
       { iconBase: "dashboard", text: "Dashboard", to: "/adviser/dashboard" },
