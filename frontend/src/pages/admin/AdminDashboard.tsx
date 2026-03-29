@@ -85,18 +85,33 @@ const AdminDashboard = () => {
   return (
     <div className="py-6 px-4 space-y-4">
       {/* [UI] Dashboard */}
-      <div className="bg-[var(--color-primary-700)] py-2 rounded-lg">
-        <h1 className="text-center text-[var(--color-text-50)]">Dashboard</h1>
-      </div>
+      <h1 className="text-[var(--color-text-800)]">Dashboard</h1>
 
       {/* [SECTION] Personal Info */}
-      <div className="flex items-center bg-[var(--color-primary-600)] border-2 border-[var(--color-primary-700)]/60 rounded-xl px-5 py-4 gap-x-4 shadow-md">
+      <div className="relative flex items-center bg-[var(--color-bg-100)] rounded-lg px-5 py-4 gap-x-4 shadow-md">
+        <div className="absolute top-3 right-3 space-x-1">
+          {/* [BUTTON] Profile */}
+          <button className="p-2 rounded-sm bg-[var(--color-secondary-500)] cursor-pointer">
+            <img src="/profile-icon-white.svg" alt="Admin Profile" className="w-4 h-4" />
+          </button>
+
+          {/* [BUTTON] Settings */}
+          <button className="p-2 rounded-sm bg-[var(--color-bg-300)] cursor-pointer">
+            <img src="/settings-icon-white.svg" alt="Admin Profile" className="w-4 h-4" />
+          </button>
+
+          {/* [BUTTON] Logout */}
+          <button className="p-2 rounded-sm bg-[var(--color-red-600)] cursor-pointer">
+            <img src="/logout-icon-white.svg" alt="Admin Profile" className="w-4 h-4" />
+          </button>
+        </div>
+
         <div className="flex-1">
-          <p className="font-roboto font-extrabold text-xl mb-2 text-[var(--color-text-50)]">
+          <h2 className="font-roboto font-extrabold mb-2 text-[var(--color-text-800)]">
             {profile?.name}
-          </p>
-          <p className="font-roboto font-semibold text-sm text-[var(--color-text-100)]">
-            Admin
+          </h2>
+          <p className="body-large text-[var(--color-text-800)]">
+            Administrator
           </p>
         </div>
       </div>
@@ -106,9 +121,9 @@ const AdminDashboard = () => {
         <h2 className="mb-3">Overview</h2>
         <div className="space-y-2">
           <DashboardItem iconSrc="/total-students-icon.svg" text="Total Students" value={totalStudents} />
-          <DashboardItem iconSrc="/total-advisers-icon.svg" text="Total Advisers" value={totalAdvisers} />
+          <DashboardItem iconSrc="/total-advisers-icon.svg" text="Total Advisers" value={totalAdvisers} color="007FFF" />
           <DashboardItem iconSrc="/total-sections-icon.svg" text="Total Sections" value={totalSections} />
-          <DashboardItem iconSrc="/total-admin-icon.svg" text="Total Admin" value={totalAdmins} />
+          <DashboardItem iconSrc="/total-admin-icon.svg" text="Total Admins" value={totalAdmins} color="007FFF" />
         </div>
       </div>
 

@@ -79,7 +79,7 @@ const AdminLogin = () => {
 
             // *[SUCCESS] Store token and role
             localStorage.setItem("token", data.data.token);
-            localStorage.setItem("role", "Admin");
+            localStorage.setItem("role", "admin"); // ✅ must be lowercase to match AuthProvider validation
 
             // update auth context
             setUser({ id: 0, name: username, role: "admin" });

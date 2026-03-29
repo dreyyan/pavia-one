@@ -15,6 +15,8 @@ interface AuthContextType {
   setShowTokenExpiredModal: (val: boolean) => void;
 
   logout: () => void;
+
+  loading: boolean; // ✅ Required so PrivateRoute can wait for auth restoration
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);

@@ -6,17 +6,13 @@ interface PrivateRouteProps {
 }
 
 const PrivateRoute = ({ role }: PrivateRouteProps) => {
-  const { user, setShowTokenExpiredModal } = useAuth();
-  const token = localStorage.getItem("token");
+  const { user, loading } = useAuth();
 
-  if (!token || !user) {
-    setShowTokenExpiredModal(true);
-    return <Navigate to="/login/admin" replace />;
-  }
+  console.log("PrivateRoute render:", { user, loading, role });
 
-  if (role && user.role !== role) {
-    return <Navigate to="/" replace />;
-  }
+  if (loading) return null;
+  if (!user) return <Navigate to="/login/admin" replace />;
+  if (role && user.role !== role) return <Navigate to="/" replace />;
 
   return <Outlet />;
 };
