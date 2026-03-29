@@ -1,20 +1,38 @@
-// AuthProvider.tsx
-import { useState, type ReactNode } from "react";
+// [IMPORT] Hooks
+import { useState, useEffect, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "./AuthContextOnly";
-import Modal from "../components/Modal"; // ← adjust path if needed
+
+// [IMPORT] Components
+import Modal from "../components/Modal";
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // [STATES]
   const [showTokenExpiredModal, setShowTokenExpiredModal] = useState(false);
   const navigate = useNavigate();
 
-  // [HANDLE] Logout
+  // [EFFECT]
+  // 1. Automatically check if token expires
+  // 2. Notify user via modal
+  // 3. Logout > Redirect to login
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
+
+    // Show modal only if token is missing and role exists
+    if (!token && role) {
+      // Defer setState to next tick
+      const id = setTimeout(() => setShowTokenExpiredModal(true), 0);
+      return () => clearTimeout(id);
+    }
+  }, []);
+
+  // [HANDLE] Logout user
   const logout = () => {
+    navigate(`/login/${localStorage.getItem("role")?.toLowerCase()}`);
     localStorage.removeItem("token");
     localStorage.removeItem("role");
     setShowTokenExpiredModal(false);
-    navigate("/");
   };
 
   return (
