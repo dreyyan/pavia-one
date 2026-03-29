@@ -5,7 +5,6 @@ import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
 import Skeleton from "../../components/Skeleton";
-import PageTitle from "../../components/PageTitle";
 import PrimaryButton from "../../components/PrimaryButton";
 import CrudModal from "../../components/CrudModal";
 
@@ -51,10 +50,6 @@ interface Adviser {
 }
 
 // ?[FORM STEPS]
-// Step 1: Identity    — LRN, First Name, Middle Name, Last Name, Extension
-// Step 2: Personal    — Sex, Birth Date, Email (optional)
-// Step 3: Enrollment  — Adviser (+ auto-resolved advisory section), Learning Modality
-
 type FormData = {
   id?: number;
   lrn: string;
@@ -71,7 +66,10 @@ type FormData = {
   learningModality: string;
 };
 
-const sexOptions = ["MALE", "FEMALE"];
+const sexOptions = [
+  { value: "MALE", label: "Male" },
+  { value: "FEMALE", label: "Female" }
+];
 const learningModalityOptions = [
   "Face to Face",
   "Distance Learning",
@@ -243,7 +241,11 @@ const StudentFormModal = ({
             <div className="flex flex-col">
               <label className="font-roboto text-sm mb-1">Sex <span className="text-[var(--color-red-500)]">*</span></label>
               <select value={formData.sex} onChange={(e) => setFormData(prev => ({ ...prev, sex: e.target.value }))} className={inputCls}>
-                {sexOptions.map(o => <option key={o} value={o}>{o}</option>)}
+              {sexOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
               </select>
             </div>
             {/* [DATE INPUT] Native date picker — not text */}
@@ -403,6 +405,8 @@ const AdminStudents = () => {
   const [sortOption, setSortOption] = useState<"name-asc" | "name-desc" | "lrn-asc" | "lrn-desc">("name-asc");
   const [showSortFilters, setShowSortFilters] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
+  // [STATES] Show/hide dropdowns
+  const [showSexFilters, setShowSexFilters] = useState(false);
 
   // [STATES] Student form modal
   const [showStudentModal, setShowStudentModal] = useState(false);
@@ -721,97 +725,133 @@ const AdminStudents = () => {
   ];
 
   return (
-    <div className="py-10 px-4 space-y-4 relative">
-      {/* [COMPONENT] Multi-step student form modal */}
-      <StudentFormModal
-        isOpen={showStudentModal}
-        title={isEditMode ? "Edit Student" : "Create Student"}
-        onClose={() => setShowStudentModal(false)}
-        onSubmit={handleSubmit}
-        formData={formData}
-        setFormData={setFormData}
-        advisers={advisers}
-        adviserSearch={adviserSearch}
-        setAdviserSearch={setAdviserSearch}
-        loading={loading}
-        formError={formError}
-        setFormError={setFormError}
-        isEditMode={isEditMode}
-      />
+    <div>
+        {/* [STUDENT FORM MODAL] */}
+        <StudentFormModal
+          isOpen={showStudentModal}
+          title={isEditMode ? "Edit Student" : "Create Student"}
+          onClose={() => setShowStudentModal(false)}
+          onSubmit={handleSubmit}
+          formData={formData}
+          setFormData={setFormData}
+          advisers={advisers}
+          adviserSearch={adviserSearch}
+          setAdviserSearch={setAdviserSearch}
+          loading={loading}
+          formError={formError}
+          setFormError={setFormError}
+          isEditMode={isEditMode}
+        />
 
-      {/* [COMPONENT] CrudModal — confirmations only (delete / error dialogs) */}
-      <CrudModal
-        isOpen={showModal}
-        title={modalTitle}
-        isCancelable={isCancelable}
-        onClose={() => setShowModal(false)}
-        onConfirm={onConfirmAction}
-        loading={loading}
-        showForm={false}
-      />
+        {/* [CRUD MODAL] Confirmations (Delete/Error) */}
+        <CrudModal
+          isOpen={showModal}
+          title={modalTitle}
+          isCancelable={isCancelable}
+          onClose={() => setShowModal(false)}
+          onConfirm={onConfirmAction}
+          loading={loading}
+          showForm={false}
+        />
+      <div className="py-10 px-4 space-y-4 relative">
 
-      {/* [BREADCRUMBS] */}
-      <nav className="font-roboto text-sm text-[var(--color-text-700)] px-2 pb-2">
-        {breadcrumbs.map((crumb, idx) => (
-          <span key={idx}>
-            {crumb.path ? (
-              <span className="cursor-pointer hover:underline" onClick={() => navigate(crumb.path!)}>{crumb.label}</span>
-            ) : (
-              <span className="font-medium text-[var(--color-text-900)]">{crumb.label}</span>
-            )}
-            {idx < breadcrumbs.length - 1 && " / "}
-          </span>
-        ))}
-      </nav>
+      {/* [SECTION] Header & Breadcrumbs */}
+      <div>
+        {/* [UI] Header */}
+        <h2 className="text-[var(--color-text-800)] leading-0">Students</h2>
 
-      {/* [UI] Page Title */}
-      <PageTitle title="Students" />
+        {/* [UI] Breadcrumbs */}
+        <nav className="font-roboto text-sm text-[var(--color-text-700)]">
+          {breadcrumbs.map((crumb, idx) => (
+            <span key={idx}>
+              {crumb.path ? (
+                <span className="cursor-pointer hover:underline" onClick={() => navigate(crumb.path!)}>{crumb.label}</span>
+              ) : (
+                <span className="font-medium text-[var(--color-text-900)]">{crumb.label}</span>
+              )}
+              {idx < breadcrumbs.length - 1 && " / "}
+            </span>
+          ))}
+        </nav>
+      </div>
 
-    {/* [SECTION] Search & Filters */}
-    <div className="flex md:flex-row gap-2 md:gap-4 items-stretch w-full">
-        {/* Search Input */}
+      {/* [SECTION] Search & Filters */}
+      <div className="bg-[var(--color-bg-100)] px-3 rounded-lg py-4 flex md:flex-row gap-2 md:gap-4 items-stretch w-full">
+        {/* [INPUT] Search */}
         <div className="relative flex-1">
-            <input
+          <input
             type="text"
             placeholder="Search by name, LRN, or email..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="w-full bg-[var(--color-bg-50)] font-roboto rounded-sm px-4 outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm h-10"
-            />
+            className="w-full bg-[var(--color-bg-50)] body-default rounded-sm px-3 outline-none border border-[var(--color-text-300)] focus:ring-2 focus:ring-[var(--color-primary-600)] h-full"
+          />
         </div>
-
-        {/* Sex Filter */}
-        <select
-            value={selectedSex}
-            onChange={(e) => { setSelectedSex(e.target.value); setPage(1); }}
-            className="bg-[var(--color-bg-50)] font-roboto rounded-sm px-3 outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm h-10"
-        >
-            <option value="All">All</option>
-            {sexOptions.map(o => <option key={o} value={o}>{o}</option>)}
-        </select>
-
-        {/* Sort Dropdown */}
+        
+        {/* [DROPDOWN] Sort Filter */}
         <div ref={filterRef} className="relative">
-            <button
+          <button
             onClick={() => setShowSortFilters(!showSortFilters)}
             className={`flex items-center justify-center text-[var(--color-text-50)] rounded-sm px-3 h-10 transition cursor-pointer ${
-                showSortFilters ? "bg-[var(--color-primary-600)]" : "bg-[var(--color-primary-700)] hover:opacity-80"
+              showSortFilters ? "bg-[var(--color-bg-50)]" : "bg-[var(--color-bg-50)] hover:opacity-80"
             }`}
-            >
-            <img src="/filter-icon.svg" alt="Sort" className="w-5 h-5" />
-            </button>
-            {showSortFilters && (
-            <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-300 rounded-md shadow-lg p-2 space-y-1 z-50">
-                <button onClick={() => { setSortOption("name-asc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-asc" ? "bg-blue-100" : ""}`}>Name ↑</button>
-                <button onClick={() => { setSortOption("name-desc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-desc" ? "bg-blue-100" : ""}`}>Name ↓</button>
-                <button onClick={() => { setSortOption("lrn-asc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "lrn-asc" ? "bg-blue-100" : ""}`}>LRN ↑</button>
-                <button onClick={() => { setSortOption("lrn-desc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "lrn-desc" ? "bg-blue-100" : ""}`}>LRN ↓</button>
-            </div>
-            )}
-        </div>
-    </div>
+          >
+            <img src="/sort-icon.svg" alt="Sort" className="size-4" />
+          </button>
 
-      {/* [SECTION] Bulk Actions — shown only when rows are selected */}
+          {showSortFilters && (
+            <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-300 rounded-md shadow-lg p-2 space-y-1 z-50">
+              <button onClick={() => { setSortOption("name-asc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-asc" ? "bg-blue-100" : ""}`}>Name ↑</button>
+              <button onClick={() => { setSortOption("name-desc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-desc" ? "bg-blue-100" : ""}`}>Name ↓</button>
+              <button onClick={() => { setSortOption("lrn-asc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "lrn-asc" ? "bg-blue-100" : ""}`}>LRN ↑</button>
+              <button onClick={() => { setSortOption("lrn-desc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "lrn-desc" ? "bg-blue-100" : ""}`}>LRN ↓</button>
+            </div>
+          )}
+        </div>
+
+        {/* [DROPDOWN] Sex Filter */}
+        <div className="relative">
+          <button
+            onClick={() => setShowSexFilters(!showSexFilters)}
+            className={`flex items-center justify-center text-[var(--color-text-50)] rounded-sm px-3 h-10 transition cursor-pointer ${
+              showSexFilters ? "bg-[var(--color-bg-50)]" : "bg-[var(--color-bg-50)] hover:opacity-80"
+            }`}
+          >
+            <img src="/filter-icon.svg" alt="Sex Filter" className="size-4" />
+          </button>
+
+          {showSexFilters && (
+            <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-300 rounded-md shadow-lg p-2 space-y-1 z-50">
+              <button
+                onClick={() => { setSelectedSex("All"); setPage(1); setShowSexFilters(false); }}
+                className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedSex === "All" ? "bg-blue-100" : ""}`}
+              >
+                All
+              </button>
+                {sexOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => { 
+                      setSelectedSex(option.value); 
+                      setPage(1); 
+                      setShowSexFilters(false); 
+                    }}
+                    className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedSex === option.value ? "bg-blue-100" : ""}`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* [SECTION] Add Student */}
+      <div className="mt-2 space-y-2">
+        <PrimaryButton text="Add Student" iconSrc="/add-icon.svg" onClick={handleAddStudent} />
+      </div>
+
+      {/* [SECTION] Bulk Actions (Visible when student rows are selected) */}
       {selectedStudents.length > 0 && (
         <div className="flex items-center gap-3 px-3 py-2 bg-[var(--color-bg-50)] rounded-md border border-[var(--color-bg-200)]">
           <span className="text-sm font-roboto text-[var(--color-text-700)]">
@@ -832,96 +872,115 @@ const AdminStudents = () => {
         </div>
       )}
 
-      {/* [SECTION] Add Student */}
-      <div className="mt-2 space-y-2">
-        <PrimaryButton text="Add Student" iconSrc="/add-icon.svg" onClick={handleAddStudent} />
-      </div>
+      {/* [CARDS] Students - Mobile View */}
+      <div className="flex flex-col gap-4 sm:hidden mt-2 bg-[var(--color-bg-100)] px-3 py-4 rounded-lg">
+        {displayedStudents.map((s) => (
+          <div
+            key={s.id}
+            className="bg-white rounded-xl border border-[var(--color-bg-200)] overflow-hidden hover:translate-y-[-1px] hover:shadow-md active:shadow-md transition-all duration-200 cursor-pointer"
+            onClick={() => navigate(`/admin/students/view/${s.id}`)}
+          >
+            {/* Header */}
+            <div className="bg-[var(--color-bg-50)] px-3 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
+              <div className="flex items-center w-full gap-3 min-w-0">
+                {/* Initials Avatar */}
+                <div className="size-10 rounded-md bg-[var(--color-primary-100)] flex items-center justify-center text-[var(--color-primary-700)] font-bold px-4 text-xl border border-[var(--color-primary-200)] flex-shrink-0">
+                  {s.fullName
+                    .split(' ')
+                    .map(n => n[0])
+                    .join('')
+                    .toUpperCase()
+                    .slice(0, 2)}
+                </div>
 
-      {/* [SECTION] Students Table */}
-      <div className="overflow-x-auto mt-4 rounded-lg">
-        {displayedStudents.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-6 space-y-2 text-center text-[var(--color-text-800)]">
-            <img src="/no-data-icon.svg" alt="No students" className="size-16" />
-            <p className="font-roboto font-semibold text-lg">No students found</p>
-            <p className="font-roboto text-sm text-[var(--color-text-700)]">Try searching for a different name, LRN, or email.</p>
+                {/* Name + LRN */}
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-[var(--color-text-900)] text-[17px] leading-tight truncate">
+                    {s.fullName}
+                  </p>
+                  <p className="text-xs font-mono text-[var(--color-text-600)] mt-0.5 tracking-wider truncate">
+                    LRN <span className="font-semibold text-[var(--color-text-700)]">{s.lrn}</span>
+                  </p>
+                </div>
+
+                {/* Sex Badge */}
+                <div className={`px-2 py-0.5 text-xs font-semibold rounded-full whitespace-nowrap flex-shrink-0 ${
+                  s.sex === 'MALE'
+                    ? 'bg-blue-100 text-blue-700'
+                    : s.sex === 'FEMALE'
+                      ? 'bg-pink-100 text-pink-700'
+                      : 'bg-gray-100 text-gray-600'
+                }`}>
+                  {s.sex === 'MALE' ? 'M' : s.sex === 'FEMALE' ? 'F' : '—'}
+                </div>
+              </div>
+            </div>
+
+            {/* Details */}
+            <div className="px-4 py-3 space-y-2 text-sm">
+              <div className="flex justify-between items-center">
+                <span className="text-[var(--color-text-700)] font-figree font-semibold">Email</span>
+                <span className="text-[var(--color-text-900)] truncate text-right max-w-[210px]">
+                  {s.email ?? "—"}
+                </span>
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <span className="text-[var(--color-text-700)] font-figree font-semibold">Adviser</span>
+                <span className="text-[var(--color-text-900)] truncate text-right max-w-[210px]">
+                  {s.adviser?.name ?? "—"}
+                </span>
+              </div>
+            </div>
           </div>
-        ) : (
-          <table className="overflow-hidden rounded-lg min-w-full bg-white shadow-md table-auto border-collapse">
-            <thead className="bg-[var(--color-primary-600)] text-white font-figtree">
-              <tr>
-                <th className="py-2 px-4 pr-2 text-center">
-                  <input
-                    type="checkbox"
-                    onChange={(e) => {
-                      if (e.target.checked) setSelectedStudents(filteredStudents.map(s => s.id));
-                      else setSelectedStudents([]);
-                    }}
-                    checked={selectedStudents.length === filteredStudents.length && filteredStudents.length > 0}
-                  />
-                </th>
-                <th className="py-2 px-4 text-left font-bold border-r border-[var(--color-primary-600)] w-32">LRN</th>
-                <th className="py-2 px-4 text-left font-bold border-r border-[var(--color-primary-600)] truncate max-w-[180px]">Name</th>
-                <th className="py-2 px-2 text-center font-bold border-r border-[var(--color-primary-600)] w-20">Sex</th>
-                <th className="py-2 px-4 text-left hidden md:table-cell font-bold border-r border-[var(--color-primary-600)]">Email</th>
-                <th className="py-2 px-4 text-left hidden lg:table-cell font-bold border-r border-[var(--color-primary-600)]">Adviser</th>
-                <th className="py-2 px-4 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="font-roboto">
-              {displayedStudents.map((s) => (
-                <tr key={s.id} className="border-t border-[var(--color-bg-100)] transition-colors">
-                  <td className="text-center py-2 px-4 pr-2">
-                    <input
-                      type="checkbox"
-                      checked={selectedStudents.includes(s.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) setSelectedStudents(prev => [...prev, s.id]);
-                        else setSelectedStudents(prev => prev.filter(id => id !== s.id));
-                      }}
-                    />
-                  </td>
-                  <td className="text-sm font-mono py-2 px-4 text-[var(--color-text-700)] border-r border-[var(--color-bg-300)] w-32">{s.lrn}</td>
-                  <td className="text-md font-bold py-2 px-4 text-[var(--color-text-900)] border-r border-[var(--color-bg-300)] truncate whitespace-nowrap max-w-[160px]">{s.fullName}</td>
-                  <td className="text-sm text-center py-2 px-2 text-[var(--color-text-700)] border-r border-[var(--color-bg-300)] w-20">{s.sex ?? "—"}</td>
-                  <td className="text-sm py-2 px-4 text-[var(--color-text-700)] hidden md:table-cell border-r border-[var(--color-bg-300)] truncate max-w-[200px]">{s.email ?? "—"}</td>
-                  <td className="text-sm py-2 px-4 text-[var(--color-text-700)] hidden lg:table-cell border-r border-[var(--color-bg-300)] truncate max-w-[160px]">{s.adviser?.name ?? "—"}</td>
-                  <td className="py-2 px-4 flex gap-4">
-                    <button className="text-[var(--color-primary-500)] text-sm font-medium cursor-pointer hover:underline" onClick={() => handleOpenEdit(s)}>Edit</button>
-                    <button className="text-[var(--color-red-500)] text-sm font-medium cursor-pointer hover:underline" onClick={() => handleDelete(s.id)}>Delete</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        ))}
       </div>
 
       {/* [SECTION] Pagination */}
       {displayedStudents.length !== 0 && (
-        <div className="flex justify-between items-center space-x-4 mt-4">
+        <div className="flex justify-center items-center mt-4 gap-4">
+          {/* Previous Button */}
           <button
             onClick={handlePrevPage}
             disabled={page === 1}
-            className={`w-24 py-2 rounded-md text-[var(--color-text-50)] font-roboto text-xs font-semibold transition-colors duration-150 ${
+            className={`w-8 h-8 flex items-center justify-center rounded-full text-[var(--color-text-50)] font-roboto font-bold transition-colors duration-150 ${
               page === 1 ? "bg-[var(--color-bg-400)] cursor-not-allowed opacity-50" : "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)]"
             }`}
           >
-            &lt; Previous
+            &lt;
           </button>
-          <span className="flex gap-x-1 text-sm text-[var(--color-text-900)] font-medium">
-            Page <span className="font-bold">{page}</span> of <span className="font-bold">{totalPages}</span>
-          </span>
+
+          {/* Page Dots with Numbers */}
+          <div className="flex items-center gap-2">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
+              <button
+                key={num}
+                onClick={() => setPage(num)}
+                className={`size-6 flex items-center justify-center rounded-full font-bold text-xs transition-all duration-150 ${
+                  num === page
+                    ? "size-7 bg-[var(--color-primary-500)] text-[var(--color-text-50)] scale-110"
+                    : "bg-[var(--color-bg-300)] text-[var(--color-text-900)] hover:bg-[var(--color-primary-400)]"
+                }`}
+                aria-label={`Go to page ${num}`}
+              >
+                {num}
+              </button>
+            ))}
+          </div>
+
+          {/* Next Button */}
           <button
             onClick={handleNextPage}
             disabled={page === totalPages}
-            className={`w-24 py-2 rounded-md text-[var(--color-text-50)] font-roboto text-xs font-semibold transition-colors duration-150 ${
+            className={`size-8 flex items-center justify-center rounded-full text-[var(--color-text-50)] font-roboto font-bold transition-colors duration-150 ${
               page === totalPages ? "bg-[var(--color-bg-400)] cursor-not-allowed opacity-50" : "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)]"
             }`}
           >
-            Next &gt;
+            &gt;
           </button>
         </div>
       )}
+      </div>
     </div>
   );
 };
