@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 
 // [IMPORT] Components
-import DashboardSkeleton from "../../components/DashboardSkeleton";
+import Skeleton from "../../components/Skeleton";
 import InputField from "../../components/InputField";
 import Modal from "../../components/Modal";
 
@@ -147,7 +147,7 @@ const AdviserSettings = () => {
     }
   };
 
-  if (loading) return <DashboardSkeleton />;
+  if (loading) return <Skeleton />;
 
   return (
     <div className="py-6 px-4 flex flex-col items-center gap-y-4">

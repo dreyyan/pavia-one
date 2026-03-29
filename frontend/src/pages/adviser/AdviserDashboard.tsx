@@ -5,7 +5,7 @@ import { useAuth } from "../../context/useAuth";
 // [IMPORT] Components
 import DashboardButton from "../../components/DashboardButton";
 import DashboardItem from "../../components/DashboardItem";
-import DashboardSkeleton from "../../components/DashboardSkeleton";
+import Skeleton from "../../components/Skeleton";
 
 // ? [INTERFACES]
 interface Section {
@@ -103,7 +103,7 @@ const AdviserDashboard = () => {
   }, [setShowTokenExpiredModal]);
 
   // [LOADING STATE] Wait for profile fetch and media preload
-  if (loading || !mediaLoaded) return <DashboardSkeleton />;
+  if (loading || !mediaLoaded) return <Skeleton />;
 
   // Get advisory section and class size
   const advisorySection = profile?.sections?.find((s) => s.isAdvisory);

@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
-import DashboardSkeleton from "../../components/DashboardSkeleton";
+import Skeleton from "../../components/Skeleton";
 import PageTitle from "../../components/PageTitle";
 import PrimaryButton from "../../components/PrimaryButton";
 import CrudModal from "../../components/CrudModal";
@@ -350,7 +350,7 @@ const AdminSections = () => {
   );
 
   // [LOADING STATE]
-  if (loading) return <DashboardSkeleton />;
+  if (loading) return <Skeleton />;
 
   // [HANDLE] Sorting and Searching
   const filteredSections = sections

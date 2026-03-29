@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Components
-import DashboardSkeleton from "../../components/DashboardSkeleton";
+import Skeleton from "../../components/Skeleton";
 import InputField from "../../components/InputField";
 import Modal from "../../components/Modal";
 
@@ -207,7 +207,7 @@ const AdviserProfile = () => {
     { label: "F", value: "FEMALE" },
   ];
 
-  if (loading || isAuthenticated === null) return <DashboardSkeleton />;
+  if (loading || isAuthenticated === null) return <Skeleton />;
 
   return (
     <div className="py-6 px-4 flex flex-col items-center gap-y-4">

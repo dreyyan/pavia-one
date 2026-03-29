@@ -5,7 +5,7 @@ import { useAuth } from "../../context/useAuth";
 // [IMPORT] Components
 import DashboardButton from "../../components/DashboardButton";
 import DashboardItem from "../../components/DashboardItem";
-import DashboardSkeleton from "../../components/DashboardSkeleton";
+import Skeleton from "../../components/Skeleton";
 
 // ? [INTERFACES]
 interface Section {
@@ -116,7 +116,7 @@ const AdminDashboard = () => {
     fetchDashboard();
   }, [setShowTokenExpiredModal]);
 
-  if (loading || !mediaLoaded) return <DashboardSkeleton />;
+  if (loading || !mediaLoaded) return <Skeleton />;
 
   return (
     <div className="py-6 px-4 space-y-4">
