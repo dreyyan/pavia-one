@@ -8,17 +8,13 @@ import DashboardItem from "../../components/DashboardItem";
 import Skeleton from "../../components/Skeleton";
 
 // ? [INTERFACES]
-interface Section {
+interface Profile {
   id: number;
   name: string;
-  gradeLevel: number;
-  classSize: number;
-  isAdvisory: boolean;
-}
-
-interface Profile {
-  name: string;
-  sections: Section[];
+  username: string;
+  email: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface DashboardSummary {
@@ -39,36 +35,8 @@ const AdminDashboard = () => {
   const [totalSections, setTotalSections] = useState(0);
   const [totalAdmins, setTotalAdmins] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [mediaLoaded, setMediaLoaded] = useState(false);
 
-  // [EFFECT] Preload assets
-  useEffect(() => {
-    const assetsToPreload = [
-      "/class-size-icon.svg",
-      "/present-today-icon.svg",
-      "/pending-tasks-icon.svg",
-      "/view-students-icon.svg",
-      "/attendance-icon.svg",
-      "/grades-icon.svg",
-      "/reports-icon.svg",
-      "/total-students-icon.svg",
-      "/total-advisers-icon.svg",
-      "/total-sections-icon.svg",
-      "/total-admin-icon.svg",
-    ];
-
-    let loadedCount = 0;
-    assetsToPreload.forEach((src) => {
-      const img = new Image();
-      img.src = src;
-      img.onload = img.onerror = () => {
-        loadedCount++;
-        if (loadedCount === assetsToPreload.length) setMediaLoaded(true);
-      };
-    });
-  }, []);
-
-// [EFFECT] Fetch dashboard summary
+  // * [EFFECT] Fetch dashboard summary
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -89,6 +57,7 @@ const AdminDashboard = () => {
         }
 
         const data: { success: boolean; data: DashboardSummary } = await res.json();
+        console.log("Fetched dashboard summary:", data);
 
         // ![ERROR] Backend failure response
         if (!data.success) {
@@ -116,7 +85,7 @@ const AdminDashboard = () => {
     fetchDashboard();
   }, [setShowTokenExpiredModal]);
 
-  if (loading || !mediaLoaded) return <Skeleton />;
+  if (loading) return <Skeleton />;
 
   return (
     <div className="py-6 px-4 space-y-4">

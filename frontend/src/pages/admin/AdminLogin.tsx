@@ -1,6 +1,7 @@
 // [IMPORT] Hooks
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
 import ImageHeader from "../../components/ImageHeader";
@@ -10,6 +11,7 @@ import Modal from "../../components/Modal";
 
 const AdminLogin = () => {
     const navigate = useNavigate();
+    const { setUser } = useAuth();
 
     // [STATES]
     const [username, setUsername] = useState("");
@@ -79,11 +81,16 @@ const AdminLogin = () => {
             localStorage.setItem("token", data.data.token);
             localStorage.setItem("role", "Admin");
 
+            // update auth context
+            setUser({ id: 0, name: username, role: "admin" });
+
             setModalTitle("Login successful");
             setModalMessage("You have successfully signed in. Redirecting you to your dashboard...");
             setIsCancelable(false);
             setRedirectOnConfirm(true);
             setShowModal(true);
+
+            setTimeout(() => navigate("/admin/dashboard"), 800);
 
         } catch (err) {
             console.error(err);

@@ -1,7 +1,7 @@
 // [IMPORT] Setup
 const jwt = require("jsonwebtoken");
-const { prisma } = require("../lib/prisma");
-const { successResponse, errorResponse } = require("../utils/response");
+const prisma = require("../lib/prisma");
+const { errorResponse } = require("../utils/response");
 
 // [MIDDLEWARE] Generic token verification
 const verifyToken =
@@ -22,7 +22,9 @@ const verifyToken =
 
       // ? Decode JWT
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
+      console.log("[DEBUG] authHeader:", authHeader);
+      console.log("[DEBUG] token:", token);
+      console.log("[DEBUG] decoded:", decoded);
       // ! Ensure required payload exists
       if (!decoded || (!decoded.role && allowedRoles.length > 0)) {
         return res.status(403).json(errorResponse("Invalid token payload"));
@@ -37,20 +39,29 @@ const verifyToken =
 
       // ? Attach role-specific identifiers and fetch user from DB
       let user;
-      if (decoded.role === "adviser") {
-        user = await prisma.adviser.findUnique({
-          where: { id: decoded.adviserId },
-        });
-        if (!user)
-          return res.status(403).json(errorResponse("Adviser not found"));
-        req.user = { id: user.id, role: "adviser", email: user.email };
-      } else if (decoded.role === "admin") {
+      if (decoded.role === "admin") {
         user = await prisma.admin.findUnique({
           where: { id: decoded.adminId },
         });
+
         if (!user)
           return res.status(403).json(errorResponse("Admin not found"));
+
+        // * Attach user info
         req.user = { id: user.id, role: "admin", email: user.email };
+
+        // * Attach convenience property for dashboard.js
+        req.adminId = user.id; // this allows req.adminId to exist
+      } else if (decoded.role === "adviser") {
+        user = await prisma.adviser.findUnique({
+          where: { id: decoded.adviserId },
+        });
+
+        if (!user)
+          return res.status(403).json(errorResponse("Adviser not found"));
+
+        req.user = { id: user.id, role: "adviser", email: user.email };
+        req.adviserId = user.id; // optional
       }
 
       next();

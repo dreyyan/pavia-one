@@ -3,50 +3,53 @@ import { useNavigate } from "react-router-dom";
 import SidebarLink from "./SidebarLink";
 
 const Header = () => {
-    const navigate = useNavigate();
-    // [STATES]
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [role, setRole] = useState<"Adviser" | "Admin" | "">(() => {
-      return (localStorage.getItem("role") as "Adviser" | "Admin") || "";
-    });
-    const [isLoggedIn, setIsLoggedIn] = useState(() => {
-      return !!localStorage.getItem("token");
-    });
+  const navigate = useNavigate();
 
-    // [HANDLE] Toggle sidebar 
-    const toggleSidebar = () => { setIsSidebarOpen(prev => !prev); };
+  // [STATES]
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-    // [HANDLE] Close the sidebar
-    const closeSidebar = () => setIsSidebarOpen(false);
+  // Safely read role from localStorage
+  const storedRole = localStorage.getItem("role");
+  const [role, setRole] = useState<"Adviser" | "Admin" | "">(
+    storedRole === "Admin" || storedRole === "Adviser" ? storedRole : ""
+  );
 
-    // [HANDLE] Logout
-    const handleLogout = () => {
-      localStorage.removeItem("token");
-      localStorage.removeItem("role");
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem("token"));
 
-      setIsLoggedIn(false);
-      setRole("");
+  // [HANDLE] Toggle sidebar 
+  const toggleSidebar = () => setIsSidebarOpen(prev => !prev);
 
-      navigate("/");
-    };
+  // [HANDLE] Close sidebar
+  const closeSidebar = () => setIsSidebarOpen(false);
+
+  // [HANDLE] Logout
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    setIsLoggedIn(false);
+    setRole("");
+    navigate("/");
+  };
+
+  // Safe role path for URLs
+  const rolePath = role ? role.toLowerCase() : "admin";
 
   return (
     <>
+      {/* Header */}
       <header className="flex justify-between items-center px-6 py-4 bg-[var(--color-primary-700)]">
-        {/* [BUTTON] Burger Menu */}
         {isLoggedIn && (
-          <button onClick={toggleSidebar} className="size-8 cursor-pointer">
+          <button onClick={toggleSidebar} className="w-8 h-8 cursor-pointer">
             <img src="/burger-menu-icon.svg" alt="Burger Menu Icon" />
           </button>
         )}
 
-        {/* [UI] Logo */}
         <button onClick={() => navigate("/")} className="cursor-pointer">
-          <img src="/pavia-one-banner-white.svg" className="h-7" />
+          <img src="/pavia-one-banner-white.svg" className="h-7" alt="Logo" />
         </button>
       </header>
 
-      {/* [UI] Overlay */}
+      {/* Overlay */}
       {isSidebarOpen && (
         <div
           onClick={closeSidebar}
@@ -54,36 +57,84 @@ const Header = () => {
         />
       )}
 
-      {/* [COMPONENT] Sidebar */}
+      {/* Sidebar */}
       <aside
         className={`
-          fixed top-0 left-0 h-full w-82
+          fixed top-0 left-0 h-full w-80
           bg-[var(--color-bg-100)] shadow-xl z-50
           transform transition-transform duration-300
           ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        {/* [SECTION] Sidebar Header */}
+        {/* Sidebar Header */}
         <div className="flex items-center bg-[var(--color-primary-700)] shadow-md px-5 py-6 gap-x-4">
-            {/* [SECTION] Profile Details */}
-            <div className="">
-                <h2 className="mb-2 text-[var(--color-text-50)]">John Doe</h2>
-                <p className="font-roboto font-semibold text-sm text-[var(--color-text-100)]">Grade 10 - Section A</p>
-                <p className="font-roboto font-medium text-xs text-[var(--color-text-100)]">Class Adviser</p>
-            </div>
+          <div>
+            <h2 className="mb-2 text-[var(--color-text-50)]">John Doe</h2>
+            <p className="font-roboto font-semibold text-sm text-[var(--color-text-100)]">
+              Grade 10 - Section A
+            </p>
+            <p className="font-roboto font-medium text-xs text-[var(--color-text-100)]">
+              Class Adviser
+            </p>
+          </div>
         </div>
 
-        {/* [SECTION] Menu Items */}
+        {/* Menu Items */}
         <nav className="flex flex-col p-4 gap-1">
-        <SidebarLink icon="/dashboard-icon.svg" text="Dashboard" to={`/${role.toLowerCase()}/dashboard`} onClick={closeSidebar} />
-        <SidebarLink icon="/class-management-icon.svg" text="Class Management" to={`/${role.toLowerCase()}/classes`} onClick={closeSidebar} />
-        <SidebarLink icon="/school-forms-icon.svg" text="School Forms" to={`/${role.toLowerCase()}/school-forms`} onClick={closeSidebar} />
-        <SidebarLink icon="/transfer-dropout-monitoring-icon.svg" text="Transfer / Dropout Monitoring" to={`/${role.toLowerCase()}/transfer`} onClick={closeSidebar} />
-        <SidebarLink icon="/reports-and-statistics-icon.svg" text="Reports & Statistics" to={`/${role.toLowerCase()}/reports`} onClick={closeSidebar} />
-        <SidebarLink icon="/announcements-and-events-icon.svg" text="Announcements and Events" to={`/announcements-and-events`} onClick={closeSidebar} />
-        <SidebarLink icon="/profile-icon.svg" text="Profile" to={`/${role.toLowerCase()}/profile`} onClick={closeSidebar} />
-        <SidebarLink icon="/settings-icon.svg" text="Settings" to={`/${role.toLowerCase()}/settings`} onClick={closeSidebar} />
-        <SidebarLink icon="/logout-icon.svg" text="Logout" to={`/login/${role.toLowerCase()}`} onClick={() => { closeSidebar(); handleLogout(); }} />
+          <SidebarLink
+            icon="/dashboard-icon.svg"
+            text="Dashboard"
+            to={`/${rolePath}/dashboard`}
+            onClick={closeSidebar}
+          />
+          <SidebarLink
+            icon="/class-management-icon.svg"
+            text="Class Management"
+            to={`/${rolePath}/classes`}
+            onClick={closeSidebar}
+          />
+          <SidebarLink
+            icon="/school-forms-icon.svg"
+            text="School Forms"
+            to={`/${rolePath}/school-forms`}
+            onClick={closeSidebar}
+          />
+          <SidebarLink
+            icon="/transfer-dropout-monitoring-icon.svg"
+            text="Transfer / Dropout Monitoring"
+            to={`/${rolePath}/transfer`}
+            onClick={closeSidebar}
+          />
+          <SidebarLink
+            icon="/reports-and-statistics-icon.svg"
+            text="Reports & Statistics"
+            to={`/${rolePath}/reports`}
+            onClick={closeSidebar}
+          />
+          <SidebarLink
+            icon="/announcements-and-events-icon.svg"
+            text="Announcements and Events"
+            to={`/announcements-and-events`}
+            onClick={closeSidebar}
+          />
+          <SidebarLink
+            icon="/profile-icon.svg"
+            text="Profile"
+            to={`/${rolePath}/profile`}
+            onClick={closeSidebar}
+          />
+          <SidebarLink
+            icon="/settings-icon.svg"
+            text="Settings"
+            to={`/${rolePath}/settings`}
+            onClick={closeSidebar}
+          />
+          <SidebarLink
+            icon="/logout-icon.svg"
+            text="Logout"
+            to={`/login/${rolePath}`}
+            onClick={() => { closeSidebar(); handleLogout(); }}
+          />
         </nav>
       </aside>
     </>
