@@ -1,15 +1,15 @@
-// ? [HELPER] Standardizes a success response
-const successResponse = <T = unknown>(message: string, data?: T) => ({
-    success: true,
-    message: `[SUCCESS] ${message}`,
-    data
-})
+// [MESSAGE] Return success message
+const successResponse = (message, data = null) => ({
+  success: true,
+  message: `[SUCCESS] ${message}.`,
+  data,
+});
 
-// ? [HELPER] Standardizes an error response
-const errorResponse = <T = unknown>(message: string, data?: T) => ({
-    success: false,
-    message: `[ERROR] ${message}`,
-    data
-})
+// [MESSAGE] Return error message
+const errorResponse = (message, data = null) => ({
+  success: false,
+  message: `[ERROR] ${message}.`,
+  data,
+});
 
-export { successResponse, errorResponse };
+module.exports = { successResponse, errorResponse };
