@@ -104,7 +104,7 @@ const AdminDashboard = () => {
           </button>
 
           {/* [BUTTON] Logout */}
-          <button onClick={() => {navigate("/admin/login")}} className="p-2 rounded-sm bg-[var(--color-red-700)] cursor-pointer">
+          <button onClick={() => {navigate("/login/admin")}} className="p-2 rounded-sm bg-[var(--color-red-700)] cursor-pointer">
             <img src="/logout-icon-white.svg" alt="Admin Profile" className="w-4 h-4" />
           </button>
         </div>
