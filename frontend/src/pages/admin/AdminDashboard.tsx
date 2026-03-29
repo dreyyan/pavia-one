@@ -1,6 +1,7 @@
 // [IMPORT] Hooks
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/useAuth";
+import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Components
 import DashboardButton from "../../components/DashboardButton";
@@ -27,6 +28,7 @@ interface DashboardSummary {
 
 const AdminDashboard = () => {
   const { setShowTokenExpiredModal } = useAuth();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
 
   // [STATES]
@@ -83,31 +85,33 @@ const AdminDashboard = () => {
   if (loading) return <Skeleton />;
 
   return (
-    <div className="py-6 px-4 space-y-4">
+    <div className="py-10 px-4 space-y-4">
       {/* [UI] Dashboard */}
       <h1 className="text-[var(--color-text-800)]">Dashboard</h1>
 
-      {/* [SECTION] Personal Info */}
-      <div className="relative flex items-center bg-[var(--color-bg-100)] rounded-lg px-5 py-4 gap-x-4 shadow-md">
+      {/* [SECTION] Profile */}
+      <div className="relative flex items-center bg-[var(--color-bg-100)] rounded-lg px-4 py-3 gap-x-4 shadow-md">
+        {/* [SECTION] Profile Buttons */}
         <div className="absolute top-3 right-3 space-x-1">
           {/* [BUTTON] Profile */}
-          <button className="p-2 rounded-sm bg-[var(--color-secondary-500)] cursor-pointer">
+          <button onClick={() => {navigate("/admin/profile")}} className="p-2 rounded-sm bg-[var(--color-secondary-500)] cursor-pointer">
             <img src="/profile-icon-white.svg" alt="Admin Profile" className="w-4 h-4" />
           </button>
 
           {/* [BUTTON] Settings */}
-          <button className="p-2 rounded-sm bg-[var(--color-bg-300)] cursor-pointer">
+          <button onClick={() => {navigate("/admin/settings")}} className="p-2 rounded-sm bg-[var(--color-bg-500)] cursor-pointer">
             <img src="/settings-icon-white.svg" alt="Admin Profile" className="w-4 h-4" />
           </button>
 
           {/* [BUTTON] Logout */}
-          <button className="p-2 rounded-sm bg-[var(--color-red-600)] cursor-pointer">
+          <button onClick={() => {navigate("/admin/login")}} className="p-2 rounded-sm bg-[var(--color-red-700)] cursor-pointer">
             <img src="/logout-icon-white.svg" alt="Admin Profile" className="w-4 h-4" />
           </button>
         </div>
 
+        {/* [SECTION] Profile Information */}
         <div className="flex-1">
-          <h2 className="font-roboto font-extrabold mb-2 text-[var(--color-text-800)]">
+          <h2 className="font-roboto font-extrabold text-[var(--color-text-800)]">
             {profile?.name}
           </h2>
           <p className="body-large text-[var(--color-text-800)]">
@@ -121,14 +125,14 @@ const AdminDashboard = () => {
         <h2 className="mb-3">Overview</h2>
         <div className="space-y-2">
           <DashboardItem iconSrc="/total-students-icon.svg" text="Total Students" value={totalStudents} />
-          <DashboardItem iconSrc="/total-advisers-icon.svg" text="Total Advisers" value={totalAdvisers} color="007FFF" />
+          <DashboardItem iconSrc="/total-advisers-icon.svg" text="Total Advisers" value={totalAdvisers} color="#0066CC" />
           <DashboardItem iconSrc="/total-sections-icon.svg" text="Total Sections" value={totalSections} />
-          <DashboardItem iconSrc="/total-admin-icon.svg" text="Total Admins" value={totalAdmins} color="007FFF" />
+          <DashboardItem iconSrc="/total-admin-icon.svg" text="Total Admins" value={totalAdmins} color="#0066CC" />
         </div>
       </div>
 
       {/* [SECTION] Dashboard Buttons */}
-      <div className="grid grid-cols-2 gap-6 px-4">
+      <div className="grid grid-cols-2 gap-6 px-6">
         <DashboardButton
           iconSrc="/students-dashboard-icon.svg"
           text="Students"
@@ -138,13 +142,13 @@ const AdminDashboard = () => {
         <DashboardButton
           iconSrc="/advisers-dashboard-icon.svg"
           text="Advisers"
-          color="#8F28A4"
+          color="#CA8E02"
           to={"/admin/advisers"}
         />
         <DashboardButton
           iconSrc="/sections-dashboard-icon.svg"
           text="Sections"
-          color="#CA8E02"
+          color="#8F28A4"
           to={"/admin/sections"}
         />
         <DashboardButton
