@@ -39,11 +39,6 @@ const AdminDashboard = () => {
   // * [EFFECT] Fetch dashboard summary
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) {
-      setShowTokenExpiredModal(true);
-      setLoading(false);
-      return;
-    }
 
     const fetchDashboard = async () => {
       try {

@@ -1,24 +1,24 @@
-// [IMPORT] React & Hooks
-import { type ReactNode } from "react";
-import { useAuth } from "../context/useAuth";
+import { Navigate, Outlet } from "react-router-dom";
+import { useAuth } from "./useAuth";
 
-// [COMPONENT] PrivateRoute
 interface PrivateRouteProps {
-  children: ReactNode;
+  role?: "admin" | "adviser";
 }
 
-const PrivateRoute = ({ children }: PrivateRouteProps) => {
-  const { setShowTokenExpiredModal } = useAuth();
+const PrivateRoute = ({ role }: PrivateRouteProps) => {
+  const { user, setShowTokenExpiredModal } = useAuth();
   const token = localStorage.getItem("token");
 
-  // ! [CHECK] If missing token, show modal & prevent render
-  if (!token) {
+  if (!token || !user) {
     setShowTokenExpiredModal(true);
-    return null; // stop rendering protected page
+    return <Navigate to="/login/admin" replace />;
   }
 
-  // * [SUCCESS] Else, render page if token exists
-  return <>{children}</>;
+  if (role && user.role !== role) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <Outlet />;
 };
 
 export default PrivateRoute;
