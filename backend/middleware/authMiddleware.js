@@ -1,84 +1,67 @@
-const jwt = require('jsonwebtoken');
-const { successResponse, errorResponse } = require('../utils/response');
-require('dotenv').config()
+// [IMPORT] Setup
+const jwt = require("jsonwebtoken");
+const { prisma } = require("../lib/prisma");
+const { successResponse, errorResponse } = require("../utils/response");
 
-// ?[MIDDLEWARE] Verify JWT for protected routes (generic, can be used for both student and adviser if token payload is standardized)
-const verifyToken = (req, res, next) => {
-    const authHeader = req.headers.authorization;
-
-    // ![ERROR] No token provided
-    if (!authHeader) return res.status(401).json(errorResponse("Missing token"));
-
-    const token = authHeader.split(" ")[1];
-
+// [MIDDLEWARE] Generic token verification
+const verifyToken =
+  (allowedRoles = []) =>
+  async (req, res, next) => {
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.userId = decoded.userId;
-        next();
+      // ? Skip preflight requests
+      if (req.method === "OPTIONS") return next();
+
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res
+          .status(401)
+          .json(errorResponse("Unauthorized: token missing"));
+      }
+
+      const token = authHeader.split(" ")[1];
+
+      // ? Decode JWT
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      // ! Ensure required payload exists
+      if (!decoded || (!decoded.role && allowedRoles.length > 0)) {
+        return res.status(403).json(errorResponse("Invalid token payload"));
+      }
+
+      // ? Role check if roles are specified
+      if (allowedRoles.length > 0 && !allowedRoles.includes(decoded.role)) {
+        return res
+          .status(403)
+          .json(errorResponse("Access denied: insufficient role"));
+      }
+
+      // ? Attach role-specific identifiers and fetch user from DB
+      let user;
+      if (decoded.role === "adviser") {
+        user = await prisma.adviser.findUnique({
+          where: { id: decoded.adviserId },
+        });
+        if (!user)
+          return res.status(403).json(errorResponse("Adviser not found"));
+        req.user = { id: user.id, role: "adviser", email: user.email };
+      } else if (decoded.role === "admin") {
+        user = await prisma.admin.findUnique({
+          where: { id: decoded.adminId },
+        });
+        if (!user)
+          return res.status(403).json(errorResponse("Admin not found"));
+        req.user = { id: user.id, role: "admin", email: user.email };
+      }
+
+      next();
     } catch (err) {
-        return res.status(403).json(errorResponse('Invalid or expired token'));
+      console.error("[JWT VERIFY ERROR]", err.message || err);
+      return res.status(401).json(errorResponse("Invalid or expired token"));
     }
-}
+  };
 
-// ?[MIDDLEWARE] Verify Student JWT
-const verifyStudent = (req, res, next) => {
-    const token = req.headers.authorization?.split(' ')[1];
+// [EXPORTS] Convenience middlewares
+const verifyAdviser = verifyToken(["adviser"]);
+const verifyAdmin = verifyToken(["admin"]);
 
-    // ![ERROR] No token provided
-    if (!token) {
-        return res.status(401).json(errorResponse('No token provided'));
-    }
-
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.lrn = decoded.lrn;
-        next();
-    } catch (err) {
-        return res.status(401).json(errorResponse('Invalid or expired token'));
-    }
-};
-
-// ?[MIDDLEWARE] Verify Adviser JWT
-const verifyAdviser = (req, res, next) => {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) {
-        return res.status(401).json(errorResponse('No token provided'));
-    }
-
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.adviserId = decoded.adviserId;
-        next();
-    } catch (err) {
-        return res.status(401).json(errorResponse('Invalid or expired token'));
-    }
-};
-
-// ?[MIDDLEWARE] Verify Admin JWT
-function verifyAdmin(req, res, next) {
-    // ?[READ TOKEN] Expect "Bearer <token>"
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ success: false, message: 'Unauthorized: token missing' });
-    }
-
-    const token = authHeader.split(' ')[1];
-
-    try {
-        // ?[DECODE TOKEN] Must match payload { adminId, role }
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-        if (!decoded || decoded.role !== 'admin' || !decoded.adminId) {
-            return res.status(401).json({ success: false, message: 'Unauthorized: invalid token' });
-        }
-
-        // ?[ATTACH] adminId to request
-        req.adminId = decoded.adminId;
-        next();
-    } catch (err) {
-        console.error('[DEBUG] verifyAdmin error:', err.message);
-        return res.status(401).json({ success: false, message: 'Unauthorized: invalid token' });
-    }
-}
-
-module.exports = { verifyToken, verifyStudent, verifyAdviser, verifyAdmin };
+module.exports = { verifyToken, verifyAdviser, verifyAdmin };
