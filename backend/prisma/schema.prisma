@@ -223,7 +223,7 @@ model Student {
   middleName         String?
   lastName           String
   nameExtension      String?
-  sex                Sex?
+  sex                Sex
   birthDate          DateTime? @db.Date
   motherTongue       String?
   ethnicGroup        String?
