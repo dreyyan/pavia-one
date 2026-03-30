@@ -877,11 +877,11 @@ const AdminStudents = () => {
         {displayedStudents.map((s) => (
           <div
             key={s.id}
-            className="bg-white rounded-xl border border-[var(--color-bg-200)] overflow-hidden hover:translate-y-[-1px] hover:shadow-md active:shadow-md transition-all duration-200 cursor-pointer"
+            className="bg-white rounded-md border border-[var(--color-bg-200)] overflow-hidden hover:translate-y-[-1px] hover:shadow-md active:shadow-md transition-all duration-200 cursor-pointer"
             onClick={() => navigate(`/admin/students/view/${s.id}`)}
           >
             {/* Header */}
-            <div className="bg-[var(--color-bg-50)] px-3 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
+            <div className="bg-[var(--color-bg-50)] px-3 pr-4 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
               <div className="flex items-center w-full gap-3 min-w-0">
                 {/* Initials Avatar */}
                 <div className="size-10 rounded-md bg-[var(--color-primary-100)] flex items-center justify-center text-[var(--color-primary-700)] font-bold px-4 text-xl border border-[var(--color-primary-200)] flex-shrink-0">
@@ -895,7 +895,7 @@ const AdminStudents = () => {
 
                 {/* Name + LRN */}
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-[var(--color-text-900)] text-[17px] leading-tight truncate">
+                  <p className="font-roboto font-bold text-[var(--color-text-900)] text-lg leading-tight truncate">
                     {s.fullName}
                   </p>
                   <p className="text-xs font-mono text-[var(--color-text-600)] mt-0.5 tracking-wider truncate">
@@ -906,10 +906,10 @@ const AdminStudents = () => {
                 {/* Sex Badge */}
                 <div className={`px-2 py-0.5 text-xs font-semibold rounded-full whitespace-nowrap flex-shrink-0 ${
                   s.sex === 'MALE'
-                    ? 'bg-blue-100 text-blue-700'
+                    ? 'bg-[var(--color-primary-100)] text-[var(--color-primary-500)]'
                     : s.sex === 'FEMALE'
-                      ? 'bg-pink-100 text-pink-700'
-                      : 'bg-gray-100 text-gray-600'
+                      ? 'bg-[var(--color-red-100)] text-[var(--color-red-500)]'
+                      : 'bg-[var(--color-bg-100)] text-gray-600'
                 }`}>
                   {s.sex === 'MALE' ? 'M' : s.sex === 'FEMALE' ? 'F' : '—'}
                 </div>
