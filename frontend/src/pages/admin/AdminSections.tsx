@@ -13,26 +13,204 @@ interface Section {
   id: number;
   name: string;
   gradeLevel: number;
+  schoolYear: string;
   curriculum: string;
+  learningModality: string;
+  classSize: number;
+  room?: string;
+  createdAt: string;
+  adviser?: { id: number; name: string; adviserId: string };
 }
 
-// [INTERFACE] Adviser
-interface Adviser {
-  id: number;
-  adviserId: string;
+// ?[FORM DATA]
+type FormData = {
+  id?: number;
   name: string;
-  email: string;
-}
-
-const curriculumOptions = ["Regular", "STE", "SPS", "SPA", "SPJ"];
-const gradeLevelOptions = ["7", "8", "9", "10"];
-
-// [HELPER] Generate school year options (current + next 2)
-const generateSchoolYearOptions = (): string[] => {
-  const currentYear = new Date().getFullYear();
-  return [-1, 0, 1].map(offset => `${currentYear + offset} - ${currentYear + offset + 1}`);
+  gradeLevel: string;
+  schoolYear: string;
+  curriculum: string;
+  learningModality: string;
+  room: string;
 };
 
+const gradeLevelOptions = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
+const curriculumOptions = ["K-12", "SHS STEM", "SHS ABM", "SHS HUMSS", "SHS GAS", "SHS TVL", "SHS Sports", "SHS Arts"];
+const learningModalityOptions = ["Face to Face", "Distance Learning", "Blended", "Online", "Homeschool", "Other"];
+
+const TOTAL_STEPS = 2;
+
+// *[COMPONENT] Multi-step Section Form Modal
+const SectionFormModal = ({
+  isOpen,
+  title,
+  onClose,
+  onSubmit,
+  formData,
+  setFormData,
+  loading,
+  formError,
+  setFormError,
+  isEditMode,
+}: {
+  isOpen: boolean;
+  title: string;
+  onClose: () => void;
+  onSubmit: () => Promise<void>;
+  formData: FormData;
+  setFormData: React.Dispatch<React.SetStateAction<FormData>>;
+  loading: boolean;
+  formError: string;
+  setFormError: React.Dispatch<React.SetStateAction<string>>;
+  isEditMode: boolean;
+}) => {
+  const [step, setStep] = useState(1);
+
+  // [RESET] Step back to 1 when modal opens
+  useEffect(() => {
+    if (isOpen) setStep(1);
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  // [VALIDATE] Per-step before advancing
+  const validateStep = (): boolean => {
+    setFormError("");
+    if (step === 1) {
+      if (!(formData.name || "").trim()) { setFormError("Section name is required"); return false; }
+      if (!formData.gradeLevel) { setFormError("Grade level is required"); return false; }
+      if (!(formData.schoolYear || "").trim()) { setFormError("School year is required"); return false; }
+    }
+    if (step === 2) {
+      if (!formData.curriculum) { setFormError("Curriculum is required"); return false; }
+    }
+    return true;
+  };
+
+  const handleNext = () => {
+    if (!validateStep()) return;
+    setStep(s => Math.min(s + 1, TOTAL_STEPS));
+  };
+
+  const handleBack = () => {
+    setFormError("");
+    setStep(s => Math.max(s - 1, 1));
+  };
+
+  const handleConfirm = async () => {
+    if (!validateStep()) return;
+    await onSubmit();
+  };
+
+  // [SHARED] Input class
+  const inputCls = "bg-[var(--color-bg-50)] font-roboto rounded-md py-2 px-3 border border-[var(--color-text-300)] outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="bg-[var(--color-bg-100)] rounded-lg p-6 w-full max-w-md shadow-lg">
+
+        {/* [HEADER] Title + step counter */}
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="text-lg font-bold text-[var(--color-text-900)]">{title}</h2>
+          <span className="text-xs font-roboto text-[var(--color-text-600)]">
+            Step {step} of {TOTAL_STEPS}
+          </span>
+        </div>
+
+        {/* [UI] Progress bar segments */}
+        <div className="flex gap-1.5 mb-5">
+          {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+            <div
+              key={i}
+              className={`h-1 flex-1 rounded-full transition-colors duration-200 ${
+                i + 1 <= step ? "bg-[var(--color-primary-600)]" : "bg-[var(--color-bg-300)]"
+              }`}
+            />
+          ))}
+        </div>
+
+        {/* ─── STEP 1 — Identity ─── */}
+        {step === 1 && (
+          <div className="flex flex-col gap-3">
+            <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)] mb-1">Section Identity</p>
+            <div className="flex flex-col">
+              <label className="font-roboto text-sm mb-1">Section Name <span className="text-[var(--color-red-500)]">*</span></label>
+              <input type="text" value={formData.name} placeholder="e.g. Rizal, Mabini"
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))} className={inputCls} />
+            </div>
+            <div className="flex flex-col">
+              <label className="font-roboto text-sm mb-1">Grade Level <span className="text-[var(--color-red-500)]">*</span></label>
+              <select value={formData.gradeLevel} onChange={(e) => setFormData(prev => ({ ...prev, gradeLevel: e.target.value }))} className={inputCls}>
+                <option value="" disabled>Select grade level</option>
+                {gradeLevelOptions.map(g => <option key={g} value={g}>Grade {g}</option>)}
+              </select>
+            </div>
+            <div className="flex flex-col">
+              <label className="font-roboto text-sm mb-1">School Year <span className="text-[var(--color-red-500)]">*</span></label>
+              <input type="text" value={formData.schoolYear} placeholder="e.g. 2024–2025"
+                onChange={(e) => setFormData(prev => ({ ...prev, schoolYear: e.target.value }))} className={inputCls} />
+            </div>
+          </div>
+        )}
+
+        {/* ─── STEP 2 — Configuration ─── */}
+        {step === 2 && (
+          <div className="flex flex-col gap-3">
+            <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)] mb-1">Configuration</p>
+            <div className="flex flex-col">
+              <label className="font-roboto text-sm mb-1">Curriculum <span className="text-[var(--color-red-500)]">*</span></label>
+              <select value={formData.curriculum} onChange={(e) => setFormData(prev => ({ ...prev, curriculum: e.target.value }))} className={inputCls}>
+                <option value="" disabled>Select curriculum</option>
+                {curriculumOptions.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="flex flex-col">
+              <label className="font-roboto text-sm mb-1">Learning Modality</label>
+              <select value={formData.learningModality} onChange={(e) => setFormData(prev => ({ ...prev, learningModality: e.target.value }))} className={inputCls}>
+                {learningModalityOptions.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+            <div className="flex flex-col">
+              <label className="font-roboto text-sm mb-1">Room <span className="text-[var(--color-text-500)] text-xs">(optional)</span></label>
+              <input type="text" value={formData.room} placeholder="e.g. Room 101"
+                onChange={(e) => setFormData(prev => ({ ...prev, room: e.target.value }))} className={inputCls} />
+            </div>
+          </div>
+        )}
+
+        {/* [ERROR] Form error message */}
+        {formError && <p className="text-[var(--color-red-500)] text-sm mt-3">{formError}</p>}
+
+        {/* [FOOTER] Back / Next / Submit */}
+        <div className="flex justify-between items-center gap-3 mt-6">
+          <button
+            onClick={step === 1 ? onClose : handleBack}
+            disabled={loading}
+            className="px-4 py-2 rounded-lg font-roboto bg-[var(--color-bg-100)] text-[var(--color-text-700)] hover:bg-[var(--color-bg-200)] transition-colors text-sm disabled:opacity-60"
+          >
+            {step === 1 ? "Cancel" : "← Back"}
+          </button>
+
+          {step < TOTAL_STEPS ? (
+            <button onClick={handleNext} disabled={loading}
+              className="px-4 py-2 rounded-lg font-roboto bg-[var(--color-primary-500)] text-white hover:bg-[var(--color-primary-600)] transition-colors text-sm disabled:opacity-60">
+              Next →
+            </button>
+          ) : (
+            <button onClick={handleConfirm} disabled={loading}
+              className="px-4 py-2 rounded-lg font-roboto bg-[var(--color-primary-500)] text-white hover:bg-[var(--color-primary-600)] transition-colors text-sm disabled:opacity-60">
+              {loading ? "Processing..." : isEditMode ? "Update" : "Create"}
+            </button>
+          )}
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+// *────────────────────────────────────────────────
+// * MAIN PAGE
+// *────────────────────────────────────────────────
 const AdminSections = () => {
   const { setShowTokenExpiredModal } = useAuth();
   const navigate = useNavigate();
@@ -46,143 +224,40 @@ const AdminSections = () => {
   const [showSortFilters, setShowSortFilters] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
 
+  // [STATES] Grade filter
+  const [selectedGrade, setSelectedGrade] = useState<string | "All">("All");
+  const [showGradeFilters, setShowGradeFilters] = useState(false);
+
+  // [STATES] Section form modal
+  const [showSectionModal, setShowSectionModal] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [formError, setFormError] = useState("");
+
+  // [STATES] CrudModal — confirmations only (delete, errors)
   const [showModal, setShowModal] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
   const [isCancelable, setIsCancelable] = useState(true);
   const [onConfirmAction, setOnConfirmAction] = useState<() => Promise<void>>(() => async () => {});
 
-  // [STATES] Advisers
-  const [advisers, setAdvisers] = useState<Adviser[]>([]);
-  const [adviserSearch, setAdviserSearch] = useState("");
-  const [showAdviserDropdown, setShowAdviserDropdown] = useState(false);
-  const adviserDropdownRef = useRef<HTMLDivElement>(null);
-  const schoolYearOptions = generateSchoolYearOptions();
-
-  type FormData = Omit<Section, "id"> & {
-    id?: number;
-    gradeLevel: string;
-    adviserId: string;
-    adviserName: string;
-    schoolYear: string;
-  };
-
   const [formData, setFormData] = useState<FormData>({
     name: "",
-    gradeLevel: "7",
-    curriculum: "Regular",
-    adviserId: "",
-    adviserName: "",
-    schoolYear: schoolYearOptions[1],
+    gradeLevel: "",
+    schoolYear: "",
+    curriculum: "",
+    learningModality: "Face to Face",
+    room: "",
   });
-
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [formError, setFormError] = useState("");
-
-  // [STATES] Filters
-  const [selectedCurriculum, setSelectedCurriculum] = useState<string | "All">("All");
-  const [selectedGradeLevel, setSelectedGradeLevel] = useState<string | "All">("All");
 
   // [STATES] Pagination
   const [page, setPage] = useState(1);
   const itemsPerPage = 5;
 
-  // [STATE] Selected sections for bulk operations
-  const [selectedSections, setSelectedSections] = useState<number[]>([]);
-
-  // [STATE] Bulk operations
-  const [bulkCurriculum, setBulkCurriculum] = useState<string>("");
-
-  // [HANDLE] Close adviser dropdown on outside click
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (adviserDropdownRef.current && !adviserDropdownRef.current.contains(e.target as Node)) {
-        setShowAdviserDropdown(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // [FETCH] Advisers
-  const fetchAdvisers = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/advisers`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error("Failed to fetch advisers");
-      setAdvisers(Array.isArray(data.data?.data) ? data.data.data : []);
-    } catch (err) {
-      console.error("Fetch advisers error:", err);
-      setAdvisers([]);
-    }
-  };
-
-  // [HANDLE] Bulk Update
-  const handleBulkUpdate = async () => {
-    if (selectedSections.length === 0 || !bulkCurriculum) return;
-    setLoading(true);
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/section/bulk-update`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ ids: selectedSections, curriculum: bulkCurriculum }),
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.message || "Bulk update failed");
-      setSections(prev => prev.map(s => selectedSections.includes(s.id) ? { ...s, curriculum: bulkCurriculum } : s));
-      setSelectedSections([]);
-      setBulkCurriculum("");
-    } catch (err) {
-      console.error("Bulk update error:", err);
-      setModalTitle("Bulk Update Failed");
-      setIsCancelable(true);
-      setShowModal(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // [HANDLE] Bulk Delete
-  const handleBulkDelete = async () => {
-    if (selectedSections.length === 0) return;
-    setModalTitle(`Delete ${selectedSections.length} Selected Sections`);
-    setIsCancelable(true);
-    setShowModal(true);
-    const onBulkDeleteConfirm = async () => {
-      setShowModal(false);
-      setLoading(true);
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/sections`, {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ ids: selectedSections }),
-        });
-        const data = await res.json();
-        if (!data.success) throw new Error(data.message || "Bulk delete failed");
-        setSections(prev => prev.filter(s => !selectedSections.includes(s.id)));
-        setSelectedSections([]);
-      } catch (err) {
-        console.error("Bulk delete error:", err);
-        setModalTitle("Bulk Delete Failed");
-        setIsCancelable(true);
-        setShowModal(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-    setOnConfirmAction(() => onBulkDeleteConfirm);
-  };
-
-  // *[HANDLE] Fetch Sections
+  // [FETCH] Sections
   const fetchSections = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/sections`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/sections?limit=200`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.status === 401) {
@@ -191,7 +266,9 @@ const AdminSections = () => {
       }
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed to fetch sections");
-      setSections(Array.isArray(data.data?.data) ? data.data.data : Array.isArray(data.data) ? data.data : []);
+
+      const list = data.data?.data;
+      setSections(Array.isArray(list) ? list : []);
     } catch (err) {
       console.error(err);
       setModalTitle("Error fetching sections");
@@ -207,106 +284,80 @@ const AdminSections = () => {
     fetchSections();
   }, []);
 
+  // [HANDLE] Close sort dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setShowSortFilters(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   // [HANDLE] Add section
-  const handleAddSection = async () => {
-    setFormData({
-      name: "",
-      gradeLevel: "7",
-      curriculum: "Regular",
-      adviserId: "",
-      adviserName: "",
-      schoolYear: schoolYearOptions[1],
-    });
-    setAdviserSearch("");
+  const handleAddSection = () => {
+    setFormData({ name: "", gradeLevel: "", schoolYear: "", curriculum: "", learningModality: "Face to Face", room: "" });
     setIsEditMode(false);
-    setModalTitle("Create Section");
-    setIsCancelable(true);
     setFormError("");
-    await fetchAdvisers();
-    setShowModal(true);
+    setShowSectionModal(true);
   };
 
   // [HANDLE] Open edit
-  const handleOpenEdit = async (section: Section) => {
+  const handleOpenEdit = (section: Section) => {
     setFormData({
-      ...section,
+      id: section.id,
+      name: section.name,
       gradeLevel: String(section.gradeLevel),
-      adviserId: "",
-      adviserName: "",
-      schoolYear: schoolYearOptions[1],
+      schoolYear: section.schoolYear,
+      curriculum: section.curriculum,
+      learningModality: section.learningModality,
+      room: section.room || "",
     });
-    setAdviserSearch("");
     setIsEditMode(true);
-    setModalTitle("Edit Section");
-    setIsCancelable(true);
     setFormError("");
-    await fetchAdvisers();
-    setShowModal(true);
+    setShowSectionModal(true);
   };
 
-  // [HANDLE] Submit form
+  // [HANDLE] Submit form (create or update)
   const handleSubmit = async () => {
-    const name = (formData.name || "").trim();
-    const gradeLevelNum = parseInt(formData.gradeLevel, 10);
-
-    // [VALIDATION]
-    if (!name) { setFormError("Section name is required"); return; }
-    if (isNaN(gradeLevelNum) || gradeLevelNum < 7 || gradeLevelNum > 10) {
-      setFormError("Grade level must be between 7 and 10"); return;
-    }
-    if (!isEditMode && (!formData.adviserId || !formData.adviserName)) {
-      setFormError("Please select an adviser"); return;
-    }
-    if (!isEditMode && !formData.schoolYear) { setFormError("School year is required"); return; }
-
     const dataToSubmit = {
-      name,
-      gradeLevel: gradeLevelNum,
+      ...(isEditMode && { id: formData.id }),
+      name: formData.name.trim(),
+      gradeLevel: Number(formData.gradeLevel),
+      schoolYear: formData.schoolYear.trim(),
       curriculum: formData.curriculum,
-      // Ensure adviserId and schoolYear are always included when creating
-      ...(isEditMode ? {} : {
-        ...(isEditMode ? {} : {
-          adviserId: formData.adviserId,
-          schoolYear: formData.schoolYear,
-          isAdvisory: !!formData.adviserId,
-        }),
-      }),
+      learningModality: formData.learningModality,
+      room: formData.room || null,
     };
-
-    console.log("Submitting section:", dataToSubmit); // ✅ Debug log
 
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const url = isEditMode
-        ? `${import.meta.env.VITE_API_BASE_URL}/api/admin/sections/${formData.id}`
-        : `${import.meta.env.VITE_API_BASE_URL}/api/admin/sections`;
       const method = isEditMode ? "PUT" : "POST";
-
-      const res = await fetch(url, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/sections`, {
         method,
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(dataToSubmit),
+        body: JSON.stringify(isEditMode ? [dataToSubmit] : dataToSubmit),
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Operation failed");
 
       if (isEditMode) {
-        setSections(prev => prev.map(s => s.id === data.data.id ? data.data : s));
-      } else {
-        const created = data.data?.created;
-        if (created && created.length > 0) {
-          setSections(prev => [...prev, created[0]]);
+        const updated = data.data?.updated;
+        if (updated && updated.length > 0) {
+          await fetchSections();
         } else {
-          const failMsg = data.data?.failed?.[0]?.message;
-          setFormError(failMsg || "Section creation failed");
+          setFormError(data.data?.failed?.[0]?.message || "Section update failed");
           return;
         }
+      } else {
+        await fetchSections();
       }
 
-      setShowModal(false);
+      setShowSectionModal(false);
     } catch (err: any) {
-      console.error("Section submit error:", err);
+      console.error(err);
       setFormError(err?.message || "Operation failed");
     } finally {
       setLoading(false);
@@ -318,6 +369,7 @@ const AdminSections = () => {
     setModalTitle("Delete Section");
     setIsCancelable(true);
     setShowModal(true);
+
     const onDeleteConfirm = async () => {
       setShowModal(false);
       setLoading(true);
@@ -339,14 +391,9 @@ const AdminSections = () => {
         setLoading(false);
       }
     };
+
     setOnConfirmAction(() => onDeleteConfirm);
   };
-
-  // [COMPUTED] Filtered adviser list for search dropdown
-  const filteredAdvisers = advisers.filter(a =>
-    a.name.toLowerCase().includes(adviserSearch.toLowerCase()) ||
-    a.adviserId.includes(adviserSearch)
-  );
 
   // [LOADING STATE]
   if (loading) return <Skeleton />;
@@ -354,9 +401,12 @@ const AdminSections = () => {
   // [HANDLE] Sorting and Searching
   const filteredSections = sections
     .filter(s =>
-      s.name && s.name.toLowerCase().includes(search.toLowerCase()) &&
-      (selectedCurriculum === "All" || s.curriculum === selectedCurriculum) &&
-      (selectedGradeLevel === "All" || String(s.gradeLevel) === selectedGradeLevel)
+      (
+        (s.name && s.name.toLowerCase().includes(search.toLowerCase())) ||
+        (s.curriculum && s.curriculum.toLowerCase().includes(search.toLowerCase())) ||
+        (s.schoolYear && s.schoolYear.includes(search))
+      ) &&
+      (selectedGrade === "All" || String(s.gradeLevel) === selectedGrade)
     )
     .sort((a, b) => {
       switch (sortOption) {
@@ -374,242 +424,215 @@ const AdminSections = () => {
   const handlePrevPage = () => setPage(prev => Math.max(prev - 1, 1));
   const handleNextPage = () => setPage(prev => Math.min(prev + 1, totalPages));
 
-  // *[BREADCRUMBS]
+  // *[BREADCRUMBS] Admin Dashboard navigation
   const breadcrumbs = [
     { label: "Admin Dashboard", path: "/admin/dashboard" },
     { label: "Sections", path: null },
   ];
 
-  const isFormModal = modalTitle === "Create Section" || modalTitle === "Edit Section";
-
   return (
-    <div className="py-10 px-4 space-y-4 relative">
-      {/* [COMPONENT] CRUD Modal */}
-      <CrudModal<FormData>
+    <div>
+      {/* [SECTION FORM MODAL] */}
+      <SectionFormModal
+        isOpen={showSectionModal}
+        title={isEditMode ? "Edit Section" : "Create Section"}
+        onClose={() => setShowSectionModal(false)}
+        onSubmit={handleSubmit}
+        formData={formData}
+        setFormData={setFormData}
+        loading={loading}
+        formError={formError}
+        setFormError={setFormError}
+        isEditMode={isEditMode}
+      />
+
+      {/* [CRUD MODAL] Confirmations (Delete/Error) */}
+      <CrudModal
         isOpen={showModal}
         title={modalTitle}
         isCancelable={isCancelable}
         onClose={() => setShowModal(false)}
-        onConfirm={isEditMode || modalTitle.includes("Create") ? handleSubmit : onConfirmAction}
+        onConfirm={onConfirmAction}
         loading={loading}
-        formData={formData}
-        setFormData={setFormData}
-        showForm={isFormModal}
-        formError={formError}
-        formFields={[
-          { key: "name", label: "Name", type: "text" },
-          {
-            key: "gradeLevel",
-            label: "Grade Level",
-            type: "select",
-            options: gradeLevelOptions,
-            value: formData.gradeLevel,
-            onChange: (value) => setFormData(prev => ({ ...prev, gradeLevel: value }))
-          },
-          {
-            key: "curriculum",
-            label: "Curriculum",
-            type: "select",
-            options: curriculumOptions,
-            value: formData.curriculum,
-            onChange: (value) => setFormData(prev => ({ ...prev, curriculum: value }))
-          },
-          ...(!isEditMode ? [{
-            key: "schoolYear" as keyof FormData,
-            label: "School Year",
-            type: "select" as const,
-            options: schoolYearOptions,
-            value: formData.schoolYear,
-            onChange: (value: string) => setFormData(prev => ({ ...prev, schoolYear: value }))
-          }] : []),
-        ]}
-        // Pass the adviser picker as a custom slot below the generated fields
-        extraContent={
-          !isEditMode ? (
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-[var(--color-text-800)]">Adviser</label>
-              <div ref={adviserDropdownRef} className="relative">
-                <input
-                  type="text"
-                  placeholder="Search adviser by name or ID..."
-                  value={adviserSearch}
-                  onFocus={() => setShowAdviserDropdown(true)}
-                  onChange={(e) => {
-                    setAdviserSearch(e.target.value);
-                    setFormData(prev => ({ ...prev, adviserId: "", adviserName: "" }));
-                    setShowAdviserDropdown(true);
-                  }}
-                  className="w-full bg-[var(--color-bg-50)] font-roboto rounded-sm py-2 px-3 outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm"
-                />
-                {formData.adviserName && (
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-[var(--color-primary-600)] font-medium pointer-events-none">
-                    ✓ {formData.adviserName}
-                  </span>
-                )}
-                {showAdviserDropdown && (
-                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
-                    {filteredAdvisers.length === 0 ? (
-                      <p className="px-3 py-2 text-sm text-gray-400">No advisers found</p>
-                    ) : (
-                      filteredAdvisers.map(adviser => (
-                        <button
-                          key={adviser.id}
-                          type="button"
-                          onClick={() => {
-                            setFormData(prev => ({ ...prev, adviserId: adviser.adviserId, adviserName: adviser.name }));
-                            setAdviserSearch(adviser.name);
-                            setShowAdviserDropdown(false);
-                          }}
-                          className={`w-full text-left px-3 py-2 text-sm hover:bg-[var(--color-bg-100)] transition-colors ${
-                            formData.adviserId === adviser.adviserId ? "bg-blue-50 text-[var(--color-primary-700)]" : "text-[var(--color-text-900)]"
-                          }`}
-                        >
-                          <span className="font-medium">{adviser.name}</span>
-                          <span className="ml-2 text-xs text-gray-400">#{adviser.adviserId}</span>
-                        </button>
-                      ))
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : null
-        }
+        showForm={false}
       />
 
-      {/* [BREADCRUMBS] */}
-      <nav className="font-roboto text-sm text-[var(--color-text-700)] px-2 pb-2">
-        {breadcrumbs.map((crumb, idx) => (
-          <span key={idx}>
-            {crumb.path ? (
-              <span className="cursor-pointer hover:underline" onClick={() => navigate(crumb.path!)}>{crumb.label}</span>
-            ) : (
-              <span className="font-medium text-[var(--color-text-900)]">{crumb.label}</span>
-            )}
-            {idx < breadcrumbs.length - 1 && " / "}
-          </span>
-        ))}
-      </nav>
+      <div className="py-10 px-4 space-y-4 relative">
 
-      {/* [UI] Page Title */}
-
-      {/* [SECTION] Search & Filters */}
-      <div className="flex md:flex-row gap-2 md:gap-4 items-start md:items-center w-full">
-        <div className="relative flex-1">
-          <input
-            type="text"
-            placeholder="Search by Name..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-[var(--color-bg-50)] font-roboto rounded-sm py-2 pl-4 pr-3 outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm"
-          />
+        {/* [SECTION] Header & Breadcrumbs */}
+        <div>
+          <h2 className="text-[var(--color-text-800)] leading-0">Sections</h2>
+          <nav className="font-roboto text-sm text-[var(--color-text-700)]">
+            {breadcrumbs.map((crumb, idx) => (
+              <span key={idx}>
+                {crumb.path ? (
+                  <span className="cursor-pointer hover:underline" onClick={() => navigate(crumb.path!)}>{crumb.label}</span>
+                ) : (
+                  <span className="font-medium text-[var(--color-text-900)]">{crumb.label}</span>
+                )}
+                {idx < breadcrumbs.length - 1 && " / "}
+              </span>
+            ))}
+          </nav>
         </div>
-        <div ref={filterRef} className="relative">
-          <button
-            onClick={() => setShowSortFilters(!showSortFilters)}
-            className={`flex items-center justify-center text-[var(--color-text-50)] rounded-sm p-2 transition cursor-pointer ${
-              showSortFilters ? "bg-[var(--color-primary-600)]" : "bg-[var(--color-primary-700)] hover:opacity-80"
-            }`}
-          >
-            <img src="/filter-icon.svg" alt="Sort" className="w-5 h-5" />
-          </button>
-          {showSortFilters && (
-            <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-300 rounded-md shadow-lg p-2 space-y-1 z-50">
-              <button onClick={() => { setSortOption("name-asc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-asc" ? "bg-blue-100" : ""}`}>Name ↑</button>
-              <button onClick={() => { setSortOption("name-desc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-desc" ? "bg-blue-100" : ""}`}>Name ↓</button>
-              <button onClick={() => { setSortOption("grade-asc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "grade-asc" ? "bg-blue-100" : ""}`}>Grade ↑</button>
-              <button onClick={() => { setSortOption("grade-desc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "grade-desc" ? "bg-blue-100" : ""}`}>Grade ↓</button>
-            </div>
-          )}
-        </div>
-      </div>
 
-      {/* [SECTION] Add Section */}
-      <div className="mt-2 space-y-2">
-        <PrimaryButton text="Add Section" iconSrc="/add-icon.svg" onClick={handleAddSection} />
-      </div>
-
-      {/* [SECTION] Sections Table */}
-      <div className="overflow-x-auto mt-4 rounded-lg">
-        {displayedSections.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-6 space-y-2 text-center text-[var(--color-text-800)]">
-            <img src="/no-data-icon.svg" alt="No sections" className="size-16" />
-            <p className="font-roboto font-semibold text-lg">No sections found</p>
-            <p className="font-roboto text-sm text-[var(--color-text-700)]">Try searching for a different section name.</p>
+        {/* [SECTION] Search & Filters */}
+        <div className="bg-[var(--color-bg-100)] px-3 rounded-lg py-4 flex md:flex-row gap-2 md:gap-4 items-stretch w-full">
+          {/* [INPUT] Search */}
+          <div className="relative flex-1">
+            <input
+              type="text"
+              placeholder="Search by name, curriculum, or school year..."
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              className="w-full bg-[var(--color-bg-50)] body-default rounded-sm px-3 outline-none border border-[var(--color-text-300)] focus:ring-2 focus:ring-[var(--color-primary-600)] h-full"
+            />
           </div>
-        ) : (
-          <table className="overflow-hidden rounded-lg min-w-full bg-white shadow-md table-auto border-collapse">
-            <thead className="bg-[var(--color-primary-600)] text-white font-figtree">
-              <tr>
-                <th className="py-2 px-4 pr-2 text-center">
-                  <input
-                    type="checkbox"
-                    onChange={(e) => {
-                      if (e.target.checked) setSelectedSections(filteredSections.map(s => s.id));
-                      else setSelectedSections([]);
-                    }}
-                    checked={selectedSections.length === filteredSections.length && filteredSections.length > 0}
-                  />
-                </th>
-                <th className="py-2 px-4 text-left font-bold border-r border-[var(--color-primary-600)] truncate max-w-[180px]">Name</th>
-                <th className="py-2 px-2 text-center font-bold border-r border-[var(--color-primary-600)] w-16">Grade</th>
-                <th className="py-2 px-4 text-left hidden md:table-cell font-bold border-r border-[var(--color-primary-600)]">Curriculum</th>
-                <th className="py-2 px-4 text-left">Actions</th>
+
+          {/* [DROPDOWN] Sort Filter */}
+          <div ref={filterRef} className="relative">
+            <button
+              onClick={() => setShowSortFilters(!showSortFilters)}
+              className="flex items-center justify-center text-[var(--color-text-50)] rounded-sm px-3 h-10 transition cursor-pointer bg-[var(--color-bg-50)] hover:opacity-80"
+            >
+              <img src="/sort-icon.svg" alt="Sort" className="size-4" />
+            </button>
+            {showSortFilters && (
+              <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-300 rounded-md shadow-lg p-2 space-y-1 z-50">
+                <button onClick={() => { setSortOption("name-asc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-asc" ? "bg-blue-100" : ""}`}>Name ↑</button>
+                <button onClick={() => { setSortOption("name-desc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-desc" ? "bg-blue-100" : ""}`}>Name ↓</button>
+                <button onClick={() => { setSortOption("grade-asc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "grade-asc" ? "bg-blue-100" : ""}`}>Grade ↑</button>
+                <button onClick={() => { setSortOption("grade-desc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "grade-desc" ? "bg-blue-100" : ""}`}>Grade ↓</button>
+              </div>
+            )}
+          </div>
+
+          {/* [DROPDOWN] Grade Filter */}
+          <div className="relative">
+            <button
+              onClick={() => setShowGradeFilters(!showGradeFilters)}
+              className="flex items-center justify-center text-[var(--color-text-50)] rounded-sm px-3 h-10 transition cursor-pointer bg-[var(--color-bg-50)] hover:opacity-80"
+            >
+              <img src="/filter-icon.svg" alt="Grade Filter" className="size-4" />
+            </button>
+            {showGradeFilters && (
+              <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-300 rounded-md shadow-lg p-2 space-y-1 z-50 max-h-48 overflow-y-auto">
+                <button onClick={() => { setSelectedGrade("All"); setPage(1); setShowGradeFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedGrade === "All" ? "bg-blue-100" : ""}`}>All</button>
+                {gradeLevelOptions.map(g => (
+                  <button key={g} onClick={() => { setSelectedGrade(g); setPage(1); setShowGradeFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedGrade === g ? "bg-blue-100" : ""}`}>Grade {g}</button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* [SECTION] Add Section */}
+        <div className="mt-2 space-y-2">
+          <PrimaryButton text="Add Section" iconSrc="/add-icon.svg" onClick={handleAddSection} />
+        </div>
+
+        {/* [CARDS] Sections — Mobile View */}
+        <div className="flex flex-col gap-4 sm:hidden mt-2 bg-[var(--color-bg-100)] px-3 py-4 rounded-lg">
+          {displayedSections.map((s) => (
+            <div
+              key={s.id}
+              className="bg-white rounded-md border border-[var(--color-bg-200)] overflow-hidden hover:translate-y-[-1px] hover:shadow-md active:shadow-md transition-all duration-200 cursor-pointer"
+              onClick={() => navigate(`/admin/sections/view/${s.id}`)}
+            >
+              <div className="bg-[var(--color-bg-50)] px-3 pr-4 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
+                <div className="flex items-center w-full gap-3 min-w-0">
+                  <div className="size-10 rounded-md bg-[var(--color-primary-100)] flex items-center justify-center text-[var(--color-primary-700)] font-bold text-xl border border-[var(--color-primary-200)] flex-shrink-0">
+                    {s.gradeLevel}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-roboto font-bold text-[var(--color-text-900)] text-lg leading-tight truncate">{s.name}</p>
+                    <p className="text-xs font-mono text-[var(--color-text-600)] mt-0.5 tracking-wider truncate">{s.schoolYear}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="px-4 py-3 space-y-2 text-sm">
+                <div className="flex justify-between items-center">
+                  <span className="text-[var(--color-text-700)] font-figree font-semibold">Curriculum</span>
+                  <span className="text-[var(--color-text-900)]">{s.curriculum}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[var(--color-text-700)] font-figree font-semibold">Adviser</span>
+                  <span className="text-[var(--color-text-900)] truncate text-right max-w-[180px]">{s.adviser?.name ?? "—"}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* [TABLE] Sections — Desktop View */}
+        <div className="hidden sm:block bg-[var(--color-bg-100)] rounded-lg overflow-hidden">
+          <table className="w-full text-sm font-roboto">
+            <thead>
+              <tr className="border-b border-[var(--color-bg-200)] text-[var(--color-text-600)] text-xs uppercase tracking-wide">
+                <th className="px-4 py-3 text-left">Section</th>
+                <th className="px-4 py-3 text-left">Grade</th>
+                <th className="px-4 py-3 text-left">School Year</th>
+                <th className="px-4 py-3 text-left">Curriculum</th>
+                <th className="px-4 py-3 text-left">Adviser</th>
+                <th className="px-4 py-3 text-left">Students</th>
+                <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="font-roboto">
-              {displayedSections.map((s) => (
-                <tr key={s.id} className="border-t border-[var(--color-bg-100)] transition-colors">
-                  <td className="text-center py-2 px-4 pr-2">
-                    <input
-                      type="checkbox"
-                      checked={selectedSections.includes(s.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) setSelectedSections(prev => [...prev, s.id]);
-                        else setSelectedSections(prev => prev.filter(id => id !== s.id));
-                      }}
-                    />
-                  </td>
-                  <td className="text-md font-bold py-2 px-4 text-[var(--color-text-900)] border-r border-[var(--color-bg-300)] truncate whitespace-nowrap max-w-[110px]">{s.name}</td>
-                  <td className="text-sm text-center py-2 px-2 text-[var(--color-text-900)] border-r border-[var(--color-bg-300)] w-16">{s.gradeLevel}</td>
-                  <td className="text-sm text-center py-2 px-4 text-[var(--color-text-900)] hidden md:table-cell border-r border-[var(--color-bg-300)]">{s.curriculum}</td>
-                  <td className="py-2 px-4 flex gap-4">
-                    <button className="text-[var(--color-primary-500)] text-sm font-medium cursor-pointer hover:underline" onClick={() => handleOpenEdit(s)}>Edit</button>
-                    <button className="text-[var(--color-red-500)] text-sm font-medium cursor-pointer hover:underline" onClick={() => handleDelete(s.id)}>Delete</button>
-                  </td>
+            <tbody>
+              {displayedSections.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-[var(--color-text-600)]">No sections found.</td>
                 </tr>
-              ))}
+              ) : (
+                displayedSections.map((s) => (
+                  <tr
+                    key={s.id}
+                    className="border-b border-[var(--color-bg-200)] hover:bg-[var(--color-bg-50)] transition-colors cursor-pointer"
+                    onClick={() => navigate(`/admin/sections/view/${s.id}`)}
+                  >
+                    <td className="px-4 py-3 font-medium text-[var(--color-text-900)]">{s.name}</td>
+                    <td className="px-4 py-3 text-[var(--color-text-700)]">Grade {s.gradeLevel}</td>
+                    <td className="px-4 py-3 text-[var(--color-text-700)]">{s.schoolYear}</td>
+                    <td className="px-4 py-3 text-[var(--color-text-700)]">{s.curriculum}</td>
+                    <td className="px-4 py-3 text-[var(--color-text-700)]">{s.adviser?.name ?? "—"}</td>
+                    <td className="px-4 py-3 text-[var(--color-text-700)]">{s.classSize}</td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                        <button onClick={() => handleOpenEdit(s)} className="text-xs font-roboto text-[var(--color-primary-600)] hover:underline cursor-pointer">Edit</button>
+                        <button onClick={() => handleDelete(s.id)} className="text-xs font-roboto text-[var(--color-red-500)] hover:underline cursor-pointer">Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
-        )}
-      </div>
-
-      {/* [SECTION] Pagination */}
-      {displayedSections.length !== 0 && (
-        <div className="flex justify-between items-center space-x-4 mt-4">
-          <button
-            onClick={handlePrevPage}
-            disabled={page === 1}
-            className={`w-24 py-2 rounded-md text-[var(--color-text-50)] font-roboto text-xs font-semibold transition-colors duration-150 ${
-              page === 1 ? "bg-[var(--color-bg-400)] cursor-not-allowed opacity-50" : "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)]"
-            }`}
-          >
-            &lt; Previous
-          </button>
-          <span className="flex gap-x-1 text-sm text-[var(--color-text-900)] font-medium">
-            Page <span className="font-bold">{page}</span> of <span className="font-bold">{totalPages}</span>
-          </span>
-          <button
-            onClick={handleNextPage}
-            disabled={page === totalPages}
-            className={`w-24 py-2 rounded-md text-[var(--color-text-50)] font-roboto text-xs font-semibold transition-colors duration-150 ${
-              page === totalPages ? "bg-[var(--color-bg-400)] cursor-not-allowed opacity-50" : "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)]"
-            }`}
-          >
-            Next &gt;
-          </button>
         </div>
-      )}
+
+        {/* [SECTION] Pagination */}
+        {displayedSections.length !== 0 && (
+          <div className="flex justify-center items-center mt-4 gap-4">
+            <button onClick={handlePrevPage} disabled={page === 1}
+              className={`w-8 h-8 flex items-center justify-center rounded-full text-[var(--color-text-50)] font-roboto font-bold transition-colors duration-150 ${page === 1 ? "bg-[var(--color-bg-400)] cursor-not-allowed opacity-50" : "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)]"}`}>
+              &lt;
+            </button>
+            <div className="flex items-center gap-2">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
+                <button key={num} onClick={() => setPage(num)}
+                  className={`size-6 flex items-center justify-center rounded-full font-bold text-xs transition-all duration-150 ${num === page ? "size-7 bg-[var(--color-primary-500)] text-[var(--color-text-50)] scale-110" : "bg-[var(--color-bg-300)] text-[var(--color-text-900)] hover:bg-[var(--color-primary-400)]"}`}
+                  aria-label={`Go to page ${num}`}>
+                  {num}
+                </button>
+              ))}
+            </div>
+            <button onClick={handleNextPage} disabled={page === totalPages}
+              className={`size-8 flex items-center justify-center rounded-full text-[var(--color-text-50)] font-roboto font-bold transition-colors duration-150 ${page === totalPages ? "bg-[var(--color-bg-400)] cursor-not-allowed opacity-50" : "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)]"}`}>
+              &gt;
+            </button>
+          </div>
+        )}
+
+      </div>
     </div>
   );
 };
