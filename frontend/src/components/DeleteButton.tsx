@@ -13,7 +13,7 @@ const DeleteButton: React.FC<DeleteButtonProps> = ({
     <button
       onClick={onClick}
       disabled={disabled}
-      className="flex justify-center items-center gap-1 w-full py-3 rounded-md cursor-pointer bg-[var(--color-red-700)] hover:bg-[var(--color-red-800)] transition-all duration-200 disabled:opacity-50"
+      className="flex justify-center items-center gap-1 w-full py-3 rounded-md cursor-pointer bg-[var(--color-red-600)] hover:bg-[var(--color-red-700)] transition-all duration-200 disabled:opacity-50"
     >
       <img src="/delete-icon-white.svg" className="size-4" />
       <p className="button text-white">{text}</p>
