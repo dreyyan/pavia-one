@@ -20,7 +20,7 @@ const PrimaryButton: React.FC<PrimaryButtonProps> = ({
             onClick={onClick}
             disabled={disabled}
             style={color ? { backgroundColor: `#${color}` } : undefined}
-            className="flex justify-center items-center gap-1 w-full py-3 rounded-md cursor-pointer bg-[var(--color-primary-600)] transition-all duration-200 hover:bg-[var(--color-primary-700)] disabled:opacity-50"
+            className="flex justify-center items-center gap-1 w-full py-3 rounded-md cursor-pointer bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] transition-all duration-200 disabled:opacity-50"
         >
             {/* Render icon on the left */}
             {iconSrc && iconPosition === "left" && (
