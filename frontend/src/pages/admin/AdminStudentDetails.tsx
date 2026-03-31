@@ -83,7 +83,7 @@ const AdminStudentDetails = () => {
   const [student, setStudent] = useState<StudentDetails | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // [STATES] CrudModal: Confirmations
+  // [STATES] Modal
   const [showModal, setShowModal] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
