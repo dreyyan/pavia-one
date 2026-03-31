@@ -37,6 +37,7 @@ import AdminSubjects from "./pages/admin/AdminSubjects";
 import PrivateRoute from "./context/PrivateRoute";
 import Layout from "./Layout";
 import AdminStudentDetails from "./pages/admin/AdminStudentDetails";
+import AdminSubjectDetails from "./pages/admin/AdminSubjectDetails";
 
 function App() {
   return (
@@ -75,11 +76,15 @@ function App() {
         {/* [ROUTES] Admin */}
         <Route element={<PrivateRoute role="admin" />}>
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
+
           <Route path="/admin/students" element={<AdminStudents />} />
           <Route path="/admin/students/view/:id" element={<AdminStudentDetails />} />
+
           <Route path="/admin/advisers" element={<AdminAdvisers />} />
           <Route path="/admin/sections" element={<AdminSections />} />
+
           <Route path="/admin/subjects" element={<AdminSubjects />} />
+          <Route path="/admin/subjects/view/:id" element={<AdminSubjectDetails />} />
         </Route>
 
         {/* [ROUTES] Shared */}
