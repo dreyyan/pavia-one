@@ -1,21 +1,21 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// [IMPORT] Hooks
+
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
-// [IMPORT] Components
+// Components
 import Skeleton from "../../components/Skeleton";
 import PrimaryButton from "../../components/PrimaryButton";
-import CrudModal from "../../components/CrudModal";
 import Modal from "../../components/Modal";
 import EmptyState from "../../components/EmptyState";
 import SubjectFormModal from "../../components/forms/SubjectFormModal";
 
-// [IMPORT] Constants & Types
+// Constants & Types
 import { gradeLevelOptions } from "../../constants";
 import { LearningAreaFormData } from "../../types";
 
-// ?[INTERFACES]
+// ? [INTERFACES]
 interface Subject {
   id: number;
   code: string;
@@ -23,18 +23,21 @@ interface Subject {
   gradeLevel: number;
   hoursPerWeek?: number;
   description?: string;
+  curriculum?: string;
+  writtenWorkWeight?: number;
+  performanceTaskWeight?: number;
+  quarterlyAssessmentWeight?: number;
   createdAt: string;
 }
 
-interface Subject {
-  id: number;
-  name: string;
-  gradeLevel: number;
-  curriculum: string;
-  writtenWorkWeight: number;
-  performanceTaskWeight: number;
-  quarterlyAssessmentWeight: number;
-  createdAt: string;
+interface GeneralModalConfig {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  type: "default" | "error" | "success" | "info" | "warning";
+  confirmText: string;
+  isCancelable: boolean;
+  onConfirm: () => void;
 }
 
 const AdminSubjects = () => {
@@ -44,28 +47,17 @@ const AdminSubjects = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-
   const [sortOption, setSortOption] = useState<"name-asc" | "name-desc" | "grade-asc" | "grade-desc">("name-asc");
   const [showSortFilters, setShowSortFilters] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
 
-  // [STATES] Grade filter
+  // Grade filter
   const [selectedGrade, setSelectedGrade] = useState<string | "All">("All");
   const [showGradeFilters, setShowGradeFilters] = useState(false);
 
-  // [STATES] Subject form modal
+  // Subject form modal (Add only)
   const [showSubjectModal, setShowSubjectModal] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
   const [formError, setFormError] = useState("");
-
-  // [STATES] Modal
-  const [showModal, setShowModal] = useState(false);
-  const [modalTitle, setModalTitle] = useState("");
-  const [modalMessage, setModalMessage] = useState("");
-  const [modalType, setModalType] = useState<"default" | "error" | "success" | "info" | "warning">("default");
-  const [modalConfirmText, setModalConfirmText] = useState("OK");
-  const [isCancelable, setIsCancelable] = useState(true);
-  const [onConfirmAction, setOnConfirmAction] = useState<() => Promise<void>>(() => async () => {});
 
   const [formData, setFormData] = useState<LearningAreaFormData>({
     name: "",
@@ -76,11 +68,34 @@ const AdminSubjects = () => {
     quarterlyAssessmentWeight: "0.2",
   });
 
-  // [STATES] Pagination
+  // Pagination
   const [page, setPage] = useState(1);
   const itemsPerPage = 5;
 
-  // * [HANDLE] Fetch subjects
+  // General Modal
+  const [generalModal, setGeneralModal] = useState<GeneralModalConfig>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "default",
+    confirmText: "OK",
+    isCancelable: true,
+    onConfirm: () => {},
+  });
+
+  const openGeneralModal = (config: Partial<Omit<GeneralModalConfig, "isOpen">>) => {
+    setGeneralModal({
+      ...generalModal,
+      isOpen: true,
+      ...config,
+    });
+  };
+
+  const closeGeneralModal = () => {
+    setGeneralModal(prev => ({ ...prev, isOpen: false }));
+  };
+
+  // Fetch subjects
   const fetchSubjects = async () => {
     setLoading(true);
     try {
@@ -88,19 +103,21 @@ const AdminSubjects = () => {
       const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       const data = await res.json();
+
       if (!data.success) throw new Error(data.message || "Failed to fetch subjects");
 
-      const list = data.data;
-      setSubjects(Array.isArray(list) ? list : []);
+      setSubjects(Array.isArray(data.data) ? data.data : []);
     } catch (err) {
       console.error(err);
-      setModalTitle("Error Fetching Subjects");
-      setModalMessage("An error occurred while fetching subjects. Please try again later.");
-      setModalType("error");
-      setIsCancelable(true);
-      setShowModal(true);
+      openGeneralModal({
+        title: "Unable to Load Subjects",
+        message: "We couldn't load your subjects at the moment. Please check your internet connection and try again.",
+        type: "error",
+        confirmText: "Close",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
       setSubjects([]);
     } finally {
       setLoading(false);
@@ -111,7 +128,7 @@ const AdminSubjects = () => {
     fetchSubjects();
   }, []);
 
-  // * [EFFECT] Close sort dropdown on outside click
+  // Close sort dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
@@ -122,7 +139,7 @@ const AdminSubjects = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // * [HANDLE] Add subject
+  // * [HANDLE] Add Subject
   const handleAddSubject = () => {
     setFormData({
       name: "",
@@ -132,41 +149,19 @@ const AdminSubjects = () => {
       performanceTaskWeight: "0.5",
       quarterlyAssessmentWeight: "0.2",
     });
-    setIsEditMode(false);
     setFormError("");
     setShowSubjectModal(true);
   };
 
-  // * [HANDLE] Open edit
-  const handleOpenEdit = (subject: Subject) => {
-    setFormData({
-      id: subject.id,
-      name: subject.name,
-      gradeLevel: String(subject.gradeLevel),
-      curriculum: subject.curriculum,
-      writtenWorkWeight: String(subject.writtenWorkWeight),
-      performanceTaskWeight: String(subject.performanceTaskWeight),
-      quarterlyAssessmentWeight: String(subject.quarterlyAssessmentWeight),
-    });
-    setIsEditMode(true);
-    setFormError("");
-    setShowSubjectModal(true);
-  };
-
-  // * [HANDLE] Submit form (create or update)
+  // Submit (Create only now)
   const handleSubmit = async () => {
     setLoading(true);
+    setFormError("");
+
     try {
       const token = localStorage.getItem("token");
-  
-      const url = isEditMode
-        ? `${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area/${formData.id}`
-        : `${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area`;
-  
-      const method = isEditMode ? "PUT" : "POST";
-  
-      const res = await fetch(url, {
-        method,
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area`, {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -180,29 +175,44 @@ const AdminSubjects = () => {
           quarterlyAssessmentWeight: Number(formData.quarterlyAssessmentWeight),
         }),
       });
-  
+
       const data = await res.json();
-      if (!data.success) throw new Error(data.message);
-  
-      await fetchSubjects();
+
+      // ! [ERROR] Failed API response
+      if (!data.success) {
+        console.error(data.message || "Failed to add subject");
+      }
+
+      // * [SUCCESS] Subject created
+      openGeneralModal({
+        title: "Subject Created",
+        message: "The subject has been added successfully.",
+        type: "success",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
+
       setShowSubjectModal(false);
+      await fetchSubjects();
     } catch (err: any) {
+
+      // ! [ERROR] Subject creation failed
       console.error(err);
-      setFormError(err.message || "Operation failed");
+      openGeneralModal({
+        title: "Unable to Create Subject",
+        message: "We couldn't create your subject at the moment. Please check your internet connection and try again.",
+        type: "error",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
+      setFormError(err.message || "An unexpected error occurred while creating the subject.");
     } finally {
       setLoading(false);
     }
   };
 
-  // * [HANDLE] Delete subject
+  // * [HANDLE] Delete Subject
   const handleDelete = (id: number) => {
-    setModalTitle("Delete Subject");
-    setModalMessage("Are you sure you want to delete this subject? This action cannot be undone.");
-    setModalType("error");
-    setModalConfirmText("Delete");
-    setIsCancelable(true);
-    setShowModal(true);
-
     const onDeleteConfirm = async () => {
       setLoading(true);
       try {
@@ -211,42 +221,53 @@ const AdminSubjects = () => {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
         });
+
         const data = await res.json();
         if (!data.success) throw new Error(data.message || "Failed to delete subject");
 
-        // * Update state
         setSubjects(prev => prev.filter(s => s.id !== id));
 
-        // * Show success inside the same modal
-        setModalTitle("Subject Deleted");
-        setModalMessage("The subject has been deleted successfully.");
-        setModalType("success");
-        setModalConfirmText("OK");
-        setIsCancelable(false);
-
-        setOnConfirmAction(() => async () => {
-          setShowModal(false);
-          navigate("/admin/subjects");
+        // * [SUCCESS] Subject deleted
+        openGeneralModal({
+          title: "Subject Deleted",
+          message: "The subject has been deleted successfully.",
+          type: "success",
+          isCancelable: false,
+          onConfirm: () => {
+            closeGeneralModal();
+            navigate("/admin/subjects");
+          },
         });
       } catch (err) {
+        // ! [ERROR] Subject deletion failed
         console.error("Delete error:", err);
-        setModalTitle("Delete Failed");
-        setModalMessage("An error occurred while deleting the subject.");
-        setModalType("error");
-        setModalConfirmText("OK");
-        setIsCancelable(true);
+        openGeneralModal({
+          title: "Unable to Delete Subject",
+          message: "We couldn't delete the subject at the moment. Please check your internet connection and try again.",
+          type: "error",
+          isCancelable: true,
+          onConfirm: () => closeGeneralModal(),
+        });
       } finally {
         setLoading(false);
       }
     };
 
-    setOnConfirmAction(() => onDeleteConfirm);
+    // ? [CONFIRMATION] Before deleting, ask user to confirm
+    openGeneralModal({
+      title: "Delete Subject",
+      message: "Are you sure you want to delete this subject? This action cannot be undone.",
+      type: "error",
+      confirmText: "Delete",
+      isCancelable: true,
+      onConfirm: onDeleteConfirm,
+    });
   };
 
-  // [LOADING STATE]
+  // ? [LOADING STATE] Show skeleton while loading
   if (loading) return <Skeleton />;
 
-  // [HANDLE] Sorting and Searching
+  // [HANDLE] Search, Sort, and Grade Filter
   const filteredSubjects = subjects
     .filter(s =>
       (
@@ -266,13 +287,12 @@ const AdminSubjects = () => {
       }
     });
 
-  // [PAGINATION]
   const totalPages = Math.ceil(filteredSubjects.length / itemsPerPage);
   const displayedSubjects = filteredSubjects.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+
   const handlePrevPage = () => setPage(prev => Math.max(prev - 1, 1));
   const handleNextPage = () => setPage(prev => Math.min(prev + 1, totalPages));
 
-  // *[BREADCRUMBS] Admin Dashboard navigation
   const breadcrumbs = [
     { label: "Admin Dashboard", path: "/admin/dashboard" },
     { label: "Subjects", path: null },
@@ -282,19 +302,19 @@ const AdminSubjects = () => {
     <div>
       {/* [MODAL] General */}
       <Modal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        title={modalTitle}
-        message={modalMessage}
-        type={modalType}
-        confirmText={modalConfirmText}
-        onConfirm={onConfirmAction}
-        isCancelable={isCancelable}
+        isOpen={generalModal.isOpen}
+        onClose={closeGeneralModal}
+        title={generalModal.title}
+        message={generalModal.message}
+        type={generalModal.type}
+        confirmText={generalModal.confirmText}
+        onConfirm={generalModal.onConfirm}
+        isCancelable={generalModal.isCancelable}
       />
       {/* [MODAL] Subject Form */}
       <SubjectFormModal
         isOpen={showSubjectModal}
-        title={isEditMode ? "Edit Subject" : "Create Subject"}
+        title="Create Subject"
         onClose={() => setShowSubjectModal(false)}
         onSubmit={handleSubmit}
         formData={formData}
@@ -302,17 +322,6 @@ const AdminSubjects = () => {
         loading={loading}
         formError={formError}
         setFormError={setFormError}
-        isEditMode={isEditMode}
-      />
-      {/* [MODAL] CRUD Confirmations (Delete/Error) */}
-      <CrudModal
-        isOpen={showModal}
-        title={modalTitle}
-        isCancelable={isCancelable}
-        onClose={() => setShowModal(false)}
-        onConfirm={onConfirmAction}
-        loading={loading}
-        showForm={false}
       />
 
       <div className="py-10 px-4 space-y-4 relative">
@@ -466,7 +475,6 @@ const AdminSubjects = () => {
                     <td className="px-4 py-3 text-[var(--color-text-700)]">{s.hoursPerWeek ?? "—"}</td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                        <button onClick={() => handleOpenEdit(s)} className="text-xs font-roboto text-[var(--color-primary-600)] hover:underline cursor-pointer">Edit</button>
                         <button onClick={() => handleDelete(s.id)} className="text-xs font-roboto text-[var(--color-red-500)] hover:underline cursor-pointer">Delete</button>
                       </div>
                     </td>
