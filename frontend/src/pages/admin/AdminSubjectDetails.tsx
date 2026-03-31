@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 // [IMPORT] Hooks
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -7,12 +8,18 @@ import Skeleton from "../../components/Skeleton";
 import DeleteButton from "../../components/DeleteButton";
 import InputField from "../../components/InputField";
 import Modal from "../../components/Modal";
+import { WeightRow } from "../../components/WeightRow";
 
 // [IMPORT] Constants & Types
 import { gradeLevelOptions, curriculumOptions } from "../../constants";
 
-// ?[INTERFACES]
-// Mirrors the LearningArea model from the backend (schema.prisma)
+// ? [CONSTANTS]
+const PAGE_LABELS: [string, string] = [
+  "Subject Info",
+  "Grading Weights",
+];
+
+// ? [INTERFACES]
 interface LearningAreaDetails {
   id: number;
   name: string;
@@ -23,75 +30,56 @@ interface LearningAreaDetails {
   quarterlyAssessmentWeight: number;
 }
 
-// ?[TYPE] Form pages
+interface GeneralModalConfig {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  type: "default" | "error" | "success" | "info" | "warning";
+  confirmText: string;
+  isCancelable: boolean;
+  onConfirm: () => void;
+}
+
+// ? [TYPE] Form pages
 type FormPage = 0 | 1;
-
-const PAGE_LABELS: [string, string] = [
-  "Subject Info",
-  "Grading Weights",
-];
-
-// *[COMPONENT] Weight Row — label + hint + InputField + live % badge
-const WeightRow = ({
-  label,
-  hint,
-  value,
-  onChange,
-  disabled,
-}: {
-  label: string;
-  hint: string;
-  value: number;
-  onChange: (v: string) => void;
-  disabled: boolean;
-}) => (
-  <div className="flex items-center justify-between gap-3">
-    <div className="flex flex-col min-w-0">
-      <span className="text-sm font-roboto text-[var(--color-text-900)]">{label}</span>
-      <span className="text-xs font-roboto text-[var(--color-text-500)]">{hint}</span>
-    </div>
-    <div className="flex items-center gap-1.5 flex-shrink-0">
-      <div className="w-24">
-        <InputField
-          type="number"
-          value={String(value ?? "")}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="0.00"
-          max={1}
-          disabled={disabled}
-          showClear={false}
-        />
-      </div>
-      <span className="text-xs font-roboto text-[var(--color-text-500)] w-10 text-right flex-shrink-0">
-        {value !== undefined ? `${Math.round(Number(value) * 100)}%` : "—"}
-      </span>
-    </div>
-  </div>
-);
 
 const AdminSubjectDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  // [STATES]
+  // [STATES] Entities
   const [subject, setSubject] = useState<LearningAreaDetails | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // [STATES] Modal
-  const [showModal, setShowModal] = useState(false);
-  const [modalTitle, setModalTitle] = useState("");
-  const [modalMessage, setModalMessage] = useState("");
-  const [modalType, setModalType] = useState<"default" | "error" | "success" | "info" | "warning">("default");
-  const [modalConfirmText, setModalConfirmText] = useState("OK");
-  const [isCancelable, setIsCancelable] = useState(true);
-  const [onConfirmAction, setOnConfirmAction] = useState<() => Promise<void>>(() => async () => {});
-
-  // [STATES] Identity card — pagination & edit mode
+  // [STATES] Identity Card
   const [activePage, setActivePage] = useState<FormPage>(0);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<LearningAreaDetails>>({});
 
-  // [FETCH] Learning area by id
+  // [STATE] General Modal
+  const [generalModal, setGeneralModal] = useState<GeneralModalConfig>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "default",
+    confirmText: "OK",
+    isCancelable: true,
+    onConfirm: () => {},
+  });
+
+  const openGeneralModal = (config: Partial<Omit<GeneralModalConfig, "isOpen">>) => {
+    setGeneralModal({
+      ...generalModal,
+      isOpen: true,
+      ...config,
+    });
+  };
+
+  const closeGeneralModal = () => {
+    setGeneralModal(prev => ({ ...prev, isOpen: false }));
+  };
+
+  // * [HANDLE] Fetch Subject by ID
   const fetchSubject = async () => {
     setLoading(true);
     try {
@@ -105,12 +93,16 @@ const AdminSubjectDetails = () => {
       setFormData(data.data);
     } catch (err) {
       console.error(err);
-      setModalTitle("Error Fetching Subject");
-      setModalMessage("An error occurred while loading subject details.");
-      setModalType("error");
-      setModalConfirmText("OK");
-      setIsCancelable(false);
-      setShowModal(true);
+      // ! [ERROR] Fetching subjects failed
+      console.error(err);
+      openGeneralModal({
+        title: "Unable to Load Subject",
+        message: "We couldn't load your subject at the moment. Please check your internet connection and try again.",
+        type: "error",
+        confirmText: "Close",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
     } finally {
       setLoading(false);
     }
@@ -122,15 +114,7 @@ const AdminSubjectDetails = () => {
 
   // [HANDLE] Delete learning area
   const handleDelete = () => {
-    setModalTitle("Delete Subject");
-    setModalMessage("Are you sure you want to delete this subject? This action cannot be undone.");
-    setModalType("error");
-    setModalConfirmText("Delete");
-    setIsCancelable(true);
-    setShowModal(true);
-
     const onDeleteConfirm = async () => {
-      setShowModal(false);
       setLoading(true);
       try {
         const token = localStorage.getItem("token");
@@ -140,24 +124,45 @@ const AdminSubjectDetails = () => {
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.message || "Failed to delete subject");
-        navigate("/admin/subjects");
+
+        // * [SUCCESS] Subject deleted
+        openGeneralModal({
+          title: "Subject Deleted",
+          message: "The subject has been deleted successfully.",
+          type: "success",
+          isCancelable: false,
+          onConfirm: () => {
+            closeGeneralModal();
+            navigate("/admin/subjects");
+          },
+        });
       } catch (err) {
+        // ! [ERROR] Subject deletion failed
         console.error("Delete error:", err);
-        setModalTitle("Delete Failed");
-        setModalMessage("An error occurred while deleting this subject. Please try again.");
-        setModalType("error");
-        setModalConfirmText("OK");
-        setIsCancelable(false);
-        setShowModal(true);
+        openGeneralModal({
+          title: "Unable to Delete Subject",
+          message: "We couldn't delete the subject at the moment. Please check your internet connection and try again.",
+          type: "error",
+          isCancelable: true,
+          onConfirm: () => closeGeneralModal(),
+        });
       } finally {
         setLoading(false);
       }
     };
 
-    setOnConfirmAction(() => onDeleteConfirm);
+    // ? [CONFIRMATION] Before deleting, ask user to confirm
+    openGeneralModal({
+      title: "Delete Subject",
+      message: "Are you sure you want to delete this subject? This action cannot be undone.",
+      type: "error",
+      confirmText: "Delete",
+      isCancelable: true,
+      onConfirm: onDeleteConfirm,
+    });
   };
 
-  // [HANDLE] Edit toggle — discard changes on cancel
+  // [HANDLE] Edit toggle
   const handleEditToggle = () => {
     if (isEditing) {
       setFormData(subject ?? {});
@@ -165,7 +170,7 @@ const AdminSubjectDetails = () => {
     setIsEditing((prev) => !prev);
   };
 
-  // [HANDLE] Save edits
+  // * [HANDLE] Save Subject Details
   const handleSave = async () => {
     // [VALIDATE] Weights must sum to 1.0 (100%) before hitting the backend
     const weightSum =
@@ -173,13 +178,16 @@ const AdminSubjectDetails = () => {
       Number(formData.performanceTaskWeight ?? 0) +
       Number(formData.quarterlyAssessmentWeight ?? 0);
 
+    // ! [ERROR] Weights don't sum to 100%
     if (Math.abs(weightSum - 1.0) >= 0.001) {
-      setModalTitle("Invalid Weights");
-      setModalMessage(`Grading weights must sum to 100%. Current total: ${Math.round(weightSum * 100)}%.`);
-      setModalType("warning");
-      setModalConfirmText("OK");
-      setIsCancelable(false);
-      setShowModal(true);
+      openGeneralModal({
+        title: "Invalid Weights",
+        message: "Grading weights must sum to 100%. Please adjust the weights.",
+        type: "error",
+        confirmText: "OK",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
       return;
     }
 
@@ -194,8 +202,6 @@ const AdminSubjectDetails = () => {
         },
         body: JSON.stringify({
           name: formData.name,
-          // [NOTE] gradeLevel and curriculum are not sent — they are immutable
-          // after creation (part of the unique constraint: name + gradeLevel + curriculum)
           writtenWorkWeight: Number(formData.writtenWorkWeight),
           performanceTaskWeight: Number(formData.performanceTaskWeight),
           quarterlyAssessmentWeight: Number(formData.quarterlyAssessmentWeight),
@@ -204,17 +210,28 @@ const AdminSubjectDetails = () => {
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed to update subject");
 
+      // * [SUCCESS] Show success modal
+      openGeneralModal({
+        title: "Subject Updated",
+        message: "The subject has been updated successfully.",
+        type: "success",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
+
       // [UPDATE] Merge saved changes back into the subject state
       setSubject({ ...subject!, ...formData } as LearningAreaDetails);
       setIsEditing(false);
     } catch (err) {
-      console.error("Update error:", err);
-      setModalTitle("Update Failed");
-      setModalMessage("An error occurred while saving changes. Please try again.");
-      setModalType("error");
-      setModalConfirmText("OK");
-      setIsCancelable(false);
-      setShowModal(true);
+      // ! [ERROR] Subject update failed
+      console.error(err);
+      openGeneralModal({
+        title: "Unable to Update Subject",
+        message: "We couldn't update your subject at the moment. Please check your internet connection and try again.",
+        type: "error",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
     } finally {
       setLoading(false);
     }
@@ -231,17 +248,7 @@ const AdminSubjectDetails = () => {
     (v: string) => {
       setFormData((prev) => ({ ...prev, [field]: v === "" ? 0 : Number(v) }));
     };
-
-  // [LOADING STATE]
-  if (loading) return <Skeleton />;
-
-  // [COMPUTED] Live weight sum for the Grading Weights page indicator
-  const weightSum =
-    Number(formData.writtenWorkWeight ?? 0) +
-    Number(formData.performanceTaskWeight ?? 0) +
-    Number(formData.quarterlyAssessmentWeight ?? 0);
-  const weightsAreValid = Math.abs(weightSum - 1.0) < 0.001;
-
+    
   // *[BREADCRUMBS] Admin Subject Details navigation
   const breadcrumbs = [
     { label: "Admin Dashboard", path: "/admin/dashboard" },
@@ -249,13 +256,21 @@ const AdminSubjectDetails = () => {
     { label: subject?.name ?? "Details", path: null },
   ];
 
-  // *[RENDER] Form fields per page
+  // [VALIDATION] Calculate weight sum and validity for live feedback
+  const weightSum =
+    Number(formData.writtenWorkWeight ?? 0) +
+    Number(formData.performanceTaskWeight ?? 0) +
+    Number(formData.quarterlyAssessmentWeight ?? 0);
+  const weightsAreValid = Math.abs(weightSum - 1.0) < 0.001;
+
+  // ? [LOADING STATE] Show skeleton while loading
+  if (loading) return <Skeleton />;
+
+  // *[handle] Render form fields per page
   const renderFormPage = () => {
     if (!subject) return null;
 
     if (activePage === 0) {
-      // [PAGE 0] Subject Info
-      // name → editable | gradeLevel + curriculum → locked (unique constraint)
       return (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div className="col-span-2 sm:col-span-3">
@@ -294,9 +309,9 @@ const AdminSubjectDetails = () => {
       );
     }
 
+    // [PAGE 1] Grading Weights
+    // WW + PT + QA must always sum to 1.0 (100%)
     if (activePage === 1) {
-      // [PAGE 1] Grading Weights
-      // WW + PT + QA must always sum to 1.0 (100%)
       return (
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-3">
@@ -344,17 +359,16 @@ const AdminSubjectDetails = () => {
 
   return (
     <div>
-      {/* [MODAL] General — confirmations, errors, warnings */}
+      {/* [MODAL] General */}
       <Modal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        type={modalType}
-        title={modalTitle}
-        message={modalMessage}
-        confirmText={modalConfirmText}
-        onConfirm={onConfirmAction}
-        closeOnBackdrop={false}
-        isCancelable={isCancelable}
+        isOpen={generalModal.isOpen}
+        onClose={closeGeneralModal}
+        title={generalModal.title}
+        message={generalModal.message}
+        type={generalModal.type}
+        confirmText={generalModal.confirmText}
+        onConfirm={generalModal.onConfirm}
+        isCancelable={generalModal.isCancelable}
       />
 
       <div className="py-10 px-4 space-y-4 relative">
