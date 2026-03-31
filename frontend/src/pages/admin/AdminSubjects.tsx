@@ -12,7 +12,7 @@ import EmptyState from "../../components/EmptyState";
 import SubjectFormModal from "../../components/forms/SubjectFormModal";
 
 // Constants & Types
-import { gradeLevelOptions } from "../../constants";
+import { GRADE_LEVEL_OPTIONS } from "../../constants";
 import { LearningAreaFormData } from "../../types";
 
 // ? [INTERFACES]
@@ -384,7 +384,7 @@ const AdminSubjects = () => {
             {showGradeFilters && (
               <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-300 rounded-md shadow-lg p-2 space-y-1 z-50 max-h-48 overflow-y-auto">
                 <button onClick={() => { setSelectedGrade("All"); setPage(1); setShowGradeFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedGrade === "All" ? "bg-blue-100" : ""}`}>All</button>
-                {gradeLevelOptions.map(g => (
+                {GRADE_LEVEL_OPTIONS.map(g => (
                   <button key={g} onClick={() => { setSelectedGrade(g); setPage(1); setShowGradeFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedGrade === g ? "bg-blue-100" : ""}`}>Grade {g}</button>
                 ))}
               </div>
