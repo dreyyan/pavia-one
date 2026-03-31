@@ -24,6 +24,34 @@ router.get("/", verifyAdmin, async (req, res) => {
   }
 });
 
+// ?[GET] Get a specific Learning Area
+// /api/admin/learning-area/:id
+router.get("/:id", verifyAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    if (isNaN(id)) {
+      return res.status(400).json(errorResponse("Invalid learning area ID"));
+    }
+
+    const learningArea = await prisma.learningArea.findUnique({
+      where: { id },
+    });
+
+    if (!learningArea) {
+      return res.status(404).json(errorResponse("Learning area not found"));
+    }
+
+    res.json(
+      successResponse("Learning area retrieved successfully", learningArea),
+    );
+  } catch (err) {
+    res
+      .status(500)
+      .json(errorResponse("Failed to fetch learning area", err.message));
+  }
+});
+
 // ?[POST] Auto-create all learning areas for all grades and curriculums
 // /api/admin/learning-area/auto-create-all
 router.post("/auto-create-all", verifyAdmin, async (req, res) => {
