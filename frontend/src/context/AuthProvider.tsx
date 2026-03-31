@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AuthContext } from "./AuthContextOnly";
 import Modal from "../components/Modal";
 
+// ? [TYPES & INTERFACES]
 type UserRole = "admin" | "adviser";
 
 interface User {
@@ -22,42 +23,49 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
+  const navigate = useNavigate();
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     loading: true,
     showTokenExpiredModal: false,
   });
 
-  const navigate = useNavigate();
-
+  // [EFFECT] Check localStorage for token and role on mount
   useEffect(() => {
     const token = localStorage.getItem("token");
     const roleRaw = localStorage.getItem("role");
     const role: UserRole | null =
       roleRaw === "admin" || roleRaw === "adviser" ? (roleRaw as UserRole) : null;
 
-    if (token && role) {
-      // ✅ Single setState call — no cascading renders, no race condition
-      setAuthState({
-        user: { id: 0, name: "Unknown", role },
-        loading: false,
-        showTokenExpiredModal: false,
-      });
-    } else if (!token && role) {
-      setAuthState({
-        user: null,
-        loading: false,
-        showTokenExpiredModal: true,
-      });
-    } else {
-      setAuthState({
-        user: null,
-        loading: false,
-        showTokenExpiredModal: false,
-      });
-    }
+    // Delay state update to avoid synchronous setState in effect
+    setTimeout(() => {
+      if (token && role) {
+        setAuthState({
+          user: { id: 0, name: "Unknown", role },
+          loading: false,
+          showTokenExpiredModal: false,
+        });
+      } else if (!token && role) {
+        setAuthState({
+          user: null,
+          loading: false,
+          showTokenExpiredModal: true,
+        });
+      } else {
+        setAuthState({
+          user: null,
+          loading: false,
+          showTokenExpiredModal: false,
+        });
+      }
+    }, 0);
   }, []);
 
+  // [HANDLE] Set user data after login
+  const setUser = (user: User | null) =>
+  setAuthState((prev) => ({ ...prev, user }));
+
+  // [HANDLE] Logout user
   const logout = () => {
     const role = localStorage.getItem("role");
     localStorage.removeItem("token");
@@ -66,9 +74,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     navigate(`/login/${role?.toLowerCase() || "admin"}`);
   };
 
-  const setUser = (user: User | null) =>
-    setAuthState((prev) => ({ ...prev, user }));
-
+  // [HANDLE] Show or hide token expired modal
   const setShowTokenExpiredModal = (showTokenExpiredModal: boolean) =>
     setAuthState((prev) => ({ ...prev, showTokenExpiredModal }));
 
