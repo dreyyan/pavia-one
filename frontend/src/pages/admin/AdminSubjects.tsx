@@ -7,9 +7,9 @@ import { useNavigate } from "react-router-dom";
 import Skeleton from "../../components/Skeleton";
 import PrimaryButton from "../../components/PrimaryButton";
 import CrudModal from "../../components/CrudModal";
-import SubjectFormModal from "../../components/forms/SubjectFormModal";
 import Modal from "../../components/Modal";
 import EmptyState from "../../components/EmptyState";
+import SubjectFormModal, { type LearningAreaFormData } from "../../components/forms/SubjectFormModal";
 
 // ? [CONSTANTS]
 const gradeLevelOptions = ["7", "8", "9", "10"];
@@ -25,15 +25,16 @@ interface Subject {
   createdAt: string;
 }
 
-// ? [TYPE]
-type FormData = {
-  id?: number;
-  code: string;
+interface Subject {
+  id: number;
   name: string;
-  gradeLevel: string;
-  hoursPerWeek: string;
-  description: string;
-};
+  gradeLevel: number;
+  curriculum: string;
+  writtenWorkWeight: number;
+  performanceTaskWeight: number;
+  quarterlyAssessmentWeight: number;
+  createdAt: string;
+}
 
 const AdminSubjects = () => {
   const navigate = useNavigate();
@@ -65,12 +66,13 @@ const AdminSubjects = () => {
   const [isCancelable, setIsCancelable] = useState(true);
   const [onConfirmAction, setOnConfirmAction] = useState<() => Promise<void>>(() => async () => {});
 
-  const [formData, setFormData] = useState<FormData>({
-    code: "",
+  const [formData, setFormData] = useState<LearningAreaFormData>({
     name: "",
     gradeLevel: "",
-    hoursPerWeek: "",
-    description: "",
+    curriculum: "Regular",
+    writtenWorkWeight: "0.3",
+    performanceTaskWeight: "0.5",
+    quarterlyAssessmentWeight: "0.2",
   });
 
   // [STATES] Pagination
@@ -89,7 +91,7 @@ const AdminSubjects = () => {
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed to fetch subjects");
 
-      const list = data.data?.data;
+      const list = data.data;
       setSubjects(Array.isArray(list) ? list : []);
     } catch (err) {
       console.error(err);
@@ -108,7 +110,7 @@ const AdminSubjects = () => {
     fetchSubjects();
   }, []);
 
-  // [HANDLE] Close sort dropdown on outside click
+  // * [EFFECT] Close sort dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
@@ -119,74 +121,79 @@ const AdminSubjects = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // [HANDLE] Add subject
+  // * [HANDLE] Add subject
   const handleAddSubject = () => {
-    setFormData({ code: "", name: "", gradeLevel: "", hoursPerWeek: "", description: "" });
+    setFormData({
+      name: "",
+      gradeLevel: "",
+      curriculum: "Regular",
+      writtenWorkWeight: "0.3",
+      performanceTaskWeight: "0.5",
+      quarterlyAssessmentWeight: "0.2",
+    });
     setIsEditMode(false);
     setFormError("");
     setShowSubjectModal(true);
   };
 
-  // [HANDLE] Open edit
+  // * [HANDLE] Open edit
   const handleOpenEdit = (subject: Subject) => {
     setFormData({
       id: subject.id,
-      code: subject.code,
       name: subject.name,
       gradeLevel: String(subject.gradeLevel),
-      hoursPerWeek: subject.hoursPerWeek ? String(subject.hoursPerWeek) : "",
-      description: subject.description || "",
+      curriculum: subject.curriculum,
+      writtenWorkWeight: String(subject.writtenWorkWeight),
+      performanceTaskWeight: String(subject.performanceTaskWeight),
+      quarterlyAssessmentWeight: String(subject.quarterlyAssessmentWeight),
     });
     setIsEditMode(true);
     setFormError("");
     setShowSubjectModal(true);
   };
 
-  // [HANDLE] Submit form (create or update)
+  // * [HANDLE] Submit form (create or update)
   const handleSubmit = async () => {
-    const dataToSubmit = {
-      ...(isEditMode && { id: formData.id }),
-      code: formData.code.trim(),
-      name: formData.name.trim(),
-      gradeLevel: Number(formData.gradeLevel),
-      hoursPerWeek: formData.hoursPerWeek ? Number(formData.hoursPerWeek) : null,
-      description: formData.description || null,
-    };
-
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
+  
+      const url = isEditMode
+        ? `${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area/${formData.id}`
+        : `${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area`;
+  
       const method = isEditMode ? "PUT" : "POST";
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/subjects`, {
+  
+      const res = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(isEditMode ? [dataToSubmit] : dataToSubmit),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          gradeLevel: Number(formData.gradeLevel),
+          curriculum: formData.curriculum,
+          writtenWorkWeight: Number(formData.writtenWorkWeight),
+          performanceTaskWeight: Number(formData.performanceTaskWeight),
+          quarterlyAssessmentWeight: Number(formData.quarterlyAssessmentWeight),
+        }),
       });
+  
       const data = await res.json();
-      if (!data.success) throw new Error(data.message || "Operation failed");
-
-      if (isEditMode) {
-        const updated = data.data?.updated;
-        if (updated && updated.length > 0) {
-          await fetchSubjects();
-        } else {
-          setFormError(data.data?.failed?.[0]?.message || "Subject update failed");
-          return;
-        }
-      } else {
-        await fetchSubjects();
-      }
-
+      if (!data.success) throw new Error(data.message);
+  
+      await fetchSubjects();
       setShowSubjectModal(false);
     } catch (err: any) {
       console.error(err);
-      setFormError(err?.message || "Operation failed");
+      setFormError(err.message || "Operation failed");
     } finally {
       setLoading(false);
     }
   };
 
-  // [HANDLE] Delete subject
+  // * [HANDLE] Delete subject
   const handleDelete = (id: number) => {
     setModalTitle("Delete Subject");
     setIsCancelable(true);
@@ -197,7 +204,7 @@ const AdminSubjects = () => {
       setLoading(true);
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/subjects/${id}`, {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area/${id}`, {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -374,6 +381,15 @@ const AdminSubjects = () => {
             />
           )}
 
+          {/* [EMPTY STATE] No Subjects According to Filter */}
+          {!loading && filteredSubjects.length === 0 && (
+            <EmptyState
+              title="No subjects found"
+              subtitle="No subjects match your current filters or search. Try adjusting your criteria."
+              iconSrc="/no-data-icon.svg"
+            />
+          )}
+
           {displayedSubjects.map((s) => (
             <div
               key={s.id}
@@ -393,8 +409,12 @@ const AdminSubjects = () => {
               </div>
               <div className="px-4 py-3 space-y-2 text-sm">
                 <div className="flex justify-between items-center">
-                  <span className="text-[var(--color-text-700)] font-figree font-semibold">Hours/Week</span>
-                  <span className="text-[var(--color-text-900)]">{s.hoursPerWeek ?? "—"}</span>
+                  <span className="text-[var(--color-text-700)] font-figree font-semibold">Grade Level</span>
+                  <span className="text-[var(--color-text-900)]">{s.gradeLevel ?? "—"}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[var(--color-text-700)] font-figree font-semibold">Curriculum</span>
+                  <span className="text-[var(--color-text-900)]">{s.curriculum ?? "—"}</span>
                 </div>
               </div>
             </div>
