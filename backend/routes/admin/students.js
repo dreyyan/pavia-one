@@ -401,18 +401,19 @@ router.post("/", verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[PUT] Update student(s)
-// /api/admin/students
+// ?[PUT] Update student(s) - Supports single or multiple students
 router.put("/", verifyAdmin, async (req, res) => {
   try {
     const studentsInput = Array.isArray(req.body) ? req.body : [req.body];
-    if (!studentsInput.length)
+
+    if (!studentsInput.length) {
       return res.status(400).json(errorResponse("No student data provided"));
+    }
 
     const updatedStudents = [];
     const errors = [];
 
-    // Map for converting frontend-friendly names to Prisma enum keys
+    // Enum mapping for learningModality
     const learningModalityEnumMap = {
       "Face to Face": "FACE_TO_FACE",
       "Distance Learning": "DISTANCE_LEARNING",
@@ -431,16 +432,16 @@ router.put("/", verifyAdmin, async (req, res) => {
         lastName,
         nameExtension,
         email,
-        password,
         sex,
         birthDate,
         motherTongue,
         religion,
-        // Address fields
+        // Address
+        streetAddress,
         barangay,
         municipality,
         province,
-        // Guardian fields
+        // Guardian
         fatherName,
         motherMaidenName,
         // Enrollment
@@ -448,43 +449,47 @@ router.put("/", verifyAdmin, async (req, res) => {
         remarks,
       } = student;
 
+      // Find existing student (by id or lrn as fallback)
       const existing = await prisma.student.findFirst({
         where: id ? { id } : { lrn },
-        include: { address: true, guardian: true, enrollments: true },
-      });
-
-      if (!existing) {
-        errors.push({ lrn, id, message: "Student not found" });
-        continue;
-      }
-
-      // Update student base fields
-      const studentUpdate = await prisma.student.update({
-        where: { id: existing.id },
-        data: {
-          firstName: firstName || existing.firstName,
-          middleName:
-            middleName !== undefined ? middleName : existing.middleName,
-          lastName: lastName || existing.lastName,
-          nameExtension:
-            nameExtension !== undefined
-              ? nameExtension
-              : existing.nameExtension,
-          email: email || existing.email,
-          sex: sex ? sex.toUpperCase() : existing.sex,
-          birthDate: birthDate ? new Date(birthDate) : existing.birthDate,
-          motherTongue:
-            motherTongue !== undefined ? motherTongue : existing.motherTongue,
-          religion: religion !== undefined ? religion : existing.religion,
+        include: {
+          address: true,
+          guardian: true,
+          enrollments: true,
         },
       });
 
-      // Update or create address
+      if (!existing) {
+        errors.push({ id, lrn, message: "Student not found" });
+        continue;
+      }
+
+      // Update main Student record
+      const studentUpdate = await prisma.student.update({
+        where: { id: existing.id },
+        data: {
+          firstName: firstName?.trim() || undefined,
+          middleName:
+            middleName !== undefined ? middleName?.trim() || null : undefined,
+          lastName: lastName?.trim() || undefined,
+          nameExtension:
+            nameExtension !== undefined
+              ? nameExtension?.trim() || null
+              : undefined,
+          email: email?.trim() || undefined,
+          sex: sex ? sex.toUpperCase() : undefined,
+          birthDate: birthDate ? new Date(birthDate) : undefined,
+          motherTongue: motherTongue !== undefined ? motherTongue : undefined,
+          religion: religion !== undefined ? religion : undefined,
+        },
+      });
+
+      // Update or Create Address
       const addressData = {
-        streetAddress: student.streetAddress || "",
-        barangay: barangay || "Sample Barangay",
-        municipalityCity: municipality || "Pavia",
-        province: province || "Iloilo",
+        streetAddress: streetAddress?.trim() || "",
+        barangay: barangay?.trim() || "Sample Barangay",
+        municipalityCity: municipality?.trim() || "Pavia",
+        province: province?.trim() || "Iloilo",
       };
 
       if (existing.address) {
@@ -498,10 +503,10 @@ router.put("/", verifyAdmin, async (req, res) => {
         });
       }
 
-      // Update or create guardian
+      // Update or Create Guardian
       const guardianData = {
-        fatherFirstName: fatherName || "Sample Father",
-        motherMaidenFirstName: motherMaidenName || "Sample Mother",
+        fatherFirstName: fatherName?.trim() || "Sample Father",
+        motherMaidenFirstName: motherMaidenName?.trim() || "Sample Mother",
       };
 
       if (existing.guardian) {
@@ -515,13 +520,14 @@ router.put("/", verifyAdmin, async (req, res) => {
         });
       }
 
-      // Update enrollment for current school year
-      const enrollment = existing.enrollments[0]; // adapt if multiple
-      if (enrollment) {
+      // Update current enrollment (learning modality + remarks)
+      const currentEnrollment = existing.enrollments[0]; // Adjust if you support multiple active enrollments
+      if (currentEnrollment && learningModality) {
         const enumValue =
           learningModalityEnumMap[learningModality] || "FACE_TO_FACE";
+
         await prisma.enrollment.update({
-          where: { id: enrollment.id },
+          where: { id: currentEnrollment.id },
           data: {
             learningModality: enumValue,
             remarks: remarks ?? null,
@@ -531,11 +537,12 @@ router.put("/", verifyAdmin, async (req, res) => {
 
       updatedStudents.push({
         id: studentUpdate.id,
-        fullName: `${studentUpdate.firstName} ${studentUpdate.lastName}`,
+        lrn: studentUpdate.lrn,
+        fullName: `${studentUpdate.firstName} ${studentUpdate.lastName}`.trim(),
       });
     }
 
-    res.json(
+    return res.json(
       successResponse("Student(s) updated successfully", {
         updated: updatedStudents,
         failed: errors,
@@ -543,7 +550,7 @@ router.put("/", verifyAdmin, async (req, res) => {
     );
   } catch (err) {
     console.error("Update student(s) error:", err);
-    res
+    return res
       .status(500)
       .json(errorResponse("Failed to update student(s)", err.message));
   }
