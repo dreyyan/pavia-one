@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // [IMPORT] Hooks
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
@@ -6,211 +8,14 @@ import { useAuth } from "../../context/useAuth";
 // [IMPORT] Components
 import Skeleton from "../../components/Skeleton";
 import PrimaryButton from "../../components/PrimaryButton";
-import CrudModal from "../../components/CrudModal";
+import Modal from "../../components/Modal";
 
-// ?[INTERFACES]
-interface Section {
-  id: number;
-  name: string;
-  gradeLevel: number;
-  schoolYear: string;
-  curriculum: string;
-  learningModality: string;
-  classSize: number;
-  room?: string;
-  createdAt: string;
-  adviser?: { id: number; name: string; adviserId: string };
-}
+// [IMPORT] Constants & Types
+import { GRADE_LEVEL_OPTIONS } from "../../constants";
+import type { GeneralModalConfig, Section, SectionFormData } from "../../types";
+import { SectionFormModal } from "../../components/forms/SectionFormModal";
+import EmptyState from "../../components/EmptyState";
 
-// ?[FORM DATA]
-type FormData = {
-  id?: number;
-  name: string;
-  gradeLevel: string;
-  schoolYear: string;
-  curriculum: string;
-  learningModality: string;
-  room: string;
-};
-
-const gradeLevelOptions = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
-const curriculumOptions = ["K-12", "SHS STEM", "SHS ABM", "SHS HUMSS", "SHS GAS", "SHS TVL", "SHS Sports", "SHS Arts"];
-const learningModalityOptions = ["Face to Face", "Distance Learning", "Blended", "Online", "Homeschool", "Other"];
-
-const TOTAL_STEPS = 2;
-
-// *[COMPONENT] Multi-step Section Form Modal
-const SectionFormModal = ({
-  isOpen,
-  title,
-  onClose,
-  onSubmit,
-  formData,
-  setFormData,
-  loading,
-  formError,
-  setFormError,
-  isEditMode,
-}: {
-  isOpen: boolean;
-  title: string;
-  onClose: () => void;
-  onSubmit: () => Promise<void>;
-  formData: FormData;
-  setFormData: React.Dispatch<React.SetStateAction<FormData>>;
-  loading: boolean;
-  formError: string;
-  setFormError: React.Dispatch<React.SetStateAction<string>>;
-  isEditMode: boolean;
-}) => {
-  const [step, setStep] = useState(1);
-
-  // [RESET] Step back to 1 when modal opens
-  useEffect(() => {
-    if (isOpen) setStep(1);
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-
-  // [VALIDATE] Per-step before advancing
-  const validateStep = (): boolean => {
-    setFormError("");
-    if (step === 1) {
-      if (!(formData.name || "").trim()) { setFormError("Section name is required"); return false; }
-      if (!formData.gradeLevel) { setFormError("Grade level is required"); return false; }
-      if (!(formData.schoolYear || "").trim()) { setFormError("School year is required"); return false; }
-    }
-    if (step === 2) {
-      if (!formData.curriculum) { setFormError("Curriculum is required"); return false; }
-    }
-    return true;
-  };
-
-  const handleNext = () => {
-    if (!validateStep()) return;
-    setStep(s => Math.min(s + 1, TOTAL_STEPS));
-  };
-
-  const handleBack = () => {
-    setFormError("");
-    setStep(s => Math.max(s - 1, 1));
-  };
-
-  const handleConfirm = async () => {
-    if (!validateStep()) return;
-    await onSubmit();
-  };
-
-  // [SHARED] Input class
-  const inputCls = "bg-[var(--color-bg-50)] font-roboto rounded-md py-2 px-3 border border-[var(--color-text-300)] outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm";
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-[var(--color-bg-100)] rounded-lg p-6 w-full max-w-md shadow-lg">
-
-        {/* [HEADER] Title + step counter */}
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="text-lg font-bold text-[var(--color-text-900)]">{title}</h2>
-          <span className="text-xs font-roboto text-[var(--color-text-600)]">
-            Step {step} of {TOTAL_STEPS}
-          </span>
-        </div>
-
-        {/* [UI] Progress bar segments */}
-        <div className="flex gap-1.5 mb-5">
-          {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-            <div
-              key={i}
-              className={`h-1 flex-1 rounded-full transition-colors duration-200 ${
-                i + 1 <= step ? "bg-[var(--color-primary-600)]" : "bg-[var(--color-bg-300)]"
-              }`}
-            />
-          ))}
-        </div>
-
-        {/* ─── STEP 1 — Identity ─── */}
-        {step === 1 && (
-          <div className="flex flex-col gap-3">
-            <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)] mb-1">Section Identity</p>
-            <div className="flex flex-col">
-              <label className="font-roboto text-sm mb-1">Section Name <span className="text-[var(--color-red-500)]">*</span></label>
-              <input type="text" value={formData.name} placeholder="e.g. Rizal, Mabini"
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))} className={inputCls} />
-            </div>
-            <div className="flex flex-col">
-              <label className="font-roboto text-sm mb-1">Grade Level <span className="text-[var(--color-red-500)]">*</span></label>
-              <select value={formData.gradeLevel} onChange={(e) => setFormData(prev => ({ ...prev, gradeLevel: e.target.value }))} className={inputCls}>
-                <option value="" disabled>Select grade level</option>
-                {gradeLevelOptions.map(g => <option key={g} value={g}>Grade {g}</option>)}
-              </select>
-            </div>
-            <div className="flex flex-col">
-              <label className="font-roboto text-sm mb-1">School Year <span className="text-[var(--color-red-500)]">*</span></label>
-              <input type="text" value={formData.schoolYear} placeholder="e.g. 2024–2025"
-                onChange={(e) => setFormData(prev => ({ ...prev, schoolYear: e.target.value }))} className={inputCls} />
-            </div>
-          </div>
-        )}
-
-        {/* ─── STEP 2 — Configuration ─── */}
-        {step === 2 && (
-          <div className="flex flex-col gap-3">
-            <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)] mb-1">Configuration</p>
-            <div className="flex flex-col">
-              <label className="font-roboto text-sm mb-1">Curriculum <span className="text-[var(--color-red-500)]">*</span></label>
-              <select value={formData.curriculum} onChange={(e) => setFormData(prev => ({ ...prev, curriculum: e.target.value }))} className={inputCls}>
-                <option value="" disabled>Select curriculum</option>
-                {curriculumOptions.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-            <div className="flex flex-col">
-              <label className="font-roboto text-sm mb-1">Learning Modality</label>
-              <select value={formData.learningModality} onChange={(e) => setFormData(prev => ({ ...prev, learningModality: e.target.value }))} className={inputCls}>
-                {learningModalityOptions.map(m => <option key={m} value={m}>{m}</option>)}
-              </select>
-            </div>
-            <div className="flex flex-col">
-              <label className="font-roboto text-sm mb-1">Room <span className="text-[var(--color-text-500)] text-xs">(optional)</span></label>
-              <input type="text" value={formData.room} placeholder="e.g. Room 101"
-                onChange={(e) => setFormData(prev => ({ ...prev, room: e.target.value }))} className={inputCls} />
-            </div>
-          </div>
-        )}
-
-        {/* [ERROR] Form error message */}
-        {formError && <p className="text-[var(--color-red-500)] text-sm mt-3">{formError}</p>}
-
-        {/* [FOOTER] Back / Next / Submit */}
-        <div className="flex justify-between items-center gap-3 mt-6">
-          <button
-            onClick={step === 1 ? onClose : handleBack}
-            disabled={loading}
-            className="px-4 py-2 rounded-lg font-roboto bg-[var(--color-bg-100)] text-[var(--color-text-700)] hover:bg-[var(--color-bg-200)] transition-colors text-sm disabled:opacity-60"
-          >
-            {step === 1 ? "Cancel" : "← Back"}
-          </button>
-
-          {step < TOTAL_STEPS ? (
-            <button onClick={handleNext} disabled={loading}
-              className="px-4 py-2 rounded-lg font-roboto bg-[var(--color-primary-500)] text-white hover:bg-[var(--color-primary-600)] transition-colors text-sm disabled:opacity-60">
-              Next →
-            </button>
-          ) : (
-            <button onClick={handleConfirm} disabled={loading}
-              className="px-4 py-2 rounded-lg font-roboto bg-[var(--color-primary-500)] text-white hover:bg-[var(--color-primary-600)] transition-colors text-sm disabled:opacity-60">
-              {loading ? "Processing..." : isEditMode ? "Update" : "Create"}
-            </button>
-          )}
-        </div>
-
-      </div>
-    </div>
-  );
-};
-
-// *────────────────────────────────────────────────
-// * MAIN PAGE
-// *────────────────────────────────────────────────
 const AdminSections = () => {
   const { setShowTokenExpiredModal } = useAuth();
   const navigate = useNavigate();
@@ -228,18 +33,11 @@ const AdminSections = () => {
   const [selectedGrade, setSelectedGrade] = useState<string | "All">("All");
   const [showGradeFilters, setShowGradeFilters] = useState(false);
 
-  // [STATES] Section form modal
+  // [STATES] Section Form Modal
   const [showSectionModal, setShowSectionModal] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [formError, setFormError] = useState("");
-
-  // [STATES] CrudModal — confirmations only (delete, errors)
-  const [showModal, setShowModal] = useState(false);
-  const [modalTitle, setModalTitle] = useState("");
-  const [isCancelable, setIsCancelable] = useState(true);
-  const [onConfirmAction, setOnConfirmAction] = useState<() => Promise<void>>(() => async () => {});
-
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<SectionFormData>({
     name: "",
     gradeLevel: "",
     schoolYear: "",
@@ -252,7 +50,30 @@ const AdminSections = () => {
   const [page, setPage] = useState(1);
   const itemsPerPage = 5;
 
-  // [FETCH] Sections
+  // [STATE] General Modal
+  const [generalModal, setGeneralModal] = useState<GeneralModalConfig>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "default",
+    confirmText: "OK",
+    isCancelable: true,
+    onConfirm: () => {},
+  });
+
+  const openGeneralModal = (config: Partial<Omit<GeneralModalConfig, "isOpen">>) => {
+    setGeneralModal({
+      ...generalModal,
+      isOpen: true,
+      ...config,
+    });
+  };
+
+  const closeGeneralModal = () => {
+    setGeneralModal(prev => ({ ...prev, isOpen: false }));
+  };
+
+  // * [FETCH] Sections
   const fetchSections = async () => {
     setLoading(true);
     try {
@@ -271,9 +92,16 @@ const AdminSections = () => {
       setSections(Array.isArray(list) ? list : []);
     } catch (err) {
       console.error(err);
-      setModalTitle("Error fetching sections");
-      setIsCancelable(true);
-      setShowModal(true);
+      // ! [ERROR] Fetching section failed
+      console.error(err);
+      openGeneralModal({
+        title: "Unable to Load Sections",
+        message: "We couldn't load your sections at the moment. Please check your internet connection and try again.",
+        type: "error",
+        confirmText: "Close",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
       setSections([]);
     } finally {
       setLoading(false);
@@ -295,7 +123,7 @@ const AdminSections = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // [HANDLE] Add section
+  // * [HANDLE] Add Section
   const handleAddSection = () => {
     setFormData({ name: "", gradeLevel: "", schoolYear: "", curriculum: "", learningModality: "Face to Face", room: "" });
     setIsEditMode(false);
@@ -314,12 +142,11 @@ const AdminSections = () => {
       learningModality: section.learningModality,
       room: section.room || "",
     });
-    setIsEditMode(true);
     setFormError("");
     setShowSectionModal(true);
   };
 
-  // [HANDLE] Submit form (create or update)
+  // * [HANDLE] Submit form (create or update)
   const handleSubmit = async () => {
     const dataToSubmit = {
       ...(isEditMode && { id: formData.id }),
@@ -364,14 +191,9 @@ const AdminSections = () => {
     }
   };
 
-  // [HANDLE] Delete section
+  // * [HANDLE] Delete section
   const handleDelete = (id: number) => {
-    setModalTitle("Delete Section");
-    setIsCancelable(true);
-    setShowModal(true);
-
     const onDeleteConfirm = async () => {
-      setShowModal(false);
       setLoading(true);
       try {
         const token = localStorage.getItem("token");
@@ -383,20 +205,30 @@ const AdminSections = () => {
         if (!data.success) throw new Error(data.message || "Failed to delete section");
         setSections(prev => prev.filter(s => s.id !== id));
       } catch (err) {
+        // ! [ERROR] Section deletion failed
         console.error("Delete error:", err);
-        setModalTitle("Delete Failed");
-        setIsCancelable(true);
-        setShowModal(true);
+        openGeneralModal({
+          title: "Unable to Delete Section",
+          message: "We couldn't delete the section at the moment. Please check your internet connection and try again.",
+          type: "error",
+          isCancelable: true,
+          onConfirm: () => closeGeneralModal(),
+        });
       } finally {
         setLoading(false);
       }
     };
 
-    setOnConfirmAction(() => onDeleteConfirm);
+    // ? [CONFIRMATION] Before deleting, ask user to confirm
+    openGeneralModal({
+      title: "Delete Section",
+      message: "Are you sure you want to delete this section? This action cannot be undone.",
+      type: "error",
+      confirmText: "Delete",
+      isCancelable: true,
+      onConfirm: onDeleteConfirm,
+    });
   };
-
-  // [LOADING STATE]
-  if (loading) return <Skeleton />;
 
   // [HANDLE] Sorting and Searching
   const filteredSections = sections
@@ -430,12 +262,26 @@ const AdminSections = () => {
     { label: "Sections", path: null },
   ];
 
+  // ? [LOADING STATE]
+  if (loading) return <Skeleton />;
+
   return (
     <div>
-      {/* [SECTION FORM MODAL] */}
+      {/* [MODAL] General */}
+      <Modal
+        isOpen={generalModal.isOpen}
+        onClose={closeGeneralModal}
+        title={generalModal.title}
+        message={generalModal.message}
+        type={generalModal.type}
+        confirmText={generalModal.confirmText}
+        onConfirm={generalModal.onConfirm}
+        isCancelable={generalModal.isCancelable}
+      />
+      {/* [MODAL] Section Form */}
       <SectionFormModal
         isOpen={showSectionModal}
-        title={isEditMode ? "Edit Section" : "Create Section"}
+        title="Create Section"
         onClose={() => setShowSectionModal(false)}
         onSubmit={handleSubmit}
         formData={formData}
@@ -444,17 +290,6 @@ const AdminSections = () => {
         formError={formError}
         setFormError={setFormError}
         isEditMode={isEditMode}
-      />
-
-      {/* [CRUD MODAL] Confirmations (Delete/Error) */}
-      <CrudModal
-        isOpen={showModal}
-        title={modalTitle}
-        isCancelable={isCancelable}
-        onClose={() => setShowModal(false)}
-        onConfirm={onConfirmAction}
-        loading={loading}
-        showForm={false}
       />
 
       <div className="py-10 px-4 space-y-4 relative">
@@ -518,7 +353,7 @@ const AdminSections = () => {
             {showGradeFilters && (
               <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-300 rounded-md shadow-lg p-2 space-y-1 z-50 max-h-48 overflow-y-auto">
                 <button onClick={() => { setSelectedGrade("All"); setPage(1); setShowGradeFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedGrade === "All" ? "bg-blue-100" : ""}`}>All</button>
-                {gradeLevelOptions.map(g => (
+                {GRADE_LEVEL_OPTIONS.map(g => (
                   <button key={g} onClick={() => { setSelectedGrade(g); setPage(1); setShowGradeFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedGrade === g ? "bg-blue-100" : ""}`}>Grade {g}</button>
                 ))}
               </div>
@@ -533,6 +368,22 @@ const AdminSections = () => {
 
         {/* [CARDS] Sections — Mobile View */}
         <div className="flex flex-col gap-4 sm:hidden mt-2 bg-[var(--color-bg-100)] px-3 py-4 rounded-lg">
+          {/* [EMPTY STATE] No Sections */}
+          {!loading && (
+            sections.length === 0 ? (
+              <EmptyState
+                title="No sections found"
+                subtitle="You currently have no assigned sections. Please contact admin if this is an error."
+                iconSrc="/no-data-icon.svg"
+              />
+            ) : displayedSections.length === 0 ? (
+              <EmptyState
+                title="No sections found"
+                subtitle="No sections match your current filters or search. Try adjusting your criteria."
+                iconSrc="/no-data-icon.svg"
+              />
+            ) : null
+          )}
           {displayedSections.map((s) => (
             <div
               key={s.id}
