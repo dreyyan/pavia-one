@@ -13,7 +13,7 @@ import SubjectFormModal from "../../components/forms/SubjectFormModal";
 
 // Constants & Types
 import { GRADE_LEVEL_OPTIONS } from "../../constants";
-import { LearningAreaFormData } from "../../types";
+import { LearningAreaFormData, GeneralModalConfig } from "../../types";
 
 // ? [INTERFACES]
 interface Subject {
@@ -28,16 +28,6 @@ interface Subject {
   performanceTaskWeight?: number;
   quarterlyAssessmentWeight?: number;
   createdAt: string;
-}
-
-interface GeneralModalConfig {
-  isOpen: boolean;
-  title: string;
-  message: string;
-  type: "default" | "error" | "success" | "info" | "warning";
-  confirmText: string;
-  isCancelable: boolean;
-  onConfirm: () => void;
 }
 
 const AdminSubjects = () => {
