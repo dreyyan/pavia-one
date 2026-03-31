@@ -74,8 +74,17 @@ const Modal = ({
     info: "text-[var(--color-primary-700)]",
     warning: "text-[var(--color-secondary-500)]",
   };
+  const confirmButtonColors = {
+    default: "bg-[var(--color-primary-500)] hover:bg-[var(--color-primary-600)]",
+    error: "bg-[var(--color-red-600)] hover:bg-[var(--color-red-700)]",
+    success: "bg-[var(--color-accent-500)] hover:bg-[var(--color-accent-600)]",
+    info: "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-800)]",
+    warning: "bg-[var(--color-secondary-600)] hover:bg-[var(--color-secondary-700)]",
+  };
+
   const borderClass = borderColors[type];
   const textClass = textColors[type];
+  const confirmButtonClass = confirmButtonColors[type];
 
   const inputBorderClass =
     type === "error"
@@ -144,7 +153,7 @@ const Modal = ({
                 onConfirm?.(textInput);
                 onClose();
               }}
-              className="px-4 py-2 rounded-lg font-roboto text-[var(--color-text-50)] text-sm sm:text-base font-semibold bg-[var(--color-primary-500)] hover:bg-[var(--color-primary-600)] transition-colors"
+              className={`px-4 py-2 rounded-lg font-roboto text-[var(--color-text-50)] text-sm sm:text-base font-semibold ${confirmButtonClass} transition-colors`}
             >
               {confirmText}
             </button>
