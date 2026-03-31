@@ -11,6 +11,7 @@ import PrimaryButton from "../../components/PrimaryButton";
 import DeleteButton from "../../components/DeleteButton";
 import InputField from "../../components/InputField";
 import Modal from "../../components/Modal";
+import { StatusBadge } from "../../components/StatusBadge";
 
 // ?[INTERFACES]
 interface Enrollment {
@@ -64,33 +65,6 @@ interface StudentDetails {
   contactNumber?: string;
 }
 
-// *[COMPONENT] Info Row
-const InfoRow = ({ label, value }: { label: string; value?: string | null }) => (
-  <div className="flex flex-col gap-0.5">
-    <span className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-500)]">
-      {label}
-    </span>
-    <span className="text-sm font-roboto text-[var(--color-text-900)]">
-      {value ?? "—"}
-    </span>
-  </div>
-);
-
-// *[COMPONENT] Status Badge
-const StatusBadge = ({ status }: { status: string }) => {
-  const color =
-    status === "ENROLLED"
-      ? "bg-green-100 text-green-700"
-      : status === "DROPPED"
-      ? "bg-red-100 text-red-700"
-      : "bg-gray-100 text-gray-600";
-  return (
-    <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${color}`}>
-      {status}
-    </span>
-  );
-};
-
 // ?[TYPE] Form pages
 type FormPage = 0 | 1 | 2;
 
@@ -104,17 +78,17 @@ const PAGE_LABELS: [string, string, string] = [
 const AdminStudentDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { setShowTokenExpiredModal } = useAuth();
 
   // [STATES]
   const [student, setStudent] = useState<StudentDetails | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // [STATES] CrudModal — confirmations (delete, errors)
+  // [STATES] CrudModal: Confirmations
   const [showModal, setShowModal] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
   const [modalType, setModalType] = useState<"default" | "error" | "success" | "info" | "warning">("default");
+  const [modalConfirmText, setModalConfirmText] = useState("OK");
   const [isCancelable, setIsCancelable] = useState(true);
   const [onConfirmAction, setOnConfirmAction] = useState<() => Promise<void>>(() => async () => {});
 
@@ -123,7 +97,7 @@ const AdminStudentDetails = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<StudentDetails>>({});
 
-  // [FETCH] Student by id
+  // * [HANDLE] Fetch student details by id
   const fetchStudent = async () => {
     setLoading(true);
     try {
@@ -131,10 +105,7 @@ const AdminStudentDetails = () => {
       const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/students/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.status === 401) {
-        setShowTokenExpiredModal(true);
-        return;
-      }
+
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed to fetch student");
       setStudent(data.data);
@@ -158,6 +129,7 @@ const AdminStudentDetails = () => {
     setModalTitle("Delete Student");
     setModalMessage("Are you sure you want to delete this student? This action cannot be undone.");
     setModalType("error");
+    setModalConfirmText("Delete");
     setIsCancelable(true);
     setShowModal(true);
 
@@ -171,8 +143,23 @@ const AdminStudentDetails = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
+
+        // ! [ERROR] Backend failure response
         if (!data.success) throw new Error(data.message || "Failed to delete student");
-        navigate("/admin/students");
+
+        // * [SUCCESS] Show success modal before navigating back to list
+        setModalTitle("Delete Student");
+        setModalMessage("Student deleted successfully.");
+        setModalType("success");
+        setModalConfirmText("OK");
+        setIsCancelable(true);
+
+        setOnConfirmAction(() => async () => {
+          setShowModal(false);
+          navigate("/admin/students");
+        });
+
+        setShowModal(true);
       } catch (err) {
         console.error("Delete error:", err);
         setModalTitle("Delete Failed");
@@ -246,6 +233,17 @@ const AdminStudentDetails = () => {
       // Basic Information
       return (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          {/* [COMPONENT] Modal */}
+          <Modal
+            isOpen={showModal}
+            onClose={() => setShowModal(false)}
+            title={modalTitle}
+            message={modalMessage}
+            type={modalType}
+            confirmText={modalConfirmText}
+            onConfirm={onConfirmAction}
+            isCancelable={isCancelable}
+          />
           <div className="col-span-2 sm:col-span-3">
             <InputField
               label="LRN"
