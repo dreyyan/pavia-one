@@ -1,15 +1,18 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // [IMPORT] Hooks
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
 import Skeleton from "../../components/Skeleton";
 import PrimaryButton from "../../components/PrimaryButton";
 import CrudModal from "../../components/CrudModal";
+import SubjectFormModal from "../../components/forms/SubjectFormModal";
+import Modal from "../../components/Modal";
+import EmptyState from "../../components/EmptyState";
 
 // ? [CONSTANTS]
-const gradeLevelOptions = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
+const gradeLevelOptions = ["7", "8", "9", "10"];
 
 // ?[INTERFACES]
 interface Subject {
@@ -17,7 +20,6 @@ interface Subject {
   code: string;
   name: string;
   gradeLevel: number;
-  semester?: string;
   hoursPerWeek?: number;
   description?: string;
   createdAt: string;
@@ -29,13 +31,11 @@ type FormData = {
   code: string;
   name: string;
   gradeLevel: string;
-  semester: string;
   hoursPerWeek: string;
   description: string;
 };
 
 const AdminSubjects = () => {
-  const { setShowTokenExpiredModal } = useAuth();
   const navigate = useNavigate();
 
   // [STATES]
@@ -56,9 +56,12 @@ const AdminSubjects = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [formError, setFormError] = useState("");
 
-  // [STATES] CrudModal — confirmations only (delete, errors)
+  // [STATES] Modal
   const [showModal, setShowModal] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
+  const [modalMessage, setModalMessage] = useState("");
+  const [modalType, setModalType] = useState<"default" | "error" | "success" | "info" | "warning">("default");
+  const [modalConfirmText, setModalConfirmText] = useState("OK");
   const [isCancelable, setIsCancelable] = useState(true);
   const [onConfirmAction, setOnConfirmAction] = useState<() => Promise<void>>(() => async () => {});
 
@@ -66,7 +69,6 @@ const AdminSubjects = () => {
     code: "",
     name: "",
     gradeLevel: "",
-    semester: "",
     hoursPerWeek: "",
     description: "",
   });
@@ -75,18 +77,15 @@ const AdminSubjects = () => {
   const [page, setPage] = useState(1);
   const itemsPerPage = 5;
 
-  // [FETCH] Subjects
+  // * [HANDLE] Fetch subjects
   const fetchSubjects = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/subjects?limit=200`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.status === 401) {
-        setShowTokenExpiredModal(true);
-        return;
-      }
+
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed to fetch subjects");
 
@@ -94,7 +93,9 @@ const AdminSubjects = () => {
       setSubjects(Array.isArray(list) ? list : []);
     } catch (err) {
       console.error(err);
-      setModalTitle("Error fetching subjects");
+      setModalTitle("Error Fetching Subjects");
+      setModalMessage("An error occurred while fetching subjects. Please try again later.");
+      setModalType("error");
       setIsCancelable(true);
       setShowModal(true);
       setSubjects([]);
@@ -120,7 +121,7 @@ const AdminSubjects = () => {
 
   // [HANDLE] Add subject
   const handleAddSubject = () => {
-    setFormData({ code: "", name: "", gradeLevel: "", semester: "", hoursPerWeek: "", description: "" });
+    setFormData({ code: "", name: "", gradeLevel: "", hoursPerWeek: "", description: "" });
     setIsEditMode(false);
     setFormError("");
     setShowSubjectModal(true);
@@ -133,7 +134,6 @@ const AdminSubjects = () => {
       code: subject.code,
       name: subject.name,
       gradeLevel: String(subject.gradeLevel),
-      semester: subject.semester || "",
       hoursPerWeek: subject.hoursPerWeek ? String(subject.hoursPerWeek) : "",
       description: subject.description || "",
     });
@@ -149,7 +149,6 @@ const AdminSubjects = () => {
       code: formData.code.trim(),
       name: formData.name.trim(),
       gradeLevel: Number(formData.gradeLevel),
-      semester: formData.semester || null,
       hoursPerWeek: formData.hoursPerWeek ? Number(formData.hoursPerWeek) : null,
       description: formData.description || null,
     };
@@ -255,7 +254,18 @@ const AdminSubjects = () => {
 
   return (
     <div>
-      {/* [SUBJECT FORM MODAL] */}
+      {/* [MODAL] General */}
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={modalTitle}
+        message={modalMessage}
+        type={modalType}
+        confirmText={modalConfirmText}
+        onConfirm={onConfirmAction}
+        isCancelable={isCancelable}
+      />
+      {/* [MODAL] Subject Form */}
       <SubjectFormModal
         isOpen={showSubjectModal}
         title={isEditMode ? "Edit Subject" : "Create Subject"}
@@ -268,8 +278,7 @@ const AdminSubjects = () => {
         setFormError={setFormError}
         isEditMode={isEditMode}
       />
-
-      {/* [CRUD MODAL] Confirmations (Delete/Error) */}
+      {/* [MODAL] CRUD Confirmations (Delete/Error) */}
       <CrudModal
         isOpen={showModal}
         title={modalTitle}
@@ -354,8 +363,17 @@ const AdminSubjects = () => {
           <PrimaryButton text="Add Subject" iconSrc="/add-icon.svg" onClick={handleAddSubject} />
         </div>
 
-        {/* [CARDS] Subjects — Mobile View */}
+        {/* [SECTION] Subjects: Mobile View (Cards) */}
         <div className="flex flex-col gap-4 sm:hidden mt-2 bg-[var(--color-bg-100)] px-3 py-4 rounded-lg">
+          {/* [EMPTY STATE] No Subjects Display */}
+          {!loading && subjects.length === 0 && (
+            <EmptyState
+              title="No subjects found"
+              subtitle="You currently have no assigned subjects. Please contact admin if this is an error."
+              iconSrc="/no-data-icon.svg"
+            />
+          )}
+
           {displayedSubjects.map((s) => (
             <div
               key={s.id}
@@ -375,10 +393,6 @@ const AdminSubjects = () => {
               </div>
               <div className="px-4 py-3 space-y-2 text-sm">
                 <div className="flex justify-between items-center">
-                  <span className="text-[var(--color-text-700)] font-figree font-semibold">Semester</span>
-                  <span className="text-[var(--color-text-900)]">{s.semester ?? "—"}</span>
-                </div>
-                <div className="flex justify-between items-center">
                   <span className="text-[var(--color-text-700)] font-figree font-semibold">Hours/Week</span>
                   <span className="text-[var(--color-text-900)]">{s.hoursPerWeek ?? "—"}</span>
                 </div>
@@ -387,7 +401,7 @@ const AdminSubjects = () => {
           ))}
         </div>
 
-        {/* [TABLE] Subjects — Desktop View */}
+        {/* [SECTION] Subjects: Desktop View (Table) */}
         <div className="hidden sm:block bg-[var(--color-bg-100)] rounded-lg overflow-hidden">
           <table className="w-full text-sm font-roboto">
             <thead>
@@ -395,7 +409,6 @@ const AdminSubjects = () => {
                 <th className="px-4 py-3 text-left">Subject</th>
                 <th className="px-4 py-3 text-left">Code</th>
                 <th className="px-4 py-3 text-left">Grade</th>
-                <th className="px-4 py-3 text-left">Semester</th>
                 <th className="px-4 py-3 text-left">Hrs/Week</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
@@ -415,7 +428,6 @@ const AdminSubjects = () => {
                     <td className="px-4 py-3 font-medium text-[var(--color-text-900)]">{s.name}</td>
                     <td className="px-4 py-3 font-mono text-[var(--color-text-600)] text-xs">{s.code}</td>
                     <td className="px-4 py-3 text-[var(--color-text-700)]">Grade {s.gradeLevel}</td>
-                    <td className="px-4 py-3 text-[var(--color-text-700)]">{s.semester ?? "—"}</td>
                     <td className="px-4 py-3 text-[var(--color-text-700)]">{s.hoursPerWeek ?? "—"}</td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>

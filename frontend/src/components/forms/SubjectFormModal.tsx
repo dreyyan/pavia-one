@@ -2,8 +2,7 @@
 import { useState, useEffect } from "react";
 
 // ? [CONSTANTS]
-const semesterOptions = ["1st Semester", "2nd Semester", "Full Year"];
-const gradeLevelOptions = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
+const gradeLevelOptions = ["7", "8", "9", "10"];
 const TOTAL_STEPS = 2;
 const inputCls = "bg-[var(--color-bg-50)] font-roboto rounded-md py-2 px-3 border border-[var(--color-text-300)] outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm";
 
@@ -13,7 +12,6 @@ type FormData = {
   code: string;
   name: string;
   gradeLevel: string;
-  semester: string;
   hoursPerWeek: string;
   description: string;
 };
@@ -128,11 +126,6 @@ const SubjectFormModal = ({
           <div className="flex flex-col gap-3">
             <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)] mb-1">Details</p>
             <div className="flex flex-col">
-              <label className="font-roboto text-sm mb-1">Semester <span className="text-[var(--color-text-500)] text-xs">(optional)</span></label>
-              <select value={formData.semester} onChange={(e) => setFormData(prev => ({ ...prev, semester: e.target.value }))} className={inputCls}>
-                <option value="">None</option>
-                {semesterOptions.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
             </div>
             <div className="flex flex-col">
               <label className="font-roboto text-sm mb-1">Hours per Week <span className="text-[var(--color-text-500)] text-xs">(optional)</span></label>
