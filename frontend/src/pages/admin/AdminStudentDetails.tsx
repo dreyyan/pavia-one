@@ -1,7 +1,7 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 // [IMPORT] Hooks
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
 import Skeleton from "../../components/Skeleton";
