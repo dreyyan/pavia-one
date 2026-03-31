@@ -1,9 +1,8 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-
 import { useState, useEffect } from "react";
 
 // Constants & Types
-import { gradeLevelOptions, curriculumOptions, weightPresets } from "../../constants";
+import { GRADE_LEVEL_OPTIONS, CURRICULUM_OPTIONS, WEIGHT_PRESETS } from "../../constants";
 import { LearningAreaFormData } from "../../types";
 
 const TOTAL_STEPS = 3;
@@ -16,7 +15,7 @@ const WeightPresetPill = ({
   active,
   onClick,
 }: {
-  preset: typeof weightPresets[number];
+  preset: typeof WEIGHT_PRESETS[number];
   active: boolean;
   onClick: () => void;
 }) => (
@@ -153,7 +152,7 @@ const SubjectFormModal = ({
     await onSubmit();
   };
 
-  const applyPreset = (preset: typeof weightPresets[number]) => {
+  const applyPreset = (preset: typeof WEIGHT_PRESETS[number]) => {
     setFormData((prev) => ({
       ...prev,
       writtenWorkWeight: String(preset.ww),
@@ -216,7 +215,7 @@ const SubjectFormModal = ({
                 className={inputCls}
               >
                 <option value="" disabled>Select grade level</option>
-                {gradeLevelOptions.map((g) => (
+                {GRADE_LEVEL_OPTIONS.map((g) => (
                   <option key={g} value={g}>Grade {g}</option>
                 ))}
               </select>
@@ -232,7 +231,7 @@ const SubjectFormModal = ({
             </p>
 
             <div className="flex flex-col gap-2">
-              {curriculumOptions.map((opt) => (
+              {CURRICULUM_OPTIONS.map((opt) => (
                 <label
                   key={opt.value}
                   className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
@@ -281,7 +280,7 @@ const SubjectFormModal = ({
                 Quick presets (WW / PT / QA)
               </p>
               <div className="flex flex-wrap gap-2">
-                {weightPresets.map((preset) => {
+                {WEIGHT_PRESETS.map((preset) => {
                   const isActive =
                     formData.writtenWorkWeight === String(preset.ww) &&
                     formData.performanceTaskWeight === String(preset.pt) &&
