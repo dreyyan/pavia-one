@@ -250,11 +250,11 @@ const AdminStudents = () => {
           birthDate: formData.birthDate || null,
           createdByAdviserId: formData.createdByAdviserId,
           learningModality: formData.learningModality,
-          // [AUTO-ENROLL] Pass advisory section id if adviser has one
           ...(formData.advisorySection ? { sectionId: formData.advisorySection.id } : {}),
         };
 
     setLoading(true);
+    setFormError("");   // ← Clear previous error
 
     try {
       const token = localStorage.getItem("token");
@@ -262,38 +262,68 @@ const AdminStudents = () => {
 
       const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/students`, {
         method,
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        // PUT expects an array; POST accepts a single object
+        headers: { 
+          "Content-Type": "application/json", 
+          Authorization: `Bearer ${token}` 
+        },
         body: JSON.stringify(isEditMode ? [dataToSubmit] : dataToSubmit),
       });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.message || "Operation failed");
 
+      const data = await res.json();
+
+      // Handle backend validation / business errors
+      if (!data.success) {
+        const errorMsg = data.message 
+          || data.data?.failed?.[0]?.message 
+          || "Operation failed";
+        
+        throw new Error(errorMsg);
+      }
+
+      // Success path
       if (isEditMode) {
         const updated = data.data?.updated;
         if (updated && updated.length > 0) {
-          // [REFETCH] Re-fetch full list to get updated student details
           await fetchStudents();
-        } else {
-          const failMsg = data.data?.failed?.[0]?.message;
-          setFormError(failMsg || "Student update failed");
-          return;
         }
       } else {
         const created = data.data?.created;
         if (created && created.length > 0) {
           setStudents(prev => [...prev, created[0]]);
-        } else {
-          const failMsg = data.data?.failed?.[0]?.message;
-          setFormError(failMsg || "Student creation failed");
-          return;
         }
       }
 
+      // Close modal on success
       setShowStudentModal(false);
+      
+      // Optional: Show success notification
+      openGeneralModal({
+        title: isEditMode ? "Student Updated" : "Student Created",
+        message: isEditMode 
+          ? "The student has been updated successfully." 
+          : "The student has been added successfully.",
+        type: "success",
+        confirmText: "OK",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
+
     } catch (err: any) {
-      console.error(err);
-      setFormError(err?.message || "Operation failed");
+      console.error("Submit error:", err);
+      
+      // Show the real error message from backend (e.g. "Student already exists")
+      const errorMessage = err.message || "An unexpected error occurred while saving the student.";
+      setFormError(errorMessage);
+
+      // Optional: Also show it in a general modal for better visibility
+      openGeneralModal({
+        title: "Save Failed",
+        message: errorMessage,
+        type: "error",
+        confirmText: "OK",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
     } finally {
       setLoading(false);
     }
