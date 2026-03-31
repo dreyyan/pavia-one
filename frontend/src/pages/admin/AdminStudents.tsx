@@ -76,32 +76,26 @@ type FormData = {
 const AdminStudents = () => {
   const navigate = useNavigate();
 
-  // [STATES]
+  // [STATES] Entities
   const [students, setStudents] = useState<Student[]>([]);
+  const [advisers, setAdvisers] = useState<Adviser[]>([]);
+
   const [loading, setLoading] = useState(true);
+
+  // [STATES] Search, Sort, and Filter
   const [search, setSearch] = useState("");
 
   const [sortOption, setSortOption] = useState<"name-asc" | "name-desc" | "lrn-asc" | "lrn-desc">("name-asc");
   const [showSortFilters, setShowSortFilters] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
-  // [STATES] Show/hide dropdowns
+
+  const [selectedSex, setSelectedSex] = useState<string | "All">("All");
   const [showSexFilters, setShowSexFilters] = useState(false);
 
-  // [STATES] Student form modal
+  // [STATES] Student Form Modal
   const [showStudentModal, setShowStudentModal] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [formError, setFormError] = useState("");
-
-  // [STATES] CrudModal — confirmations only (delete, errors)
-  const [showModal, setShowModal] = useState(false);
-  const [modalTitle, setModalTitle] = useState("");
-  const [isCancelable, setIsCancelable] = useState(true);
-  const [onConfirmAction, setOnConfirmAction] = useState<() => Promise<void>>(() => async () => {});
-
-  // [STATES] Advisers (fetched on modal open)
-  const [advisers, setAdvisers] = useState<Adviser[]>([]);
-  const [adviserSearch, setAdviserSearch] = useState("");
-
   const [formData, setFormData] = useState<FormData>({
     lrn: "",
     firstName: "",
@@ -117,17 +111,50 @@ const AdminStudents = () => {
     learningModality: "Face to Face",
   });
 
-  // [STATES] Filters
-  const [selectedSex, setSelectedSex] = useState<string | "All">("All");
+  // [STATES] CRUD Modal
+  const [showModal, setShowModal] = useState(false);
+  const [modalTitle, setModalTitle] = useState("");
+  const [isCancelable, setIsCancelable] = useState(true);
+  const [onConfirmAction, setOnConfirmAction] = useState<() => Promise<void>>(() => async () => {});
+  const [adviserSearch, setAdviserSearch] = useState("");
 
   // [STATES] Pagination
   const [page, setPage] = useState(1);
   const itemsPerPage = 5;
 
-  // [STATE] Selected students for bulk operations
+  // [STATE] Selected students for bulk actions
   const [selectedStudents, setSelectedStudents] = useState<number[]>([]);
 
-  // [FETCH] Advisers with sections (to resolve isAdvisory)
+  // * [HANDLE] Fetch Students
+  const fetchStudents = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/students?limit=200`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message || "Failed to fetch students");
+
+      // ensure students is always an array (response is data.data.data due to pagination wrapper)
+      const list = data.data?.data;
+      setStudents(Array.isArray(list) ? list : []);
+    } catch (err) {
+      console.error(err);
+      setModalTitle("Error fetching students");
+      setIsCancelable(true);
+      setShowModal(true);
+      setStudents([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStudents();
+  }, []);
+
+  // * [HANDLE] Fetch advisers for dropdown (with optional search) 
   const fetchAdvisers = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -143,7 +170,30 @@ const AdminStudents = () => {
     }
   };
 
-  // [HANDLE] Bulk Delete
+  // * [HANDLE] Add student
+  const handleAddStudent = async () => {
+    setFormData({
+      lrn: "",
+      firstName: "",
+      middleName: "",
+      lastName: "",
+      nameExtension: "",
+      email: "",
+      sex: "MALE",
+      birthDate: "",
+      createdByAdviserId: "",
+      adviserName: "",
+      advisorySection: null,
+      learningModality: "Face to Face",
+    });
+    setAdviserSearch("");
+    setIsEditMode(false);
+    setFormError("");
+    await fetchAdvisers();
+    setShowStudentModal(true);
+  };
+
+  // * [HANDLE] Bulk delete selected students
   const handleBulkDelete = async () => {
     if (selectedStudents.length === 0) return;
 
@@ -180,59 +230,7 @@ const AdminStudents = () => {
     setOnConfirmAction(() => onBulkDeleteConfirm);
   };
 
-  // *[HANDLE] Fetch Students
-  const fetchStudents = async () => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/students?limit=200`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.message || "Failed to fetch students");
-
-      // ensure students is always an array (response is data.data.data due to pagination wrapper)
-      const list = data.data?.data;
-      setStudents(Array.isArray(list) ? list : []);
-    } catch (err) {
-      console.error(err);
-      setModalTitle("Error fetching students");
-      setIsCancelable(true);
-      setShowModal(true);
-      setStudents([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchStudents();
-  }, []);
-
-  // [HANDLE] Add student
-  const handleAddStudent = async () => {
-    setFormData({
-      lrn: "",
-      firstName: "",
-      middleName: "",
-      lastName: "",
-      nameExtension: "",
-      email: "",
-      sex: "MALE",
-      birthDate: "",
-      createdByAdviserId: "",
-      adviserName: "",
-      advisorySection: null,
-      learningModality: "Face to Face",
-    });
-    setAdviserSearch("");
-    setIsEditMode(false);
-    setFormError("");
-    await fetchAdvisers();
-    setShowStudentModal(true);
-  };
-
-  // [HANDLE] Submit form (create or update)
+  // * [HANDLE] Submit create/edit form
   const handleSubmit = async () => {
     const dataToSubmit = isEditMode
       ? {
@@ -307,10 +305,7 @@ const AdminStudents = () => {
     }
   };
 
-  // [LOADING STATE]
-  if (loading) return <Skeleton />;
-
-  // [HANDLE] Sorting and Searching
+  // * [HANDLE] Sorting and Searching
   const filteredStudents = students
     .filter(s =>
       (
@@ -330,17 +325,19 @@ const AdminStudents = () => {
       }
     });
 
-  // [PAGINATION]
   const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
   const displayedStudents = filteredStudents.slice((page - 1) * itemsPerPage, page * itemsPerPage);
   const handlePrevPage = () => setPage(prev => Math.max(prev - 1, 1));
   const handleNextPage = () => setPage(prev => Math.min(prev + 1, totalPages));
 
-  // *[BREADCRUMBS] Admin Dashboard navigation
+  // * [BREADCRUMBS] Admin Dashboard navigation
   const breadcrumbs = [
     { label: "Admin Dashboard", path: "/admin/dashboard" },
     { label: "Students", path: null },
   ];
+
+  // ? [LOADING STATE]
+  if (loading) return <Skeleton />;
 
   return (
     <div>
