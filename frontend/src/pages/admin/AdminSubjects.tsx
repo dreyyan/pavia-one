@@ -197,11 +197,13 @@ const AdminSubjects = () => {
   // * [HANDLE] Delete subject
   const handleDelete = (id: number) => {
     setModalTitle("Delete Subject");
+    setModalMessage("Are you sure you want to delete this subject? This action cannot be undone.");
+    setModalType("error");
+    setModalConfirmText("Delete");
     setIsCancelable(true);
     setShowModal(true);
 
     const onDeleteConfirm = async () => {
-      setShowModal(false);
       setLoading(true);
       try {
         const token = localStorage.getItem("token");
@@ -211,12 +213,28 @@ const AdminSubjects = () => {
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.message || "Failed to delete subject");
+
+        // * Update state
         setSubjects(prev => prev.filter(s => s.id !== id));
+
+        // * Show success inside the same modal
+        setModalTitle("Subject Deleted");
+        setModalMessage("The subject has been deleted successfully.");
+        setModalType("success");
+        setModalConfirmText("OK");
+        setIsCancelable(false);
+
+        setOnConfirmAction(() => async () => {
+          setShowModal(false);
+          navigate("/admin/subjects");
+        });
       } catch (err) {
         console.error("Delete error:", err);
         setModalTitle("Delete Failed");
+        setModalMessage("An error occurred while deleting the subject.");
+        setModalType("error");
+        setModalConfirmText("OK");
         setIsCancelable(true);
-        setShowModal(true);
       } finally {
         setLoading(false);
       }
@@ -373,53 +391,49 @@ const AdminSubjects = () => {
 
         {/* [SECTION] Subjects: Mobile View (Cards) */}
         <div className="flex flex-col gap-4 sm:hidden mt-2 bg-[var(--color-bg-100)] px-3 py-4 rounded-lg">
-          {/* [EMPTY STATE] No Subjects */}
-          {!loading && subjects.length === 0 && (
-            <EmptyState
-              title="No subjects found"
-              subtitle="You currently have no assigned subjects. Please contact admin if this is an error."
-              iconSrc="/no-data-icon.svg"
-            />
-          )}
-
-          {/* [EMPTY STATE] No Subjects /w Current Filters */}
-          {!loading && filteredSubjects.length === 0 && (
-            <EmptyState
-              title="No subjects found"
-              subtitle="No subjects match your current filters or search. Try adjusting your criteria."
-              iconSrc="/no-data-icon.svg"
-            />
-          )}
-
-          {displayedSubjects.map((s) => (
-            <div
-              key={s.id}
-              className="bg-white rounded-md border border-[var(--color-bg-200)] overflow-hidden hover:translate-y-[-1px] hover:shadow-md active:shadow-md transition-all duration-200 cursor-pointer"
-              onClick={() => navigate(`/admin/subjects/view/${s.id}`)}
-            >
-              <div className="bg-[var(--color-bg-50)] px-3 pr-4 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
-                <div className="flex items-center w-full gap-3 min-w-0">
-                  <div className="size-10 rounded-md bg-[var(--color-primary-100)] flex items-center justify-center text-[var(--color-primary-700)] font-bold text-sm border border-[var(--color-primary-200)] flex-shrink-0 px-1">
-                    G{s.gradeLevel}
+          {!loading && (
+            filteredSubjects.length === 0 ? (
+              <EmptyState
+                title="No subjects found"
+                subtitle={
+                  subjects.length === 0
+                    ? "You currently have no assigned subjects. Please contact admin if this is an error."
+                    : "No subjects match your current filters or search. Try adjusting your criteria."
+                }
+                iconSrc="/no-data-icon.svg"
+              />
+            ) : (
+              displayedSubjects.map((s) => (
+                <div
+                  key={s.id}
+                  className="bg-white rounded-md border border-[var(--color-bg-200)] overflow-hidden hover:translate-y-[-1px] hover:shadow-md active:shadow-md transition-all duration-200 cursor-pointer"
+                  onClick={() => navigate(`/admin/subjects/view/${s.id}`)}
+                >
+                  <div className="bg-[var(--color-bg-50)] px-3 pr-4 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
+                    <div className="flex items-center w-full gap-3 min-w-0">
+                      <div className="size-10 rounded-md bg-[var(--color-primary-100)] flex items-center justify-center text-[var(--color-primary-700)] font-bold text-sm border border-[var(--color-primary-200)] flex-shrink-0 px-1">
+                        G{s.gradeLevel}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-roboto font-bold text-[var(--color-text-900)] text-base leading-tight truncate">{s.name}</p>
+                        <p className="text-xs font-mono text-[var(--color-text-600)] mt-0.5 tracking-wider truncate">{s.code}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-roboto font-bold text-[var(--color-text-900)] text-base leading-tight truncate">{s.name}</p>
-                    <p className="text-xs font-mono text-[var(--color-text-600)] mt-0.5 tracking-wider truncate">{s.code}</p>
+                  <div className="px-4 py-3 space-y-2 text-sm">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[var(--color-text-700)] font-figree font-semibold">Grade Level</span>
+                      <span className="text-[var(--color-text-900)]">{s.gradeLevel ?? "—"}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[var(--color-text-700)] font-figree font-semibold">Curriculum</span>
+                      <span className="text-[var(--color-text-900)]">{s.curriculum ?? "—"}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="px-4 py-3 space-y-2 text-sm">
-                <div className="flex justify-between items-center">
-                  <span className="text-[var(--color-text-700)] font-figree font-semibold">Grade Level</span>
-                  <span className="text-[var(--color-text-900)]">{s.gradeLevel ?? "—"}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-[var(--color-text-700)] font-figree font-semibold">Curriculum</span>
-                  <span className="text-[var(--color-text-900)]">{s.curriculum ?? "—"}</span>
-                </div>
-              </div>
-            </div>
-          ))}
+              ))
+            )
+          )}
         </div>
 
         {/* [SECTION] Subjects: Desktop View (Table) */}
