@@ -372,7 +372,7 @@ const AdminSubjects = () => {
 
         {/* [SECTION] Subjects: Mobile View (Cards) */}
         <div className="flex flex-col gap-4 sm:hidden mt-2 bg-[var(--color-bg-100)] px-3 py-4 rounded-lg">
-          {/* [EMPTY STATE] No Subjects Display */}
+          {/* [EMPTY STATE] No Subjects */}
           {!loading && subjects.length === 0 && (
             <EmptyState
               title="No subjects found"
@@ -381,7 +381,7 @@ const AdminSubjects = () => {
             />
           )}
 
-          {/* [EMPTY STATE] No Subjects According to Filter */}
+          {/* [EMPTY STATE] No Subjects /w Current Filters */}
           {!loading && filteredSubjects.length === 0 && (
             <EmptyState
               title="No subjects found"
