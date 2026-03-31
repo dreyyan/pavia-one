@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // [IMPORT] Hooks
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
@@ -557,31 +558,6 @@ const AdminStudents = () => {
     setShowStudentModal(true);
   };
 
-  // [HANDLE] Open edit
-  const handleOpenEdit = async (student: Student) => {
-    setFormData({
-      id: student.id,
-      lrn: student.lrn,
-      firstName: student.firstName,
-      middleName: student.middleName || "",
-      lastName: student.lastName,
-      nameExtension: student.nameExtension || "",
-      email: student.email || "",
-      sex: student.sex || "MALE",
-      // [DATE] Strip time component so the date input renders correctly
-      birthDate: student.birthDate ? student.birthDate.split("T")[0] : "",
-      createdByAdviserId: student.createdByAdviserId,
-      adviserName: student.adviser?.name || "",
-      advisorySection: null,
-      learningModality: student.enrollments?.[0]?.learningModality || "Face to Face",
-    });
-    setAdviserSearch(student.adviser?.name || "");
-    setIsEditMode(true);
-    setFormError("");
-    await fetchAdvisers();
-    setShowStudentModal(true);
-  };
-
   // [HANDLE] Submit form (create or update)
   const handleSubmit = async () => {
     const dataToSubmit = isEditMode
@@ -655,38 +631,6 @@ const AdminStudents = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  // [HANDLE] Delete student
-  const handleDelete = (id: number) => {
-    setModalTitle("Delete Student");
-    setIsCancelable(true);
-    setShowModal(true);
-
-    const onDeleteConfirm = async () => {
-      setShowModal(false);
-      setLoading(true);
-
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/students/${id}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        if (!data.success) throw new Error(data.message || "Failed to delete student");
-        setStudents(prev => prev.filter(s => s.id !== id));
-      } catch (err) {
-        console.error("Delete error:", err);
-        setModalTitle("Delete Failed");
-        setIsCancelable(true);
-        setShowModal(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    setOnConfirmAction(() => onDeleteConfirm);
   };
 
   // [LOADING STATE]
