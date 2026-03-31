@@ -2,39 +2,13 @@
 // [IMPORT] Hooks
 import { useState, useEffect } from "react";
 
+// [IMPORT] Contants & Types
+import { gradeLevelOptions, curriculumOptions, weightPresets } from "../../constants";
+import { LearningAreaFormData } from "../../types";
+
 // ? [CONSTANTS]
-const gradeLevelOptions = ["7", "8", "9", "10"];
-
-const curriculumOptions: { value: string; label: string; description: string }[] = [
-  { value: "Regular",  label: "Regular",  description: "Standard K to 12 curriculum" },
-  { value: "STE",      label: "STE",      description: "Science, Technology & Engineering" },
-  { value: "SPS",      label: "SPS",      description: "Specialization – Sports (Badminton)" },
-  { value: "SPA",      label: "SPA",      description: "Specialization – Visual Arts" },
-  { value: "SPJ",      label: "SPJ",      description: "Specialization – ICT / Journalism" },
-];
-
-// [CONSTANT] Preset weight configs per component type
-// WW + PT + QA must always sum to 1.0 (100%)
-const weightPresets: { label: string; ww: number; pt: number; qa: number }[] = [
-  { label: "30 / 50 / 20", ww: 0.3, pt: 0.5, qa: 0.2 },  // Core / Humanities
-  { label: "40 / 40 / 20", ww: 0.4, pt: 0.4, qa: 0.2 },  // Science / Math
-  { label: "20 / 60 / 20", ww: 0.2, pt: 0.6, qa: 0.2 },  // MAPEH / EPP / TLE
-];
-
 const TOTAL_STEPS = 3;
 const inputCls = "bg-[var(--color-bg-50)] font-roboto rounded-md py-2 px-3 border border-[var(--color-text-300)] outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm";
-
-// ? [TYPE]
-// Mirrors the fields accepted by POST/PUT /api/admin/learning-area
-export type LearningAreaFormData = {
-  id?: number;
-  name: string;
-  gradeLevel: string;                // stored as string in the form; cast to Number on submit
-  curriculum: string;
-  writtenWorkWeight: string;         // stored as "0.3" etc.; cast to Float on submit
-  performanceTaskWeight: string;
-  quarterlyAssessmentWeight: string;
-};
 
 // *[COMPONENT] Weight Preset Pill
 const WeightPresetPill = ({

@@ -10,6 +10,9 @@ import DeleteButton from "../../components/DeleteButton";
 import InputField from "../../components/InputField";
 import Modal from "../../components/Modal";
 
+// [IMPORT] Constants
+import { gradeLevelOptions } from "../../constants";
+
 // ?[INTERFACES]
 interface SubjectSection {
   id: number;
@@ -39,9 +42,6 @@ const PAGE_LABELS: [string, string] = [
   "Details",
 ];
 
-const gradeLevelOptions = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
-const semesterOptions = ["1st Semester", "2nd Semester", "Full Year"];
-
 // *[PAGE] Admin Subject Details
 const AdminSubjectDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -70,7 +70,7 @@ const AdminSubjectDetails = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/subjects/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.status === 401) {
@@ -110,7 +110,7 @@ const AdminSubjectDetails = () => {
       setLoading(true);
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/subjects/${id}`, {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area/${id}`, {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -144,7 +144,7 @@ const AdminSubjectDetails = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/subjects/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area/${id}`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -226,15 +226,6 @@ const AdminSubjectDetails = () => {
       // Details
       return (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <InputField
-            label="Semester"
-            type="select"
-            value={formData.semester ?? ""}
-            onChange={handleFieldChange("semester")}
-            placeholder="Select semester"
-            options={semesterOptions}
-            disabled={!isEditing}
-          />
           <InputField
             label="Hours per Week"
             type="number"

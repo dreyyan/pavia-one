@@ -9,10 +9,11 @@ import PrimaryButton from "../../components/PrimaryButton";
 import CrudModal from "../../components/CrudModal";
 import Modal from "../../components/Modal";
 import EmptyState from "../../components/EmptyState";
-import SubjectFormModal, { type LearningAreaFormData } from "../../components/forms/SubjectFormModal";
+import SubjectFormModal from "../../components/forms/SubjectFormModal";
 
-// ? [CONSTANTS]
-const gradeLevelOptions = ["7", "8", "9", "10"];
+// [IMPORT] Constants & Types
+import { gradeLevelOptions } from "../../constants";
+import { LearningAreaFormData } from "../../types";
 
 // ?[INTERFACES]
 interface Subject {
