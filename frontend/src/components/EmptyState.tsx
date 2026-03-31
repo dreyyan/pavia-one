@@ -6,7 +6,7 @@ interface EmptyStateProps {
 
 const EmptyState = ({ title, subtitle, iconSrc }: EmptyStateProps) => {
   return (
-    <div className="flex flex-col items-center justify-center py-12 px-6 bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-xl shadow-sm space-y-4 text-center">
+    <div className="flex flex-col items-center justify-center py-12 px-6 bg-[var(--color-bg-100)] rounded-xl space-y-4 text-center">
       {iconSrc && <img src={iconSrc} alt="Empty state" className="w-20 h-20" />}
       <h3 className="text-lg font-bold text-[var(--color-text-700)]">{title}</h3>
       {subtitle && <p className="text-sm text-[var(--color-text-600)]">{subtitle}</p>}
