@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // [IMPORT] Hooks
 import { useState, useEffect, useRef } from "react";
@@ -6,73 +7,13 @@ import { useNavigate } from "react-router-dom";
 // [IMPORT] Components
 import Skeleton from "../../components/Skeleton";
 import PrimaryButton from "../../components/PrimaryButton";
-import CrudModal from "../../components/CrudModal";
 import StudentFormModal from "../../components/forms/StudentFormModal";
 import EmptyState from "../../components/EmptyState";
+import Modal from "../../components/Modal";
 
-// ? [CONSTANTS]
-const sexOptions = [
-  { value: "MALE", label: "Male" },
-  { value: "FEMALE", label: "Female" }
-];
-
-// ?[INTERFACES]
-interface Student {
-  id: number;
-  lrn: string;
-  firstName: string;
-  middleName?: string;
-  lastName: string;
-  nameExtension?: string;
-  fullName: string;
-  sex?: string;
-  birthDate?: string;
-  email?: string;
-  createdByAdviserId: string;
-  createdAt: string;
-  adviser?: { id: number; name: string; adviserId: string };
-  enrollments: {
-    id: number;
-    sectionId: number;
-    schoolYear: string;
-    status: string;
-    learningModality: string;
-  }[];
-}
-
-interface AdviserSection {
-  id: number;
-  name: string;
-  gradeLevel: number;
-  schoolYear: string;
-  curriculum: string;
-  classSize: number;
-  isAdvisory?: boolean;
-}
-
-interface Adviser {
-  id: number;
-  adviserId: string;
-  name: string;
-  sections: AdviserSection[];
-}
-
-// ? [TYPE] Form data for create/edit student
-type FormData = {
-  id?: number;
-  lrn: string;
-  firstName: string;
-  middleName: string;
-  lastName: string;
-  nameExtension: string;
-  email: string;
-  sex: string;
-  birthDate: string;
-  createdByAdviserId: string;
-  adviserName: string;
-  advisorySection: AdviserSection | null;
-  learningModality: string;
-};
+// [IMPORT] Constants & Types
+import { GeneralModalConfig, StudentFormData, Adviser, Student } from "../../types";
+import { SEX_OPTIONS } from "../../constants";
 
 const AdminStudents = () => {
   const navigate = useNavigate();
@@ -84,6 +25,7 @@ const AdminStudents = () => {
 
   // [STATES] Search, Sort, and Filter
   const [search, setSearch] = useState("");
+  const [adviserSearch, setAdviserSearch] = useState("");
   const [sortOption, setSortOption] = useState<"name-asc" | "name-desc" | "lrn-asc" | "lrn-desc">("name-asc");
   const [showSortFilters, setShowSortFilters] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
@@ -95,7 +37,7 @@ const AdminStudents = () => {
   const [showStudentModal, setShowStudentModal] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [formError, setFormError] = useState("");
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<StudentFormData>({
     lrn: "",
     firstName: "",
     middleName: "",
@@ -110,12 +52,28 @@ const AdminStudents = () => {
     learningModality: "Face to Face",
   });
 
-  // [STATES] CRUD Modal
-  const [showModal, setShowModal] = useState(false);
-  const [modalTitle, setModalTitle] = useState("");
-  const [isCancelable, setIsCancelable] = useState(true);
-  const [onConfirmAction, setOnConfirmAction] = useState<() => Promise<void>>(() => async () => {});
-  const [adviserSearch, setAdviserSearch] = useState("");
+  // [STATE] General Modal
+  const [generalModal, setGeneralModal] = useState<GeneralModalConfig>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "default",
+    confirmText: "OK",
+    isCancelable: true,
+    onConfirm: () => {},
+  });
+
+  const openGeneralModal = (config: Partial<Omit<GeneralModalConfig, "isOpen">>) => {
+    setGeneralModal({
+      ...generalModal,
+      isOpen: true,
+      ...config,
+    });
+  };
+
+  const closeGeneralModal = () => {
+    setGeneralModal(prev => ({ ...prev, isOpen: false }));
+  };
 
   // [STATES] Pagination
   const [page, setPage] = useState(1);
@@ -140,9 +98,16 @@ const AdminStudents = () => {
       setStudents(Array.isArray(list) ? list : []);
     } catch (err) {
       console.error(err);
-      setModalTitle("Error fetching students");
-      setIsCancelable(true);
-      setShowModal(true);
+      // ! [ERROR] Fetching student failed
+      console.error(err);
+      openGeneralModal({
+        title: "Unable to Load Student",
+        message: "We couldn't load the student at the moment. Please check your internet connection and try again.",
+        type: "error",
+        confirmText: "Close",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
       setStudents([]);
     } finally {
       setLoading(false);
@@ -164,7 +129,16 @@ const AdminStudents = () => {
       if (!data.success) throw new Error("Failed to fetch advisers");
       setAdvisers(Array.isArray(data.data?.data) ? data.data.data : []);
     } catch (err) {
-      console.error("Fetch advisers error:", err);
+      // ! [ERROR] Fetching advisers failed
+      console.error(err);
+      openGeneralModal({
+        title: "Unable to Load Advisers",
+        message: "We couldn't load the advisers at the moment. Please check your internet connection and try again.",
+        type: "error",
+        confirmText: "Close",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
       setAdvisers([]);
     }
   };
@@ -193,40 +167,61 @@ const AdminStudents = () => {
   };
 
   // * [HANDLE] Bulk delete selected students
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (selectedStudents.length === 0) return;
 
-    setModalTitle(`Delete ${selectedStudents.length} Selected Students`);
-    setIsCancelable(true);
-    setShowModal(true);
+    // ? [CONFIRMATION] Show confirmation modal before bulk deletion
+    openGeneralModal({
+      title: "Delete Students",
+      message: `Are you sure you want to delete ${selectedStudents.length} selected student(s)? This action cannot be undone.`,
+      type: "error",
+      confirmText: "Delete",
+      isCancelable: true,
+      onConfirm: async () => {
+        setLoading(true);
+        try {
+          const token = localStorage.getItem("token");
+          const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/students`, {
+            method: "DELETE",
+            headers: { 
+              "Content-Type": "application/json", 
+              Authorization: `Bearer ${token}` 
+            },
+            body: JSON.stringify({ ids: selectedStudents }),
+          });
 
-    const onBulkDeleteConfirm = async () => {
-      setShowModal(false);
-      setLoading(true);
+          const data = await res.json();
+          if (!data.success) throw new Error(data.message || "Bulk delete failed");
 
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/students`, {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ ids: selectedStudents }),
-        });
-        const data = await res.json();
-        if (!data.success) throw new Error(data.message || "Bulk delete failed");
+          // Success
+          setStudents(prev => prev.filter(s => !selectedStudents.includes(s.id)));
+          setSelectedStudents([]);
 
-        setStudents(prev => prev.filter(s => !selectedStudents.includes(s.id)));
-        setSelectedStudents([]);
-      } catch (err) {
-        console.error("Bulk delete error:", err);
-        setModalTitle("Bulk Delete Failed");
-        setIsCancelable(true);
-        setShowModal(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    setOnConfirmAction(() => onBulkDeleteConfirm);
+          // * [SUCCESS] Show success modal after deletion
+          openGeneralModal({
+            title: "Students Deleted",
+            message: `${selectedStudents.length} student(s) have been deleted successfully.`,
+            type: "success",
+            confirmText: "OK",
+            isCancelable: false,
+            onConfirm: () => closeGeneralModal(),
+          });
+        } catch (err) {
+          // ! [ERROR] Bulk delete failed
+          console.error("Bulk delete error:", err);
+          openGeneralModal({
+            title: "Unable to Delete Students",
+            message: "We couldn't delete the selected students at the moment. Please check your internet connection and try again.",
+            type: "error",
+            confirmText: "Close",
+            isCancelable: false,
+            onConfirm: () => closeGeneralModal(),
+          });
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
   };
 
   // * [HANDLE] Submit create/edit form
@@ -340,33 +335,33 @@ const AdminStudents = () => {
 
   return (
     <div>
-        {/* [STUDENT FORM MODAL] */}
-        <StudentFormModal
-          isOpen={showStudentModal}
-          title={isEditMode ? "Edit Student" : "Create Student"}
-          onClose={() => setShowStudentModal(false)}
-          onSubmit={handleSubmit}
-          formData={formData}
-          setFormData={setFormData}
-          advisers={advisers}
-          adviserSearch={adviserSearch}
-          setAdviserSearch={setAdviserSearch}
-          loading={loading}
-          formError={formError}
-          setFormError={setFormError}
-          isEditMode={isEditMode}
-        />
-
-        {/* [CRUD MODAL] Confirmations (Delete/Error) */}
-        <CrudModal
-          isOpen={showModal}
-          title={modalTitle}
-          isCancelable={isCancelable}
-          onClose={() => setShowModal(false)}
-          onConfirm={onConfirmAction}
-          loading={loading}
-          showForm={false}
-        />
+      {/* [MODAL] General */}
+      <Modal
+        isOpen={generalModal.isOpen}
+        onClose={closeGeneralModal}
+        title={generalModal.title}
+        message={generalModal.message}
+        type={generalModal.type}
+        confirmText={generalModal.confirmText}
+        onConfirm={generalModal.onConfirm}
+        isCancelable={generalModal.isCancelable}
+      />
+      {/* [STUDENT FORM MODAL] */}
+      <StudentFormModal
+        isOpen={showStudentModal}
+        title={isEditMode ? "Edit Student" : "Create Student"}
+        onClose={() => setShowStudentModal(false)}
+        onSubmit={handleSubmit}
+        formData={formData}
+        setFormData={setFormData}
+        advisers={advisers}
+        adviserSearch={adviserSearch}
+        setAdviserSearch={setAdviserSearch}
+        loading={loading}
+        formError={formError}
+        setFormError={setFormError}
+        isEditMode={isEditMode}
+      />
       <div className="py-10 px-4 space-y-4 relative">
 
       {/* [SECTION] Header & Breadcrumbs */}
@@ -442,7 +437,7 @@ const AdminStudents = () => {
               >
                 All
               </button>
-                {sexOptions.map((option) => (
+                {SEX_OPTIONS.map((option) => (
                   <button
                     key={option.value}
                     onClick={() => { 
