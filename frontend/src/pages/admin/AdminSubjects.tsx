@@ -235,7 +235,6 @@ const AdminSubjects = () => {
           isCancelable: false,
           onConfirm: () => {
             closeGeneralModal();
-            navigate("/admin/subjects");
           },
         });
       } catch (err) {
@@ -263,9 +262,6 @@ const AdminSubjects = () => {
       onConfirm: onDeleteConfirm,
     });
   };
-
-  // ? [LOADING STATE] Show skeleton while loading
-  if (loading) return <Skeleton />;
 
   // [HANDLE] Search, Sort, and Grade Filter
   const filteredSubjects = subjects
@@ -297,6 +293,9 @@ const AdminSubjects = () => {
     { label: "Admin Dashboard", path: "/admin/dashboard" },
     { label: "Subjects", path: null },
   ];
+
+  // ? [LOADING STATE] Show skeleton while loading
+  if (loading) return <Skeleton />;
 
   return (
     <div>
