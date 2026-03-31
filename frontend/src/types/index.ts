@@ -34,6 +34,29 @@ export type StudentFormData = {
   learningModality: string;
 };
 
+export type SectionFormData = {
+  id?: number;
+  name: string;
+  gradeLevel: string;
+  schoolYear: string;
+  curriculum: string;
+  learningModality: string;
+  room: string;
+};
+
+export interface Section {
+  id: number;
+  name: string;
+  gradeLevel: number;
+  schoolYear: string;
+  curriculum: string;
+  learningModality: string;
+  classSize: number;
+  room?: string;
+  createdAt: string;
+  adviser?: { id: number; name: string; adviserId: string };
+}
+
 export interface AdviserSection {
   id: number;
   name: string;

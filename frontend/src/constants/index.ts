@@ -14,6 +14,15 @@ export const CURRICULUM_OPTIONS: { value: string; label: string; description: st
   { value: "SPJ",      label: "SPJ",      description: "Specialization – ICT / Journalism" },
 ];
 
+export const LEARNING_MODALITY_OPTIONS = [
+  { value: "Face to Face", label: "Face to Face" },
+  { value: "Distance Learning", label: "Distance Learning" },
+  { value: "Blended", label: "Blended" },
+  { value: "Online", label: "Online" },
+  { value: "Homeschool", label: "Homeschool" },
+  { value: "Other", label: "Other" }
+];
+
 export const WEIGHT_PRESETS: { label: string; ww: number; pt: number; qa: number }[] = [
   { label: "30 / 50 / 20", ww: 0.3, pt: 0.5, qa: 0.2 },  // Core / Humanities
   { label: "40 / 40 / 20", ww: 0.4, pt: 0.4, qa: 0.2 },  // Science / Math
