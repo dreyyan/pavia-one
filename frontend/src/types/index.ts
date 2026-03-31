@@ -83,3 +83,54 @@ export interface LearningAreaDetails {
   performanceTaskWeight: number;
   quarterlyAssessmentWeight: number;
 };
+
+export interface Enrollment {
+  id: number;
+  sectionId: number;
+  schoolYear: string;
+  status: string;
+  learningModality: string;
+  section?: {
+    id: number;
+    name: string;
+    gradeLevel: number;
+    curriculum: string;
+  };
+}
+
+export interface StudentDetails {
+  id: number;
+  lrn: string;
+  firstName: string;
+  middleName?: string;
+  lastName: string;
+  nameExtension?: string;
+  fullName: string;
+  sex?: string;
+  birthDate?: string;
+  email?: string;
+  createdByAdviserId: string;
+  createdAt: string;
+  adviser?: { id: number; name: string; adviserId: string };
+  enrollments: Enrollment[];
+  // Address
+  houseStreet?: string;
+  barangay?: string;
+  municipalityCity?: string;
+  province?: string;
+  // Basic Info extras
+  motherTongue?: string;
+  ipEthnicGroup?: string;
+  religion?: string;
+  // Parents
+  fatherLastName?: string;
+  fatherFirstName?: string;
+  fatherMiddleName?: string;
+  motherLastName?: string;
+  motherFirstName?: string;
+  motherMiddleName?: string;
+  guardianLastName?: string;
+  guardianFirstName?: string;
+  guardianMiddleName?: string;
+  contactNumber?: string;
+}

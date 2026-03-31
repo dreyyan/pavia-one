@@ -1,3 +1,4 @@
+// ? [CONSTANTS] Options
 export const GRADE_LEVEL_OPTIONS = ["7", "8", "9", "10"];
 
 export const SEX_OPTIONS = [
@@ -19,7 +20,14 @@ export const WEIGHT_PRESETS: { label: string; ww: number; pt: number; qa: number
   { label: "20 / 60 / 20", ww: 0.2, pt: 0.6, qa: 0.2 },  // MAPEH / EPP / TLE
 ];
 
+// ? [CONSTANTS] Labels
 export const SUBJECT_PAGE_LABELS: [string, string] = [
   "Subject Info",
   "Grading Weights",
+];
+
+export const STUDENT_DETAILS_PAGE_LABELS: [string, string, string] = [
+  "Basic Information",
+  "Address",
+  "Parents",
 ];
