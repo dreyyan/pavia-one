@@ -11,34 +11,8 @@ import Modal from "../../components/Modal";
 import { WeightRow } from "../../components/WeightRow";
 
 // [IMPORT] Constants & Types
-import { gradeLevelOptions, curriculumOptions } from "../../constants";
-
-// ? [CONSTANTS]
-const PAGE_LABELS: [string, string] = [
-  "Subject Info",
-  "Grading Weights",
-];
-
-// ? [INTERFACES]
-interface LearningAreaDetails {
-  id: number;
-  name: string;
-  gradeLevel: number;
-  curriculum: string;
-  writtenWorkWeight: number;
-  performanceTaskWeight: number;
-  quarterlyAssessmentWeight: number;
-}
-
-interface GeneralModalConfig {
-  isOpen: boolean;
-  title: string;
-  message: string;
-  type: "default" | "error" | "success" | "info" | "warning";
-  confirmText: string;
-  isCancelable: boolean;
-  onConfirm: () => void;
-}
+import { GRADE_LEVEL_OPTIONS, CURRICULUM_OPTIONS, SUBJECT_PAGE_LABELS } from "../../constants";
+import type { GeneralModalConfig, LearningAreaDetails } from "../../types";
 
 // ? [TYPE] Form pages
 type FormPage = 0 | 1;
@@ -289,7 +263,7 @@ const AdminSubjectDetails = () => {
             value={formData.gradeLevel ? String(formData.gradeLevel) : ""}
             onChange={handleFieldChange("gradeLevel")}
             placeholder="Select grade level"
-            options={gradeLevelOptions.map(g => `Grade ${g}`)}
+            options={GRADE_LEVEL_OPTIONS.map(g => `Grade ${g}`)}
             disabled
           />
           <InputField
@@ -298,7 +272,7 @@ const AdminSubjectDetails = () => {
             value={formData.curriculum ?? ""}
             onChange={handleFieldChange("curriculum")}
             placeholder="Select curriculum"
-            options={curriculumOptions.map(opt => opt.label)}
+            options={CURRICULUM_OPTIONS.map(opt => opt.label)}
             disabled
           />
           {/* [HINT] Grade level and curriculum are locked after creation */}
@@ -425,7 +399,7 @@ const AdminSubjectDetails = () => {
 
               {/* [PAGINATION] Page tabs */}
               <div className="flex gap-1 bg-[var(--color-bg-200)] rounded-lg p-1">
-                {PAGE_LABELS.map((label, idx) => (
+                {SUBJECT_PAGE_LABELS.map((label, idx) => (
                   <button
                     key={idx}
                     onClick={() => setActivePage(idx as FormPage)}
@@ -446,7 +420,7 @@ const AdminSubjectDetails = () => {
               {/* [HEADER] Section title + Edit / Save / Cancel buttons */}
               <div className="flex items-center justify-between">
                 <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)]">
-                  {PAGE_LABELS[activePage]}
+                  {SUBJECT_PAGE_LABELS[activePage]}
                 </p>
                 <div className="flex items-center gap-2">
                   {isEditing && (
