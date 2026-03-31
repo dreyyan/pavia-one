@@ -43,22 +43,22 @@ interface GeneralModalConfig {
 const AdminSubjects = () => {
   const navigate = useNavigate();
 
-  // [STATES]
+  // [STATES] Entities
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // [STATES] Search, Sort, and Filter
   const [search, setSearch] = useState("");
   const [sortOption, setSortOption] = useState<"name-asc" | "name-desc" | "grade-asc" | "grade-desc">("name-asc");
   const [showSortFilters, setShowSortFilters] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
 
-  // Grade filter
   const [selectedGrade, setSelectedGrade] = useState<string | "All">("All");
   const [showGradeFilters, setShowGradeFilters] = useState(false);
 
-  // Subject form modal (Add only)
+  // [STATES] Subject Form Modal
   const [showSubjectModal, setShowSubjectModal] = useState(false);
   const [formError, setFormError] = useState("");
-
   const [formData, setFormData] = useState<LearningAreaFormData>({
     name: "",
     gradeLevel: "",
@@ -68,11 +68,11 @@ const AdminSubjects = () => {
     quarterlyAssessmentWeight: "0.2",
   });
 
-  // Pagination
+  // [STATES] Pagination
   const [page, setPage] = useState(1);
   const itemsPerPage = 5;
 
-  // General Modal
+  // [STATE] General Modal
   const [generalModal, setGeneralModal] = useState<GeneralModalConfig>({
     isOpen: false,
     title: "",
@@ -95,7 +95,7 @@ const AdminSubjects = () => {
     setGeneralModal(prev => ({ ...prev, isOpen: false }));
   };
 
-  // Fetch subjects
+  // * [HANDLE] Fetch Subjects
   const fetchSubjects = async () => {
     setLoading(true);
     try {
@@ -109,6 +109,7 @@ const AdminSubjects = () => {
 
       setSubjects(Array.isArray(data.data) ? data.data : []);
     } catch (err) {
+      // ! [ERROR] Fetching subjects failed
       console.error(err);
       openGeneralModal({
         title: "Unable to Load Subjects",
@@ -128,7 +129,7 @@ const AdminSubjects = () => {
     fetchSubjects();
   }, []);
 
-  // Close sort dropdown on outside click
+  // [EFFECT] Close sort dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
@@ -153,7 +154,7 @@ const AdminSubjects = () => {
     setShowSubjectModal(true);
   };
 
-  // Submit (Create only now)
+  // * [HANDLE] Submit
   const handleSubmit = async () => {
     setLoading(true);
     setFormError("");
@@ -195,7 +196,6 @@ const AdminSubjects = () => {
       setShowSubjectModal(false);
       await fetchSubjects();
     } catch (err: any) {
-
       // ! [ERROR] Subject creation failed
       console.error(err);
       openGeneralModal({
