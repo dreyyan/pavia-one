@@ -18,6 +18,9 @@ const sexOptions = [
 
 const inputCls = "bg-[var(--color-bg-50)] font-roboto rounded-md py-2 px-3 border border-[var(--color-text-300)] outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm";
 
+const TOTAL_CREATE_STEPS = 3;
+const TOTAL_EDIT_STEPS = 2;
+
 // ? [INTERFACES]
 interface AdviserSection {
   id: number;
@@ -52,9 +55,6 @@ type FormData = {
   advisorySection: AdviserSection | null;
   learningModality: string;
 };
-
-const TOTAL_CREATE_STEPS = 3;
-const TOTAL_EDIT_STEPS = 2;
 
 const StudentFormModal = ({
   isOpen,
