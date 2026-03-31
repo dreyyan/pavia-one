@@ -37,7 +37,7 @@ const AdminLogin = () => {
 
         // ![ERROR] Empty Password
         if (!password) {
-            setModalTitle("Password required"); // <-- fixed typo
+            setModalTitle("Password required");
             setModalMessage("Please enter your password to continue.");
             setIsCancelable(false);
             setRedirectOnConfirm(false);
@@ -79,7 +79,7 @@ const AdminLogin = () => {
 
             // *[SUCCESS] Store token and role
             localStorage.setItem("token", data.data.token);
-            localStorage.setItem("role", "admin"); // ✅ must be lowercase to match AuthProvider validation
+            localStorage.setItem("role", "admin");
 
             // update auth context
             setUser({ id: 0, name: username, role: "admin" });
