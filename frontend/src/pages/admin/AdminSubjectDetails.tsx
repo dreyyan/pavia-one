@@ -326,8 +326,8 @@ const AdminSubjectDetails = () => {
           {/* [UI] Live weight sum indicator */}
           <div className={`flex items-center justify-between px-3 py-2 rounded-md text-xs font-roboto font-medium ${
             weightsAreValid
-              ? "bg-green-50 text-green-700 border border-green-200"
-              : "bg-amber-50 text-amber-700 border border-amber-200"
+              ? "bg-green-50 text-[var(--color-accent-700)] border border-[var(--color-accent-200)]"
+              : "bg-amber-50 text-[var(--color-red-700)] border border-[var(--color-red-200)]"
           }`}>
             <span>Total</span>
             <span>
