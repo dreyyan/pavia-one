@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/exhaustive-deps */
 // [IMPORT] Hooks
 import { useState, useEffect } from "react";
@@ -5,7 +6,6 @@ import { useNavigate, useParams } from "react-router-dom";
 
 // [IMPORT] Components
 import Skeleton from "../../components/Skeleton";
-import CrudModal from "../../components/CrudModal";
 import ProfileInfo from "../../components/ProfileInfo";
 import PrimaryButton from "../../components/PrimaryButton";
 import DeleteButton from "../../components/DeleteButton";
@@ -13,89 +13,48 @@ import InputField from "../../components/InputField";
 import Modal from "../../components/Modal";
 import { StatusBadge } from "../../components/StatusBadge";
 
-// ?[INTERFACES]
-interface Enrollment {
-  id: number;
-  sectionId: number;
-  schoolYear: string;
-  status: string;
-  learningModality: string;
-  section?: {
-    id: number;
-    name: string;
-    gradeLevel: number;
-    curriculum: string;
-  };
-}
-
-interface StudentDetails {
-  id: number;
-  lrn: string;
-  firstName: string;
-  middleName?: string;
-  lastName: string;
-  nameExtension?: string;
-  fullName: string;
-  sex?: string;
-  birthDate?: string;
-  email?: string;
-  createdByAdviserId: string;
-  createdAt: string;
-  adviser?: { id: number; name: string; adviserId: string };
-  enrollments: Enrollment[];
-  // Address
-  houseStreet?: string;
-  barangay?: string;
-  municipalityCity?: string;
-  province?: string;
-  // Basic Info extras
-  motherTongue?: string;
-  ipEthnicGroup?: string;
-  religion?: string;
-  // Parents
-  fatherLastName?: string;
-  fatherFirstName?: string;
-  fatherMiddleName?: string;
-  motherLastName?: string;
-  motherFirstName?: string;
-  motherMiddleName?: string;
-  guardianLastName?: string;
-  guardianFirstName?: string;
-  guardianMiddleName?: string;
-  contactNumber?: string;
-}
+// [IMPORT] Constants & Types
+import { STUDENT_DETAILS_PAGE_LABELS } from "../../constants";
+import type { StudentDetails, GeneralModalConfig } from "../../types";
 
 // ?[TYPE] Form pages
 type FormPage = 0 | 1 | 2;
 
-const PAGE_LABELS: [string, string, string] = [
-  "Basic Information",
-  "Address",
-  "Parents",
-];
-
-// *[PAGE] Admin Student Details
 const AdminStudentDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  // [STATES]
+  // [STATES] Entities
   const [student, setStudent] = useState<StudentDetails | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // [STATES] Modal
-  const [showModal, setShowModal] = useState(false);
-  const [modalTitle, setModalTitle] = useState("");
-  const [modalMessage, setModalMessage] = useState("");
-  const [modalType, setModalType] = useState<"default" | "error" | "success" | "info" | "warning">("default");
-  const [modalConfirmText, setModalConfirmText] = useState("OK");
-  const [isCancelable, setIsCancelable] = useState(true);
-  const [onConfirmAction, setOnConfirmAction] = useState<() => Promise<void>>(() => async () => {});
-
-  // [STATES] Identity card — pagination & edit mode
+  // [STATES] Identity Card
   const [activePage, setActivePage] = useState<FormPage>(0);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<StudentDetails>>({});
+
+  // [STATE] General Modal
+  const [generalModal, setGeneralModal] = useState<GeneralModalConfig>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "default",
+    confirmText: "OK",
+    isCancelable: true,
+    onConfirm: () => {},
+  });
+
+  const openGeneralModal = (config: Partial<Omit<GeneralModalConfig, "isOpen">>) => {
+    setGeneralModal({
+      ...generalModal,
+      isOpen: true,
+      ...config,
+    });
+  };
+
+  const closeGeneralModal = () => {
+    setGeneralModal(prev => ({ ...prev, isOpen: false }));
+  };
 
   // * [HANDLE] Fetch student details by id
   const fetchStudent = async () => {
@@ -111,10 +70,16 @@ const AdminStudentDetails = () => {
       setStudent(data.data);
       setFormData(data.data);
     } catch (err) {
+      // ! [ERROR] Fetching student failed
       console.error(err);
-      setModalTitle("Error fetching student");
-      setIsCancelable(false);
-      setShowModal(true);
+      openGeneralModal({
+        title: "Unable to Load Student",
+        message: "We couldn't load the student details at the moment. Please check your internet connection and try again.",
+        type: "error",
+        confirmText: "Close",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
     } finally {
       setLoading(false);
     }
@@ -126,15 +91,7 @@ const AdminStudentDetails = () => {
 
   // [HANDLE] Delete student
   const handleDelete = () => {
-    setModalTitle("Delete Student");
-    setModalMessage("Are you sure you want to delete this student? This action cannot be undone.");
-    setModalType("error");
-    setModalConfirmText("Delete");
-    setIsCancelable(true);
-    setShowModal(true);
-
     const onDeleteConfirm = async () => {
-      setShowModal(false);
       setLoading(true);
       try {
         const token = localStorage.getItem("token");
@@ -148,29 +105,42 @@ const AdminStudentDetails = () => {
         if (!data.success) throw new Error(data.message || "Failed to delete student");
 
         // * [SUCCESS] Show success modal before navigating back to list
-        setModalTitle("Delete Student");
-        setModalMessage("Student deleted successfully.");
-        setModalType("success");
-        setModalConfirmText("OK");
-        setIsCancelable(true);
-
-        setOnConfirmAction(() => async () => {
-          setShowModal(false);
-          navigate("/admin/students");
+        openGeneralModal({
+          title: "Delete Student",
+          message: "Student deleted successfully.",
+          type: "success",
+          confirmText: "OK",
+          isCancelable: true,
+          onConfirm: () => {
+            closeGeneralModal();
+            navigate("/admin/students");
+          },
         });
-
-        setShowModal(true);
       } catch (err) {
+        // ! [ERROR] Student deletion failed
         console.error("Delete error:", err);
-        setModalTitle("Delete Failed");
-        setIsCancelable(true);
-        setShowModal(true);
+        openGeneralModal({
+          title: "Unable to Delete Student",
+          message: "We couldn't delete the student at the moment. Please check your internet connection and try again.",
+          type: "error",
+          confirmText: "OK",
+          isCancelable: true,
+          onConfirm: () => closeGeneralModal(),
+        });
       } finally {
         setLoading(false);
       }
     };
 
-    setOnConfirmAction(() => onDeleteConfirm);
+    // ? [CONFIRMATION] Before deleting, ask user to confirm
+    openGeneralModal({
+      title: "Delete Student",
+      message: "Are you sure you want to delete this student? This action cannot be undone.",
+      type: "error",
+      confirmText: "Delete",
+      isCancelable: true,
+      onConfirm: onDeleteConfirm,
+    });
   };
 
   // [HANDLE] Edit toggle
@@ -182,28 +152,90 @@ const AdminStudentDetails = () => {
     setIsEditing((prev) => !prev);
   };
 
-  // [HANDLE] Save edits
+  // * [HANDLE] Save updated student details
   const handleSave = async () => {
+    if (!id || !student) return;
+
     setLoading(true);
+
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/students/${id}`, {
+
+      // Build clean payload that matches what your backend expects
+      const payload = {
+        id: Number(id),
+        firstName: formData.firstName?.trim(),
+        middleName: formData.middleName?.trim() || null,
+        lastName: formData.lastName?.trim(),
+        nameExtension: formData.nameExtension?.trim() || null,
+        sex: formData.sex ? formData.sex.toUpperCase() : undefined,
+        birthDate: formData.birthDate || null,
+        email: formData.email?.trim() || null,
+        motherTongue: formData.motherTongue?.trim() || null,
+        ipEthnicGroup: formData.ipEthnicGroup?.trim() || null,
+        religion: formData.religion?.trim() || null,
+
+        // Address fields
+        houseStreet: formData.houseStreet?.trim() || null,
+        barangay: formData.barangay?.trim() || null,
+        municipality: formData.municipalityCity?.trim() || null,
+        province: formData.province?.trim() || null,
+
+        // Guardian / Parent fields (adjust field names to match backend if needed)
+        fatherFirstName: formData.fatherFirstName?.trim() || null,
+        fatherLastName: formData.fatherLastName?.trim() || null,
+        fatherMiddleName: formData.fatherMiddleName?.trim() || null,
+        motherFirstName: formData.motherFirstName?.trim() || null,
+        motherLastName: formData.motherLastName?.trim() || null,
+        motherMiddleName: formData.motherMiddleName?.trim() || null,
+        guardianFirstName: formData.guardianFirstName?.trim() || null,
+        guardianLastName: formData.guardianLastName?.trim() || null,
+        guardianMiddleName: formData.guardianMiddleName?.trim() || null,
+        contactNumber: formData.contactNumber?.trim() || null,
+      };
+
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/students`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
+
       const data = await res.json();
-      if (!data.success) throw new Error(data.message || "Failed to update student");
-      setStudent({ ...student!, ...formData });
+
+      if (!data.success) {
+        const errorMsg = data.message 
+          || data.data?.failed?.[0]?.message 
+          || "Failed to update student";
+        throw new Error(errorMsg);
+      }
+
+      // Success - update local state
+      setStudent((prev) => prev ? { ...prev, ...formData } : null);
       setIsEditing(false);
-    } catch (err) {
-      console.error("Update error:", err);
-      setModalTitle("Update Failed");
-      setIsCancelable(true);
-      setShowModal(true);
+
+      // Show success feedback
+      openGeneralModal({
+        title: "Student Updated",
+        message: "Student details have been successfully updated.",
+        type: "success",
+        confirmText: "OK",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
+
+    } catch (err: any) {
+      // ! [ERROR] Subject update failed
+      console.error(err);
+      openGeneralModal({
+        title: "Unable to Update Student",
+        message: "We couldn't update the student at the moment. Please check your internet connection and try again.",
+        type: "error",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
     } finally {
       setLoading(false);
     }
@@ -214,9 +246,6 @@ const AdminStudentDetails = () => {
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       setFormData((prev) => ({ ...prev, [field]: e.target.value }));
     };
-
-  // [LOADING STATE]
-  if (loading) return <Skeleton />;
 
   // *[BREADCRUMBS] Admin Student Details navigation
   const breadcrumbs = [
@@ -233,17 +262,6 @@ const AdminStudentDetails = () => {
       // Basic Information
       return (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {/* [COMPONENT] Modal */}
-          <Modal
-            isOpen={showModal}
-            onClose={() => setShowModal(false)}
-            title={modalTitle}
-            message={modalMessage}
-            type={modalType}
-            confirmText={modalConfirmText}
-            onConfirm={onConfirmAction}
-            isCancelable={isCancelable}
-          />
           <div className="col-span-2 sm:col-span-3">
             <InputField
               label="LRN"
@@ -485,30 +503,22 @@ const AdminStudentDetails = () => {
     return null;
   };
 
+  // [LOADING STATE]
+  if (loading) return <Skeleton />;
+
   return (
     <div>
-      {/* [CRUD MODAL] Confirmations (Delete/Error) */}
-      <CrudModal
-        isOpen={showModal}
-        title={modalTitle}
-        isCancelable={isCancelable}
-        onClose={() => setShowModal(false)}
-        onConfirm={onConfirmAction}
-        loading={loading}
-        showForm={false}
+      {/* [MODAL] General */}
+      <Modal
+        isOpen={generalModal.isOpen}
+        onClose={closeGeneralModal}
+        title={generalModal.title}
+        message={generalModal.message}
+        type={generalModal.type}
+        confirmText={generalModal.confirmText}
+        onConfirm={generalModal.onConfirm}
+        isCancelable={generalModal.isCancelable}
       />
-      {/* [COMPONENT] Modal */}
-      {showModal && (
-          <Modal
-              isOpen={showModal}
-              onClose={() => setShowModal(false)}
-              type={modalType}
-              title={modalTitle}
-              message={modalMessage}
-              closeOnBackdrop={false}
-              isCancelable={isCancelable}
-          />
-      )}
 
       <div className="py-10 px-4 space-y-4 relative">
 
@@ -556,7 +566,7 @@ const AdminStudentDetails = () => {
 
               {/* [PAGINATION] Page tabs */}
               <div className="flex gap-1 bg-[var(--color-bg-200)] rounded-lg p-1">
-                {PAGE_LABELS.map((label, idx) => (
+                {STUDENT_DETAILS_PAGE_LABELS.map((label, idx) => (
                   <button
                     key={idx}
                     onClick={() => setActivePage(idx as FormPage)}
@@ -577,7 +587,7 @@ const AdminStudentDetails = () => {
               {/* [HEADER] Section title + Edit button */}
               <div className="flex items-center justify-between">
                 <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)]">
-                  {PAGE_LABELS[activePage]}
+                  {STUDENT_DETAILS_PAGE_LABELS[activePage]}
                 </p>
                 <div className="flex items-center gap-2">
                   {isEditing && (
