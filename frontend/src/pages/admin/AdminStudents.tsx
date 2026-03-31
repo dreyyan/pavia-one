@@ -80,12 +80,10 @@ const AdminStudents = () => {
   // [STATES] Entities
   const [students, setStudents] = useState<Student[]>([]);
   const [advisers, setAdvisers] = useState<Adviser[]>([]);
-
   const [loading, setLoading] = useState(true);
 
   // [STATES] Search, Sort, and Filter
   const [search, setSearch] = useState("");
-
   const [sortOption, setSortOption] = useState<"name-asc" | "name-desc" | "lrn-asc" | "lrn-desc">("name-asc");
   const [showSortFilters, setShowSortFilters] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
