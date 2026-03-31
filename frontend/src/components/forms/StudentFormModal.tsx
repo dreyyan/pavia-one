@@ -1,20 +1,6 @@
 // [IMPORT] Hooks
 import { useState, useEffect, useRef } from "react";
-
-// ? [CONSTANTS]
-const learningModalityOptions = [
-  "Face to Face",
-  "Distance Learning",
-  "Blended",
-  "Online",
-  "Homeschool",
-  "Other",
-];
-
-const sexOptions = [
-  { value: "MALE", label: "Male" },
-  { value: "FEMALE", label: "Female" }
-];
+import { LEARNING_MODALITY_OPTIONS, SEX_OPTIONS } from "../../constants";
 
 const inputCls = "bg-[var(--color-bg-50)] font-roboto rounded-md py-2 px-3 border border-[var(--color-text-300)] outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm";
 
@@ -212,7 +198,7 @@ const StudentFormModal = ({
             <div className="flex flex-col">
               <label className="font-roboto text-sm mb-1">Sex <span className="text-[var(--color-red-500)]">*</span></label>
               <select value={formData.sex} onChange={(e) => setFormData(prev => ({ ...prev, sex: e.target.value }))} className={inputCls}>
-              {sexOptions.map((option) => (
+              {SEX_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
@@ -318,7 +304,11 @@ const StudentFormModal = ({
               <label className="font-roboto text-sm mb-1">Learning Modality</label>
               <select value={formData.learningModality}
                 onChange={(e) => setFormData(prev => ({ ...prev, learningModality: e.target.value }))} className={inputCls}>
-                {learningModalityOptions.map(o => <option key={o} value={o}>{o}</option>)}
+                {LEARNING_MODALITY_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
