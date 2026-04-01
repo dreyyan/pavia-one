@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
 // [IMPORT] Hooks
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -5,34 +7,13 @@ import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
 import Skeleton from "../../components/Skeleton";
-import CrudModal from "../../components/CrudModal";
 import DeleteButton from "../../components/DeleteButton";
 import InputField from "../../components/InputField";
 import Modal from "../../components/Modal";
 
-// ?[INTERFACES]
-interface SectionStudent {
-  id: number;
-  lrn: string;
-  fullName: string;
-  sex?: string;
-  status: string;
-  learningModality: string;
-}
-
-interface SectionDetails {
-  id: number;
-  name: string;
-  gradeLevel: number;
-  schoolYear: string;
-  curriculum: string;
-  learningModality: string;
-  classSize: number;
-  room?: string;
-  createdAt: string;
-  adviser?: { id: number; name: string; adviserId: string };
-  students: SectionStudent[];
-}
+// [IMPORT] Constants & Types
+import { GRADE_LEVEL_OPTIONS, CURRICULUM_OPTIONS, LEARNING_MODALITY_OPTIONS } from "../../constants";
+import { GeneralModalConfig, SectionDetails } from "../../types";
 
 // *[COMPONENT] Status Badge
 const StatusBadge = ({ status }: { status: string }) => {
@@ -57,34 +38,41 @@ const PAGE_LABELS: [string, string] = [
   "Configuration",
 ];
 
-const gradeLevelOptions = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
-const curriculumOptions = ["K-12", "SHS STEM", "SHS ABM", "SHS HUMSS", "SHS GAS", "SHS TVL", "SHS Sports", "SHS Arts"];
-const learningModalityOptions = ["Face to Face", "Distance Learning", "Blended", "Online", "Homeschool", "Other"];
-
 // *[PAGE] Admin Section Details
 const AdminSectionDetails = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const { setShowTokenExpiredModal } = useAuth();
+  const navigate = useNavigate();
 
-  // [STATES]
+  // [STATES] Entities
   const [section, setSection] = useState<SectionDetails | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // [STATES] CrudModal — confirmations (delete, errors)
-  const [showModal, setShowModal] = useState(false);
-  const [modalTitle, setModalTitle] = useState("");
-  const [modalMessage, setModalMessage] = useState("");
-  const [modalType, setModalType] = useState<"default" | "error" | "success" | "info" | "warning">("default");
-  const [isCancelable, setIsCancelable] = useState(true);
-  const [onConfirmAction, setOnConfirmAction] = useState<() => Promise<void>>(() => async () => {});
-
-  // [STATES] Identity card — pagination & edit mode
+  // [STATES] Identity Card
   const [activePage, setActivePage] = useState<FormPage>(0);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<SectionDetails>>({});
 
-  // [FETCH] Section by id
+  // [STATE] General Modal
+  const [generalModal, setGeneralModal] = useState<GeneralModalConfig>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "default",
+    confirmText: "OK",
+    isCancelable: true,
+    onConfirm: () => {},
+  });
+
+  const openGeneralModal = (config: Partial<Omit<GeneralModalConfig, "isOpen">>) => {
+    setGeneralModal(prev => ({ ...prev, isOpen: true, ...config }));
+  };
+
+  const closeGeneralModal = () => {
+    setGeneralModal(prev => ({ ...prev, isOpen: false }));
+  };
+
+  // * [HANDLE] Fetch Section by ID
   const fetchSection = async () => {
     setLoading(true);
     try {
@@ -102,11 +90,16 @@ const AdminSectionDetails = () => {
       setFormData(data.data);
     } catch (err) {
       console.error(err);
-      setModalTitle("Error fetching section");
-      setModalMessage("An error occurred while loading section details.");
-      setModalType("error");
-      setIsCancelable(false);
-      setShowModal(true);
+      // ! [ERROR] Fetching section failed
+      console.error(err);
+      openGeneralModal({
+        title: "Unable to Load Section",
+        message: "We couldn't load the section at the moment. Please check your internet connection and try again.",
+        type: "error",
+        confirmText: "Close",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
     } finally {
       setLoading(false);
     }
@@ -116,16 +109,9 @@ const AdminSectionDetails = () => {
     fetchSection();
   }, [id]);
 
-  // [HANDLE] Delete section
-  const handleDelete = () => {
-    setModalTitle("Delete Section");
-    setModalMessage("Are you sure you want to delete this section? This action cannot be undone.");
-    setModalType("error");
-    setIsCancelable(true);
-    setShowModal(true);
-
+  // * [HANDLE] Delete Section
+  const handleDelete = (id: number) => {
     const onDeleteConfirm = async () => {
-      setShowModal(false);
       setLoading(true);
       try {
         const token = localStorage.getItem("token");
@@ -135,18 +121,44 @@ const AdminSectionDetails = () => {
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.message || "Failed to delete section");
-        navigate("/admin/sections");
+
+        // * [SUCCESS] Section deleted
+        openGeneralModal({
+          title: "Section Deleted",
+          message: "The section has been deleted successfully.",
+          type: "success",
+          isCancelable: false,
+          onConfirm: () => {
+            closeGeneralModal();
+            navigate("/admin/sections");
+          },
+        });
+
+        setSection(prev => prev?.id !== id ? prev : null);
       } catch (err) {
+        // ! [ERROR] Deleting section failed
         console.error("Delete error:", err);
-        setModalTitle("Delete Failed");
-        setIsCancelable(true);
-        setShowModal(true);
+        openGeneralModal({
+          title: "Unable to Delete Section",
+          message: "We couldn't delete the section at the moment. Please check your internet connection and try again.",
+          type: "error",
+          confirmText: "Close",
+          isCancelable: false,
+          onConfirm: () => closeGeneralModal(),
+        });
       } finally {
         setLoading(false);
       }
     };
 
-    setOnConfirmAction(() => onDeleteConfirm);
+    openGeneralModal({
+      title: "Delete Section",
+      message: "Are you sure you want to delete this section? This action cannot be undone.",
+      type: "error",
+      confirmText: "Delete",
+      isCancelable: true,
+      onConfirm: onDeleteConfirm,
+    });
   };
 
   // [HANDLE] Edit toggle
@@ -160,6 +172,33 @@ const AdminSectionDetails = () => {
 
   // [HANDLE] Save edits
   const handleSave = async () => {
+    // [VALIDATE] Normalise school year to backend-required "YYYY - YYYY" format
+    const rawYear = (formData.schoolYear || "").trim();
+    const yearMatch = rawYear.match(/^(\d{4})\s*[-–—]\s*(\d{4})$/);
+    if (!yearMatch) {
+      openGeneralModal({
+        title: "Invalid School Year",
+        message: 'Please enter the school year in "YYYY - YYYY" format (e.g. 2024 - 2025).',
+        type: "error",
+        confirmText: "Got it",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
+      return;
+    }
+    const normalizedSchoolYear = `${yearMatch[1]} - ${yearMatch[2]}`;
+
+    // [SANITISE] Only send the flat scalar fields the backend actually accepts —
+    // never send nested objects (adviser, students, enrollments, etc.)
+    const payload: Record<string, unknown> = {
+      name: (formData.name ?? "").trim() || undefined,
+      gradeLevel: formData.gradeLevel ? Number(formData.gradeLevel) : undefined,
+      schoolYear: normalizedSchoolYear,
+      curriculum: formData.curriculum || undefined,
+      learningModality: formData.learningModality || undefined,
+      room: formData.room ?? null,
+    };
+
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
@@ -169,17 +208,32 @@ const AdminSectionDetails = () => {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed to update section");
-      setSection({ ...section!, ...formData });
+
+      // [UPDATE] Merge only the fields we sent back into local state
+      setSection(prev => prev ? { ...prev, ...payload, schoolYear: normalizedSchoolYear } : prev);
       setIsEditing(false);
+      openGeneralModal({
+        title: "Section Updated",
+        message: `"${formData.name}" has been updated successfully.`,
+        type: "success",
+        confirmText: "Got it",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
     } catch (err) {
       console.error("Update error:", err);
-      setModalTitle("Update Failed");
-      setIsCancelable(true);
-      setShowModal(true);
+      openGeneralModal({
+        title: "Unable to Update Section",
+        message: "We couldn't save your changes. Please check your connection and try again.",
+        type: "error",
+        confirmText: "Close",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
     } finally {
       setLoading(false);
     }
@@ -225,7 +279,7 @@ const AdminSectionDetails = () => {
             value={formData.gradeLevel ? String(formData.gradeLevel) : ""}
             onChange={handleFieldChange("gradeLevel")}
             placeholder="Select grade level"
-            options={gradeLevelOptions.map(g => `Grade ${g}`)}
+            options={GRADE_LEVEL_OPTIONS.map(g => String(g))}
             disabled={!isEditing}
             required
           />
@@ -233,7 +287,7 @@ const AdminSectionDetails = () => {
             label="School Year"
             value={formData.schoolYear ?? ""}
             onChange={handleFieldChange("schoolYear")}
-            placeholder="e.g. 2024–2025"
+            placeholder="e.g. 2024 - 2025"
             disabled={!isEditing}
             required
           />
@@ -258,7 +312,7 @@ const AdminSectionDetails = () => {
             value={formData.curriculum ?? ""}
             onChange={handleFieldChange("curriculum")}
             placeholder="Select curriculum"
-            options={curriculumOptions}
+            options={CURRICULUM_OPTIONS.map(o => o.value)}
             disabled={!isEditing}
             required
           />
@@ -268,7 +322,7 @@ const AdminSectionDetails = () => {
             value={formData.learningModality ?? ""}
             onChange={handleFieldChange("learningModality")}
             placeholder="Select modality"
-            options={learningModalityOptions}
+            options={LEARNING_MODALITY_OPTIONS.map(o => o.value)}
             disabled={!isEditing}
           />
         </div>
@@ -280,28 +334,17 @@ const AdminSectionDetails = () => {
 
   return (
     <div>
-      {/* [CRUD MODAL] Confirmations (Delete/Error) */}
-      <CrudModal
-        isOpen={showModal}
-        title={modalTitle}
-        isCancelable={isCancelable}
-        onClose={() => setShowModal(false)}
-        onConfirm={onConfirmAction}
-        loading={loading}
-        showForm={false}
+      {/* [MODAL] General */}
+      <Modal
+        isOpen={generalModal.isOpen}
+        onClose={closeGeneralModal}
+        title={generalModal.title}
+        message={generalModal.message}
+        type={generalModal.type}
+        confirmText={generalModal.confirmText}
+        onConfirm={generalModal.onConfirm}
+        isCancelable={generalModal.isCancelable}
       />
-      {/* [COMPONENT] Modal */}
-      {showModal && (
-        <Modal
-          isOpen={showModal}
-          onClose={() => setShowModal(false)}
-          type={modalType}
-          title={modalTitle}
-          message={modalMessage}
-          closeOnBackdrop={false}
-          isCancelable={isCancelable}
-        />
-      )}
 
       <div className="py-10 px-4 space-y-4 relative">
 
@@ -341,7 +384,7 @@ const AdminSectionDetails = () => {
 
             <div className="space-y-2">
               {/* [BUTTON] Delete */}
-              <DeleteButton onClick={handleDelete} text="Delete Section" disabled={loading} />
+              <DeleteButton onClick={() => handleDelete(section.id)} text="Delete Section" disabled={loading} />
             </div>
 
             {/* [CARD] Section Identity */}
@@ -426,11 +469,11 @@ const AdminSectionDetails = () => {
               <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)]">
                 Students ({section.classSize})
               </p>
-              {section.students.length === 0 ? (
+              {(section.students ?? []).length === 0 ? (
                 <p className="text-sm font-roboto text-[var(--color-text-600)]">No students enrolled.</p>
               ) : (
                 <div className="flex flex-col gap-2">
-                  {section.students.map((student) => (
+                  {(section.students ?? []).map((student) => (
                     <div
                       key={student.id}
                       className="bg-[var(--color-bg-50)] border border-[var(--color-bg-200)] rounded-md px-4 py-3 flex items-center justify-between gap-3"
