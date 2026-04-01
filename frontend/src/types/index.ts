@@ -75,6 +75,12 @@ export interface Adviser {
   adviserId: string;
   name: string;
   sections: AdviserSection[];
+  
+  firstName?: string;
+  middleName?: string | null;
+  lastName?: string;
+  email?: string;
+  sectionCount?: number;
 }
 
 export interface Student {
@@ -183,3 +189,13 @@ export interface SectionDetails {
   adviser?: { id: number; name: string; adviserId: string };
   students: SectionStudent[];
 }
+
+export type AdviserFormData = {
+  id?: number;
+  adviserId: string;
+  firstName: string;
+  middleName: string;
+  lastName: string;
+  email: string;
+  password: string;
+};
