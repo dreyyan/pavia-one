@@ -266,7 +266,14 @@ const AdminProfile = () => {
         {profile ? (
           <>
             {/* [COMPONENT] Profile Info banner */}
-            <ProfileInfo lastName="" firstName={profile.name} />
+            {profile && (() => {
+              const [firstName, ...lastParts] = profile.name.split(" ");
+              const lastName = lastParts.length > 0 ? lastParts.join(" ") : firstName;
+              const displayFirstName = lastParts.length > 0 ? firstName : "";
+
+              // Pass role here
+              return <ProfileInfo lastName={lastName} firstName={displayFirstName} role="Admin" />
+            })()}
 
             {/* [CARD] Personal Information */}
             <div className="bg-[var(--color-bg-100)] rounded-lg p-4 space-y-4">
