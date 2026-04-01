@@ -21,6 +21,7 @@ const Header = () => {
   const storedRole = localStorage.getItem("role")?.toLowerCase();
   const validRoles = ["admin", "adviser"] as const;
   const [role, setRole] = useState<"admin" | "adviser" | "">(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     storedRole && validRoles.includes(storedRole as any)
       ? (storedRole as "admin" | "adviser")
       : ""
@@ -101,7 +102,7 @@ const Header = () => {
       { iconBase: "school-forms", text: "School Forms", to: "/admin/school-forms" },
       { iconBase: "transfer-dropout-monitoring", text: "Transfer / Dropout Monitoring", to: "/admin/transfer" },
       { iconBase: "reports-and-statistics", text: "Reports & Statistics", to: "/admin/reports" },
-      { iconBase: "announcements-and-events", text: "Announcements & Events", to: "/announcements-and-events" },
+      { iconBase: "announcements-and-events", text: "Announcements & Events", to: "/admin/announcements-and-events" },
       { iconBase: "profile", text: "Profile", to: "/admin/profile" },
       { iconBase: "settings", text: "Settings", to: "/admin/settings" },
       { iconBase: "logout", text: "Logout", to: "/login/admin" },
