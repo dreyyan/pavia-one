@@ -1,13 +1,11 @@
-// [IMPORT] Hooks
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-// [IMPORT] Components
 import PrimaryButton from "./PrimaryButton";
 
 const images = [
-    "/carousel-1.webp",
-    "/carousel-2.webp",
-    "/carousel-3.webp"
+  "/carousel-1.webp",
+  "/carousel-2.webp",
+  "/carousel-3.webp"
 ];
 
 const content = [
@@ -29,95 +27,94 @@ const content = [
 ];
 
 const FeaturesCarousel = () => {
-    const navigate = useNavigate();
-    // [STATES]
-    const [currentIndex, setCurrentIndex] = useState(0);
-    const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
-    // [EFFECT] Auto change image display every 5 seconds
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setCurrentIndex((prev) => (prev + 1) % images.length);
-            setIsLoading(true);
-        }, 5000);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % images.length);
+      setIsLoading(true);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
-        return () => clearInterval(interval);
-    }, []);
+  const handleAdviserLogin = () => navigate("/login/adviser");
+  const handleAdminLogin = () => navigate("/login/admin");
+  const handleNextImage = () => {
+    setCurrentIndex((prev) => (prev + 1) % images.length);
+    setIsLoading(true);
+  };
+  const handleDotClick = (index: number) => {
+    setCurrentIndex(index);
+    setIsLoading(true);
+  };
 
-    // [HANDLE] Navigation
-    const handleAdviserLogin = () => navigate("/login/adviser");
-    const handleAdminLogin = () => navigate("/login/admin");
-
-    // [HANDLE] Navigate to next image
-    const handleNextImage = () => {
-        setCurrentIndex((prev) => (prev + 1) % images.length);
-        setIsLoading(true);
-    };
-
-    // [HANDLE] Dot navigation
-    const handleDotClick = (index: number) => {
-        setCurrentIndex(index);
-        setIsLoading(true);
-    };
-
-    return (
-        <div>
-            {/* [COMPONENT] Carousel */}
+  return (
+    <div className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+        {/* flex-col for mobile, flex-row for md+, items centered for desktop */}
+        <div className="flex flex-col md:flex-row md:items-center md:gap-12 lg:gap-16">
+            
+            {/* [COMPONENT] Carousel Image */}
             <div
-                className="relative min-w-[312px] min-h-[312px] rounded-lg cursor-pointer"
-                onClick={handleNextImage}
+            className="relative w-full md:w-1/2 min-w-[296px] min-h-[312px] sm:min-h-[400px] md:min-h-[480px] lg:min-h-[550px] rounded-lg cursor-pointer overflow-hidden mt-0 md:mt-0 order-1 md:order-2"
+            onClick={handleNextImage}
             >
-                {/* [COMPONENT] Skeleton */}
-                {isLoading && (
-                    <div className="absolute inset-0 bg-[var(--color-bg-200)] rounded-lg animate-pulse" />
-                )}
+            {/* Skeleton overlay */}
+            {isLoading && (
+                <div className="absolute inset-0 w-full min-w-[296px] bg-[var(--color-bg-200)] animate-pulse rounded-lg" />
+            )}
 
-                <img
-                    key={images[currentIndex]}
-                    src={images[currentIndex]}
-                    alt="Feature"
-                    onLoad={() => setIsLoading(false)}
-                    onError={() => setIsLoading(true)}
-                    className={`w-full h-full object-cover rounded-lg transition-opacity duration-500 ${
-                        isLoading ? "opacity-0" : "opacity-100"
+            <img
+                key={images[currentIndex]}
+                src={images[currentIndex]}
+                alt="Feature"
+                onLoad={() => setIsLoading(false)}
+                onError={() => setIsLoading(true)}
+                className={`w-full h-full object-cover transition-opacity duration-500 ${
+                isLoading ? "opacity-0" : "opacity-100"
+                }`}
+            />
+
+            {/* Dot Indicators */}
+            <div className="absolute bottom-4 sm:bottom-5 flex left-1/2 transform -translate-x-1/2 space-x-2">
+                {images.map((_, index) => (
+                <div
+                    key={index}
+                    onClick={(e) => {
+                    e.stopPropagation();
+                    handleDotClick(index);
+                    }}
+                    className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full cursor-pointer transition-opacity ${
+                    index === currentIndex
+                        ? "bg-[var(--color-bg-50)]"
+                        : "bg-[var(--color-bg-50)] opacity-50"
                     }`}
                 />
-
-                {/* [SECTION] Dot Indicators */}
-                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                    {images.map((_, index) => (
-                        <div
-                            key={index}
-                            onClick={(e) => {
-                                e.stopPropagation(); // prevent carousel click
-                                handleDotClick(index);
-                            }}
-                            className={`w-3 h-3 rounded-full transition-opacity cursor-pointer ${
-                                index === currentIndex
-                                    ? "bg-[var(--color-bg-50)]"
-                                    : "bg-[var(--color-bg-50)] opacity-50"
-                            }`}
-                        />
-                    ))}
-                </div>
+                ))}
+            </div>
             </div>
 
-            {/* [SECTION] Carousel Content */}
-            <div className="text-center pt-4 pb-6 space-y-2">
-                <div className="min-h-[4rem] flex items-center justify-center">
-                    <h2 className="text-[var(--color-primary-700)]">{content[currentIndex].title}</h2>
-                </div>
-                <p className="min-h-[4rem] body-small">{content[currentIndex].description}</p>
+        {/* [SECTION] Text Content */}
+        <div className="md:w-1/2 text-center md:text-left space-y-4 sm:space-y-5 md:space-y-6 lg:space-y-8 order-2 md:order-1 mt-6 md:mt-0">
+            <div className="min-h-[4rem] flex items-center justify-center md:justify-start">
+                <h2 className="text-[var(--color-primary-700)] font-bold text-lg sm:text-xl md:text-2xl lg:text-3xl leading-snug sm:leading-snug md:leading-snug">
+                {content[currentIndex].title}
+                </h2>
             </div>
+            
+            <p className="body-small text-sm sm:text-base md:text-lg lg:text-xl leading-snug sm:leading-snug md:leading-snug">
+                {content[currentIndex].description}
+            </p>
 
-            {/* [SECTION] Primary Buttons */}
-            <div className="flex flex-col gap-y-2 mb-4">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 md:gap-6 mt-2 md:mt-4">
                 <PrimaryButton text="Login as Adviser" onClick={handleAdviserLogin} />
                 <PrimaryButton text="Login as Admin" color="FCB103" onClick={handleAdminLogin} />
-                <a href="about-us" className="link block text-center underline text-[var(--color-primary-700)]">Learn More</a>
             </div>
         </div>
-    );
+    </div>
+    </div>
+  );
 };
 
 export default FeaturesCarousel;
