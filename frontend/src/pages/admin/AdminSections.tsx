@@ -16,20 +16,33 @@ import type { GeneralModalConfig, Section, SectionFormData } from "../../types";
 import { SectionFormModal } from "../../components/forms/SectionFormModal";
 import EmptyState from "../../components/EmptyState";
 
+const EMPTY_FORM: SectionFormData = {
+  name: "",
+  gradeLevel: "",
+  schoolYear: "",
+  curriculum: "",
+  learningModality: "Face to Face",
+  room: "",
+  adviserId: "",
+  adviserName: "",
+};
+
 const AdminSections = () => {
   const { setShowTokenExpiredModal } = useAuth();
   const navigate = useNavigate();
 
-  // [STATES]
+  // [STATES] Entities
   const [sections, setSections] = useState<Section[]>([]);
+  const [advisers, setAdvisers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
 
+  // [STATES] Search, Sort, and Filter
+  const [search, setSearch] = useState("");
+  const [adviserSearch, setAdviserSearch] = useState("");
   const [sortOption, setSortOption] = useState<"name-asc" | "name-desc" | "grade-asc" | "grade-desc">("name-asc");
   const [showSortFilters, setShowSortFilters] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
 
-  // [STATES] Grade filter
   const [selectedGrade, setSelectedGrade] = useState<string | "All">("All");
   const [showGradeFilters, setShowGradeFilters] = useState(false);
 
@@ -37,18 +50,7 @@ const AdminSections = () => {
   const [showSectionModal, setShowSectionModal] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [formError, setFormError] = useState("");
-  const [formData, setFormData] = useState<SectionFormData>({
-    name: "",
-    gradeLevel: "",
-    schoolYear: "",
-    curriculum: "",
-    learningModality: "Face to Face",
-    room: "",
-  });
-
-  // [STATES] Pagination
-  const [page, setPage] = useState(1);
-  const itemsPerPage = 5;
+  const [formData, setFormData] = useState<SectionFormData>(EMPTY_FORM);
 
   // [STATE] General Modal
   const [generalModal, setGeneralModal] = useState<GeneralModalConfig>({
@@ -62,18 +64,18 @@ const AdminSections = () => {
   });
 
   const openGeneralModal = (config: Partial<Omit<GeneralModalConfig, "isOpen">>) => {
-    setGeneralModal({
-      ...generalModal,
-      isOpen: true,
-      ...config,
-    });
+    setGeneralModal(prev => ({ ...prev, isOpen: true, ...config }));
   };
 
   const closeGeneralModal = () => {
     setGeneralModal(prev => ({ ...prev, isOpen: false }));
   };
 
-  // * [FETCH] Sections
+  // [STATES] Pagination
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 5;
+
+  // * [HANDLE] Fetch Sections
   const fetchSections = async () => {
     setLoading(true);
     try {
@@ -81,18 +83,12 @@ const AdminSections = () => {
       const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/sections?limit=200`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.status === 401) {
-        setShowTokenExpiredModal(true);
-        return;
-      }
+      if (res.status === 401) { setShowTokenExpiredModal(true); return; }
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed to fetch sections");
-
       const list = data.data?.data;
       setSections(Array.isArray(list) ? list : []);
     } catch (err) {
-      console.error(err);
-      // ! [ERROR] Fetching section failed
       console.error(err);
       openGeneralModal({
         title: "Unable to Load Sections",
@@ -108,8 +104,35 @@ const AdminSections = () => {
     }
   };
 
+  // * [FETCH] Advisers
+  const fetchAdvisers = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/advisers`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message);
+      const list = data.data?.data;
+      setAdvisers(Array.isArray(list) ? list : []);
+    } catch (err) {
+      // ! [ERROR] Fetching advisers failed
+      console.error(err);
+      openGeneralModal({
+        title: "Unable to Load Advisers",
+        message: "We couldn't load the advisers at the moment. Please check your internet connection and try again.",
+        type: "error",
+        confirmText: "Close",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
+      setAdvisers([]);
+    }
+  };
+
   useEffect(() => {
     fetchSections();
+    fetchAdvisers();
   }, []);
 
   // [HANDLE] Close sort dropdown on outside click
@@ -123,36 +146,31 @@ const AdminSections = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // * [HANDLE] Add Section
+  // * [HANDLE] Open create modal
   const handleAddSection = () => {
-    setFormData({ name: "", gradeLevel: "", schoolYear: "", curriculum: "", learningModality: "Face to Face", room: "" });
+    setFormData(EMPTY_FORM);
+    setAdviserSearch("");
     setIsEditMode(false);
-    setFormError("");
-    setShowSectionModal(true);
-  };
-
-  // [HANDLE] Open edit
-  const handleOpenEdit = (section: Section) => {
-    setFormData({
-      id: section.id,
-      name: section.name,
-      gradeLevel: String(section.gradeLevel),
-      schoolYear: section.schoolYear,
-      curriculum: section.curriculum,
-      learningModality: section.learningModality,
-      room: section.room || "",
-    });
     setFormError("");
     setShowSectionModal(true);
   };
 
   // * [HANDLE] Submit form (create or update)
   const handleSubmit = async () => {
+    const rawYear = (formData.schoolYear || "").trim();
+    const yearMatch = rawYear.match(/^(\d{4})\s*[-–—]\s*(\d{4})$/);
+    if (!yearMatch) {
+      setFormError('School year must be in "YYYY - YYYY" format (e.g. 2024 - 2025)');
+      return;
+    }
+    const normalizedSchoolYear = `${yearMatch[1]} - ${yearMatch[2]}`;
+
     const dataToSubmit = {
       ...(isEditMode && { id: formData.id }),
       name: formData.name.trim(),
+      adviserId: formData.adviserId,
       gradeLevel: Number(formData.gradeLevel),
-      schoolYear: formData.schoolYear.trim(),
+      schoolYear: normalizedSchoolYear,
       curriculum: formData.curriculum,
       learningModality: formData.learningModality,
       room: formData.room || null,
@@ -174,60 +192,74 @@ const AdminSections = () => {
         const updated = data.data?.updated;
         if (updated && updated.length > 0) {
           await fetchSections();
+          setShowSectionModal(false);
+          setAdviserSearch("");
+          // ? [SUCCESS] Section updated
+          openGeneralModal({
+            title: "Section Updated",
+            message: `"${formData.name}" has been updated successfully.`,
+            type: "success",
+            isCancelable: false,
+            onConfirm: () => closeGeneralModal(),
+          });
         } else {
-          setFormError(data.data?.failed?.[0]?.message || "Section update failed");
-          return;
+          // ! [ERROR] Backend rejected the update (e.g. duplicate, validation)
+          const reason = data.data?.failed?.[0]?.message || "The section could not be updated.";
+          setShowSectionModal(false);
+          setAdviserSearch("");
+          openGeneralModal({
+            title: "Section Not Updated",
+            message: `We couldn't save your changes. ${reason}`,
+            type: "error",
+            confirmText: "Close",
+            isCancelable: false,
+            onConfirm: () => closeGeneralModal(),
+          });
         }
       } else {
+        if (!data.data?.created) {
+          // ! [ERROR] Backend rejected the create (e.g. duplicate, missing adviser)
+          const reason = data.data?.failed?.[0]?.message || "The section could not be created.";
+          setShowSectionModal(false);
+          setAdviserSearch("");
+          openGeneralModal({
+            title: "Section Not Created",
+            message: `We couldn't create the section. ${reason}`,
+            type: "error",
+            confirmText: "Close",
+            isCancelable: false,
+            onConfirm: () => closeGeneralModal(),
+          });
+          return;
+        }
         await fetchSections();
+        setShowSectionModal(false);
+        setAdviserSearch("");
+        // ? [SUCCESS] Section created
+        openGeneralModal({
+          title: "Section Created",
+          message: `"${formData.name}" has been created successfully.`,
+          type: "success",
+          isCancelable: false,
+          onConfirm: () => closeGeneralModal(),
+        });
       }
-
-      setShowSectionModal(false);
     } catch (err: any) {
+      // ! [ERROR] Network or unexpected server error
       console.error(err);
-      setFormError(err?.message || "Operation failed");
+      setShowSectionModal(false);
+      setAdviserSearch("");
+      openGeneralModal({
+        title: isEditMode ? "Unable to Update Section" : "Unable to Create Section",
+        message: "Something went wrong while saving the section. Please check your internet connection and try again.",
+        type: "error",
+        confirmText: "Close",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
     } finally {
       setLoading(false);
     }
-  };
-
-  // * [HANDLE] Delete section
-  const handleDelete = (id: number) => {
-    const onDeleteConfirm = async () => {
-      setLoading(true);
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/sections/${id}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        if (!data.success) throw new Error(data.message || "Failed to delete section");
-        setSections(prev => prev.filter(s => s.id !== id));
-      } catch (err) {
-        // ! [ERROR] Section deletion failed
-        console.error("Delete error:", err);
-        openGeneralModal({
-          title: "Unable to Delete Section",
-          message: "We couldn't delete the section at the moment. Please check your internet connection and try again.",
-          type: "error",
-          isCancelable: true,
-          onConfirm: () => closeGeneralModal(),
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // ? [CONFIRMATION] Before deleting, ask user to confirm
-    openGeneralModal({
-      title: "Delete Section",
-      message: "Are you sure you want to delete this section? This action cannot be undone.",
-      type: "error",
-      confirmText: "Delete",
-      isCancelable: true,
-      onConfirm: onDeleteConfirm,
-    });
   };
 
   // [HANDLE] Sorting and Searching
@@ -256,13 +288,12 @@ const AdminSections = () => {
   const handlePrevPage = () => setPage(prev => Math.max(prev - 1, 1));
   const handleNextPage = () => setPage(prev => Math.min(prev + 1, totalPages));
 
-  // *[BREADCRUMBS] Admin Dashboard navigation
+  // [BREADCRUMBS]
   const breadcrumbs = [
     { label: "Admin Dashboard", path: "/admin/dashboard" },
     { label: "Sections", path: null },
   ];
 
-  // ? [LOADING STATE]
   if (loading) return <Skeleton />;
 
   return (
@@ -281,11 +312,14 @@ const AdminSections = () => {
       {/* [MODAL] Section Form */}
       <SectionFormModal
         isOpen={showSectionModal}
-        title="Create Section"
+        title={isEditMode ? "Edit Section" : "Create Section"}
         onClose={() => setShowSectionModal(false)}
         onSubmit={handleSubmit}
         formData={formData}
         setFormData={setFormData}
+        advisers={advisers}
+        adviserSearch={adviserSearch}
+        setAdviserSearch={setAdviserSearch}
         loading={loading}
         formError={formError}
         setFormError={setFormError}
@@ -313,7 +347,6 @@ const AdminSections = () => {
 
         {/* [SECTION] Search & Filters */}
         <div className="bg-[var(--color-bg-100)] px-3 rounded-lg py-4 flex md:flex-row gap-2 md:gap-4 items-stretch w-full">
-          {/* [INPUT] Search */}
           <div className="relative flex-1">
             <input
               type="text"
@@ -368,7 +401,6 @@ const AdminSections = () => {
 
         {/* [CARDS] Sections — Mobile View */}
         <div className="flex flex-col gap-4 sm:hidden mt-2 bg-[var(--color-bg-100)] px-3 py-4 rounded-lg">
-          {/* [EMPTY STATE] No Sections */}
           {!loading && (
             sections.length === 0 ? (
               <EmptyState
@@ -426,7 +458,6 @@ const AdminSections = () => {
                 <th className="px-4 py-3 text-left">Curriculum</th>
                 <th className="px-4 py-3 text-left">Adviser</th>
                 <th className="px-4 py-3 text-left">Students</th>
-                <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -447,12 +478,6 @@ const AdminSections = () => {
                     <td className="px-4 py-3 text-[var(--color-text-700)]">{s.curriculum}</td>
                     <td className="px-4 py-3 text-[var(--color-text-700)]">{s.adviser?.name ?? "—"}</td>
                     <td className="px-4 py-3 text-[var(--color-text-700)]">{s.classSize}</td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                        <button onClick={() => handleOpenEdit(s)} className="text-xs font-roboto text-[var(--color-primary-600)] hover:underline cursor-pointer">Edit</button>
-                        <button onClick={() => handleDelete(s.id)} className="text-xs font-roboto text-[var(--color-red-500)] hover:underline cursor-pointer">Delete</button>
-                      </div>
-                    </td>
                   </tr>
                 ))
               )}
