@@ -38,6 +38,7 @@ import AdminAdviserDetails from "./pages/admin/AdminAdviserDetails";
 import AdminProfile from "./pages/admin/AdminProfile";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminAnnouncementsAndEvents from "./pages/admin/AdminAnnouncementsAndEvents";
+import AdminSchoolForms from "./pages/admin/AdminSchoolForms";
 
 // [IMPORT] Context & Layout
 import PrivateRoute from "./context/PrivateRoute";
@@ -93,6 +94,8 @@ function App() {
 
           <Route path="/admin/profile" element={<AdminProfile />} />
           <Route path="/admin/settings" element={<AdminSettings />} />
+
+          <Route path="/admin/school-forms" element={<AdminSchoolForms />} />
 
           <Route path="/admin/announcements-and-events" element={<AdminAnnouncementsAndEvents />} />
         </Route>
