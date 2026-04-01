@@ -186,6 +186,10 @@ model Admin {
   resetToken         String?  @unique
   resetTokenExpiry   DateTime?
 
+  // Preferences
+  emailNotifications Boolean @default(true)
+  darkMode           Boolean @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
