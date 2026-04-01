@@ -151,6 +151,7 @@ const AdminSectionDetails = () => {
       }
     };
 
+    // ? [CONFIRM] Show confirmation modal before deleting
     openGeneralModal({
       title: "Delete Section",
       message: "Are you sure you want to delete this section? This action cannot be undone.",
