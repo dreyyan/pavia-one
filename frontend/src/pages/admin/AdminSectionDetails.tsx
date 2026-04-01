@@ -217,6 +217,8 @@ const AdminSectionDetails = () => {
       // [UPDATE] Merge only the fields we sent back into local state
       setSection(prev => prev ? { ...prev, ...payload, schoolYear: normalizedSchoolYear } : prev);
       setIsEditing(false);
+
+      // * [SUCCESS] Show success modal
       openGeneralModal({
         title: "Section Updated",
         message: `"${formData.name}" has been updated successfully.`,
@@ -226,6 +228,7 @@ const AdminSectionDetails = () => {
         onConfirm: () => closeGeneralModal(),
       });
     } catch (err) {
+      // ! [ERROR] Updating section failed
       console.error("Update error:", err);
       openGeneralModal({
         title: "Unable to Update Section",

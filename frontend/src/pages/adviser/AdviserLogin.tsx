@@ -1,6 +1,7 @@
 // [IMPORT] Hooks
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
 import ImageHeader from "../../components/ImageHeader";
@@ -10,10 +11,12 @@ import Modal from "../../components/Modal";
 
 const AdviserLogin = () => {
     const navigate = useNavigate();
+    const { setUser, setShowTokenExpiredModal } = useAuth();
 
     // [STATES]
     const [adviserId, setAdviserId] = useState("");
     const [password, setPassword] = useState("");
+    const [rememberMe, setRememberMe] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [modalTitle, setModalTitle] = useState("");
     const [modalMessage, setModalMessage] = useState("");
@@ -34,7 +37,7 @@ const AdviserLogin = () => {
 
         // ![ERROR] Empty Password
         if (!password) {
-            setModalTitle("Passowrd required");
+            setModalTitle("Password required");
             setModalMessage("Please enter your password to continue.");
             setIsCancelable(false);
             setRedirectOnConfirm(false);
@@ -42,21 +45,34 @@ const AdviserLogin = () => {
             return;
         }
 
+        // [PAYLOAD] Prepare login request
         const payload = {
             identifier: adviserId,
             password,
+            rememberMe,
         };
 
+        const token = localStorage.getItem("token");
+
         try {
+            // [REQUEST] Send login request to backend
             const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/adviser/login`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`,
+                },
                 body: JSON.stringify(payload),
             });
 
+            if (res.status === 401) {
+            setShowTokenExpiredModal(true);
+            return;
+            }
+
             const data = await res.json();
 
-            // ![ERROR] Error response from backend
+            // ![ERROR] Login failed
             if (!res.ok || !data.success) {
                 setModalTitle("Login unsuccessful");
                 setModalMessage("We couldn't log you in. Please check your Adviser ID and password and try again.");
@@ -66,8 +82,12 @@ const AdviserLogin = () => {
                 return;
             }
 
+            // *[SUCCESS] Store token and role
             localStorage.setItem("token", data.data.token);
-            localStorage.setItem("role", "Adviser");
+            localStorage.setItem("role", "adviser");
+
+            // update auth context
+            setUser({ id: 0, name: adviserId, role: "adviser" });
 
             setModalTitle("Login successful");
             setModalMessage("You have successfully signed in. Redirecting you to your dashboard...");
@@ -75,8 +95,11 @@ const AdviserLogin = () => {
             setRedirectOnConfirm(true);
             setShowModal(true);
 
+            setTimeout(() => navigate("/adviser/dashboard"), 800);
+
         } catch (err) {
             console.error(err);
+            // ![ERROR] Network or server issue
             setModalTitle("Login unsuccessful");
             setModalMessage("Something went wrong while trying to sign you in. Please check your internet connection and try again. If the problem continues, contact the school administrator.");
             setIsCancelable(false);
@@ -100,7 +123,7 @@ const AdviserLogin = () => {
                     message={modalMessage}
                     closeOnBackdrop={false}
                     isCancelable={isCancelable}
-                  />
+                />
             )}
 
             {/* [COMPONENT] Image Header */}
@@ -141,6 +164,8 @@ const AdviserLogin = () => {
                         <input
                             type="checkbox"
                             className="w-4 h-4 accent-[var(--color-primary-600)]"
+                            checked={rememberMe}
+                            onChange={(e) => setRememberMe(e.target.checked)}
                         />
                         Remember Me
                     </label>

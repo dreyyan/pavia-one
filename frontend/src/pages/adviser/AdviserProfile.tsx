@@ -149,9 +149,10 @@ const AdviserProfile = () => {
   // *[EFFECT] Fetch profile
   useEffect(() => {
     const fetchProfile = async () => {
+      setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) {
-        setIsAuthenticated(false);
+        setIsAuthenticated(false); // optional, used internally for form logic
         setLoading(false);
         return;
       }
@@ -163,7 +164,6 @@ const AdviserProfile = () => {
         if (!data.success) {
           localStorage.removeItem("token");
           setIsAuthenticated(false);
-          setLoading(false);
           return;
         }
         setProfile(data.data);
@@ -196,11 +196,6 @@ const AdviserProfile = () => {
     };
     fetchProfile();
   }, []);
-
-  // [EFFECT] Redirect if not authenticated
-  useEffect(() => {
-    if (isAuthenticated === false) navigate("/login/adviser");
-  }, [isAuthenticated, navigate]);
 
   const SEX_OPTIONS = [
     { label: "M", value: "MALE" },
@@ -251,39 +246,39 @@ const AdviserProfile = () => {
 
       {/* Profile Form */}
       <div className="w-full max-w-md bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-lg shadow-sm p-5 space-y-3">
-      {/* [SECTION] Pagination */}
-      <div className="flex justify-between items-center space-x-4 my-3">
-        {/* [BUTTON] Previous */}
-        <button
-          onClick={prevPage}
-          disabled={currentPage === 1}
-          className={`w-24 py-2 rounded-md text-[var(--color-text-50)] font-roboto text-xs font-semibold transition-colors duration-150 ${
-            currentPage === 1
-              ? "bg-[var(--color-bg-400)] cursor-not-allowed opacity-50"
-              : "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)]"
-          }`}
-        >
-          &lt; Previous
-        </button>
+        {/* [SECTION] Pagination */}
+        <div className="flex justify-between items-center space-x-4 my-3">
+          {/* [BUTTON] Previous */}
+          <button
+            onClick={prevPage}
+            disabled={currentPage === 1}
+            className={`w-24 py-2 rounded-md text-[var(--color-text-50)] font-roboto text-xs font-semibold transition-colors duration-150 ${
+              currentPage === 1
+                ? "bg-[var(--color-bg-400)] cursor-not-allowed opacity-50"
+                : "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)]"
+            }`}
+          >
+            &lt; Previous
+          </button>
 
-        {/* [UI] Page Number */}
-        <span className="flex gap-x-1 text-sm text-[var(--color-text-900)] font-medium">
-          Page <span className="font-bold">{currentPage}</span> of <span className="font-bold">{totalPages}</span>
-        </span>
+          {/* [UI] Page Number */}
+          <span className="flex gap-x-1 text-sm text-[var(--color-text-900)] font-medium">
+            Page <span className="font-bold">{currentPage}</span> of <span className="font-bold">{totalPages}</span>
+          </span>
 
-        {/* [BUTTON] Next */}
-        <button
-          onClick={nextPage}
-          disabled={currentPage === totalPages}
-          className={`w-24 py-2 rounded-md text-[var(--color-text-50)] font-roboto text-xs font-semibold transition-colors duration-150 ${
-            currentPage === totalPages
-              ? "bg-[var(--color-bg-400)] cursor-not-allowed opacity-50"
-              : "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)]"
-          }`}
-        >
-          Next &gt;
-        </button>
-      </div>
+          {/* [BUTTON] Next */}
+          <button
+            onClick={nextPage}
+            disabled={currentPage === totalPages}
+            className={`w-24 py-2 rounded-md text-[var(--color-text-50)] font-roboto text-xs font-semibold transition-colors duration-150 ${
+              currentPage === totalPages
+                ? "bg-[var(--color-bg-400)] cursor-not-allowed opacity-50"
+                : "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)]"
+            }`}
+          >
+            Next &gt;
+          </button>
+        </div>
 
         {/* [BUTTON] Edit / Cancel */}
         <div className="flex justify-end gap-4">

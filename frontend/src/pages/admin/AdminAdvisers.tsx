@@ -3,7 +3,6 @@
 // [IMPORT] Hooks
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
 import Skeleton from "../../components/Skeleton";
@@ -25,7 +24,6 @@ const EMPTY_FORM: AdviserFormData = {
 };
 
 const AdminAdvisers = () => {
-  const { setShowTokenExpiredModal } = useAuth();
   const navigate = useNavigate();
 
   // [STATES] Entities
@@ -74,7 +72,6 @@ const AdminAdvisers = () => {
       const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/advisers?limit=200`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.status === 401) { setShowTokenExpiredModal(true); return; }
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed to fetch advisers");
       const list = data.data?.data;
