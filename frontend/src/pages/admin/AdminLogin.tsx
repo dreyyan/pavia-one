@@ -104,7 +104,7 @@ const AdminLogin = () => {
     };
 
     return (
-        <div className="pb-20 bg-[var(--color-bg-100)]">
+        <div className="pb-20 bg-[var(--color-bg-100)] min-h-screen flex flex-col items-center">
             {/* [COMPONENT] Modal */}
             {showModal && (
                 <Modal
@@ -125,9 +125,9 @@ const AdminLogin = () => {
             <ImageHeader />
 
             {/* [SECTION] Login Form */}
-            <div className="flex flex-col pt-15 px-6">
+            <div className="flex flex-col pt-15 px-6 w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl">
                 {/* [UI] Admin Login */}
-                <h1 className="text-[var(--color-primary-700)]">
+                <h1 className="text-[var(--color-primary-700)] text-lg sm:text-xl md:text-2xl">
                     Admin Login
                 </h1>
 
@@ -154,7 +154,7 @@ const AdminLogin = () => {
                 </div>
 
                 {/* [SECTION] Auxiliary Actions */}
-                <div className="flex justify-between items-center mt-2 px-2 mb-10">
+                <div className="flex sm:flex-row justify-between items-center mt-2 px-2 mb-10">
                     <label className="flex items-center gap-2 label-caption text-[var(--color-text-900)]">
                         <input
                             type="checkbox"
@@ -167,7 +167,7 @@ const AdminLogin = () => {
 
                     <a
                         href={`/forgot-password?role=admin`}
-                        className="link text-[var(--color-primary-700)] hover:underline"
+                        className="link text-[var(--color-primary-700)] hover:underline mt-2 sm:mt-0"
                     >
                         Forgot Password?
                     </a>
@@ -178,8 +178,8 @@ const AdminLogin = () => {
             </div>
 
             {/* [LINK] Adviser Login */}
-            <div className="flex justify-center mt-4">
-                <p className="label-caption">
+            <div className="flex justify-center mt-4 w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl">
+                <p className="label-caption text-center">
                     Not an Admin?{" "}
                     <a
                         href="/login/adviser"
