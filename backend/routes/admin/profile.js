@@ -28,6 +28,8 @@ router.get("/", verifyAdmin, async (req, res) => {
         name: true,
         username: true,
         email: true,
+        emailNotifications: true,
+        darkMode: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -49,14 +51,20 @@ router.get("/", verifyAdmin, async (req, res) => {
 // /api/admin/profile
 router.put("/", verifyAdmin, async (req, res) => {
   try {
-    const { name, username, email } = req.body;
+    const { name, username, email, emailNotifications, darkMode } = req.body;
 
-    if (!name && !username && !email) {
+    if (
+      !name &&
+      !username &&
+      !email &&
+      emailNotifications === undefined &&
+      darkMode === undefined
+    ) {
       return res
         .status(400)
         .json(
           errorResponse(
-            "No changes detected. Provide name, username, or email to update.",
+            "No changes detected. Provide name, username, email, or preferences to update.",
           ),
         );
     }
@@ -75,6 +83,9 @@ router.put("/", verifyAdmin, async (req, res) => {
     if (username && username !== currentAdmin.username)
       updateData.username = username;
     if (email && email !== currentAdmin.email) updateData.email = email;
+    if (emailNotifications !== undefined)
+      updateData.emailNotifications = emailNotifications;
+    if (darkMode !== undefined) updateData.darkMode = darkMode;
 
     if (Object.keys(updateData).length === 0) {
       return res
@@ -120,12 +131,10 @@ router.put("/change-password", verifyAdmin, async (req, res) => {
 
   // Missing input
   if (!currentPassword || !newPassword) {
-    return res
-      .status(400)
-      .json({
-        success: false,
-        message: "Current and new passwords are required",
-      });
+    return res.status(400).json({
+      success: false,
+      message: "Current and new passwords are required",
+    });
   }
 
   try {
@@ -155,12 +164,10 @@ router.put("/change-password", verifyAdmin, async (req, res) => {
     // Prevent using same password
     const isSameAsCurrent = await bcrypt.compare(newPassword, admin.password);
     if (isSameAsCurrent) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "New password cannot be the same as the current password",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "New password cannot be the same as the current password",
+      });
     }
 
     // Hash and update password
