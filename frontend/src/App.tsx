@@ -32,12 +32,13 @@ import AdminStudents from "./pages/admin/AdminStudents";
 import AdminAdvisers from "./pages/admin/AdminAdvisers";
 import AdminSections from "./pages/admin/AdminSections";
 import AdminSubjects from "./pages/admin/AdminSubjects";
+import AdminStudentDetails from "./pages/admin/AdminStudentDetails";
+import AdminSubjectDetails from "./pages/admin/AdminSubjectDetails";
+import AdminSectionDetails from "./pages/admin/AdminSectionDetails";
 
 // [IMPORT] Context & Layout
 import PrivateRoute from "./context/PrivateRoute";
 import Layout from "./Layout";
-import AdminStudentDetails from "./pages/admin/AdminStudentDetails";
-import AdminSubjectDetails from "./pages/admin/AdminSubjectDetails";
 
 function App() {
   return (
@@ -81,7 +82,9 @@ function App() {
           <Route path="/admin/students/view/:id" element={<AdminStudentDetails />} />
 
           <Route path="/admin/advisers" element={<AdminAdvisers />} />
+
           <Route path="/admin/sections" element={<AdminSections />} />
+          <Route path="/admin/sections/view/:id" element={<AdminSectionDetails />} />
 
           <Route path="/admin/subjects" element={<AdminSubjects />} />
           <Route path="/admin/subjects/view/:id" element={<AdminSubjectDetails />} />
