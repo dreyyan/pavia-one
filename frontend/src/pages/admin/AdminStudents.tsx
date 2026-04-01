@@ -513,22 +513,25 @@ const AdminStudents = () => {
 
       {/* [CARDS] Students - Mobile View */}
       <div className="flex flex-col gap-4 sm:hidden mt-2 bg-[var(--color-bg-100)] px-3 py-4 rounded-lg">
-          {/* [EMPTY STATE] No Students */}
-          {!loading && students.length === 0 && (
-            <EmptyState
-              title="No students found"
-              subtitle="You currently have no assigned students. Please contact admin if this is an error."
-              iconSrc="/no-data-icon.svg"
-            />
-          )}
-          {/* [EMPTY STATE] No Students /w Current Filters */}
-          {!loading && displayedStudents.length === 0 && (
-            <EmptyState
-              title="No students found"
-              subtitle="No students match your current filters or search. Try adjusting your criteria."
-              iconSrc="/no-data-icon.svg"
-            />
-          )}
+        {!loading && (
+          <>
+            {/* Empty state for current filters first */}
+            {displayedStudents.length === 0 ? (
+              <EmptyState
+                title="No students found"
+                subtitle="No students match your current filters or search. Try adjusting your criteria."
+                iconSrc="/no-data-icon.svg"
+              />
+            ) : students.length === 0 ? (
+              // Fallback: no students at all
+              <EmptyState
+                title="No students found"
+                subtitle="You currently have no assigned students. Please contact admin if this is an error."
+                iconSrc="/no-data-icon.svg"
+              />
+            ) : null}
+          </>
+        )}
         {displayedStudents.map((s) => (
           <div
             key={s.id}
