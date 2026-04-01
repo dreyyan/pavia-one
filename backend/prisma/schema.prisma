@@ -190,6 +190,9 @@ model Admin {
   emailNotifications Boolean @default(true)
   darkMode           Boolean @default(false)
 
+  announcements Announcement[]
+  events        Event[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -419,4 +422,42 @@ model SF9Summary {
 
   @@unique([studentId, schoolYear])
   @@map("sf9_summaries")
+}
+
+model Announcement {
+  id           Int       @id @default(autoincrement())
+  title        String
+  content      String
+  publishedAt  DateTime?
+  expiresAt    DateTime?
+
+  createdById  Int
+  createdBy    Admin     @relation(fields: [createdById], references: [id])
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+enum EventType {
+  SCHOOL_EVENT      // e.g., Intramurals, Foundation Day
+  ACADEMIC_EVENT    // e.g., Exams, Seminars
+  COMMUNITY_SERVICE // e.g., Outreach Programs
+  OTHER
+}
+
+model Event {
+  id          Int        @id @default(autoincrement())
+  title       String
+  description String
+  location    String?
+  type        EventType  @default(OTHER)
+  startDate   DateTime
+  endDate     DateTime?
+  isOnline    Boolean    @default(false)
+
+  createdById Int
+  createdBy   Admin      @relation(fields: [createdById], references: [id])
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @default(now())
 }
