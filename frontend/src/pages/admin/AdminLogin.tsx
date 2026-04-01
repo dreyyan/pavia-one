@@ -1,6 +1,7 @@
 // [IMPORT] Hooks
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
 import ImageHeader from "../../components/ImageHeader";
@@ -10,6 +11,7 @@ import Modal from "../../components/Modal";
 
 const AdminLogin = () => {
     const navigate = useNavigate();
+    const { setUser } = useAuth();
 
     // [STATES]
     const [username, setUsername] = useState("");
@@ -35,7 +37,7 @@ const AdminLogin = () => {
 
         // ![ERROR] Empty Password
         if (!password) {
-            setModalTitle("Password required"); // <-- fixed typo
+            setModalTitle("Password required");
             setModalMessage("Please enter your password to continue.");
             setIsCancelable(false);
             setRedirectOnConfirm(false);
@@ -77,13 +79,18 @@ const AdminLogin = () => {
 
             // *[SUCCESS] Store token and role
             localStorage.setItem("token", data.data.token);
-            localStorage.setItem("role", "Admin");
+            localStorage.setItem("role", "admin");
+
+            // update auth context
+            setUser({ id: 0, name: username, role: "admin" });
 
             setModalTitle("Login successful");
             setModalMessage("You have successfully signed in. Redirecting you to your dashboard...");
             setIsCancelable(false);
             setRedirectOnConfirm(true);
             setShowModal(true);
+
+            setTimeout(() => navigate("/admin/dashboard"), 800);
 
         } catch (err) {
             console.error(err);

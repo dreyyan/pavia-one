@@ -14,6 +14,7 @@ interface InputFieldProps {
   disabled?: boolean;
   options?: string[];
   max?: number; // maximum value for number input
+  required?: boolean;
 }
 
 const InputField = ({
@@ -30,6 +31,7 @@ const InputField = ({
   disabled = false,
   options = [],
   max,
+  required = false,
 }: InputFieldProps) => {
   // [STATES]
   const [showPassword, setShowPassword] = useState(false);
@@ -74,7 +76,9 @@ const InputField = ({
   return (
     <div className="flex flex-col gap-1">
       {/* [UI] Label */}
-      {label && <label className="input-field-label text-[var(--color-text-900)]">{label}</label>}
+      {label && <label className="input-field-label text-[var(--color-text-900)]">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>}
 
       <div className="relative">
         {/* [UI] Left Icon */}

@@ -153,7 +153,7 @@ model Adviser {
   adviserId          String    @unique @db.VarChar(8)
   name               String
   email              String    @unique
-  password           String
+  password           String    @db.Text
   mustChangePassword Boolean   @default(true)
   signatureUrl       String?
 
@@ -223,7 +223,7 @@ model Student {
   middleName         String?
   lastName           String
   nameExtension      String?
-  sex                Sex?
+  sex                Sex
   birthDate          DateTime? @db.Date
   motherTongue       String?
   ethnicGroup        String?
@@ -323,7 +323,7 @@ model LearningArea {
   grades      SF9Grade[]
   enrollments EnrollmentLearningArea[]
 
-  @@unique([name, curriculum])
+  @@unique([name, gradeLevel, curriculum])
   @@map("learning_areas")
 }
 

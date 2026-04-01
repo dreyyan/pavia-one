@@ -1,23 +1,33 @@
 // [IMPORT] Setup
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const prisma = require('../../lib/prisma');
+const prisma = require("../../lib/prisma");
 
 // [IMPORT] Tools
-require('dotenv').config();
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
+require("dotenv").config();
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcrypt");
 
 // [IMPORT] Utilities & Middleware
-const { successResponse, errorResponse } = require('../../utils/response');
-const { getFullName, isValidSex, splitFullName } = require('../../utils/helpers')
-const verifyAdmin = require('../../middleware/authMiddleware').verifyAdmin;
+const { successResponse, errorResponse } = require("../../utils/response");
+const {
+  getFullName,
+  isValidSex,
+  splitFullName,
+} = require("../../utils/helpers");
+const verifyAdmin = require("../../middleware/authMiddleware").verifyAdmin;
 
 // ?[GET] Get all students (paginated, searchable, admin-only)
 // /api/admin/students
-router.get('/', verifyAdmin, async (req, res) => {
+router.get("/", verifyAdmin, async (req, res) => {
   try {
-    const { page = 1, limit = 50, sortBy = 'lrn', sortOrder = 'asc', search = '' } = req.query;
+    const {
+      page = 1,
+      limit = 50,
+      sortBy = "lrn",
+      sortOrder = "asc",
+      search = "",
+    } = req.query;
 
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
@@ -26,12 +36,12 @@ router.get('/', verifyAdmin, async (req, res) => {
     const where = search
       ? {
           OR: [
-            { firstName: { contains: search, mode: 'insensitive' } },
-            { lastName: { contains: search, mode: 'insensitive' } },
-            { middleName: { contains: search, mode: 'insensitive' } },
-            { nameExtension: { contains: search, mode: 'insensitive' } },
+            { firstName: { contains: search, mode: "insensitive" } },
+            { lastName: { contains: search, mode: "insensitive" } },
+            { middleName: { contains: search, mode: "insensitive" } },
+            { nameExtension: { contains: search, mode: "insensitive" } },
             { lrn: { contains: search } },
-            { email: { contains: search, mode: 'insensitive' } },
+            { email: { contains: search, mode: "insensitive" } },
           ],
         }
       : {};
@@ -82,7 +92,7 @@ router.get('/', verifyAdmin, async (req, res) => {
           sf5Reports: true,
           sf9CoreValues: true,
         },
-        orderBy: { [sortBy]: sortOrder === 'desc' ? 'desc' : 'asc' },
+        orderBy: { [sortBy]: sortOrder === "desc" ? "desc" : "asc" },
         skip,
         take: limitNum,
       }),
@@ -125,7 +135,7 @@ router.get('/', verifyAdmin, async (req, res) => {
     const totalPages = Math.ceil(total / limitNum);
 
     res.json(
-      successResponse('Students retrieved successfully', {
+      successResponse("Students retrieved successfully", {
         data: studentsWithFullName,
         pagination: {
           total,
@@ -135,17 +145,19 @@ router.get('/', verifyAdmin, async (req, res) => {
           hasNext: pageNum < totalPages,
           hasPrev: pageNum > 1,
         },
-      })
+      }),
     );
   } catch (err) {
-    console.error('Admin students fetch error:', err);
-    res.status(500).json(errorResponse('[ERROR] Failed to fetch students.', err.message));
+    console.error("Admin students fetch error:", err);
+    res
+      .status(500)
+      .json(errorResponse("[ERROR] Failed to fetch students.", err.message));
   }
 });
 
 // ?[GET] Get Student
 // /api/admin/students/:identifier
-router.get('/:identifier', verifyAdmin, async (req, res) => {
+router.get("/:identifier", verifyAdmin, async (req, res) => {
   const { identifier } = req.params; // can be LRN or internal ID
 
   try {
@@ -176,10 +188,7 @@ router.get('/:identifier', verifyAdmin, async (req, res) => {
         ethnicGroup: true,
         religion: true,
         email: true,
-        password: true,
         createdByAdviserId: true,
-        accountStatus: true,
-        mustChangePassword: true,
         createdAt: true,
         updatedAt: true,
 
@@ -188,7 +197,15 @@ router.get('/:identifier', verifyAdmin, async (req, res) => {
         address: true,
         guardian: true,
 
-        enrollments: { select: { id: true, sectionId: true, schoolYear: true, status: true, learningModality: true } },
+        enrollments: {
+          select: {
+            id: true,
+            sectionId: true,
+            schoolYear: true,
+            status: true,
+            learningModality: true,
+          },
+        },
         sf9Grades: true,
         sf9Summaries: true,
         sf5Reports: true,
@@ -198,7 +215,7 @@ router.get('/:identifier', verifyAdmin, async (req, res) => {
 
     // ![ERROR] Student not found
     if (!student) {
-      return res.status(404).json(errorResponse('Student not found'));
+      return res.status(404).json(errorResponse("Student not found"));
     }
 
     const studentWithFullName = {
@@ -207,23 +224,43 @@ router.get('/:identifier', verifyAdmin, async (req, res) => {
     };
 
     // *[SUCCESS] Student retrieved successfully
-    res.json(successResponse('Student retrieved successfully', studentWithFullName));
-
+    res.json(
+      successResponse("Student retrieved successfully", studentWithFullName),
+    );
   } catch (err) {
-    console.error('Admin single student fetch error:', err);
-    res.status(500).json(errorResponse('[ERROR] Failed to fetch student.', err.message));
+    console.error("Admin single student fetch error:", err);
+    res
+      .status(500)
+      .json(errorResponse("[ERROR] Failed to fetch student.", err.message));
   }
 });
 
 // ?[POST] Add student(s)
 // /api/admin/students
-router.post('/', verifyAdmin, async (req, res) => {
+router.post("/", verifyAdmin, async (req, res) => {
   try {
     const studentsInput = Array.isArray(req.body) ? req.body : [req.body];
-    if (!studentsInput.length) return res.status(400).json(errorResponse('No student data provided'));
+    if (!studentsInput.length)
+      return res.status(400).json(errorResponse("No student data provided"));
 
     const createdStudents = [];
     const errors = [];
+
+    // Map possible input strings to Prisma LearningModality enum
+    const modalityMap = {
+      FACE_TO_FACE: "FACE_TO_FACE",
+      "Face to Face": "FACE_TO_FACE",
+      DISTANCE_LEARNING: "DISTANCE_LEARNING",
+      "Distance Learning": "DISTANCE_LEARNING",
+      BLENDED: "BLENDED",
+      Blended: "BLENDED",
+      ONLINE: "ONLINE",
+      Online: "ONLINE",
+      HOMESCHOOL: "HOMESCHOOL",
+      Homeschool: "HOMESCHOOL",
+      OTHER: "OTHER",
+      Other: "OTHER",
+    };
 
     for (const student of studentsInput) {
       const {
@@ -233,7 +270,6 @@ router.post('/', verifyAdmin, async (req, res) => {
         lastName,
         nameExtension,
         email,
-        password,
         sex,
         birthDate,
         sectionId,
@@ -241,82 +277,75 @@ router.post('/', verifyAdmin, async (req, res) => {
         motherTongue,
         religion,
         barangay,
-        municipality,
+        municipalityCity,
         province,
-        fatherName,
-        motherMaidenName,
         learningModality,
-        remarks,
       } = student;
 
-      // ![ERROR] Missing required fields
-      if (!lrn || !firstName || !lastName || !email || !password || !sex || !createdByAdviserId) {
-        errors.push({ lrn, message: 'Missing required fields' });
+      // Required fields
+      if (!lrn || !firstName || !lastName || !sex || !createdByAdviserId) {
+        errors.push({ lrn, message: "Missing required fields" });
         continue;
       }
 
-      // ![ERROR] Invalid sex value
       if (!isValidSex(sex)) {
-        errors.push({ lrn, message: 'Invalid sex value' });
+        errors.push({ lrn, message: "Invalid sex value" });
         continue;
       }
 
-      const existing = await prisma.student.findFirst({ where: { OR: [{ email }, { lrn }] } });
-
-      // ![ERROR] Student already exists
+      const existing = await prisma.student.findFirst({
+        where: { OR: [{ email }, { lrn }] },
+      });
       if (existing) {
-        errors.push({ lrn, message: 'Student already exists' });
+        errors.push({ lrn, message: "Student already exists" });
         continue;
       }
 
-      // --- Parse birth date and calculate age ---
       const parsedBirthDate = birthDate ? new Date(birthDate) : null;
-      let age = null;
-      if (parsedBirthDate) {
-        const today = new Date();
-        age = today.getFullYear() - parsedBirthDate.getFullYear();
-        if (
-          today.getMonth() < parsedBirthDate.getMonth() ||
-          (today.getMonth() === parsedBirthDate.getMonth() && today.getDate() < parsedBirthDate.getDate())
-        ) {
-          age--;
-        }
-      }
 
-      const hashedPassword = await bcrypt.hash(password, 10);
+      // Map learningModality to enum or default to FACE_TO_FACE
+      const safeModality = modalityMap[learningModality] || "FACE_TO_FACE";
 
+      // Build student data
       const studentData = {
         lrn,
         firstName,
         middleName: middleName || null,
         lastName,
         nameExtension: nameExtension || null,
-        email,
-        password: hashedPassword,
+        email: email || null,
         sex: sex.toUpperCase(),
         birthDate: parsedBirthDate,
-        age,
         motherTongue: motherTongue || null,
         religion: religion || null,
-        barangay: barangay || null,
-        municipality: municipality || 'Pavia',
-        province: province || 'Iloilo',
-        fatherName: fatherName || null,
-        motherMaidenName: motherMaidenName || null,
-        learningModality: learningModality || null,
-        remarks: remarks || null,
         createdByAdviserId,
+        address: {
+          create: {
+            barangay: barangay || null,
+            municipalityCity: municipalityCity || null,
+            province: province || null,
+          },
+        },
       };
 
+      // If sectionId provided, create enrollment
       if (sectionId) {
-        const section = await prisma.section.findUnique({ where: { id: sectionId } });
-
-        // ![ERROR] Section not found
+        const section = await prisma.section.findUnique({
+          where: { id: sectionId },
+        });
         if (!section) {
-          errors.push({ lrn, sectionId, message: 'Section not found' });
+          errors.push({ lrn, sectionId, message: "Section not found" });
           continue;
         }
-        studentData.enrollments = { create: { sectionId, status: 'ENROLLED' } };
+
+        studentData.enrollments = {
+          create: {
+            sectionId,
+            schoolYear: section.schoolYear,
+            learningModality: safeModality,
+            status: "ENROLLED",
+          },
+        };
       }
 
       const newStudent = await prisma.student.create({
@@ -331,19 +360,22 @@ router.post('/', verifyAdmin, async (req, res) => {
           email: true,
           sex: true,
           birthDate: true,
-          age: true,
           motherTongue: true,
           religion: true,
-          barangay: true,
-          municipality: true,
-          province: true,
-          fatherName: true,
-          motherMaidenName: true,
-          learningModality: true,
-          remarks: true,
           createdAt: true,
           adviser: { select: { id: true, name: true, adviserId: true } },
-          enrollments: { where: { status: 'ENROLLED' }, select: { section: { select: { id: true, name: true } } }, take: 1 },
+          address: {
+            select: { barangay: true, municipalityCity: true, province: true },
+          },
+          enrollments: {
+            where: { status: "ENROLLED" },
+            select: {
+              section: { select: { id: true, name: true } },
+              learningModality: true,
+              status: true,
+            },
+            take: 1,
+          },
         },
       });
 
@@ -355,33 +387,40 @@ router.post('/', verifyAdmin, async (req, res) => {
       });
     }
 
-    // *[SUCCESS] Student(s) processed successfully
-    res.status(201).json(successResponse('Student(s) processed successfully', { created: createdStudents, failed: errors }));
+    res.status(201).json(
+      successResponse("Student(s) processed successfully", {
+        created: createdStudents,
+        failed: errors,
+      }),
+    );
   } catch (err) {
-    console.error('Create student(s) error:', err);
-    res.status(500).json(errorResponse('Failed to create student(s)', err.message));
+    console.error("Create student(s) error:", err);
+    res
+      .status(500)
+      .json(errorResponse("Failed to create student(s)", err.message));
   }
 });
 
-// ?[PUT] Update student(s)
-// /api/admin/students
-router.put('/', verifyAdmin, async (req, res) => {
+// ?[PUT] Update student(s) - Supports single or multiple students
+router.put("/", verifyAdmin, async (req, res) => {
   try {
     const studentsInput = Array.isArray(req.body) ? req.body : [req.body];
-    if (!studentsInput.length)
-      return res.status(400).json(errorResponse('No student data provided'));
+
+    if (!studentsInput.length) {
+      return res.status(400).json(errorResponse("No student data provided"));
+    }
 
     const updatedStudents = [];
     const errors = [];
 
-    // Map for converting frontend-friendly names to Prisma enum keys
+    // Enum mapping for learningModality
     const learningModalityEnumMap = {
       "Face to Face": "FACE_TO_FACE",
       "Distance Learning": "DISTANCE_LEARNING",
-      "Blended": "BLENDED",
-      "Online": "ONLINE",
-      "Homeschool": "HOMESCHOOL",
-      "Other": "OTHER",
+      Blended: "BLENDED",
+      Online: "ONLINE",
+      Homeschool: "HOMESCHOOL",
+      Other: "OTHER",
     };
 
     for (const student of studentsInput) {
@@ -393,16 +432,16 @@ router.put('/', verifyAdmin, async (req, res) => {
         lastName,
         nameExtension,
         email,
-        password,
         sex,
         birthDate,
         motherTongue,
         religion,
-        // Address fields
+        // Address
+        streetAddress,
         barangay,
         municipality,
         province,
-        // Guardian fields
+        // Guardian
         fatherName,
         motherMaidenName,
         // Enrollment
@@ -410,45 +449,47 @@ router.put('/', verifyAdmin, async (req, res) => {
         remarks,
       } = student;
 
+      // Find existing student (by id or lrn as fallback)
       const existing = await prisma.student.findFirst({
         where: id ? { id } : { lrn },
-        include: { address: true, guardian: true, enrollments: true },
-      });
-
-      if (!existing) {
-        errors.push({ lrn, id, message: 'Student not found' });
-        continue;
-      }
-
-      // Hash password if provided
-      let hashedPassword = existing.password;
-      if (password) {
-        hashedPassword = await bcrypt.hash(password, 10);
-      }
-
-      // Update student base fields
-      const studentUpdate = await prisma.student.update({
-        where: { id: existing.id },
-        data: {
-          firstName: firstName || existing.firstName,
-          middleName: middleName !== undefined ? middleName : existing.middleName,
-          lastName: lastName || existing.lastName,
-          nameExtension: nameExtension !== undefined ? nameExtension : existing.nameExtension,
-          email: email || existing.email,
-          password: hashedPassword,
-          sex: sex ? sex.toUpperCase() : existing.sex,
-          birthDate: birthDate ? new Date(birthDate) : existing.birthDate,
-          motherTongue: motherTongue !== undefined ? motherTongue : existing.motherTongue,
-          religion: religion !== undefined ? religion : existing.religion,
+        include: {
+          address: true,
+          guardian: true,
+          enrollments: true,
         },
       });
 
-      // Update or create address
+      if (!existing) {
+        errors.push({ id, lrn, message: "Student not found" });
+        continue;
+      }
+
+      // Update main Student record
+      const studentUpdate = await prisma.student.update({
+        where: { id: existing.id },
+        data: {
+          firstName: firstName?.trim() || undefined,
+          middleName:
+            middleName !== undefined ? middleName?.trim() || null : undefined,
+          lastName: lastName?.trim() || undefined,
+          nameExtension:
+            nameExtension !== undefined
+              ? nameExtension?.trim() || null
+              : undefined,
+          email: email?.trim() || undefined,
+          sex: sex ? sex.toUpperCase() : undefined,
+          birthDate: birthDate ? new Date(birthDate) : undefined,
+          motherTongue: motherTongue !== undefined ? motherTongue : undefined,
+          religion: religion !== undefined ? religion : undefined,
+        },
+      });
+
+      // Update or Create Address
       const addressData = {
-        streetAddress: student.streetAddress || '',
-        barangay: barangay || 'Sample Barangay',
-        municipalityCity: municipality || 'Pavia',
-        province: province || 'Iloilo',
+        streetAddress: streetAddress?.trim() || "",
+        barangay: barangay?.trim() || "Sample Barangay",
+        municipalityCity: municipality?.trim() || "Pavia",
+        province: province?.trim() || "Iloilo",
       };
 
       if (existing.address) {
@@ -462,10 +503,10 @@ router.put('/', verifyAdmin, async (req, res) => {
         });
       }
 
-      // Update or create guardian
+      // Update or Create Guardian
       const guardianData = {
-        fatherFirstName: fatherName || 'Sample Father',
-        motherMaidenFirstName: motherMaidenName || 'Sample Mother',
+        fatherFirstName: fatherName?.trim() || "Sample Father",
+        motherMaidenFirstName: motherMaidenName?.trim() || "Sample Mother",
       };
 
       if (existing.guardian) {
@@ -479,12 +520,14 @@ router.put('/', verifyAdmin, async (req, res) => {
         });
       }
 
-      // Update enrollment for current school year
-      const enrollment = existing.enrollments[0]; // adapt if multiple
-      if (enrollment) {
-        const enumValue = learningModalityEnumMap[learningModality] || 'FACE_TO_FACE';
+      // Update current enrollment (learning modality + remarks)
+      const currentEnrollment = existing.enrollments[0]; // Adjust if you support multiple active enrollments
+      if (currentEnrollment && learningModality) {
+        const enumValue =
+          learningModalityEnumMap[learningModality] || "FACE_TO_FACE";
+
         await prisma.enrollment.update({
-          where: { id: enrollment.id },
+          where: { id: currentEnrollment.id },
           data: {
             learningModality: enumValue,
             remarks: remarks ?? null,
@@ -494,25 +537,42 @@ router.put('/', verifyAdmin, async (req, res) => {
 
       updatedStudents.push({
         id: studentUpdate.id,
-        fullName: `${studentUpdate.firstName} ${studentUpdate.lastName}`,
+        lrn: studentUpdate.lrn,
+        fullName: `${studentUpdate.firstName} ${studentUpdate.lastName}`.trim(),
       });
     }
 
-    res.json(successResponse('Student(s) updated successfully', { updated: updatedStudents, failed: errors }));
+    return res.json(
+      successResponse("Student(s) updated successfully", {
+        updated: updatedStudents,
+        failed: errors,
+      }),
+    );
   } catch (err) {
-    console.error('Update student(s) error:', err);
-    res.status(500).json(errorResponse('Failed to update student(s)', err.message));
+    console.error("Update student(s) error:", err);
+    return res
+      .status(500)
+      .json(errorResponse("Failed to update student(s)", err.message));
   }
 });
 
 // ?[DELETE] Delete all students
 // /api/admin/students/all
-router.delete('/all', verifyAdmin, async (req, res) => {
+router.delete("/all", verifyAdmin, async (req, res) => {
   try {
-    const allStudents = await prisma.student.findMany({ select: { id: true, lrn: true, firstName: true, lastName: true, email: true } });
+    const allStudents = await prisma.student.findMany({
+      select: {
+        id: true,
+        lrn: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+      },
+    });
 
-		// ![ERROR] No students to delete
-    if (!allStudents.length) return res.status(400).json(errorResponse('No students to delete'));
+    // ![ERROR] No students to delete
+    if (!allStudents.length)
+      return res.status(400).json(errorResponse("No students to delete"));
 
     const deletedStudents = [];
     for (const student of allStudents) {
@@ -520,31 +580,47 @@ router.delete('/all', verifyAdmin, async (req, res) => {
       deletedStudents.push(student);
     }
 
-		// *[SUCCESS] All students deleted successfully
-    res.json(successResponse('All students deleted successfully', deletedStudents));
+    // *[SUCCESS] All students deleted successfully
+    res.json(
+      successResponse("All students deleted successfully", deletedStudents),
+    );
   } catch (err) {
-    console.error('Delete all students error:', err);
-    res.status(500).json(errorResponse('Failed to delete all students', err.message));
+    console.error("Delete all students error:", err);
+    res
+      .status(500)
+      .json(errorResponse("Failed to delete all students", err.message));
   }
 });
 
 // ?[DELETE] Delete students
 // /api/admin/students
-router.delete('/', verifyAdmin, async (req, res) => {
-  const ids = Array.isArray(req.body.ids) ? req.body.ids.map((i) => parseInt(i)) : [];
+router.delete("/", verifyAdmin, async (req, res) => {
+  const ids = Array.isArray(req.body.ids)
+    ? req.body.ids.map((i) => parseInt(i))
+    : [];
 
-	// ![ERROR] No student ID(s) provided
-  if (!ids.length) return res.status(400).json(errorResponse('No student ID(s) provided'));
+  // ![ERROR] No student ID(s) provided
+  if (!ids.length)
+    return res.status(400).json(errorResponse("No student ID(s) provided"));
 
   const deletedStudents = [];
   const errors = [];
 
   for (const id of ids) {
-    const student = await prisma.student.findUnique({ where: { id }, select: { id: true, lrn: true, firstName: true, lastName: true, email: true } });
+    const student = await prisma.student.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        lrn: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+      },
+    });
 
-		// ![ERROR] Student not found
+    // ![ERROR] Student not found
     if (!student) {
-      errors.push({ id, message: 'Student not found' });
+      errors.push({ id, message: "Student not found" });
       continue;
     }
 
@@ -552,28 +628,45 @@ router.delete('/', verifyAdmin, async (req, res) => {
     deletedStudents.push(student);
   }
 
-	// *[SUCCESS] Student(s) processed successfully
-  res.json(successResponse('Student(s) processed successfully', { deleted: deletedStudents, failed: errors }));
+  // *[SUCCESS] Student(s) processed successfully
+  res.json(
+    successResponse("Student(s) processed successfully", {
+      deleted: deletedStudents,
+      failed: errors,
+    }),
+  );
 });
 
 // ?[DELETE] Delete a student
 // /api/admin/students/:id
-router.delete('/:id', verifyAdmin, async (req, res) => {
+router.delete("/:id", verifyAdmin, async (req, res) => {
   const { id } = req.params;
 
   try {
-    const student = await prisma.student.findUnique({ where: { id: parseInt(id) }, select: { id: true, lrn: true, firstName: true, lastName: true, email: true } });
+    const student = await prisma.student.findUnique({
+      where: { id: parseInt(id) },
+      select: {
+        id: true,
+        lrn: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+      },
+    });
 
-		// ![ERROR] Student not found
-    if (!student) return res.status(404).json(errorResponse('Student not found'));
+    // ![ERROR] Student not found
+    if (!student)
+      return res.status(404).json(errorResponse("Student not found"));
 
     await prisma.student.delete({ where: { id: parseInt(id) } });
 
-		// *[SUCCESS] Student deleted successfully
-    res.json(successResponse('Student deleted successfully', student));
+    // *[SUCCESS] Student deleted successfully
+    res.json(successResponse("Student deleted successfully", student));
   } catch (err) {
-    console.error('Delete student error:', err);
-    res.status(500).json(errorResponse('Failed to delete student', err.message));
+    console.error("Delete student error:", err);
+    res
+      .status(500)
+      .json(errorResponse("Failed to delete student", err.message));
   }
 });
 
