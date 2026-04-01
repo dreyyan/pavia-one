@@ -518,19 +518,6 @@ const AdminAnnouncementsAndEvents = () => {
 
   return (
     <div className="flex-1 p-4 space-y-8 pb-10 bg-[var(--color-bg-200)]">
-
-      {/* [MODAL] General */}
-      <Modal
-        isOpen={generalModal.isOpen}
-        onClose={closeGeneralModal}
-        title={generalModal.title}
-        message={generalModal.message}
-        type={generalModal.type}
-        confirmText={generalModal.confirmText}
-        onConfirm={generalModal.onConfirm}
-        isCancelable={generalModal.isCancelable}
-      />
-
       {/* [MODAL] Announcement Detail */}
       <Modal
         isOpen={showAnnouncementDetailModal}
@@ -857,6 +844,17 @@ const AdminAnnouncementsAndEvents = () => {
             />
           </div>
         )}
+      {/* [MODAL] General */}
+      <Modal
+        isOpen={generalModal.isOpen}
+        onClose={closeGeneralModal}
+        title={generalModal.title}
+        message={generalModal.message}
+        type={generalModal.type}
+        confirmText={generalModal.confirmText}
+        onConfirm={generalModal.onConfirm}
+        isCancelable={generalModal.isCancelable}
+      />
       </section>
     </div>
   );
