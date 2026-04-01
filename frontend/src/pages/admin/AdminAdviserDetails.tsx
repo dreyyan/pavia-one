@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 // [IMPORT] Hooks
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -5,38 +6,13 @@ import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
 import Skeleton from "../../components/Skeleton";
-import CrudModal from "../../components/CrudModal";
 import ProfileInfo from "../../components/ProfileInfo";
 import DeleteButton from "../../components/DeleteButton";
 import InputField from "../../components/InputField";
 import Modal from "../../components/Modal";
 
-// ?[INTERFACES]
-interface AdviserSection {
-  id: number;
-  name: string;
-  gradeLevel: number;
-  schoolYear: string;
-  curriculum: string;
-  classSize: number;
-  isAdvisory?: boolean;
-}
-
-interface AdviserDetails {
-  id: number;
-  adviserId: string;
-  firstName: string;
-  middleName?: string;
-  lastName: string;
-  nameExtension?: string;
-  fullName: string;
-  sex?: string;
-  birthDate?: string;
-  email?: string;
-  contactNumber?: string;
-  createdAt: string;
-  sections: AdviserSection[];
-}
+// [IMPORT] Types
+import { GeneralModalConfig, AdviserDetails } from "../../types";
 
 // *[COMPONENT] Status Badge
 const AdvisoryBadge = ({ isAdvisory }: { isAdvisory?: boolean }) => (
@@ -65,20 +41,31 @@ const AdminAdviserDetails = () => {
   const [adviser, setAdviser] = useState<AdviserDetails | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // [STATES] CrudModal — confirmations (delete, errors)
-  const [showModal, setShowModal] = useState(false);
-  const [modalTitle, setModalTitle] = useState("");
-  const [modalMessage, setModalMessage] = useState("");
-  const [modalType, setModalType] = useState<"default" | "error" | "success" | "info" | "warning">("default");
-  const [isCancelable, setIsCancelable] = useState(true);
-  const [onConfirmAction, setOnConfirmAction] = useState<() => Promise<void>>(() => async () => {});
-
-  // [STATES] Identity card — pagination & edit mode
+  // [STATES] Identity Card
   const [activePage, setActivePage] = useState<FormPage>(0);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<AdviserDetails>>({});
 
-  // [FETCH] Adviser by id
+  // [STATE] General Modal
+  const [generalModal, setGeneralModal] = useState<GeneralModalConfig>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "default",
+    confirmText: "OK",
+    isCancelable: true,
+    onConfirm: () => {},
+  });
+
+  const openGeneralModal = (config: Partial<Omit<GeneralModalConfig, "isOpen">>) => {
+    setGeneralModal(prev => ({ ...prev, isOpen: true, ...config }));
+  };
+
+  const closeGeneralModal = () => {
+    setGeneralModal(prev => ({ ...prev, isOpen: false }));
+  };
+
+  // * [HANDLE] Fetch adviser by id
   const fetchAdviser = async () => {
     setLoading(true);
     try {
@@ -92,15 +79,35 @@ const AdminAdviserDetails = () => {
       }
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed to fetch adviser");
-      setAdviser(data.data);
-      setFormData(data.data);
+
+      // Split full name into first, middle, last
+      const fullName = data.data.name || "";
+      const nameParts = fullName.trim().split(" ");
+      const firstName = nameParts.shift() || "";
+      const lastName = nameParts.pop() || "";
+      const middleName = nameParts.join(" ") || "";
+
+      const adviserWithSplitName: AdviserDetails = {
+        ...data.data,
+        firstName,
+        middleName,
+        lastName,
+        fullName,
+      };
+
+      setAdviser(adviserWithSplitName);
+      setFormData(adviserWithSplitName);
     } catch (err) {
+      // ! [ERROR] Fetching adviser failed
       console.error(err);
-      setModalTitle("Error fetching adviser");
-      setModalMessage("An error occurred while loading adviser details.");
-      setModalType("error");
-      setIsCancelable(false);
-      setShowModal(true);
+      openGeneralModal({
+        title: "Unable to Load Adviser",
+        message: "We couldn't load the adviser details at the moment. Please check your internet connection and try again.",
+        type: "error",
+        confirmText: "Close",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
     } finally {
       setLoading(false);
     }
@@ -112,14 +119,7 @@ const AdminAdviserDetails = () => {
 
   // [HANDLE] Delete adviser
   const handleDelete = () => {
-    setModalTitle("Delete Adviser");
-    setModalMessage("Are you sure you want to delete this adviser? This action cannot be undone.");
-    setModalType("error");
-    setIsCancelable(true);
-    setShowModal(true);
-
     const onDeleteConfirm = async () => {
-      setShowModal(false);
       setLoading(true);
       try {
         const token = localStorage.getItem("token");
@@ -129,18 +129,44 @@ const AdminAdviserDetails = () => {
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.message || "Failed to delete adviser");
-        navigate("/admin/advisers");
+
+        // * [SUCCESS] Adviser deleted
+        openGeneralModal({
+          title: "Adviser Deleted",
+          message: "The adviser has been deleted successfully.",
+          type: "success",
+          isCancelable: false,
+          onConfirm: () => {
+            closeGeneralModal();
+            navigate("/admin/advisers");
+          },
+        });
+        
       } catch (err) {
+        // ! [ERROR] Deleting adviser failed
         console.error("Delete error:", err);
-        setModalTitle("Delete Failed");
-        setIsCancelable(true);
-        setShowModal(true);
+        openGeneralModal({
+          title: "Unable to Delete Adviser",
+          message: "We couldn't delete the adviser at the moment. Please try again later.",
+          type: "error",
+          confirmText: "Close",
+          isCancelable: false,
+          onConfirm: () => closeGeneralModal(),
+        });
       } finally {
         setLoading(false);
       }
     };
 
-    setOnConfirmAction(() => onDeleteConfirm);
+    // ? [CONFIRM] Show confirmation modal before deleting
+    openGeneralModal({
+      title: "Delete Adviser",
+      message: "Are you sure you want to delete this adviser? This action cannot be undone.",
+      type: "error",
+      confirmText: "Delete",
+      isCancelable: true,
+      onConfirm: onDeleteConfirm,
+    });
   };
 
   // [HANDLE] Edit toggle
@@ -169,11 +195,27 @@ const AdminAdviserDetails = () => {
       if (!data.success) throw new Error(data.message || "Failed to update adviser");
       setAdviser({ ...adviser!, ...formData });
       setIsEditing(false);
+
+      // * [SUCCESS] Show success modal
+      openGeneralModal({
+        title: "Adviser Updated",
+        message: `"${formData.firstName} ${formData.lastName}" has been updated successfully.`,
+        type: "success",
+        confirmText: "Close",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
     } catch (err) {
+      // ! [ERROR] Updating adviser failed
       console.error("Update error:", err);
-      setModalTitle("Update Failed");
-      setIsCancelable(true);
-      setShowModal(true);
+      openGeneralModal({
+        title: "Unable to Update Adviser",
+        message: "We couldn't save your changes. Please check your connection and try again.",
+        type: "error",
+        confirmText: "Close",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
     } finally {
       setLoading(false);
     }
@@ -296,28 +338,17 @@ const AdminAdviserDetails = () => {
 
   return (
     <div>
-      {/* [CRUD MODAL] Confirmations (Delete/Error) */}
-      <CrudModal
-        isOpen={showModal}
-        title={modalTitle}
-        isCancelable={isCancelable}
-        onClose={() => setShowModal(false)}
-        onConfirm={onConfirmAction}
-        loading={loading}
-        showForm={false}
+      {/* [MODAL] General */}
+      <Modal
+        isOpen={generalModal.isOpen}
+        onClose={closeGeneralModal}
+        title={generalModal.title}
+        message={generalModal.message}
+        type={generalModal.type}
+        confirmText={generalModal.confirmText}
+        onConfirm={generalModal.onConfirm}
+        isCancelable={generalModal.isCancelable}
       />
-      {/* [COMPONENT] Modal */}
-      {showModal && (
-        <Modal
-          isOpen={showModal}
-          onClose={() => setShowModal(false)}
-          type={modalType}
-          title={modalTitle}
-          message={modalMessage}
-          closeOnBackdrop={false}
-          isCancelable={isCancelable}
-        />
-      )}
 
       <div className="py-10 px-4 space-y-4 relative">
 

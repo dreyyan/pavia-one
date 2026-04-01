@@ -199,3 +199,29 @@ export type AdviserFormData = {
   email: string;
   password: string;
 };
+
+export interface AdviserSection {
+  id: number;
+  name: string;
+  gradeLevel: number;
+  schoolYear: string;
+  curriculum: string;
+  classSize: number;
+  isAdvisory?: boolean;
+}
+
+export interface AdviserDetails {
+  id: number;
+  adviserId: string;
+  firstName: string;
+  middleName?: string;
+  lastName: string;
+  nameExtension?: string;
+  fullName: string;
+  sex?: string;
+  birthDate?: string;
+  email?: string;
+  contactNumber?: string;
+  createdAt: string;
+  sections: AdviserSection[];
+}

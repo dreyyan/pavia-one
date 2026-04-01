@@ -148,7 +148,7 @@ router.get("/:identifier", verifyAdmin, async (req, res) => {
           },
         },
 
-        createdStudents: {
+        students: {
           select: {
             id: true,
             lrn: true,
@@ -162,8 +162,6 @@ router.get("/:identifier", verifyAdmin, async (req, res) => {
             ethnicGroup: true,
             religion: true,
             email: true,
-            accountStatus: true,
-            mustChangePassword: true,
             createdAt: true,
             updatedAt: true,
           },
@@ -350,6 +348,68 @@ router.post("/", verifyAdmin, async (req, res) => {
     return res
       .status(500)
       .json(errorResponse("Failed to create adviser(s)", err.message));
+  }
+});
+
+// ?[PUT] Update adviser information
+// /api/admin/advisers/:id
+router.put("/:id", verifyAdmin, async (req, res) => {
+  const { id } = req.params;
+  const {
+    firstName,
+    middleName = "",
+    lastName,
+    nameExtension = "",
+    email,
+    sex,
+    nationality,
+    contactNumber,
+    signatureUrl,
+  } = req.body;
+
+  if (!firstName || !lastName) {
+    return res
+      .status(400)
+      .json(errorResponse("First name and last name are required"));
+  }
+
+  try {
+    // Check if adviser exists
+    const adviser = await prisma.adviser.findUnique({
+      where: { id: parseInt(id) },
+    });
+
+    if (!adviser) {
+      return res.status(404).json(errorResponse("Adviser not found"));
+    }
+
+    // Construct the full name for the DB
+    const nameParts = [firstName];
+    if (middleName) nameParts.push(middleName);
+    nameParts.push(lastName);
+    if (nameExtension) nameParts.push(nameExtension);
+    const fullName = nameParts.join(" ");
+
+    // Prepare data object dynamically (only include provided fields)
+    const updateData = { name: fullName };
+    if (email) updateData.email = email;
+    if (sex !== undefined) updateData.sex = sex;
+    if (nationality !== undefined) updateData.nationality = nationality;
+    if (contactNumber !== undefined) updateData.contactNumber = contactNumber;
+    if (signatureUrl !== undefined) updateData.signatureUrl = signatureUrl;
+
+    // Update adviser
+    const updatedAdviser = await prisma.adviser.update({
+      where: { id: parseInt(id) },
+      data: updateData,
+    });
+
+    res.json(successResponse("Adviser updated successfully", updatedAdviser));
+  } catch (err) {
+    console.error("Update adviser error:", err);
+    res
+      .status(500)
+      .json(errorResponse("Failed to update adviser", err.message));
   }
 });
 
