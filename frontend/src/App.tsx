@@ -9,7 +9,6 @@ import ForgotPassword from "./pages/ForgotPassword";
 
 // [IMPORT] Routes: Shared
 import AboutUs from "./AboutUs";
-import AnnouncementsEvents from "./AnnouncementsEvents";
 
 // [IMPORT] Routes: Adviser
 import AdviserDashboard from "./pages/adviser/AdviserDashboard";
@@ -38,6 +37,7 @@ import AdminSectionDetails from "./pages/admin/AdminSectionDetails";
 import AdminAdviserDetails from "./pages/admin/AdminAdviserDetails";
 import AdminProfile from "./pages/admin/AdminProfile";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminAnnouncementsAndEvents from "./pages/admin/AdminAnnouncementsAndEvents";
 
 // [IMPORT] Context & Layout
 import PrivateRoute from "./context/PrivateRoute";
@@ -93,11 +93,12 @@ function App() {
 
           <Route path="/admin/profile" element={<AdminProfile />} />
           <Route path="/admin/settings" element={<AdminSettings />} />
+
+          <Route path="/admin/announcements-and-events" element={<AdminAnnouncementsAndEvents />} />
         </Route>
 
         {/* [ROUTES] Shared */}
         <Route path="/about-us" element={<AboutUs />} />
-        <Route path="/announcements-and-events" element={<AnnouncementsEvents />} />
       </Route>
     </Routes>
   );
