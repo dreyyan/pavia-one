@@ -46,9 +46,6 @@ import Layout from "./Layout";
 function App() {
   return (
     <Routes>
-      {/* [ROUTES] Public */}
-      <Route path="/" element={<Home />} />
-
       {/* [ROUTES] Authentication */}
       <Route path="/login/admin" element={<AdminLogin />} />
       <Route path="/login/adviser" element={<AdviserLogin />} />
@@ -56,6 +53,7 @@ function App() {
       <Route path="/reset-password/:token" element={<ResetPassword />} />
 
       <Route element={<Layout />}>
+        <Route path="/" element={<Home />} />
         {/* [ROUTES] Adviser */}
         <Route element={<PrivateRoute role="adviser" />}>
           <Route path="/adviser/dashboard" element={<AdviserDashboard />} />

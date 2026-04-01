@@ -6,7 +6,13 @@ import Modal from "./components/Modal";
 
 export default function Layout() {
   const location = useLocation();
-  const hideHeaderFooter =
+  const hideHeader =
+  location.pathname === "/" ||
+    location.pathname === "/login/admin" ||
+    location.pathname === "/login/adviser" ||
+    location.pathname === "/forgot-password";
+
+  const hideFooter =
     location.pathname === "/login/admin" ||
     location.pathname === "/login/adviser" ||
     location.pathname === "/forgot-password";
@@ -15,11 +21,11 @@ export default function Layout() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      {!hideHeaderFooter && <Header />}
+      {!hideHeader && <Header />}
       <main className="flex-grow">
         <Outlet />
       </main>
-      {!hideHeaderFooter && <Footer />}
+      {!hideFooter && <Footer />}
 
       {/* Token Expired Modal using custom Modal */}
       {showTokenExpiredModal && (
