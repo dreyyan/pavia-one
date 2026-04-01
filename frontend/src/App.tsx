@@ -35,11 +35,13 @@ import AdminSubjects from "./pages/admin/AdminSubjects";
 import AdminStudentDetails from "./pages/admin/AdminStudentDetails";
 import AdminSubjectDetails from "./pages/admin/AdminSubjectDetails";
 import AdminSectionDetails from "./pages/admin/AdminSectionDetails";
+import AdminAdviserDetails from "./pages/admin/AdminAdviserDetails";
+import AdminProfile from "./pages/admin/AdminProfile";
+import AdminSettings from "./pages/admin/AdminSettings";
 
 // [IMPORT] Context & Layout
 import PrivateRoute from "./context/PrivateRoute";
 import Layout from "./Layout";
-import AdminAdviserDetails from "./pages/admin/AdminAdviserDetails";
 
 function App() {
   return (
@@ -90,6 +92,9 @@ function App() {
 
           <Route path="/admin/subjects" element={<AdminSubjects />} />
           <Route path="/admin/subjects/view/:id" element={<AdminSubjectDetails />} />
+
+          <Route path="/admin/profile" element={<AdminProfile />} />
+          <Route path="/admin/settings" element={<AdminSettings />} />
         </Route>
 
         {/* [ROUTES] Shared */}
