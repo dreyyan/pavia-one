@@ -39,6 +39,7 @@ import AdminSectionDetails from "./pages/admin/AdminSectionDetails";
 // [IMPORT] Context & Layout
 import PrivateRoute from "./context/PrivateRoute";
 import Layout from "./Layout";
+import AdminAdviserDetails from "./pages/admin/AdminAdviserDetails";
 
 function App() {
   return (
@@ -82,6 +83,7 @@ function App() {
           <Route path="/admin/students/view/:id" element={<AdminStudentDetails />} />
 
           <Route path="/admin/advisers" element={<AdminAdvisers />} />
+          <Route path="/admin/advisers/view/:id" element={<AdminAdviserDetails />} />
 
           <Route path="/admin/sections" element={<AdminSections />} />
           <Route path="/admin/sections/view/:id" element={<AdminSectionDetails />} />
