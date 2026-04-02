@@ -119,7 +119,7 @@ const Header = () => {
           </button>
         )}
 
-        <button onClick={() => navigate("/")} className="cursor-pointer">
+        <button onClick={() => navigate("/admin/dashboard")} className="cursor-pointer">
           <img src="/pavia-one-banner-white.svg" className="h-7" alt="Logo" />
         </button>
       </header>
