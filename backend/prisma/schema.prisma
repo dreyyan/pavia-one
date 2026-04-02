@@ -163,6 +163,7 @@ model Adviser {
 
   sections Section[] @relation("AdviserSections")
   students    Student[] @relation("CreatedByAdviser")
+  learningAreas LearningArea[]
 
   resetToken           String?  @unique
   resetTokenExpiry     DateTime?
@@ -322,12 +323,15 @@ model LearningArea {
   gradeLevel  Int        @default(7)
   curriculum  Curriculum @default(Regular)
 
-  writtenWorkWeight       Float @default(0.3)   // 20–40%
-  performanceTaskWeight   Float @default(0.5)   // 40–60%
-  quarterlyAssessmentWeight Float @default(0.2) // 20%
+  writtenWorkWeight       Float @default(0.3)
+  performanceTaskWeight   Float @default(0.5)
+  quarterlyAssessmentWeight Float @default(0.2)
 
   grades      SF9Grade[]
   enrollments EnrollmentLearningArea[]
+
+  adviser     Adviser?   @relation(fields: [adviserId], references: [id])
+  adviserId   Int?       // optional foreign key
 
   @@unique([name, gradeLevel, curriculum])
   @@map("learning_areas")
