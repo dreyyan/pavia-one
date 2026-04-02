@@ -40,6 +40,8 @@ router.get("/", verifyAdmin, async (req, res) => {
           name: true,
           gradeLevel: true,
           schoolYear: true,
+          curriculum: true,
+          color: true,
           createdAt: true,
           adviser: { select: { id: true, name: true, email: true } },
           _count: { select: { enrollments: true } },
@@ -121,6 +123,7 @@ router.get("/:id", verifyAdmin, async (req, res) => {
         adviserId: true,
         schoolYear: true,
         curriculum: true,
+        color: true,
         createdAt: true,
         updatedAt: true,
         adviser: {

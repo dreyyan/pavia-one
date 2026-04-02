@@ -303,7 +303,7 @@ router.get("/:id/students", verifyAdviser, async (req, res) => {
         section: {
           name: section.name,
           gradeLevel: section.gradeLevel,
-          color: section.color,
+          sectionColor: section.color,
           maleCount,
           femaleCount,
         },

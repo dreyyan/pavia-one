@@ -174,6 +174,7 @@ const AdminSections = () => {
       curriculum: formData.curriculum,
       learningModality: formData.learningModality,
       room: formData.room || null,
+      color: formData.color || '#6366f1'
     };
 
     setLoading(true);

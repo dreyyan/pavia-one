@@ -208,6 +208,62 @@ export const SectionFormModal = ({
                 className={inputCls}
               />
             </div>
+
+            {/* Section Color */}
+            <div className="flex flex-col">
+              <label className="font-roboto text-sm mb-1">
+                Section Color <span className="text-[var(--color-text-500)] text-xs">(optional)</span>
+              </label>
+              <div className="flex items-center gap-2">
+                {/* [COLOR] Native color picker — clicking the swatch opens the browser picker */}
+                <div className="relative flex-shrink-0">
+                  <input
+                    type="color"
+                    value={formData.color || "#6366f1"}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, color: e.target.value }))}
+                    className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                  />
+                  <div
+                    className="size-9 rounded-md border-2 border-[var(--color-text-300)] cursor-pointer transition-shadow hover:shadow-md"
+                    style={{ backgroundColor: formData.color || "#6366f1" }}
+                  />
+                </div>
+
+                {/* [HEX] Text input — synced with the color picker */}
+                <input
+                  type="text"
+                  value={formData.color || ""}
+                  placeholder="#6366f1"
+                  maxLength={7}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setFormData((prev) => ({ ...prev, color: val }));
+                  }}
+                  onBlur={(e) => {
+                    // [NORMALIZE] Ensure stored value is a valid hex; reset to empty if not
+                    const val = e.target.value;
+                    const isValid = /^#[0-9A-Fa-f]{6}$/.test(val);
+                    if (!isValid) setFormData((prev) => ({ ...prev, color: "" }));
+                  }}
+                  className={inputCls + " flex-1 font-mono"}
+                />
+
+                {/* [CLEAR] Remove color */}
+                {formData.color && (
+                  <button
+                    type="button"
+                    onClick={() => setFormData((prev) => ({ ...prev, color: "" }))}
+                    className="text-xs text-[var(--color-text-400)] hover:text-[var(--color-red-500)] cursor-pointer transition-colors"
+                    title="Clear color"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-[var(--color-text-400)] mt-1">
+                Used to visually distinguish this section in lists and calendars.
+              </p>
+            </div>
           </div>
         )}
 
