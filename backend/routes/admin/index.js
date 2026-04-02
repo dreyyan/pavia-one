@@ -17,6 +17,7 @@ router.use("/school", require("./school"));
 router.use("/learning-area", require("./learningArea"));
 router.use("/announcements", require("./announcements"));
 router.use("/events", require("./events"));
+router.use("/school-forms", require("./schoolForms"));
 
 // ?[GET] Retrieve list of all admins with total count (protected)
 // /api/admin/all
