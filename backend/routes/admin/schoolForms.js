@@ -362,4 +362,26 @@ router.post("/generate", verifyAdmin, async (req, res) => {
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ?[DELETE] Delete all school forms
+// DELETE /api/admin/school-forms
+// ─────────────────────────────────────────────────────────────────────────────
+router.delete("/", verifyAdmin, async (req, res) => {
+  try {
+    // Delete all school forms
+    const deletedForms = await prisma.schoolForm.deleteMany({});
+
+    res.json({
+      success: true,
+      message: `All school forms deleted successfully (${deletedForms.count} record(s)).`,
+    });
+  } catch (err) {
+    console.error("[ERROR] Delete all school forms:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete school forms. Please try again later.",
+    });
+  }
+});
+
 module.exports = router;
