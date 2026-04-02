@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 // [IMPORT] Hooks
@@ -15,6 +16,68 @@ import Modal from "../../components/Modal";
 import { GRADE_LEVEL_OPTIONS, CURRICULUM_OPTIONS, LEARNING_MODALITY_OPTIONS } from "../../constants";
 import { GeneralModalConfig, SectionDetails } from "../../types";
 
+// [COMPONENT] Student Pagination
+const StudentPagination = ({ students }: { students: SectionDetails["students"] }) => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const studentsPerPage = 5;
+
+  const totalPages = Math.ceil(students.length / studentsPerPage);
+  const startIdx = (currentPage - 1) * studentsPerPage;
+  const currentStudents = students.slice(startIdx, startIdx + studentsPerPage);
+
+  const handlePrev = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
+  const handleNext = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+
+  return (
+    <>
+      <div className="flex flex-col gap-2">
+        {currentStudents.map((student) => (
+          <div
+            key={student.id}
+            className="bg-[var(--color-bg-50)] border border-[var(--color-bg-200)] rounded-md px-4 py-3 flex items-center justify-between gap-3"
+          >
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <p className="text-sm font-roboto font-semibold text-[var(--color-text-900)] truncate">
+                {student.fullName}
+              </p>
+              <p className="text-xs font-mono text-[var(--color-text-500)]">
+                LRN {student.lrn}
+              </p>
+              <p className="text-xs font-roboto text-[var(--color-text-500)]">
+                {student.learningModality || "—"}
+              </p>
+            </div>
+            <StatusBadge status={student.status} />
+          </div>
+        ))}
+      </div>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex justify-end gap-2 mt-2">
+          <button
+            onClick={handlePrev}
+            disabled={currentPage === 1}
+            className="px-3 py-1 text-xs font-roboto font-medium rounded-md border border-[var(--color-bg-300)] hover:bg-[var(--color-bg-200)] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Previous
+          </button>
+          <span className="text-xs font-roboto text-[var(--color-text-600)] flex items-center">
+            Page {currentPage} / {totalPages}
+          </span>
+          <button
+            onClick={handleNext}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1 text-xs font-roboto font-medium rounded-md border border-[var(--color-bg-300)] hover:bg-[var(--color-bg-200)] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+          </button>
+        </div>
+      )}
+    </>
+  );
+};
+
 // *[COMPONENT] Status Badge
 const StatusBadge = ({ status }: { status: string }) => {
   const color =
@@ -23,6 +86,7 @@ const StatusBadge = ({ status }: { status: string }) => {
       : status === "DROPPED"
       ? "bg-red-100 text-red-700"
       : "bg-gray-100 text-gray-600";
+
   return (
     <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${color}`}>
       {status}
@@ -33,10 +97,7 @@ const StatusBadge = ({ status }: { status: string }) => {
 // ?[TYPE] Form pages
 type FormPage = 0 | 1;
 
-const PAGE_LABELS: [string, string] = [
-  "Section Info",
-  "Configuration",
-];
+const PAGE_LABELS: [string, string] = ["Section Info", "Configuration"];
 
 // *[PAGE] Admin Section Details
 const AdminSectionDetails = () => {
@@ -65,11 +126,11 @@ const AdminSectionDetails = () => {
   });
 
   const openGeneralModal = (config: Partial<Omit<GeneralModalConfig, "isOpen">>) => {
-    setGeneralModal(prev => ({ ...prev, isOpen: true, ...config }));
+    setGeneralModal((prev) => ({ ...prev, isOpen: true, ...config }));
   };
 
   const closeGeneralModal = () => {
-    setGeneralModal(prev => ({ ...prev, isOpen: false }));
+    setGeneralModal((prev) => ({ ...prev, isOpen: false }));
   };
 
   // * [HANDLE] Fetch Section by ID
@@ -80,18 +141,22 @@ const AdminSectionDetails = () => {
       const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/sections/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       if (res.status === 401) {
         setShowTokenExpiredModal(true);
         return;
       }
+
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed to fetch section");
-      setSection(data.data);
-      setFormData(data.data);
+
+      const sectionData = data.data;
+
+      // Backend now already returns `students` with fullName
+      setSection(sectionData);
+      setFormData(sectionData);
     } catch (err) {
-      console.error(err);
-      // ! [ERROR] Fetching section failed
-      console.error(err);
+      console.error("Failed to fetch section:", err);
       openGeneralModal({
         title: "Unable to Load Section",
         message: "We couldn't load the section at the moment. Please check your internet connection and try again.",
@@ -106,7 +171,7 @@ const AdminSectionDetails = () => {
   };
 
   useEffect(() => {
-    fetchSection();
+    if (id) fetchSection();
   }, [id]);
 
   // * [HANDLE] Delete Section
@@ -119,10 +184,10 @@ const AdminSectionDetails = () => {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
         });
+
         const data = await res.json();
         if (!data.success) throw new Error(data.message || "Failed to delete section");
 
-        // * [SUCCESS] Section deleted
         openGeneralModal({
           title: "Section Deleted",
           message: "The section has been deleted successfully.",
@@ -133,10 +198,7 @@ const AdminSectionDetails = () => {
             navigate("/admin/sections");
           },
         });
-
-        setSection(prev => prev?.id !== id ? prev : null);
       } catch (err: any) {
-        // ! [ERROR] Deleting section failed
         console.error("Delete error:", err);
         openGeneralModal({
           title: "Unable to Delete Section",
@@ -151,7 +213,6 @@ const AdminSectionDetails = () => {
       }
     };
 
-    // ? [CONFIRM] Show confirmation modal before deleting
     openGeneralModal({
       title: "Delete Section",
       message: "Are you sure you want to delete this section? This action cannot be undone.",
@@ -165,7 +226,6 @@ const AdminSectionDetails = () => {
   // [HANDLE] Edit toggle
   const handleEditToggle = () => {
     if (isEditing) {
-      // Discard changes
       setFormData(section ?? {});
     }
     setIsEditing((prev) => !prev);
@@ -173,7 +233,6 @@ const AdminSectionDetails = () => {
 
   // [HANDLE] Save edits
   const handleSave = async () => {
-    // [VALIDATE] Normalise school year to backend-required "YYYY - YYYY" format
     const rawYear = (formData.schoolYear || "").trim();
     const yearMatch = rawYear.match(/^(\d{4})\s*[-–—]\s*(\d{4})$/);
     if (!yearMatch) {
@@ -189,8 +248,6 @@ const AdminSectionDetails = () => {
     }
     const normalizedSchoolYear = `${yearMatch[1]} - ${yearMatch[2]}`;
 
-    // [SANITISE] Only send the flat scalar fields the backend actually accepts —
-    // never send nested objects (adviser, students, enrollments, etc.)
     const payload: Record<string, unknown> = {
       name: (formData.name ?? "").trim() || undefined,
       gradeLevel: formData.gradeLevel ? Number(formData.gradeLevel) : undefined,
@@ -211,14 +268,13 @@ const AdminSectionDetails = () => {
         },
         body: JSON.stringify(payload),
       });
+
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed to update section");
 
-      // [UPDATE] Merge only the fields we sent back into local state
-      setSection(prev => prev ? { ...prev, ...payload, schoolYear: normalizedSchoolYear } : prev);
+      setSection((prev) => (prev ? { ...prev, ...payload, schoolYear: normalizedSchoolYear } : prev));
       setIsEditing(false);
 
-      // * [SUCCESS] Show success modal
       openGeneralModal({
         title: "Section Updated",
         message: `"${formData.name}" has been updated successfully.`,
@@ -228,7 +284,6 @@ const AdminSectionDetails = () => {
         onConfirm: () => closeGeneralModal(),
       });
     } catch (err) {
-      // ! [ERROR] Updating section failed
       console.error("Update error:", err);
       openGeneralModal({
         title: "Unable to Update Section",
@@ -243,7 +298,6 @@ const AdminSectionDetails = () => {
     }
   };
 
-  // [HANDLE] Generic form field change
   const handleFieldChange = (field: keyof SectionDetails) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       setFormData((prev) => ({ ...prev, [field]: e.target.value }));
@@ -252,7 +306,7 @@ const AdminSectionDetails = () => {
   // [LOADING STATE]
   if (loading) return <Skeleton />;
 
-  // *[BREADCRUMBS] Admin Section Details navigation
+  // *[BREADCRUMBS]
   const breadcrumbs = [
     { label: "Admin Dashboard", path: "/admin/dashboard" },
     { label: "Sections", path: "/admin/sections" },
@@ -264,7 +318,6 @@ const AdminSectionDetails = () => {
     if (!section) return null;
 
     if (activePage === 0) {
-      // Section Info
       return (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div className="col-span-2 sm:col-span-3">
@@ -283,7 +336,7 @@ const AdminSectionDetails = () => {
             value={formData.gradeLevel ? String(formData.gradeLevel) : ""}
             onChange={handleFieldChange("gradeLevel")}
             placeholder="Select grade level"
-            options={GRADE_LEVEL_OPTIONS.map(g => String(g))}
+            options={GRADE_LEVEL_OPTIONS.map((g) => String(g))}
             disabled={!isEditing}
             required
           />
@@ -307,7 +360,6 @@ const AdminSectionDetails = () => {
     }
 
     if (activePage === 1) {
-      // Configuration
       return (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <InputField
@@ -316,7 +368,7 @@ const AdminSectionDetails = () => {
             value={formData.curriculum ?? ""}
             onChange={handleFieldChange("curriculum")}
             placeholder="Select curriculum"
-            options={CURRICULUM_OPTIONS.map(o => o.value)}
+            options={CURRICULUM_OPTIONS.map((o) => o.value)}
             disabled={!isEditing}
             required
           />
@@ -326,13 +378,12 @@ const AdminSectionDetails = () => {
             value={formData.learningModality ?? ""}
             onChange={handleFieldChange("learningModality")}
             placeholder="Select modality"
-            options={LEARNING_MODALITY_OPTIONS.map(o => o.value)}
+            options={LEARNING_MODALITY_OPTIONS.map((o) => o.value)}
             disabled={!isEditing}
           />
         </div>
       );
     }
-
     return null;
   };
 
@@ -351,7 +402,6 @@ const AdminSectionDetails = () => {
       />
 
       <div className="py-10 px-4 space-y-4 relative">
-
         {/* [SECTION] Header & Breadcrumbs */}
         <div>
           <h2 className="text-[var(--color-text-800)] leading-0">Section Details</h2>
@@ -387,14 +437,11 @@ const AdminSectionDetails = () => {
             </div>
 
             <div className="space-y-2">
-              {/* [BUTTON] Delete */}
               <DeleteButton onClick={() => handleDelete(section.id)} text="Delete Section" disabled={loading} />
             </div>
 
             {/* [CARD] Section Identity */}
             <div className="bg-[var(--color-bg-100)] rounded-lg p-4 space-y-4">
-
-              {/* [PAGINATION] Page tabs */}
               <div className="flex gap-1 bg-[var(--color-bg-200)] rounded-lg p-1">
                 {PAGE_LABELS.map((label, idx) => (
                   <button
@@ -411,10 +458,8 @@ const AdminSectionDetails = () => {
                 ))}
               </div>
 
-              {/* [DIVIDER] */}
               <div className="border-t border-[var(--color-bg-200)]" />
 
-              {/* [HEADER] Section title + Edit button */}
               <div className="flex items-center justify-between">
                 <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)]">
                   {PAGE_LABELS[activePage]}
@@ -443,9 +488,7 @@ const AdminSectionDetails = () => {
                 </div>
               </div>
 
-              {/* [FORM] Dynamic fields based on active page */}
               {renderFormPage()}
-
             </div>
 
             {/* [CARD] Adviser */}
@@ -468,35 +511,16 @@ const AdminSectionDetails = () => {
               )}
             </div>
 
-            {/* [CARD] Students */}
+            {/* [CARD] Students - Now properly displays */}
             <div className="bg-[var(--color-bg-100)] rounded-lg p-4 space-y-3">
               <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)]">
                 Students ({section.classSize})
               </p>
+
               {(section.students ?? []).length === 0 ? (
                 <p className="text-sm font-roboto text-[var(--color-text-600)]">No students enrolled.</p>
               ) : (
-                <div className="flex flex-col gap-2">
-                  {(section.students ?? []).map((student) => (
-                    <div
-                      key={student.id}
-                      className="bg-[var(--color-bg-50)] border border-[var(--color-bg-200)] rounded-md px-4 py-3 flex items-center justify-between gap-3"
-                    >
-                      <div className="flex flex-col gap-0.5 min-w-0">
-                        <p className="text-sm font-roboto font-semibold text-[var(--color-text-900)] truncate">
-                          {student.fullName}
-                        </p>
-                        <p className="text-xs font-mono text-[var(--color-text-500)]">
-                          LRN {student.lrn}
-                        </p>
-                        <p className="text-xs font-roboto text-[var(--color-text-500)]">
-                          {student.learningModality}
-                        </p>
-                      </div>
-                      <StatusBadge status={student.status} />
-                    </div>
-                  ))}
-                </div>
+                <StudentPagination students={section.students} />
               )}
             </div>
 
@@ -511,7 +535,6 @@ const AdminSectionDetails = () => {
             </p>
           </>
         ) : (
-          // [EMPTY STATE]
           <div className="bg-[var(--color-bg-100)] rounded-lg p-8 text-center">
             <p className="text-sm font-roboto text-[var(--color-text-600)]">Section not found.</p>
             <button

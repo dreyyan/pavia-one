@@ -104,13 +104,13 @@ router.get("/", verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[GET] Get Section
-// /api/admin/sections/:id
+// ?[GET] Get Section with Student Names and LRNs
 router.get("/:id", verifyAdmin, async (req, res) => {
   try {
     const sectionId = parseInt(req.params.id, 10);
-    if (isNaN(sectionId))
+    if (isNaN(sectionId)) {
       return res.status(400).json(errorResponse("Invalid section ID"));
+    }
 
     const section = await prisma.section.findUnique({
       where: { id: sectionId },
@@ -123,24 +123,55 @@ router.get("/:id", verifyAdmin, async (req, res) => {
         curriculum: true,
         createdAt: true,
         updatedAt: true,
-        adviser: { select: { id: true, name: true, adviserId: true } },
+        adviser: {
+          select: {
+            id: true,
+            name: true,
+            adviserId: true,
+          },
+        },
         enrollments: {
           select: {
             id: true,
             studentId: true,
             schoolYear: true,
             status: true,
-            learningModality: true,
+            student: {
+              select: {
+                id: true,
+                lrn: true,
+                firstName: true,
+                middleName: true,
+                lastName: true,
+                nameExtension: true,
+              },
+            },
           },
         },
       },
     });
 
-    if (!section)
+    if (!section) {
       return res.status(404).json(errorResponse("Section not found"));
+    }
 
-    // *[SUCCESS] Section retrieved
-    res.json(successResponse("Section retrieved successfully", section));
+    // Transform enrollments to include computed fullName on the frontend-friendly shape
+    const students = section.enrollments.map((e) => ({
+      id: e.studentId,
+      lrn: e.student?.lrn ?? "N/A",
+      fullName: getFullName(e.student || {}), // reuse your existing helper
+      status: e.status,
+      learningModality: e.learningModality,
+    }));
+
+    const responseData = {
+      ...section,
+      classSize: section.enrollments.length,
+      students, // clean array with fullName
+      enrollments: undefined, // remove raw data
+    };
+
+    res.json(successResponse("Section retrieved successfully", responseData));
   } catch (err) {
     console.error("Admin single section fetch error:", err);
     res.status(500).json(errorResponse("Failed to fetch section", err.message));
