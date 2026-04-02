@@ -1,4 +1,5 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { useEffect } from "react";
+import { Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "./useAuth";
 
 interface PrivateRouteProps {
@@ -7,12 +8,20 @@ interface PrivateRouteProps {
 
 const PrivateRoute = ({ role }: PrivateRouteProps) => {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading) {
+      if (!user) navigate("/login/admin", { replace: true });
+      else if (role && user.role !== role) navigate("/", { replace: true });
+    }
+  }, [loading, user, role, navigate]);
 
   console.log("PrivateRoute render:", { user, loading, role });
 
-  if (loading) return null;
-  if (!user) return <Navigate to="/login/admin" replace />;
-  if (role && user.role !== role) return <Navigate to="/" replace />;
+  if (loading || !user || (role && user.role !== role)) {
+    return <div>Loading...</div>; // Show spinner or blank while redirecting
+  }
 
   return <Outlet />;
 };

@@ -23,9 +23,7 @@ const AdviserLogin = () => {
     const [isCancelable, setIsCancelable] = useState(true);
     const [redirectOnConfirm, setRedirectOnConfirm] = useState(false);
 
-    // [HANDLE] Login adviser
     const handleLogin = async () => {
-        // ![ERROR] Empty Adviser ID
         if (adviserId.trim() === "") {
             setModalTitle("Adviser ID required");
             setModalMessage("Please enter your Adviser ID to continue.");
@@ -35,7 +33,6 @@ const AdviserLogin = () => {
             return;
         }
 
-        // ![ERROR] Empty Password
         if (!password) {
             setModalTitle("Password required");
             setModalMessage("Please enter your password to continue.");
@@ -45,49 +42,43 @@ const AdviserLogin = () => {
             return;
         }
 
-        // [PAYLOAD] Prepare login request
         const payload = {
-            identifier: adviserId,
+            adviserId: adviserId.trim(),
             password,
             rememberMe,
         };
 
-        const token = localStorage.getItem("token");
-
         try {
-            // [REQUEST] Send login request to backend
             const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/adviser/login`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`,
                 },
                 body: JSON.stringify(payload),
             });
 
-            if (res.status === 401) {
-            setShowTokenExpiredModal(true);
-            return;
-            }
-
             const data = await res.json();
 
-            // ![ERROR] Login failed
             if (!res.ok || !data.success) {
                 setModalTitle("Login unsuccessful");
-                setModalMessage("We couldn't log you in. Please check your Adviser ID and password and try again.");
+                setModalMessage(data.message || "Invalid credentials");
                 setIsCancelable(false);
                 setRedirectOnConfirm(false);
                 setShowModal(true);
                 return;
             }
 
-            // *[SUCCESS] Store token and role
-            localStorage.setItem("token", data.data.token);
+            const { adviser, token } = data.data;
+
+            // Save token BEFORE navigating
+            localStorage.setItem("token", token);
             localStorage.setItem("role", "adviser");
 
-            // update auth context
-            setUser({ id: 0, name: adviserId, role: "adviser" });
+            setUser({
+                id: adviser.adviserId,
+                name: adviser.name,
+                role: "adviser",
+            });
 
             setModalTitle("Login successful");
             setModalMessage("You have successfully signed in. Redirecting you to your dashboard...");
@@ -95,13 +86,12 @@ const AdviserLogin = () => {
             setRedirectOnConfirm(true);
             setShowModal(true);
 
-            setTimeout(() => navigate("/adviser/dashboard"), 800);
+            setTimeout(() => { navigate("/adviser/dashboard", { replace: true }); }, 800);
 
         } catch (err) {
             console.error(err);
-            // ![ERROR] Network or server issue
             setModalTitle("Login unsuccessful");
-            setModalMessage("Something went wrong while trying to sign you in. Please check your internet connection and try again. If the problem continues, contact the school administrator.");
+            setModalMessage("Network error. Please try again.");
             setIsCancelable(false);
             setRedirectOnConfirm(false);
             setShowModal(true);
