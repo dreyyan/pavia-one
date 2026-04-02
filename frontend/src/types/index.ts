@@ -40,6 +40,7 @@ export type SectionFormData = {
   gradeLevel: string;
   schoolYear: string;
   curriculum: string;
+  color: string;
   learningModality: string;
   room: string;
 
