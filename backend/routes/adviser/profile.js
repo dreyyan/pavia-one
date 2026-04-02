@@ -35,7 +35,6 @@ router.get("/profile", verifyAdviser, async (req, res) => {
             id: true,
             name: true,
             gradeLevel: true,
-            isAdvisory: true,
             schoolYear: true,
             curriculum: true,
             _count: {
@@ -64,13 +63,14 @@ router.get("/profile", verifyAdviser, async (req, res) => {
       id: s.id,
       name: s.name,
       gradeLevel: s.gradeLevel,
-      isAdvisory: s.isAdvisory,
       schoolYear: s.schoolYear,
       curriculum: s.curriculum,
       classSize: s._count.enrollments,
     }));
 
-    const advisorySection = sections.find((s) => s.isAdvisory) || null;
+    // Pick the "primary/advisory" section for this adviser
+    // Assuming the first section is the one they can bulk manage
+    const advisorySection = sections.length > 0 ? sections[0] : null;
 
     // Build final result
     const result = {

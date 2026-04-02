@@ -67,7 +67,6 @@ export interface AdviserSection {
   schoolYear: string;
   curriculum: string;
   classSize: number;
-  isAdvisory?: boolean;
 }
 
 export interface Adviser {
@@ -207,7 +206,6 @@ export interface AdviserSection {
   schoolYear: string;
   curriculum: string;
   classSize: number;
-  isAdvisory?: boolean;
 }
 
 export interface AdviserDetails {

@@ -13,12 +13,12 @@ interface Section {
   name: string;
   gradeLevel: number;
   classSize: number;
-  isAdvisory: boolean;
 }
 
 interface Profile {
   name: string;
   sections: Section[];
+  advisorySection?: Section | null;
   presentToday?: number;
   pendingTasks?: number;
 }
@@ -106,7 +106,7 @@ const AdviserDashboard = () => {
   if (loading || !mediaLoaded) return <Skeleton />;
 
   // Get advisory section and class size
-  const advisorySection = profile?.sections?.find((s) => s.isAdvisory);
+  const advisorySection = profile?.advisorySection;
   const classSize = advisorySection?.classSize ?? 0;
 
   return (

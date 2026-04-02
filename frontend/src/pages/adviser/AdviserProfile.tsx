@@ -12,7 +12,6 @@ interface Section {
   id: number;
   name: string;
   gradeLevel: number;
-  isAdvisory: boolean;
   schoolYear?: string;
   curriculum?: string;
   classSize?: number;
@@ -48,8 +47,6 @@ interface AdviserForm {
 }
 
 const AdviserProfile = () => {
-  const navigate = useNavigate();
-
   // [STATES]
   const [profile, setProfile] = useState<AdviserProfileData | null>(null);
   const [form, setForm] = useState<AdviserForm>({

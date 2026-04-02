@@ -39,7 +39,6 @@ router.get("/", verifyAdmin, async (req, res) => {
           id: true,
           name: true,
           gradeLevel: true,
-          isAdvisory: true,
           createdAt: true,
           adviser: { select: { id: true, name: true, email: true } },
           _count: { select: { enrollments: true } },
@@ -239,7 +238,6 @@ router.post("/", verifyAdmin, async (req, res) => {
           adviser: { connect: { adviserId } },
           color: color || null,
           schedule: schedule || null,
-          isAdvisory: !!adviserId,
           curriculum: sectionCurriculum,
         },
       });
@@ -253,7 +251,6 @@ router.post("/", verifyAdmin, async (req, res) => {
           schoolYear: true,
           color: true,
           schedule: true,
-          isAdvisory: true,
           createdAt: true,
           adviser: {
             select: { id: true, adviserId: true, name: true, email: true },
@@ -311,7 +308,6 @@ router.put("/:id", verifyAdmin, async (req, res) => {
       schoolYear,
       color,
       schedule,
-      isAdvisory,
     } = req.body;
 
     // ? Check if section exists
@@ -404,8 +400,6 @@ router.put("/:id", verifyAdmin, async (req, res) => {
         schoolYear: schoolYear ?? existingSection.schoolYear,
         color: color ?? existingSection.color,
         schedule: schedule ?? existingSection.schedule,
-        isAdvisory:
-          adviserId !== undefined ? !!adviserId : existingSection.isAdvisory,
       },
       select: {
         id: true,
@@ -416,7 +410,6 @@ router.put("/:id", verifyAdmin, async (req, res) => {
         schoolYear: true,
         color: true,
         schedule: true,
-        isAdvisory: true,
       },
     });
 

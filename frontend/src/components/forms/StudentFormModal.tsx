@@ -15,7 +15,6 @@ interface AdviserSection {
   schoolYear: string;
   curriculum: string;
   classSize: number;
-  isAdvisory?: boolean;
 }
 
 interface Adviser {
@@ -23,6 +22,7 @@ interface Adviser {
   adviserId: string;
   name: string;
   sections: AdviserSection[];
+  advisorySection?: AdviserSection | null;
 }
 
 // ? [TYPE] Form data for create/edit student
@@ -251,7 +251,7 @@ const StudentFormModal = ({
                     ) : (
                       filteredAdvisers.map(adviser => {
                         // [RESOLVE] Find the advisory section for this adviser
-                        const advisory = adviser.sections?.find(s => s.isAdvisory);
+                        const advisory = adviser.advisorySection;
                         return (
                           <button
                             key={adviser.id}

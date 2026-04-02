@@ -15,12 +15,10 @@ import Modal from "../../components/Modal";
 import { GeneralModalConfig, AdviserDetails } from "../../types";
 
 // *[COMPONENT] Status Badge
-const AdvisoryBadge = ({ isAdvisory }: { isAdvisory?: boolean }) => (
-  isAdvisory ? (
-    <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">
-      Advisory
-    </span>
-  ) : null
+const AdvisoryBadge = () => (
+  <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">
+    Advisory
+  </span>
 );
 
 // ?[TYPE] Form pages
@@ -464,7 +462,7 @@ const AdminAdviserDetails = () => {
                           {section.classSize} students
                         </p>
                       </div>
-                      <AdvisoryBadge isAdvisory={section.isAdvisory} />
+                      <AdvisoryBadge />
                     </div>
                   ))}
                 </div>
