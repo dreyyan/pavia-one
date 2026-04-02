@@ -101,7 +101,7 @@ const Header = () => {
       { iconBase: "subjects", text: "Subjects", to: "/admin/subjects" },
       { iconBase: "school-forms", text: "School Forms", to: "/admin/school-forms" },
       { iconBase: "transfer-dropout-monitoring", text: "Transfer / Dropout Monitoring", to: "/admin/transfer" },
-      { iconBase: "reports-and-statistics", text: "Reports & Statistics", to: "/admin/reports" },
+      { iconBase: "reports-and-statistics", text: "Reports & Statistics", to: "/admin/reports-and-statistics" },
       { iconBase: "announcements-and-events", text: "Announcements & Events", to: "/admin/announcements-and-events" },
       { iconBase: "profile", text: "Profile", to: "/admin/profile" },
       { iconBase: "settings", text: "Settings", to: "/admin/settings" },
