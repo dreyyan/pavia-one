@@ -1,14 +1,13 @@
 interface MyClassCardProps {
     id: number;
     name: string;
-    schedule?: { day: string; time: string }[];
     classSize: number;
     maleCount: number;
     femaleCount: number;
     color: string;
 };
 
-const MyClassCard: React.FC<MyClassCardProps> = ({ id, name, schedule, classSize, maleCount, femaleCount, color }) => {
+const MyClassCard: React.FC<MyClassCardProps> = ({ id, name, classSize, maleCount, femaleCount, color }) => {
     return (
         <div
         key={id}
@@ -50,31 +49,33 @@ const MyClassCard: React.FC<MyClassCardProps> = ({ id, name, schedule, classSize
                 <div className="px-4 pt-1 pb-2">
                     {/* Class Section Name */}
                     <h1 className="text-left text-[var(--color-text-50)] font-semibold">{name}</h1>
-
-                    {/* Class Schedule */}
-                    { schedule && 
-                    <div>
-                        {schedule.map(({ day, time }, index) => (
-                        <div key={index} className="flex justify-between [&>p]:text-[var(--color-text-50)]">
-                            <p className="font-roboto font-bold text-sm leading-normal tracking-wider">{day}</p>
-                            <p className="font-roboto font-medium text-sm leading-normal">{time}</p>
-                        </div>
-                        ))}
-                    </div>
-                    }
                 </div>
 
                 {/* Class Size - Male & Female */}
-                <div className="flex justify-end bg-[var(--color-bg-50)] rounded-b-lg">
+                <div className="flex justify-end rounded-b-lg">
                     <div className="inline-flex">
                         {/* Male Count Badge */}
-                        <div className="flex items-center gap-1 bg-[var(--color-primary-50)] text-[var(--color-primary-700)] px-3 py-1 font-roboto font-bold">
+                        <div
+                        style={{
+                            borderLeft: `4px solid ${color}`,
+                            borderRight: `2px solid ${color}`,
+                            borderTop: `4px solid ${color}`,
+                            borderBottom: `4px solid ${color}`,
+                        }}
+                        className="flex items-center gap-1 bg-[var(--color-primary-50)] text-[var(--color-primary-700)] px-3 py-1 font-roboto font-bold rounded-md">
                             <img src="/male-icon.svg" className="w-4 h-4"/>
                             <span>{maleCount}</span>
                         </div>
 
                         {/* Female Count Badge */}
-                        <div className="flex items-center gap-1 bg-[var(--color-red-50)] text-[var(--color-red-700)] px-3 py-1 font-roboto font-bold rounded-br-lg">
+                        <div
+                        style={{
+                            borderLeft: `2px solid ${color}`,
+                            borderRight: `4px solid ${color}`,
+                            borderTop: `4px solid ${color}`,
+                            borderBottom: `4px solid ${color}`,
+                        }}
+                        className="flex items-center gap-1 bg-[var(--color-red-50)] text-[var(--color-red-700)] px-3 py-1 font-roboto font-bold rounded-br-lg rounded-md">
                             <img src="/female-icon.svg" className="w-4 h-4"/>
                             <span>{femaleCount}</span>
                         </div>
