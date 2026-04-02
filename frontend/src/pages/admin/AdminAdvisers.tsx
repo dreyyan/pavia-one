@@ -135,11 +135,12 @@ const handleSubmit = async () => {
     const data = await res.json();
 
     if (!data.success) throw new Error(data.message || "Operation failed");
-const failed = data.data?.failed || [];
+    
+    const failed = data.data?.failed || [];
 
-if (failed.length > 0) {
-  throw new Error(failed[0].message || "Some advisers failed to create");
-}
+    if (failed.length > 0) {
+      throw new Error(failed[0].message || "Some advisers failed to create");
+    }
     await fetchAdvisers();
     setShowAdviserModal(false);
 
