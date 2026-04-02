@@ -5,7 +5,7 @@ import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
 import Modal from "../../components/Modal";
-import MyClassCard from "../../components/MyClassCard";
+import ClassCard from "../../components/ClassCard";
 
 // ?[INTERFACES]
 interface StudentGrade {
@@ -18,8 +18,8 @@ interface StudentGrade {
 
 interface SectionInfo {
   id: number;
-  gradeLevel: string;
   name: string;
+  gradeLevel: string;
   classSize: number;
   maleCount: number;
   femaleCount: number;
@@ -59,12 +59,9 @@ const AdviserClassGrades = () => {
         // --- Fetch section info ---
         const resSection = await fetch(
           `${import.meta.env.VITE_API_BASE_URL}/api/adviser/sections/${sectionId}`,
-          {
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          }
+          { headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } }
         );
 
-        // ![ERROR] Expired token
         if (resSection.status === 401) {
           setShowTokenExpiredModal(true);
           setLoading(false);
@@ -73,7 +70,6 @@ const AdviserClassGrades = () => {
 
         const sectionData = await resSection.json();
 
-        // ![ERROR] Backend failure or missing data
         if (!sectionData?.success || !sectionData.data) {
           setModalTitle("Unable to open class section");
           setModalMessage(
@@ -88,34 +84,36 @@ const AdviserClassGrades = () => {
 
         const sec = sectionData.data;
 
-        const maleCount =
-          sec.enrollments?.filter((e: Enrollment) => e.student?.sex === "MALE").length ?? 0;
+        // --- Safe male/female count ---
+        let maleCount = 0;
+        let femaleCount = 0;
 
-        const femaleCount =
-          sec.enrollments?.filter((e: Enrollment) => e.student?.sex === "FEMALE").length ?? 0;
+        (sec.enrollments || []).forEach((enroll: Enrollment) => {
+          const sex = enroll.student?.sex;
+          if (sex === "MALE") maleCount++;
+          else if (sex === "FEMALE") femaleCount++;
+        });
 
-        // *[SUCCESS] Set section info
+        const totalClassSize = sec.classSize ?? maleCount + femaleCount;
+
         setSection({
           id: sec.id,
           gradeLevel: String(sec.gradeLevel),
-          name: sec.name,
-          classSize: sec.classSize ?? sec.enrollments?.length ?? 0,
+          name: `${sec.gradeLevel} — ${sec.name}`,
+          classSize: totalClassSize,
           maleCount,
           femaleCount,
-          color: sec.color ?? "#4F46E5",
+          color: sec.color ?? "#999999",
         });
 
         // --- Fetch students' grades ---
         const resGrades = await fetch(
           `${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/section/${sectionId}`,
-          {
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          }
+          { headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } }
         );
 
         const gradesData = await resGrades.json();
 
-        // ![ERROR] Backend failure or missing data
         if (!gradesData?.success || !gradesData.data) {
           setModalTitle("Unable to load grades");
           setModalMessage(
@@ -127,7 +125,6 @@ const AdviserClassGrades = () => {
           return;
         }
 
-        // *[SUCCESS] Set grades
         setGrades(gradesData.data);
       } catch (err: unknown) {
         console.error(err);
@@ -143,17 +140,17 @@ const AdviserClassGrades = () => {
       }
     };
 
-    if (sectionId) fetchGrades();
+    fetchGrades();
   }, [sectionId, setShowTokenExpiredModal]);
 
   // [LOADING STATE] Wait for data fetch
   if (loading) return <p>Loading grades...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
 
-  // Breadcrumbs navigation
+  // [BREADCRUMBS]
   const breadcrumbs = [
     { label: "Class Management", path: "/adviser/classes" },
-    { label: section ? `${section.gradeLevel} — ${section.name}` : "Unknown Section", path: `/adviser/classes/${sectionId}` },
+    { label: section?.name || "Class", path: `/adviser/classes/${sectionId}` },
     { label: "Grades", path: null },
   ];
 
@@ -170,34 +167,36 @@ const AdviserClassGrades = () => {
           isCancelable={isCancelable}
         />
       )}
-
-      {/* [SECTION] Breadcrumbs Navigation */}
-      <nav className="font-roboto text-sm text-[var(--color-text-700)] px-2 pb-2">
-        {breadcrumbs.map((crumb, index) => (
-          <span key={index}>
+    {/* [SECTION] Header & Breadcrumbs */}
+    <div>
+      <h2 className="text-[var(--color-text-800)] leading-0">Grades</h2>
+      <nav className="font-roboto text-sm text-[var(--color-text-700)]">
+        {breadcrumbs.map((crumb, idx) => (
+          <span key={idx}>
             {crumb.path ? (
-              <span className="cursor-pointer hover:underline" onClick={() => navigate(crumb.path!)}>
-                {crumb.label}
-              </span>
+              <span className="cursor-pointer hover:underline" onClick={() => navigate(crumb.path!)}>{crumb.label}</span>
             ) : (
-              <span className="font-roboto font-medium text-[var(--color-text-900)]">{crumb.label}</span>
+              <span className="font-medium text-[var(--color-text-900)]">{crumb.label}</span>
             )}
-            {index < breadcrumbs.length - 1 && " / "}
+            {idx < breadcrumbs.length - 1 && " / "}
           </span>
         ))}
       </nav>
+    </div>
 
       {/* [COMPONENT] My Class */}
       {section && (
-        <MyClassCard
-          id={section.id}
-          key={section.id}
-          name={section.name}
-          classSize={section.classSize}
-          maleCount={section.maleCount}
-          femaleCount={section.femaleCount}
-          color={section.color}
-        />
+        <div className="py-2">
+          <ClassCard
+            id={section.id}
+            key={section.id}
+            name={section.name}
+            classSize={section.classSize}
+            maleCount={section.maleCount}
+            femaleCount={section.femaleCount}
+            color={section.color}
+          />
+        </div>
       )}
 
       {/* [SECTION] Grades Table */}

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 // [IMPORT] Hooks
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../context/useAuth";
@@ -5,8 +6,12 @@ import { useAuth } from "../../context/useAuth";
 // [IMPORT] Components
 import ClassCard from "../../components/ClassCard";
 import EmptyState from "../../components/EmptyState";
+import Skeleton from "../../components/Skeleton";
 
-// ?[INTERFACES]
+// [IMPORT] Constants
+import { CURRICULUM_OPTIONS } from "./../../constants/index";
+
+// ? [INTERFACES]
 interface ScheduleItem {
   day: string;
   time: string;
@@ -20,32 +25,35 @@ interface Section {
   color: string;
   classSize: number;
   schedule: ScheduleItem[];
+  curriculum?: string;
 }
 
 const AdviserClassManagement = () => {
   const { setShowTokenExpiredModal } = useAuth();
 
-  // [STATES]
+  // [STATES] Entities
   const [classes, setClasses] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [showFilters, setShowFilters] = useState(false);
+  // [STATES] Search, Sort, and Filter
+  const [search, setSearch] = useState("");
   const [selectedGrade, setSelectedGrade] = useState<string | null>(null);
+  const [showGradeFilters, setShowGradeFilters] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
 
   // [EFFECT] Close dropdown when clicking outside
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
-        setShowFilters(false);
+        setShowGradeFilters(false);
       }
     };
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  // Fetch adviser's sections from API
+  // * [EFFECT] Fetch adviser's sections
   useEffect(() => {
     const fetchSections = async () => {
       setLoading(true);
@@ -60,7 +68,6 @@ const AdviserClassManagement = () => {
           },
         });
 
-        // ![ERROR] Expired token
         if (res.status === 401) {
           setShowTokenExpiredModal(true);
           return;
@@ -68,13 +75,18 @@ const AdviserClassManagement = () => {
 
         const data = await res.json();
 
-        // ![ERROR] Backend failure response
         if (!data.success) {
           setError(data.message || "Failed to fetch sections");
           setClasses([]);
-        } else {
-          // Fetch adviser's section details
-          const sectionsWithDefaults: Section[] = data.data.map((sec: Section) => ({
+          return;
+        }
+
+        const sectionsWithDefaults: Section[] = data.data.map((sec: any) => {
+        // Map curriculum value to label for display
+        const curriculumLabel =
+          CURRICULUM_OPTIONS.find((c) => c.value === sec.curriculum)?.label || "";
+          
+          return {
             id: sec.id,
             name: `${sec.gradeLevel} — ${sec.name}`,
             gradeLevel: sec.gradeLevel,
@@ -82,16 +94,14 @@ const AdviserClassManagement = () => {
             color: sec.color || "#999999",
             classSize: sec.classSize || 0,
             schedule: sec.schedule || [],
-          }));
+            curriculum: curriculumLabel
+          }
+        });
 
-          setClasses(sectionsWithDefaults);
-        }
+        setClasses(sectionsWithDefaults);
       } catch (err: unknown) {
-        if (err instanceof Error) {
-          setError(err.message);
-        } else {
-          setError("Something went wrong");
-        }
+        const errorMsg = err instanceof Error ? err.message : "Something went wrong";
+        setError(errorMsg);
         setClasses([]);
       } finally {
         setLoading(false);
@@ -101,75 +111,65 @@ const AdviserClassManagement = () => {
     fetchSections();
   }, [setShowTokenExpiredModal]);
 
-  // ?Apply grade filter
-  const filteredClasses = selectedGrade
-    ? classes.filter((cls) => cls.gradeLevel.toString() === selectedGrade)
-    : classes;
+  // * [HANDLE] Search & Filter
+  const filteredClasses = classes
+    .filter((cls) => {
+      const matchesSearch = cls.name.toLowerCase().includes(search.toLowerCase());
+      const matchesGrade = !selectedGrade || cls.gradeLevel.toString() === selectedGrade;
+      return matchesSearch && matchesGrade;
+    });
+
+  // ? [LOADING STATE]
+  if (loading) return <Skeleton />;
 
   return (
     <div className="py-10 px-4 space-y-4">
-      {/* [COMPONENT] Header */}
+      {/* [SECTION] Header & Breadcrumbs */}
       <div>
-        {/* [UI] My Classes */}
-        <div className="bg-[var(--color-primary-700)] py-2 rounded-t-lg">
-          <h1 className="text-center text-[var(--color-text-50)]">My Classes</h1>
-        </div>
-
-        {/* [UI] School Year */}
-        <div className="bg-[var(--color-primary-600)] py-2 rounded-b-lg">
-          <h4 className="text-center text-[var(--color-text-50)]">S.Y. 2025–2026</h4>
-        </div>
+        <h2 className="text-[var(--color-text-800)] leading-0">Class Management</h2>
       </div>
 
-      {/* [SECTION] Search & Filter */}
-      <div className="flex items-center gap-4">
-        {/* [COMPONENT] Search Bar */}
+      {/* [SECTION] Search & Filters */}
+      <div className="bg-[var(--color-bg-100)] px-3 rounded-lg py-4 flex md:flex-row gap-2 md:gap-4 items-stretch w-full">
+        {/* [INPUT] Search */}
         <div className="relative flex-1">
           <input
             type="text"
-            placeholder="Search classes..."
-            className="w-full bg-[var(--color-bg-50)] font-roboto rounded-sm py-2 pl-4 pr-3 outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm"
+            placeholder="Search by section name..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-[var(--color-bg-50)] body-default rounded-sm px-3 outline-none border border-[var(--color-text-300)] focus:ring-2 focus:ring-[var(--color-primary-600)] h-full"
           />
         </div>
 
-        {/* [COMPONENT] Filter Class */}
+        {/* [DROPDOWN] Grade Filter */}
         <div ref={filterRef} className="relative">
-          {/* [BUTTON] Filter */}
           <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center justify-center text-[var(--color-text-50)] rounded-sm p-2 border transition cursor-pointer ${
-              showFilters
-                ? "bg-[var(--color-primary-600)] border-[var(--color-primary-500)]"
-                : "bg-[var(--color-primary-700)] border-[var(--color-primary-700)] hover:opacity-80"
-            }`}
+            onClick={() => setShowGradeFilters(!showGradeFilters)}
+            className="flex items-center justify-center text-[var(--color-text-50)] rounded-sm px-3 h-10 transition cursor-pointer bg-[var(--color-bg-50)] hover:opacity-80"
           >
-            <img src="/filter-icon.svg" alt="Filter" className="w-5 h-5" />
+            <img src="/filter-icon.svg" alt="Filter" className="size-4" />
           </button>
 
-          {showFilters && (
-            <div className="absolute right-0 mt-2 w-56 bg-[var(--color-bg-50)] border border-[var(--color-bg-300)] rounded-md shadow-lg p-3 space-y-2 z-50">
-              <p className="font-roboto font-bold text-sm text-[var(--color-text-700)]">Filter by Grade</p>
+          {showGradeFilters && (
+            <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-300 rounded-md shadow-lg p-2 space-y-1 z-50">
               <button
                 onClick={() => {
                   setSelectedGrade(null);
-                  setShowFilters(false);
+                  setShowGradeFilters(false);
                 }}
-                className={`font-roboto font-semibold text-sm w-full text-left px-2 py-1 rounded hover:bg-[var(--color-bg-200)] ${
-                  selectedGrade === null ? "bg-[var(--color-primary-200)]" : ""
-                }`}
+                className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedGrade === null ? "bg-blue-100" : ""}`}
               >
-                All
+                All Grades
               </button>
               {["7", "8", "9", "10"].map((grade) => (
                 <button
                   key={grade}
                   onClick={() => {
                     setSelectedGrade(grade);
-                    setShowFilters(false);
+                    setShowGradeFilters(false);
                   }}
-                  className={`font-roboto text-sm w-full text-left px-2 py-1 rounded hover:bg-[var(--color-bg-200)] ${
-                    selectedGrade === grade ? "bg-[var(--color-primary-200)]" : ""
-                  }`}
+                  className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedGrade === grade ? "bg-blue-100" : ""}`}
                 >
                   Grade {grade}
                 </button>
@@ -180,20 +180,16 @@ const AdviserClassManagement = () => {
       </div>
 
       {/* [SECTION] Class Cards */}
-      <div className="grid grid-cols-1 space-y-8 py-4">
-        {loading && <p className="text-center text-[var(--color-text-500)]">Loading classes...</p>}
-
-        {/* [COMPONENT] No Sections Display */}
-        {!loading && classes.length === 0 && !error && (
+      <div className="grid grid-cols-1 gap-6 bg-[var(--color-bg-100)] px-3 rounded-lg py-4 md:flex-row md:gap-4 items-stretch w-full">
+        {!error && classes.length === 0 && (
           <EmptyState
-            title="No sections found for this adviser"
+            title="No sections found"
             subtitle="You currently have no assigned sections. Please contact admin if this is an error."
             iconSrc="/no-data-icon.svg"
           />
         )}
 
-        {/* [COMPONENT] API or Fetch Errors */}
-        {!loading && error && (
+        {error && (
           <EmptyState
             title="Error fetching sections"
             subtitle={error}
@@ -201,32 +197,26 @@ const AdviserClassManagement = () => {
           />
         )}
 
-        {/* Class Cards Dynamic Display */}
+        {!loading && !error && filteredClasses.length === 0 && classes.length > 0 && (
+          <EmptyState
+            title="No classes match your filter"
+            subtitle="Try adjusting the search term or grade filter."
+            iconSrc="/no-data-icon.svg"
+          />
+        )}
+
         {!loading &&
           !error &&
-          classes.length > 0 &&
           filteredClasses.map((cls) => (
             <ClassCard
-              id={cls.id}
               key={cls.id}
+              id={cls.id}
               name={cls.name}
-              schedule={cls.schedule}
               classSize={cls.classSize}
               color={cls.color}
+              curriculum={cls.curriculum}
             />
           ))}
-
-        {/* [COMPONENT] No Matching Classes /w Filters Applied */}
-        {!loading &&
-          !error &&
-          classes.length > 0 &&
-          filteredClasses.length === 0 && (
-            <EmptyState
-              title="No classes match the selected grade"
-              subtitle="Try selecting a different grade or clear the filter."
-              iconSrc="/no-data-icon.svg"
-            />
-          )}
       </div>
     </div>
   );

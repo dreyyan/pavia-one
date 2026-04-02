@@ -152,7 +152,6 @@ const AdviserDashboard = () => {
       {/* [SECTION] Dashboard Overview */}
       <div className="bg-[var(--color-bg-100)] border-2 border-[var(--color-bg-300)]/60 rounded-xl px-5 py-6 gap-x-3 shadow-md">
         <h2 className="mb-3">Overview</h2>
-
         <div className="space-y-2">
           <DashboardItem
             iconSrc="/class-size-icon.svg"
@@ -163,6 +162,7 @@ const AdviserDashboard = () => {
             iconSrc="/present-today-icon.svg"
             text="Present Today"
             value={profile?.presentToday || 0}
+            color="#0066CC"
           />
           <DashboardItem
             iconSrc="/pending-tasks-icon.svg"
@@ -184,7 +184,7 @@ const AdviserDashboard = () => {
           iconSrc="/grades-dashboard.svg"
           text="Grades"
           color="#CA8E02"
-          to={advisorySection ? `/adviser/classes/grades/${advisorySection.id}` : "#"}
+          to={advisorySection ? `/adviser/classes/${advisorySection.id}/grades` : "#"}
         />
         <DashboardButton
           iconSrc="/reports-dashboard.svg"

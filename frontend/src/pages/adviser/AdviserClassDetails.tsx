@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
 // [IMPORT] Components
-import MyClassCard from "../../components/MyClassCard";
+import ClassCard from "../../components/ClassCard";
 import DashboardButton from "../../components/DashboardButton";
 import ClassSummaryItem from "../../components/ClassSummaryItem";
 
@@ -36,7 +36,7 @@ interface Profile {
 };
 
 const AdviserClassDetails = () => {
-  const { id } = useParams<{ id: string }>();
+  const { sectionId } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
   // [STATES]
@@ -54,7 +54,7 @@ const AdviserClassDetails = () => {
       try {
         const token = localStorage.getItem("token");
         const res = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/api/adviser/sections/${id}`,
+          `${import.meta.env.VITE_API_BASE_URL}/api/adviser/sections/${sectionId}`,
           {
             headers: {
               "Content-Type": "application/json",
@@ -101,61 +101,51 @@ const AdviserClassDetails = () => {
       }
     };
 
-    if (id) fetchSection();
-  }, [id]);
+    if (sectionId) fetchSection();
+  }, [sectionId]);
 
   // [LOADING STATE] Wait for class fetch
   if (loading) return <p>Loading class...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
   if (!section) return <p>No section found.</p>;
 
-  // Breadcrumbs navigation
+  // [BREADCRUMBS]
   const breadcrumbs = [
-    {
-      label: "Class Management",
-      path: "/adviser/classes",
-    },
-    {
-      label: section.name,
-      path: null,
-    },
+    { label: "Class Management", path: "/adviser/classes" },
+    { label: section.name, path: null }
   ];
 
   return (
-    <div className="py-10 px-4 space-y-4 relative">
-      {/* [SECTION] Breadcrumbs Navigation */}
-      <nav className="font-roboto text-sm text-[var(--color-text-700)] px-2 pb-2">
-        {breadcrumbs.map((crumb, index) => (
-          <span key={index}>
+    <div className="py-10 px-4 space-y-4">
+    {/* [SECTION] Header & Breadcrumbs */}
+    <div>
+      <h2 className="text-[var(--color-text-800)] leading-0">Section Details</h2>
+      <nav className="font-roboto text-sm text-[var(--color-text-700)]">
+        {breadcrumbs.map((crumb, idx) => (
+          <span key={idx}>
             {crumb.path ? (
-              <span
-                className="cursor-pointer hover:underline"
-                onClick={() => navigate(crumb.path!)}
-              >
-                {crumb.label}
-              </span>
+              <span className="cursor-pointer hover:underline" onClick={() => navigate(crumb.path!)}>{crumb.label}</span>
             ) : (
-              <span className="font-roboto font-medium text-[var(--color-text-900)]">
-                {crumb.label}
-              </span>
+              <span className="font-medium text-[var(--color-text-900)]">{crumb.label}</span>
             )}
-
-            {index < breadcrumbs.length - 1 && " / "}
+            {idx < breadcrumbs.length - 1 && " / "}
           </span>
         ))}
       </nav>
+    </div>
 
       {/* [COMPONENT] My Class */}
-      <MyClassCard
-        id={section.id}
-        key={section.id}
-        name={section.name}
-        schedule={section.schedule}
-        classSize={section.classSize}
-        maleCount={section.maleCount ?? 0}
-        femaleCount={section.femaleCount ?? 0}
-        color={section.color}
-      />
+      <div className="py-2">
+        <ClassCard
+          id={section.id}
+          key={section.id}
+          name={section.name}
+          classSize={section.classSize}
+          maleCount={section.maleCount ?? 0}
+          femaleCount={section.femaleCount ?? 0}
+          color={section.color}
+        />
+      </div>
 
       {/* [SECTION] Class Overview */}
       <div className="bg-[var(--color-bg-100)] border-2 border-[var(--color-bg-300)]/60 rounded-2xl px-4 py-4 gap-x-3 shadow-md">
@@ -173,13 +163,13 @@ const AdviserClassDetails = () => {
           iconSrc="/view-students-dashboard.svg"
           text="View Students"
           color="#0066CC"
-          to={`/adviser/classes/${id}/students`}
+          to={`/adviser/classes/${sectionId}/students`}
         />
         <DashboardButton
           iconSrc="/grades-dashboard.svg"
           text="Grades"
           color="#CA8E02"
-          to={`/adviser/classes/grades/${id}`}
+          to={`/adviser/classes/${sectionId}/grades`}
         />
         <DashboardButton
           iconSrc="/reports-dashboard.svg"
