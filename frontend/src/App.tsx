@@ -60,14 +60,14 @@ function App() {
         <Route element={<PrivateRoute role="adviser" />}>
           <Route path="/adviser/dashboard" element={<AdviserDashboard />} />
           <Route path="/adviser/classes" element={<AdviserClassManagement />} />
-          <Route path="/adviser/classes/:id" element={<AdviserClassDetails />} />
+          <Route path="/adviser/classes/:sectionId" element={<AdviserClassDetails />} />
 
           <Route path="/adviser/classes/:sectionId/students" element={<AdviserClassStudents />} />
           <Route path="/adviser/classes/:sectionId/students/:studentId" element={<AdviserClassStudentDetails />} />
 
-          <Route path="/adviser/classes/grades/:sectionId" element={<AdviserClassGrades />} />
-          <Route path="/adviser/classes/grades/:sectionId/:studentId" element={<AdviserClassStudentGradesOverview />} />
-          <Route path="/adviser/classes/grades/:sectionId/:studentId/subjects/:subjectId" element={<AdviserClassStudentGradesDetails />} />
+          <Route path="/adviser/classes/:sectionId/grades" element={<AdviserClassGrades />} />
+          <Route path="/adviser/classes/:sectionId/grades/:studentId" element={<AdviserClassStudentGradesOverview />} />
+          <Route path="/adviser/classes/:sectionId/grades/:studentId/subjects/:subjectId" element={<AdviserClassStudentGradesDetails />} />
 
           <Route path="/adviser/school-forms" element={<AdviserSchoolForms />} />
           <Route path="/adviser/school-forms/:sectionId" element={<AdviserClassSchoolForms />} />
