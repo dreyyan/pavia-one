@@ -135,12 +135,12 @@ const AdminSectionDetails = () => {
         });
 
         setSection(prev => prev?.id !== id ? prev : null);
-      } catch (err) {
+      } catch (err: any) {
         // ! [ERROR] Deleting section failed
         console.error("Delete error:", err);
         openGeneralModal({
           title: "Unable to Delete Section",
-          message: "We couldn't delete the section at the moment. Please check your internet connection and try again.",
+          message: err?.message || "We couldn't delete the section at the moment. Please check your internet connection and try again.",
           type: "error",
           confirmText: "Close",
           isCancelable: false,

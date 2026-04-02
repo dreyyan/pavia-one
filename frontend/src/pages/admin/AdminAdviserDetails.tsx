@@ -115,57 +115,73 @@ const AdminAdviserDetails = () => {
     fetchAdviser();
   }, [id]);
 
-  // [HANDLE] Delete adviser
-  const handleDelete = () => {
-    const onDeleteConfirm = async () => {
-      setLoading(true);
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/advisers/${id}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        if (!data.success) throw new Error(data.message || "Failed to delete adviser");
-
-        // * [SUCCESS] Adviser deleted
-        openGeneralModal({
-          title: "Adviser Deleted",
-          message: "The adviser has been deleted successfully.",
-          type: "success",
-          isCancelable: false,
-          onConfirm: () => {
-            closeGeneralModal();
-            navigate("/admin/advisers");
-          },
-        });
-        
-      } catch (err) {
-        // ! [ERROR] Deleting adviser failed
-        console.error("Delete error:", err);
-        openGeneralModal({
-          title: "Unable to Delete Adviser",
-          message: "We couldn't delete the adviser at the moment. Please try again later.",
-          type: "error",
-          confirmText: "Close",
-          isCancelable: false,
-          onConfirm: () => closeGeneralModal(),
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // ? [CONFIRM] Show confirmation modal before deleting
-    openGeneralModal({
-      title: "Delete Adviser",
-      message: "Are you sure you want to delete this adviser? This action cannot be undone.",
-      type: "error",
-      confirmText: "Delete",
-      isCancelable: true,
-      onConfirm: onDeleteConfirm,
+// [HANDLE] Delete adviser
+const handleDelete = () => {
+const onDeleteConfirm = async () => {
+  setLoading(true);
+  try {
+    const token = localStorage.getItem("token");
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/advisers/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
     });
-  };
+
+    const data = await res.json();
+
+    if (!data.success) {
+      // Pick friendly message
+      const errorMessage =
+        data?.error?.userFriendlyMessage || data?.error?.message || data.message || "Failed to delete adviser";
+
+      // Directly show in modal instead of throwing
+      openGeneralModal({
+        title: "Unable to Delete Adviser",
+        message: errorMessage,
+        type: "error",
+        confirmText: "Close",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
+
+      return; // stop execution
+    }
+
+    // * [SUCCESS] Adviser deleted
+    openGeneralModal({
+      title: "Adviser Deleted",
+      message: "The adviser has been deleted successfully.",
+      type: "success",
+      isCancelable: false,
+      onConfirm: () => {
+        closeGeneralModal();
+        navigate("/admin/advisers");
+      },
+    });
+  } catch (err: any) {
+    console.error("Delete error:", err);
+    openGeneralModal({
+      title: "Unable to Delete Adviser",
+      message: err?.message || "We couldn't delete the adviser at the moment. Please try again later.",
+      type: "error",
+      confirmText: "Close",
+      isCancelable: false,
+      onConfirm: () => closeGeneralModal(),
+    });
+  } finally {
+    setLoading(false);
+  }
+};
+
+  // ? [CONFIRM] Show confirmation modal before deleting
+  openGeneralModal({
+    title: "Delete Adviser",
+    message: "Are you sure you want to delete this adviser? This action cannot be undone.",
+    type: "error",
+    confirmText: "Delete",
+    isCancelable: true,
+    onConfirm: onDeleteConfirm,
+  });
+};
 
   // [HANDLE] Edit toggle
   const handleEditToggle = () => {

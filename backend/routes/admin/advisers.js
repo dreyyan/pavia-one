@@ -481,28 +481,26 @@ router.delete("/", verifyAdmin, async (req, res) => {
 });
 
 // ?[DELETE] Delete an adviser
-// /api/admin/advisers/:id
 router.delete("/:id", verifyAdmin, async (req, res) => {
   const { id } = req.params;
+  console.log("[DELETE] Adviser ID:", id);
 
   try {
-    // Check if adviser exists
     const adviser = await prisma.adviser.findUnique({
       where: { id: parseInt(id) },
       select: { id: true, adviserId: true, name: true, email: true },
     });
 
-    // ![ERROR] Adviser not found
     if (!adviser) {
-      return res.status(404).json(errorResponse("Adviser not found"));
+      return res.status(404).json(
+        errorResponse("Adviser not found", {
+          userFriendlyMessage: "This adviser does not exist.",
+        }),
+      );
     }
 
-    // Delete the adviser
-    await prisma.adviser.delete({
-      where: { id: parseInt(id) },
-    });
+    await prisma.adviser.delete({ where: { id: parseInt(id) } });
 
-    // *[SUCCESS] Adviser deleted successfully
     res.json(
       successResponse("Adviser deleted successfully", {
         id: adviser.id,
@@ -512,9 +510,23 @@ router.delete("/:id", verifyAdmin, async (req, res) => {
       }),
     );
   } catch (err) {
-    res
-      .status(500)
-      .json(errorResponse("Failed to delete adviser", err.message));
+    console.error("[DELETE ERROR]", err);
+
+    // ? Handle foreign key constraint
+    if (err.code === "P2003") {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Cannot delete adviser. They are still assigned to one or more sections. Please reassign or delete the sections first.",
+      });
+    }
+
+    res.status(500).json(
+      errorResponse("Failed to delete adviser", {
+        userFriendlyMessage:
+          "Something went wrong while deleting the adviser. Please try again later.",
+      }),
+    );
   }
 });
 

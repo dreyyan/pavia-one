@@ -587,32 +587,52 @@ router.delete("/", verifyAdmin, async (req, res) => {
 router.delete("/:id", verifyAdmin, async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
+
+    // Find section with counts of dependent records
     const section = await prisma.section.findUnique({
       where: { id },
       select: {
         id: true,
         name: true,
-        _count: { select: { enrollments: true } },
+        _count: {
+          select: {
+            enrollments: true,
+            schoolForms: true, // include schoolForms count
+          },
+        },
       },
     });
-    if (!section)
-      return res.status(404).json(errorResponse("Section not found"));
 
-    if (section._count.enrollments)
-      await prisma.enrollment.deleteMany({ where: { sectionId: id } });
+    if (!section) {
+      return res.status(404).json({
+        success: false,
+        message: "Section not found.",
+      });
+    }
+
+    // Prevent deletion if there are dependencies
+    if (section._count.enrollments || section._count.schoolForms) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete section. It has ${section._count.enrollments} enrollment(s) and ${section._count.schoolForms} school form(s) still assigned. Please remove them first.`,
+      });
+    }
+
+    // Delete section
     await prisma.section.delete({ where: { id } });
 
-    res.json(
-      successResponse("Section deleted successfully", {
-        id: section.id,
-        name: section.name,
-      }),
-    );
+    res.json({
+      success: true,
+      message: "Section deleted successfully.",
+      data: { id: section.id, name: section.name },
+    });
   } catch (err) {
-    console.error(err);
-    res
-      .status(500)
-      .json(errorResponse("Failed to delete section", err.message));
+    console.error("[DELETE SECTION ERROR]", err);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete section. Please try again later.",
+    });
   }
 });
 
