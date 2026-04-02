@@ -39,6 +39,7 @@ router.get("/", verifyAdmin, async (req, res) => {
           id: true,
           name: true,
           gradeLevel: true,
+          schoolYear: true,
           createdAt: true,
           adviser: { select: { id: true, name: true, email: true } },
           _count: { select: { enrollments: true } },
