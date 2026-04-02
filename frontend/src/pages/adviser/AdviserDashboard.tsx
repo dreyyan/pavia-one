@@ -55,52 +55,59 @@ const AdviserDashboard = () => {
     });
   }, []);
 
-  // *[EFFECT] Fetch adviser's profile
-  useEffect(() => {
+// *[EFFECT] Fetch adviser's profile
+useEffect(() => {
     const token = localStorage.getItem("token");
 
-    // ![ERROR] Non-existing token
     if (!token) {
-      setShowTokenExpiredModal(true);
-      setLoading(false);
-      return;
+        console.warn("No token found in localStorage");
+        setShowTokenExpiredModal(true);
+        setLoading(false);
+        return;
     }
 
     const fetchProfile = async () => {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/adviser/profile`, {
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        });
+        try {
+            console.log("Fetching profile with token:", token ? "Token exists (length: " + token.length + ")" : "No token");
 
-        // ![ERROR] Expired token
-        if (res.status === 401) {
-          setShowTokenExpiredModal(true);
-          return;
+            const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/adviser/profile`, {
+                method: "GET",
+                headers: { 
+                    Authorization: `Bearer ${token}`, 
+                    "Content-Type": "application/json" 
+                },
+            });
+
+            console.log("Profile response status:", res.status);
+
+            if (res.status === 401) {
+                console.warn("401 received - token rejected by backend");
+                localStorage.removeItem("token");
+                setShowTokenExpiredModal(true);
+                return;
+            }
+
+            const data = await res.json();
+
+            if (!data.success) {
+                console.error("Backend error:", data.message);
+                localStorage.removeItem("token");
+                setShowTokenExpiredModal(true);
+                return;
+            }
+
+            setProfile(data.data);
+        } catch (err) {
+            console.error("Failed to fetch profile:", err);
+            localStorage.removeItem("token");
+            setShowTokenExpiredModal(true);
+        } finally {
+            setLoading(false);
         }
-
-        const data = await res.json();
-
-        // ![ERROR] Backend failure response
-        if (!data.success) {
-          console.error("Profile fetch error:", data.message);
-          localStorage.removeItem("token");
-          setShowTokenExpiredModal(true);
-          return;
-        }
-
-        // *[SUCCESS] Fetch user profile from backend
-        setProfile(data.data);
-      } catch (err) {
-        console.error("Failed to fetch profile:", err);
-        localStorage.removeItem("token");
-        setShowTokenExpiredModal(true);
-      } finally {
-        setLoading(false);
-      }
     };
 
     fetchProfile();
-  }, [setShowTokenExpiredModal]);
+}, [setShowTokenExpiredModal]);
 
   // [LOADING STATE] Wait for profile fetch and media preload
   if (loading || !mediaLoaded) return <Skeleton />;
