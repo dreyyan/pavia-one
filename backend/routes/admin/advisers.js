@@ -264,9 +264,10 @@ router.post("/", verifyAdmin, async (req, res) => {
 
     // ![ERROR] Empty body request
     if (advisersInput.length === 0) {
-      return res
-        .status(400)
-        .json(errorResponse("Request body cannot be empty"));
+      return res.status(400).json({
+        success: false,
+        message: "Request body cannot be empty",
+      });
     }
 
     const createdAdvisers = [];
@@ -305,13 +306,6 @@ router.post("/", verifyAdmin, async (req, res) => {
         process.env.DEFAULT_ADVISER_PASSWORD || "password123";
       const hashedPassword = await bcrypt.hash(defaultPassword, 10);
 
-      console.log({
-        adviserId,
-        adviserIdLen: adviserId?.length,
-        email,
-        emailLen: email?.length,
-      });
-
       // Create adviser
       const newAdviser = await prisma.adviser.create({
         data: {
@@ -334,18 +328,38 @@ router.post("/", verifyAdmin, async (req, res) => {
       createdAdvisers.push(newAdviser);
     }
 
-    // *[SUCCESS] Return results
-    return res.status(201).json(
-      successResponse("Adviser(s) processed successfully", {
-        created: createdAdvisers,
-        failed: errors,
-      }),
-    );
+    // ![ERROR] All failed
+    if (createdAdvisers.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: errors[0]?.message || "Failed to create adviser(s)",
+      });
+    }
+
+    // ?[PARTIAL SUCCESS]
+    if (errors.length > 0) {
+      return res.status(207).json({
+        success: true,
+        message: "Some advisers could not be created",
+        data: {
+          created: createdAdvisers,
+          failed: errors,
+        },
+      });
+    }
+
+    // *[SUCCESS] All created
+    return res.status(201).json({
+      success: true,
+      message: "Adviser(s) created successfully",
+      data: createdAdvisers,
+    });
   } catch (err) {
     console.error("Create adviser error:", err);
-    return res
-      .status(500)
-      .json(errorResponse("Failed to create adviser(s)", err.message));
+    return res.status(500).json({
+      success: false,
+      message: "Failed to create adviser(s)",
+    });
   }
 });
 
