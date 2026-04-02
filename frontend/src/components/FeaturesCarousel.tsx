@@ -3,9 +3,9 @@ import { useState, useEffect } from "react";
 import PrimaryButton from "./PrimaryButton";
 
 const images = [
-  "/carousel-1.webp",
-  "/carousel-2.webp",
-  "/carousel-3.webp"
+  "/carousel-1.png",
+  "/carousel-2.png",
+  "/carousel-3.png"
 ];
 
 const content = [
@@ -20,9 +20,9 @@ const content = [
       "Organize sections, manage class lists, monitor enrollment counts, and oversee academic structure efficiently.",
   },
   {
-    title: "School Registers & Official Forms",
+    title: "Official DepEd School Forms Management",
     description:
-      "Digitally manage SF1, SF5, SF9, SF10 with accuracy and compliance.",
+      "Generate, manage, and maintain official DepEd school forms such as SF1, SF5, SF9, and SF10 with accuracy, consistency, and compliance.",
   },
 ];
 
@@ -50,6 +50,11 @@ const FeaturesCarousel = () => {
     setIsLoading(true);
   };
 
+  useEffect(() => {
+    const img = new Image();
+    img.src = images[(currentIndex + 1) % images.length];
+  }, [currentIndex]);
+
   return (
     <div className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
         {/* flex-col for mobile, flex-row for md+, items centered for desktop */}
@@ -57,7 +62,7 @@ const FeaturesCarousel = () => {
             
             {/* [COMPONENT] Carousel Image */}
             <div
-            className="relative w-full md:w-1/2 min-w-[296px] min-h-[312px] sm:min-h-[400px] md:min-h-[480px] lg:min-h-[550px] rounded-lg cursor-pointer overflow-hidden mt-0 md:mt-0 order-1 md:order-2"
+            className="relative w-full md:w-1/2 min-w-[296px] aspect-[16/9] rounded-lg cursor-pointer overflow-hidden mt-0 md:mt-0 order-1 md:order-2"
             onClick={handleNextImage}
             >
             {/* Skeleton overlay */}
@@ -68,9 +73,8 @@ const FeaturesCarousel = () => {
             <img
                 key={images[currentIndex]}
                 src={images[currentIndex]}
-                alt="Feature"
                 onLoad={() => setIsLoading(false)}
-                onError={() => setIsLoading(true)}
+                onError={() => setIsLoading(false)}
                 className={`w-full h-full object-cover transition-opacity duration-500 ${
                 isLoading ? "opacity-0" : "opacity-100"
                 }`}
