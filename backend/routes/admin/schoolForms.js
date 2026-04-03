@@ -347,7 +347,7 @@ router.post("/generate", verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[DELETE] Delete all school forms
+// ?[DELETE] Delete All School Forms
 // /api/admin/school-forms
 router.delete("/", verifyAdmin, async (req, res) => {
   try {

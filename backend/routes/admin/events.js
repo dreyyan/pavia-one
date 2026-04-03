@@ -8,6 +8,7 @@ const { successResponse, errorResponse } = require("../../utils/response");
 const { verifyAdmin } = require("../../middleware/authMiddleware");
 
 // ?[GET] Get all events
+// /api/admin/events
 router.get("/", verifyAdmin, async (req, res) => {
   try {
     const events = await prisma.event.findMany({
@@ -53,6 +54,7 @@ router.post("/", verifyAdmin, async (req, res) => {
 });
 
 // ?[PUT] Update an event
+// /api/admin/events/:id
 router.put("/:id", verifyAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -79,6 +81,7 @@ router.put("/:id", verifyAdmin, async (req, res) => {
 });
 
 // ?[DELETE] Delete an event
+// /api/admin/events/:id
 router.delete("/:id", verifyAdmin, async (req, res) => {
   try {
     const { id } = req.params;

@@ -11,7 +11,7 @@ const jwt = require("jsonwebtoken");
 const { successResponse, errorResponse } = require("../../utils/response");
 const verifyAdmin = require("../../middleware/authMiddleware").verifyAdmin;
 
-// ?[GET] List all advisers (paginated, searchable, admin-only)
+// ?[GET] Get All Advisers (Paginated, Searchable)
 // /api/admin/advisers
 router.get("/", verifyAdmin, async (req, res) => {
   try {
@@ -106,7 +106,7 @@ router.get("/", verifyAdmin, async (req, res) => {
 // ?[GET] Get a single adviser by adviserId or internal ID (admin-only)
 // /api/admin/advisers/:identifier
 router.get("/:identifier", verifyAdmin, async (req, res) => {
-  const { identifier } = req.params; // can be adviserId (string) or internal ID (number)
+  const { identifier } = req.params;
 
   try {
     let where;
@@ -114,10 +114,8 @@ router.get("/:identifier", verifyAdmin, async (req, res) => {
     // Check if identifier is a number and within Prisma Int range
     const parsedId = Number(identifier);
     if (!isNaN(parsedId) && parsedId <= 2147483647 && parsedId >= -2147483648) {
-      // safe to treat as internal ID
       where = { id: parsedId };
     } else {
-      // treat as adviserId
       where = { adviserId: identifier };
     }
 
@@ -142,7 +140,7 @@ router.get("/:identifier", verifyAdmin, async (req, res) => {
             gradeLevel: true,
             schoolYear: true,
             curriculum: true,
-            _count: { select: { enrollments: true } }, // class size
+            _count: { select: { enrollments: true } },
           },
         },
 
@@ -197,12 +195,12 @@ router.get("/:identifier", verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[POST] Assign an adviser to a section
+// ?[POST] Assign Adviser to Section
 // /api/admin/advisers/:sectionId/assign-adviser
 router.post("/:sectionId/assign-adviser", verifyAdmin, async (req, res) => {
   try {
     const { sectionId } = req.params;
-    const { adviserId } = req.body; // adviser internal ID
+    const { adviserId } = req.body;
 
     if (!adviserId)
       return res
@@ -253,7 +251,7 @@ router.post("/:sectionId/assign-adviser", verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[POST] Add adviser(s)
+// ?[POST] Add Adviser(s)
 // /api/admin/advisers
 router.post("/", verifyAdmin, async (req, res) => {
   try {
@@ -363,7 +361,7 @@ router.post("/", verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[PUT] Update adviser information
+// ?[PUT] Update Adviser Information
 // /api/admin/advisers/:id
 router.put("/:id", verifyAdmin, async (req, res) => {
   const { id } = req.params;
@@ -425,7 +423,7 @@ router.put("/:id", verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[DELETE] Delete all advisers
+// ?[DELETE] Delete All Advisers
 // /api/admin/advisers/all
 router.delete("/all", verifyAdmin, async (req, res) => {
   try {
@@ -456,7 +454,7 @@ router.delete("/all", verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[DELETE] Delete advisers
+// ?[DELETE] Delete Advisers
 // /api/admin/advisers
 router.delete("/", verifyAdmin, async (req, res) => {
   const ids = Array.isArray(req.body.ids)
@@ -494,7 +492,8 @@ router.delete("/", verifyAdmin, async (req, res) => {
   );
 });
 
-// ?[DELETE] Delete an adviser
+// ?[DELETE] Delete Adviser
+// /api/admin/advisers/:id
 router.delete("/:id", verifyAdmin, async (req, res) => {
   const { id } = req.params;
   console.log("[DELETE] Adviser ID:", id);

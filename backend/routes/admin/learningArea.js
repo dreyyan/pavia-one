@@ -226,7 +226,7 @@ router.post("/", verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[PUT] Update a learning Area
+// ?[PUT] Update Learning Area
 // /api/admin/learning-area/:id
 router.put("/:id", verifyAdmin, async (req, res) => {
   try {
@@ -290,7 +290,7 @@ router.put("/:id", verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[PUT] Bulk Update learning Areas
+// ?[PUT] Bulk Update Learning Areas
 // /api/admin/learning-area
 router.put("/", verifyAdmin, async (req, res) => {
   try {
@@ -355,7 +355,7 @@ router.put("/", verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[DELETE] Delete all learning areas
+// ?[DELETE] Delete All Learning Areas
 // /api/admin/learning-area/all
 router.delete("/all", verifyAdmin, async (req, res) => {
   try {
@@ -375,7 +375,7 @@ router.delete("/all", verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[DELETE] Bulk Delete learning Areas
+// ?[DELETE] Bulk Delete Learning Areas
 // /api/admin/learning-area
 router.delete("/", verifyAdmin, async (req, res) => {
   try {

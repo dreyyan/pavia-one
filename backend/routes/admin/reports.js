@@ -10,7 +10,8 @@ const { verifyAdmin } = require("../../middleware/authMiddleware");
 const { successResponse, errorResponse } = require("../../utils/response");
 const { SchoolFormStatus } = require("@prisma/client");
 
-// routes/admin/reports.js
+// ?[GET] Get School Reports
+// /api/admin/reports
 router.get("/", verifyAdmin, async (req, res) => {
   try {
     const adminId = req.user.id;

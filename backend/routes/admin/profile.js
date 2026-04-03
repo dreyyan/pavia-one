@@ -10,7 +10,7 @@ const bcrypt = require("bcrypt");
 const { successResponse, errorResponse } = require("../../utils/response");
 const verifyAdmin = require("../../middleware/authMiddleware").verifyAdmin;
 
-// ?[GET] Retrieve admin's own profile (protected)
+// ?[GET] Retrieve Admin's Own Profile
 // /api/admin/profile
 router.get("/", verifyAdmin, async (req, res) => {
   // [DEBUG] Check if adminId is present from middleware
@@ -47,7 +47,7 @@ router.get("/", verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[PUT] Update admin's own profile (protected)
+// ?[PUT] Update Admin's Own Profile
 // /api/admin/profile
 router.put("/", verifyAdmin, async (req, res) => {
   try {
@@ -124,7 +124,7 @@ router.put("/", verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[PUT] Change admin's own password (protected)
+// ?[PUT] Change Admin's Own Password
 // /api/admin/profile/change-password
 router.put("/change-password", verifyAdmin, async (req, res) => {
   const { currentPassword, newPassword } = req.body;

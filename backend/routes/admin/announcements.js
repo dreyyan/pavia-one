@@ -8,6 +8,7 @@ const { successResponse, errorResponse } = require("../../utils/response");
 const { verifyAdmin } = require("../../middleware/authMiddleware");
 
 // ?[GET] Get all announcements
+// /api/admin/announcements
 router.get("/", verifyAdmin, async (req, res) => {
   try {
     const announcements = await prisma.announcement.findMany({
@@ -27,6 +28,7 @@ router.get("/", verifyAdmin, async (req, res) => {
 });
 
 // ?[POST] Create new announcement
+// /api/admin/announcements
 router.post("/", verifyAdmin, async (req, res) => {
   console.log("req.adminId:", req.adminId);
   console.log("req.body:", req.body);
@@ -51,6 +53,7 @@ router.post("/", verifyAdmin, async (req, res) => {
 });
 
 // ?[PUT] Update an announcement
+// /api/admin/announcements/:id
 router.put("/:id", verifyAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -74,6 +77,7 @@ router.put("/:id", verifyAdmin, async (req, res) => {
 });
 
 // ?[DELETE] Delete an announcement
+// /api/admin/announcements/:id
 router.delete("/:id", verifyAdmin, async (req, res) => {
   try {
     const { id } = req.params;

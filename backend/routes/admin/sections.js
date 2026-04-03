@@ -8,23 +8,15 @@ const { successResponse, errorResponse } = require("../../utils/response");
 const { getFullName } = require("../../utils/helpers");
 const verifyAdmin = require("../../middleware/authMiddleware").verifyAdmin;
 
-// [CONSTANTS] Auto-generation definitions
-const GRADE_LEVELS = [7, 8, 9, 10];
-const CURRICULA = ["Regular", "STE", "SPS", "SPA", "SPJ"];
-const VALID_CURRICULA = CURRICULA;
+// [IMPORT] Constants, Helpers
+const {
+  GRADE_LEVELS,
+  CURRICULA,
+  VALID_CURRICULA,
+} = require("../../utils/constants");
+const { buildSectionName, isValidSchoolYear } = require("../../utils/helpers");
 
-// [HELPER] Derive section name from grade + curriculum
-// Examples: "Grade 7 - Regular", "Grade 8 - STE", "Grade 9 - SPS"
-const buildSectionName = (gradeLevel, curriculum) =>
-  `Grade ${gradeLevel} - ${curriculum}`;
-
-// [HELPER] Validate school year string "YYYY - YYYY"
-const isValidSchoolYear = (sy) => {
-  const match = (sy || "").match(/^(\d{4})\s-\s(\d{4})$/);
-  return match && parseInt(match[2], 10) === parseInt(match[1], 10) + 1;
-};
-
-// ?[GET] Get all Sections
+// ?[GET] Get All Sections
 // /api/admin/sections
 router.get("/", verifyAdmin, async (req, res) => {
   try {
@@ -123,6 +115,7 @@ router.get("/", verifyAdmin, async (req, res) => {
 });
 
 // ?[GET] Get Section with Student Names and LRNs
+// /api/admin/sections/:id
 router.get("/:id", verifyAdmin, async (req, res) => {
   try {
     const sectionId = parseInt(req.params.id, 10);
@@ -196,7 +189,7 @@ router.get("/:id", verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[POST] Add section(s) — adviser is now optional
+// ?[POST] Add Section(s)
 // /api/admin/sections
 router.post("/", verifyAdmin, async (req, res) => {
   try {
@@ -356,16 +349,8 @@ router.post("/", verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[POST] Auto-generate all sections for a school year
+// ?[POST] Auto-generate All Sections for a School Yeare
 // POST /api/admin/sections/generate
-// Body: { schoolYear: "2025 - 2026", learningModality?: "FACE_TO_FACE", color?: "#rrggbb" }
-//
-// Creates one section per (gradeLevel × curriculum) combination that doesn't already
-// exist for that school year. Adviser is intentionally left unassigned.
-//
-// Grade levels : 7, 8, 9, 10
-// Curricula    : Regular, STE, SPS, SPA, SPJ
-// → up to 20 sections per school year
 router.post("/generate", verifyAdmin, async (req, res) => {
   try {
     const { schoolYear, learningModality, color } = req.body;
@@ -426,7 +411,7 @@ router.post("/generate", verifyAdmin, async (req, res) => {
           continue;
         }
 
-        const name = buildSectionName(gradeLevel, curriculum);
+        const name = buildSectionName(curriculum);
 
         const newSection = await prisma.section.create({
           data: {
@@ -467,7 +452,7 @@ router.post("/generate", verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[PUT] Update a single section
+// ?[PUT] Update a Single Section
 // /api/admin/sections/:id
 router.put("/:id", verifyAdmin, async (req, res) => {
   try {
@@ -600,7 +585,7 @@ router.put("/:id", verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[POST] Assign students to a section
+// ?[POST] Assign Students to a Section
 // /api/admin/sections/assign-students
 router.post("/assign-students", verifyAdmin, async (req, res) => {
   try {
@@ -667,7 +652,7 @@ router.post("/assign-students", verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[DELETE] Delete all sections
+// ?[DELETE] Delete All Sections
 // /api/admin/sections/all
 router.delete("/all", verifyAdmin, async (req, res) => {
   try {
@@ -715,7 +700,7 @@ router.delete("/all", verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[DELETE] Bulk delete sections
+// ?[DELETE] Bulk Delete Sections
 // /api/admin/sections
 router.delete("/", verifyAdmin, async (req, res) => {
   const ids = Array.isArray(req.body.ids)
@@ -759,7 +744,7 @@ router.delete("/", verifyAdmin, async (req, res) => {
   );
 });
 
-// ?[DELETE] Delete a single section
+// ?[DELETE] Delete a Single Section
 // /api/admin/sections/:id
 router.delete("/:id", verifyAdmin, async (req, res) => {
   try {
