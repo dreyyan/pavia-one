@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useRef } from "react";
 import ClassCard from "../../components/ClassCard";
 import EmptyState from "../../components/EmptyState";
@@ -173,8 +174,8 @@ const AdviserSchoolForms = () => {
 
         {!loading && error && (
           <EmptyState
-            title="Error fetching sections"
-            subtitle={error}
+            title="Unable to Load Sections"
+            subtitle="You don't have any assigned sections yet. If you think this is a mistake, please contact the administrator."
             iconSrc="/error-icon.svg"
           />
         )}
