@@ -8,6 +8,22 @@ const { successResponse, errorResponse } = require("../../utils/response");
 const { getFullName } = require("../../utils/helpers");
 const verifyAdmin = require("../../middleware/authMiddleware").verifyAdmin;
 
+// [CONSTANTS] Auto-generation definitions
+const GRADE_LEVELS = [7, 8, 9, 10];
+const CURRICULA = ["Regular", "STE", "SPS", "SPA", "SPJ"];
+const VALID_CURRICULA = CURRICULA;
+
+// [HELPER] Derive section name from grade + curriculum
+// Examples: "Grade 7 - Regular", "Grade 8 - STE", "Grade 9 - SPS"
+const buildSectionName = (gradeLevel, curriculum) =>
+  `Grade ${gradeLevel} - ${curriculum}`;
+
+// [HELPER] Validate school year string "YYYY - YYYY"
+const isValidSchoolYear = (sy) => {
+  const match = (sy || "").match(/^(\d{4})\s-\s(\d{4})$/);
+  return match && parseInt(match[2], 10) === parseInt(match[1], 10) + 1;
+};
+
 // ?[GET] Get all Sections
 // /api/admin/sections
 router.get("/", verifyAdmin, async (req, res) => {
@@ -158,11 +174,10 @@ router.get("/:id", verifyAdmin, async (req, res) => {
       return res.status(404).json(errorResponse("Section not found"));
     }
 
-    // Transform enrollments to include computed fullName on the frontend-friendly shape
     const students = section.enrollments.map((e) => ({
       id: e.studentId,
       lrn: e.student?.lrn ?? "N/A",
-      fullName: getFullName(e.student || {}), // reuse your existing helper
+      fullName: getFullName(e.student || {}),
       status: e.status,
       learningModality: e.learningModality,
     }));
@@ -170,8 +185,8 @@ router.get("/:id", verifyAdmin, async (req, res) => {
     const responseData = {
       ...section,
       classSize: section.enrollments.length,
-      students, // clean array with fullName
-      enrollments: undefined, // remove raw data
+      students,
+      enrollments: undefined,
     };
 
     res.json(successResponse("Section retrieved successfully", responseData));
@@ -181,7 +196,7 @@ router.get("/:id", verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[POST] Add section(s)
+// ?[POST] Add section(s) — adviser is now optional
 // /api/admin/sections
 router.post("/", verifyAdmin, async (req, res) => {
   try {
@@ -200,17 +215,22 @@ router.post("/", verifyAdmin, async (req, res) => {
     for (const section of sectionsInput) {
       const {
         name,
-        adviserId,
+        adviserId, // now optional — can be null / undefined
         gradeLevel,
         schoolYear,
         color,
         schedule,
         curriculum,
+        learningModality,
+        room,
       } = section;
 
-      // [VALIDATION] Required fields
-      if (!name || !adviserId || gradeLevel === undefined || !schoolYear) {
-        errors.push({ name, message: "Missing required fields" });
+      // [VALIDATION] Required fields (adviser NOT required)
+      if (!name || gradeLevel === undefined || !schoolYear) {
+        errors.push({
+          name,
+          message: "Missing required fields: name, gradeLevel, schoolYear",
+        });
         continue;
       }
 
@@ -226,9 +246,7 @@ router.post("/", verifyAdmin, async (req, res) => {
       }
 
       // [VALIDATION] School year
-      const schoolYearPattern = /^(\d{4})\s-\s(\d{4})$/;
-      const match = schoolYear.match(schoolYearPattern);
-      if (!match || parseInt(match[2], 10) !== parseInt(match[1], 10) + 1) {
+      if (!isValidSchoolYear(schoolYear)) {
         errors.push({
           name,
           schoolYear,
@@ -237,7 +255,18 @@ router.post("/", verifyAdmin, async (req, res) => {
         continue;
       }
 
-      // [VALIDATION] Duplicate section
+      // [VALIDATION] Curriculum
+      const sectionCurriculum = curriculum || "Regular";
+      if (!VALID_CURRICULA.includes(sectionCurriculum)) {
+        errors.push({
+          name,
+          curriculum,
+          message: `Invalid curriculum. Must be one of: ${VALID_CURRICULA.join(", ")}`,
+        });
+        continue;
+      }
+
+      // [VALIDATION] Duplicate section (name + gradeLevel + schoolYear)
       const existing = await prisma.section.findFirst({
         where: { name, gradeLevel: gradeNum, schoolYear },
       });
@@ -249,19 +278,17 @@ router.post("/", verifyAdmin, async (req, res) => {
         continue;
       }
 
-      // [VALIDATION] Adviser exists
-      const adviser = await prisma.adviser.findUnique({ where: { adviserId } });
-      if (!adviser) {
-        errors.push({ name, adviserId, message: "Adviser not found" });
-        continue;
-      }
-
-      // [VALIDATION] Curriculum
-      const validCurricula = ["Regular", "STE", "SPS", "SPA", "SPJ"];
-      const sectionCurriculum = curriculum || "Regular";
-      if (!validCurricula.includes(sectionCurriculum)) {
-        errors.push({ name, curriculum, message: `Invalid curriculum` });
-        continue;
+      // [VALIDATION] Adviser — only validate if actually provided
+      let resolvedAdviserId = null;
+      if (adviserId !== undefined && adviserId !== null && adviserId !== "") {
+        const adviser = await prisma.adviser.findUnique({
+          where: { adviserId: String(adviserId) },
+        });
+        if (!adviser) {
+          errors.push({ name, adviserId, message: "Adviser not found" });
+          continue;
+        }
+        resolvedAdviserId = adviser.id;
       }
 
       // [CREATE]
@@ -270,10 +297,13 @@ router.post("/", verifyAdmin, async (req, res) => {
           name,
           gradeLevel: gradeNum,
           schoolYear,
-          adviser: { connect: { adviserId } },
+          ...(resolvedAdviserId !== null
+            ? { adviser: { connect: { id: resolvedAdviserId } } }
+            : {}),
           color: color || null,
           schedule: schedule || null,
           curriculum: sectionCurriculum,
+          room: room || null,
         },
       });
 
@@ -284,6 +314,7 @@ router.post("/", verifyAdmin, async (req, res) => {
           name: true,
           gradeLevel: true,
           schoolYear: true,
+          curriculum: true,
           color: true,
           schedule: true,
           createdAt: true,
@@ -298,12 +329,10 @@ router.post("/", verifyAdmin, async (req, res) => {
         ...sectionWithEnrollments,
         classSize: sectionWithEnrollments.enrollments.length,
       };
-
       delete finalSection.enrollments;
       createdSections.push(finalSection);
     }
 
-    // ✅ RESPONSE HANDLING
     if (isSingle) {
       return res.status(201).json(
         successResponse("Section created successfully", {
@@ -327,6 +356,117 @@ router.post("/", verifyAdmin, async (req, res) => {
   }
 });
 
+// ?[POST] Auto-generate all sections for a school year
+// POST /api/admin/sections/generate
+// Body: { schoolYear: "2025 - 2026", learningModality?: "FACE_TO_FACE", color?: "#rrggbb" }
+//
+// Creates one section per (gradeLevel × curriculum) combination that doesn't already
+// exist for that school year. Adviser is intentionally left unassigned.
+//
+// Grade levels : 7, 8, 9, 10
+// Curricula    : Regular, STE, SPS, SPA, SPJ
+// → up to 20 sections per school year
+router.post("/generate", verifyAdmin, async (req, res) => {
+  try {
+    const { schoolYear, learningModality, color } = req.body;
+
+    // [VALIDATION] School year required + format check
+    if (!schoolYear) {
+      return res.status(400).json(errorResponse("schoolYear is required"));
+    }
+    if (!isValidSchoolYear(schoolYear)) {
+      return res
+        .status(400)
+        .json(
+          errorResponse(
+            'schoolYear must follow "YYYY - YYYY" and increment by 1',
+          ),
+        );
+    }
+
+    // [VALIDATION] learningModality (optional, default FACE_TO_FACE)
+    const validModalities = [
+      "FACE_TO_FACE",
+      "DISTANCE_LEARNING",
+      "BLENDED",
+      "ONLINE",
+      "HOMESCHOOL",
+      "OTHER",
+    ];
+    const modality = learningModality || "FACE_TO_FACE";
+    if (!validModalities.includes(modality)) {
+      return res
+        .status(400)
+        .json(
+          errorResponse(
+            `Invalid learningModality. Must be one of: ${validModalities.join(", ")}`,
+          ),
+        );
+    }
+
+    // [FETCH] Existing sections for this school year to detect duplicates
+    const existingSections = await prisma.section.findMany({
+      where: { schoolYear },
+      select: { gradeLevel: true, curriculum: true },
+    });
+
+    // Build a fast lookup set: "gradeLevel|curriculum"
+    const existingSet = new Set(
+      existingSections.map((s) => `${s.gradeLevel}|${s.curriculum}`),
+    );
+
+    const created = [];
+    const skipped = [];
+
+    for (const gradeLevel of GRADE_LEVELS) {
+      for (const curriculum of CURRICULA) {
+        const key = `${gradeLevel}|${curriculum}`;
+        if (existingSet.has(key)) {
+          skipped.push({ gradeLevel, curriculum, reason: "Already exists" });
+          continue;
+        }
+
+        const name = buildSectionName(gradeLevel, curriculum);
+
+        const newSection = await prisma.section.create({
+          data: {
+            name,
+            gradeLevel,
+            schoolYear,
+            curriculum,
+            color: color || null,
+          },
+          select: {
+            id: true,
+            name: true,
+            gradeLevel: true,
+            schoolYear: true,
+            curriculum: true,
+            color: true,
+            adviser: { select: { id: true, name: true } },
+          },
+        });
+
+        created.push(newSection);
+      }
+    }
+
+    return res
+      .status(201)
+      .json(
+        successResponse(
+          `Generated ${created.length} section(s). ${skipped.length} skipped.`,
+          { created, skipped },
+        ),
+      );
+  } catch (err) {
+    console.error("Generate sections error:", err);
+    res
+      .status(500)
+      .json(errorResponse("Failed to generate sections", err.message));
+  }
+});
+
 // ?[PUT] Update a single section
 // /api/admin/sections/:id
 router.put("/:id", verifyAdmin, async (req, res) => {
@@ -343,6 +483,7 @@ router.put("/:id", verifyAdmin, async (req, res) => {
       schoolYear,
       color,
       schedule,
+      room,
     } = req.body;
 
     // ? Check if section exists
@@ -364,42 +505,43 @@ router.put("/:id", verifyAdmin, async (req, res) => {
     }
 
     // ? Validate school year format if provided
-    if (schoolYear) {
-      const schoolYearPattern = /^(\d{4})\s-\s(\d{4})$/;
-      const match = schoolYear.match(schoolYearPattern);
-      if (!match || parseInt(match[2], 10) !== parseInt(match[1], 10) + 1) {
-        return res
-          .status(400)
-          .json(
-            errorResponse(
-              'schoolYear must follow "YYYY - YYYY" and increment by 1',
-            ),
-          );
-      }
-    }
-
-    // ? Validate adviser exists if provided
-    if (adviserId !== undefined && adviserId !== null) {
-      const adviser = await prisma.adviser.findUnique({
-        where: { adviserId: Number(adviserId) },
-      });
-      if (!adviser)
-        return res.status(404).json(errorResponse("Adviser not found"));
-    }
-
-    // ? Validate curriculum if provided
-    const validCurricula = ["Regular", "STE", "SPS", "SPA", "SPJ"];
-    if (curriculum && !validCurricula.includes(curriculum)) {
+    if (schoolYear && !isValidSchoolYear(schoolYear)) {
       return res
         .status(400)
         .json(
           errorResponse(
-            `Invalid curriculum. Must be one of: ${validCurricula.join(", ")}`,
+            'schoolYear must follow "YYYY - YYYY" and increment by 1',
           ),
         );
     }
 
-    // ? Check for duplicate section (same name, grade, school year)
+    // ? Validate adviser if provided (null = unassign, undefined = leave as-is)
+    let resolvedAdviserId = undefined; // undefined → don't touch
+    if (adviserId !== undefined) {
+      if (adviserId === null || adviserId === "") {
+        resolvedAdviserId = null; // explicit unassign
+      } else {
+        const adviser = await prisma.adviser.findUnique({
+          where: { adviserId: String(adviserId) },
+        });
+        if (!adviser)
+          return res.status(404).json(errorResponse("Adviser not found"));
+        resolvedAdviserId = adviser.id;
+      }
+    }
+
+    // ? Validate curriculum if provided
+    if (curriculum && !VALID_CURRICULA.includes(curriculum)) {
+      return res
+        .status(400)
+        .json(
+          errorResponse(
+            `Invalid curriculum. Must be one of: ${VALID_CURRICULA.join(", ")}`,
+          ),
+        );
+    }
+
+    // ? Check for duplicate section (same name, grade, school year, different ID)
     const duplicate = await prisma.section.findFirst({
       where: {
         id: { not: sectionId },
@@ -427,14 +569,13 @@ router.put("/:id", verifyAdmin, async (req, res) => {
           gradeNum !== undefined ? gradeNum : existingSection.gradeLevel,
         curriculum: curriculum ?? existingSection.curriculum,
         adviserId:
-          adviserId !== undefined
-            ? adviserId
-              ? Number(adviserId)
-              : null
+          resolvedAdviserId !== undefined
+            ? resolvedAdviserId
             : existingSection.adviserId,
         schoolYear: schoolYear ?? existingSection.schoolYear,
         color: color ?? existingSection.color,
         schedule: schedule ?? existingSection.schedule,
+        room: room !== undefined ? room : existingSection.room,
       },
       select: {
         id: true,
@@ -445,6 +586,8 @@ router.put("/:id", verifyAdmin, async (req, res) => {
         schoolYear: true,
         color: true,
         schedule: true,
+        room: true,
+        adviser: { select: { id: true, name: true, email: true } },
       },
     });
 
@@ -622,7 +765,6 @@ router.delete("/:id", verifyAdmin, async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
 
-    // Find section with counts of dependent records
     const section = await prisma.section.findUnique({
       where: { id },
       select: {
@@ -631,20 +773,18 @@ router.delete("/:id", verifyAdmin, async (req, res) => {
         _count: {
           select: {
             enrollments: true,
-            schoolForms: true, // include schoolForms count
+            schoolForms: true,
           },
         },
       },
     });
 
     if (!section) {
-      return res.status(404).json({
-        success: false,
-        message: "Section not found.",
-      });
+      return res
+        .status(404)
+        .json({ success: false, message: "Section not found." });
     }
 
-    // Prevent deletion if there are dependencies
     if (section._count.enrollments || section._count.schoolForms) {
       return res.status(400).json({
         success: false,
@@ -652,7 +792,6 @@ router.delete("/:id", verifyAdmin, async (req, res) => {
       });
     }
 
-    // Delete section
     await prisma.section.delete({ where: { id } });
 
     res.json({
@@ -662,7 +801,6 @@ router.delete("/:id", verifyAdmin, async (req, res) => {
     });
   } catch (err) {
     console.error("[DELETE SECTION ERROR]", err);
-
     res.status(500).json({
       success: false,
       message: "Failed to delete section. Please try again later.",

@@ -199,24 +199,25 @@ model Admin {
 }
 
 model Section {
-  id          Int       @id @default(autoincrement())
+  id          Int        @id @default(autoincrement())
   name        String
   gradeLevel  Int
-  adviserId Int
+  adviserId   Int?
 
   schoolYear  String
   curriculum  Curriculum @default(Regular)
 
   color       String?
+  room        String?
   classSize   Int?
   schedule    Json?
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
-  adviser     Adviser @relation("AdviserSections", fields: [adviserId], references: [id], onDelete: Cascade)
+  adviser     Adviser?   @relation("AdviserSections", fields: [adviserId], references: [id], onDelete: SetNull)
+
   schoolForms SchoolForm[]
-
   enrollments Enrollment[]
 
   @@unique([schoolYear, gradeLevel, name])
