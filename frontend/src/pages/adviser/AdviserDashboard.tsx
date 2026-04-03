@@ -202,7 +202,7 @@ const AdviserDashboard = () => {
       </div>
 
       {/* [SECTION] Dashboard Overview */}
-      <div className="bg-[var(--color-bg-100)] border-2 border-[var(--color-bg-300)]/60 rounded-xl px-5 py-6 gap-x-3 shadow-md">
+      <div className="bg-[var(--color-bg-100)] rounded-xl px-5 py-6 gap-x-3 shadow-md">
         <h2 className="mb-3">Overview</h2>
         <div className="space-y-2">
           <DashboardItem

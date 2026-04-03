@@ -5,7 +5,6 @@ import { useParams, useNavigate } from "react-router-dom";
 // [IMPORT] Components
 import ClassCard from "../../components/ClassCard";
 import DashboardButton from "../../components/DashboardButton";
-import ClassSummaryItem from "../../components/ClassSummaryItem";
 
 // ?[INTERFACES]
 interface ScheduleItem {
@@ -29,12 +28,6 @@ interface Section {
   femaleCount?: number;
 }
 
-interface Profile {
-  attendanceRate: number;
-  classAverage: number;
-  studentsAtRisk: number;
-};
-
 const AdviserClassDetails = () => {
   const { sectionId } = useParams<{ sectionId: string }>();
   const navigate = useNavigate();
@@ -43,7 +36,6 @@ const AdviserClassDetails = () => {
   const [section, setSection] = useState<Section | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [profile] = useState<Profile | null>(null);
 
   // *[EFFECT] Fetch adviser's class's details
   useEffect(() => {
@@ -135,7 +127,7 @@ const AdviserClassDetails = () => {
     </div>
 
       {/* [COMPONENT] My Class */}
-      <div className="py-2">
+      <div className="">
         <ClassCard
           id={section.id}
           key={section.id}
@@ -148,13 +140,8 @@ const AdviserClassDetails = () => {
       </div>
 
       {/* [SECTION] Class Overview */}
-      <div className="bg-[var(--color-bg-100)] border-2 border-[var(--color-bg-300)]/60 rounded-xl px-4 py-4 gap-x-3 shadow-md">
+      <div className="bg-[var(--color-bg-100)] rounded-xl px-4 py-4 gap-x-3 shadow-md">
         <h2 className="mb-3">Overview</h2>
-        <div className="flex flex-col gap-y-2">
-          <ClassSummaryItem iconSrc="/attendance-icon.svg" text="Attendance Rate" value={profile?.attendanceRate || 0} />
-          <ClassSummaryItem iconSrc="/class-average-icon.svg" text="Class Average" value={profile?.classAverage || 0} />
-          <ClassSummaryItem iconSrc="/students-at-risk-icon.svg" text="Students at Risk" value={profile?.studentsAtRisk || 0} />
-        </div>
       </div>
 
       {/* [SECTION] Dashboard Buttons */}

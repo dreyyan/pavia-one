@@ -181,7 +181,7 @@ const AdviserClassManagement = () => {
       </div>
 
       {/* [SECTION] Class Cards */}
-      <div className="grid grid-cols-1 gap-6 bg-[var(--color-bg-100)] px-3 rounded-lg py-4 md:flex-row md:gap-4 items-stretch w-full">
+      <div className="grid grid-cols-1 gap-6 bg-[var(--color-bg-100)] px-3 rounded-xl py-4 md:flex-row md:gap-4 items-stretch w-full">
         {!error && classes.length === 0 && (
           <EmptyState
             title="No sections found"

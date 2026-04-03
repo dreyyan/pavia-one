@@ -186,7 +186,7 @@ const AdviserClassGrades = () => {
 
       {/* [COMPONENT] My Class */}
       {section && (
-        <div className="py-2">
+        <div className="">
           <ClassCard
             id={section.id}
             key={section.id}

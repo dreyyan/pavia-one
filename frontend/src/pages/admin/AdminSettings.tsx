@@ -229,8 +229,13 @@ const AdminSettings = () => {
         isCancelable={generalModal.isCancelable}
       />
 
-      {/* [UI] Page Title */}
-      <h1 className="text-[var(--color-text-800)]">Settings</h1>
+      {/* [SECTION] Header */}
+      <div>
+        <h2 className="text-[var(--color-text-800)] leading-0">Settings</h2>
+        <p className="font-roboto text-sm text-[var(--color-text-700)]">
+          Manage your password and notification preferences.
+        </p>
+      </div>
 
       {/* [SECTION] Security */}
       <div className="w-full max-w-md bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-lg shadow-sm p-5 space-y-4">

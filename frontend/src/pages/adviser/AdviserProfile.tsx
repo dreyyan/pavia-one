@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/exhaustive-deps */
 // [IMPORT] Hooks
 import { useState, useEffect } from "react";
-import { usePageTitle } from "../../hooks/usePageTitle"; // Assuming you have this hook
+import { usePageTitle } from "../../hooks/usePageTitle";
 
 // [IMPORT] Components
 import Skeleton from "../../components/Skeleton";
@@ -368,12 +369,16 @@ const AdviserProfile = () => {
                   label="Adviser ID"
                   value={profile.adviserId}
                   disabled={true}
+                  onChange={() => {}}
+                  required
                 />
 
                 <InputField
                   label="Role"
                   value={formData.role || "Class Adviser"}
                   disabled={true}
+                  onChange={() => {}}
+                  required
                 />
 
                 {profile.advisorySection && (
@@ -381,11 +386,13 @@ const AdviserProfile = () => {
                     <InputField
                       label="Advisory Grade"
                       value={`Grade ${profile.advisorySection.gradeLevel}`}
+                      onChange={() => {}}
                       disabled={true}
                     />
                     <InputField
                       label="Advisory Section"
                       value={profile.advisorySection.name}
+                      onChange={() => {}}
                       disabled={true}
                     />
                   </>

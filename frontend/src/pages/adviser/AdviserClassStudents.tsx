@@ -199,7 +199,7 @@ const AdviserClassStudents = () => {
       </div>
 
       {/* [COMPONENT] My Class Card */}
-      <div className="py-2">
+      <div className="">
         <ClassCard
           id={section.id}
           name={section.name}

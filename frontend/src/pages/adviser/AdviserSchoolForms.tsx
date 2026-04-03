@@ -138,7 +138,7 @@ const AdviserSchoolForms = () => {
     });
 
   return (
-    <div className="py-10 px-4 space-y-5">
+    <div className="py-10 px-4 space-y-4">
       {/* [COMPONENT] Header */}
       <div>
         <h2 className="text-[var(--color-text-800)]">School Forms</h2>

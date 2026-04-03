@@ -280,7 +280,7 @@ const AdviserClassSchoolForms = () => {
   }
 
   return (
-    <div className="py-10 px-4 space-y-5">
+    <div className="py-10 px-4 space-y-4">
       {/* Hidden file input for import */}
       <input
         ref={fileInputRef}
