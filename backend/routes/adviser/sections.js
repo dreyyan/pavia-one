@@ -488,6 +488,10 @@ router.get(
         guardianRelationship: s.guardian?.guardianRelationship ?? "",
         guardianContact: s.guardian?.guardianContactNumber ?? "",
         learningModality: enrollment.learningModality ?? "",
+
+        motherTongue: s.motherTongue ?? "",
+        religion: s.religion ?? "",
+
         // Include enrollments (flatten learning areas)
         enrollments: (s.enrollments ?? []).map((enr) => ({
           ...enr,
