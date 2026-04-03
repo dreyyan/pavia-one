@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/exhaustive-deps */
 // [IMPORT] Hooks
 import { useState, useEffect, useRef } from "react";
@@ -191,8 +192,8 @@ const AdviserClassManagement = () => {
 
         {error && (
           <EmptyState
-            title="Error fetching sections"
-            subtitle={error}
+            title="Unable to Load Sections"
+            subtitle="You don't have any assigned sections yet. If you think this is a mistake, please contact the administrator."
             iconSrc="/error-icon.svg"
           />
         )}
