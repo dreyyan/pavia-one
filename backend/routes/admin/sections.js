@@ -14,7 +14,12 @@ const {
   CURRICULA,
   VALID_CURRICULA,
 } = require("../../utils/constants");
-const { buildSectionName, isValidSchoolYear } = require("../../utils/helpers");
+const {
+  buildSectionName,
+  isValidSchoolYear,
+  generateUniqueColors,
+  hslToHex,
+} = require("../../utils/helpers");
 
 // ?[GET] Get All Sections
 // /api/admin/sections
@@ -349,11 +354,11 @@ router.post("/", verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[POST] Auto-generate All Sections for a School Yeare
+// ?[POST] Auto-generate All Sections for a School Year
 // POST /api/admin/sections/generate
 router.post("/generate", verifyAdmin, async (req, res) => {
   try {
-    const { schoolYear, learningModality, color } = req.body;
+    const { schoolYear, learningModality } = req.body;
 
     // [VALIDATION] School year required + format check
     if (!schoolYear) {
@@ -403,6 +408,15 @@ router.post("/generate", verifyAdmin, async (req, res) => {
     const created = [];
     const skipped = [];
 
+    // [CALCULATE] Total sections to create and generate unique colors
+    const totalSectionsToCreate =
+      GRADE_LEVELS.length * CURRICULA.length - existingSet.size;
+
+    // [GENERATE] Light background-safe colors
+    const uniqueColors = generateUniqueColors(totalSectionsToCreate);
+    let colorIndex = 0;
+
+    // [LOOP] Create sections per grade level × curriculum
     for (const gradeLevel of GRADE_LEVELS) {
       for (const curriculum of CURRICULA) {
         const key = `${gradeLevel}|${curriculum}`;
@@ -419,7 +433,7 @@ router.post("/generate", verifyAdmin, async (req, res) => {
             gradeLevel,
             schoolYear,
             curriculum,
-            color: color || null,
+            color: uniqueColors[colorIndex++],
           },
           select: {
             id: true,

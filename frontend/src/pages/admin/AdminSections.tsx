@@ -57,7 +57,6 @@ const AdminSections = () => {
   // [STATES] Auto-Generate Modal
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [generateYear, setGenerateYear]           = useState("");
-  const [generateColor, setGenerateColor]         = useState("");
   const [generating, setGenerating]               = useState(false);
   const [generateError, setGenerateError]         = useState("");
 
@@ -275,7 +274,6 @@ const AdminSections = () => {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           schoolYear: normalizedYear,
-          color: generateColor || null,
         }),
       });
       const data = await res.json();
@@ -284,7 +282,6 @@ const AdminSections = () => {
       const { created, skipped } = data.data;
       setShowGenerateModal(false);
       setGenerateYear("");
-      setGenerateColor("");
       await fetchSections();
       openGeneralModal({
         title: "Sections Generated",
@@ -369,7 +366,7 @@ const AdminSections = () => {
       {/* [MODAL] Auto-Generate Sections */}
       <Modal
         isOpen={showGenerateModal}
-        onClose={() => { setShowGenerateModal(false); setGenerateError(""); setGenerateYear(""); setGenerateColor(""); }}
+        onClose={() => { setShowGenerateModal(false); setGenerateError(""); setGenerateYear(""); }}
         title="Auto-Generate All Sections"
         type="default"
         confirmText={generating ? "Generating..." : "Generate"}
@@ -411,33 +408,6 @@ const AdminSections = () => {
               placeholder="e.g. 2025 - 2026"
               className="w-full bg-[var(--color-bg-50)] body-default rounded-sm px-3 py-2 outline-none border border-[var(--color-text-300)] focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm"
             />
-          </div>
-
-          {/* Section Color (optional) */}
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-[var(--color-text-700)]">
-              Default Section Color{" "}
-              <span className="font-normal text-[var(--color-text-400)]">(optional)</span>
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                type="color"
-                value={generateColor || "#6366f1"}
-                onChange={(e) => setGenerateColor(e.target.value)}
-                className="size-9 rounded border border-[var(--color-text-300)] cursor-pointer p-0.5"
-              />
-              <span className="text-xs text-[var(--color-text-500)] font-mono">
-                {generateColor || "No color set"}
-              </span>
-              {generateColor && (
-                <button
-                  onClick={() => setGenerateColor("")}
-                  className="text-xs text-[var(--color-text-400)] hover:text-[var(--color-text-700)] underline cursor-pointer"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
           </div>
 
           {/* Error */}
@@ -525,7 +495,7 @@ const AdminSections = () => {
           <SecondaryButton
             text="Auto-Generate Sections"
             iconSrc="/auto-generate-icon.svg"
-            onClick={() => { setGenerateYear(""); setGenerateColor(""); setGenerateError(""); setShowGenerateModal(true); }}
+            onClick={() => { setGenerateYear(""); setGenerateError(""); setShowGenerateModal(true); }}
           />
         </div>
 
@@ -552,7 +522,9 @@ const AdminSections = () => {
               className="bg-white rounded-md border border-[var(--color-bg-200)] overflow-hidden hover:translate-y-[-1px] hover:shadow-md active:shadow-md transition-all duration-200 cursor-pointer"
               onClick={() => navigate(`/admin/sections/view/${s.id}`)}
             >
-              <div className="bg-[var(--color-bg-50)] px-3 pr-4 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
+              <div
+              style={{ backgroundColor: s.color }}
+              className="px-3 pr-4 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
                 <div className="flex items-center w-full gap-3 min-w-0">
                   <div className="size-10 rounded-md bg-[var(--color-primary-100)] flex items-center justify-center text-[var(--color-primary-700)] font-bold text-xl border border-[var(--color-primary-200)] flex-shrink-0">
                     {s.gradeLevel}

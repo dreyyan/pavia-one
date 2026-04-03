@@ -139,6 +139,41 @@ const isValidSchoolYear = (sy) => {
   return match && parseInt(match[2], 10) === parseInt(match[1], 10) + 1;
 };
 
+// [HELPER] Generate `count` unique colors in hex
+function generateUniqueColors(count) {
+  const colors = [];
+  const step = 360 / count; // spread hues evenly
+
+  for (let i = 0; i < count; i++) {
+    const hue = Math.round(i * step);
+
+    const saturation = 30; // low saturation (less intense)
+    const lightness = 90; // very light (good for text contrast)
+
+    const color = hslToHex(hue, saturation, lightness);
+    colors.push(color);
+  }
+
+  return colors;
+}
+
+// [HELPER] Convert HSL to hex
+function hslToHex(h, s, l) {
+  s /= 100;
+  l /= 100;
+
+  const k = (n) => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n) =>
+    Math.round(
+      255 * (l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)))),
+    );
+
+  return `#${((1 << 24) + (f(0) << 16) + (f(8) << 8) + f(4))
+    .toString(16)
+    .slice(1)}`;
+}
+
 module.exports = {
   hashPassword,
   getFullName,
@@ -149,4 +184,6 @@ module.exports = {
   updateGeneralAverage,
   buildSectionName,
   isValidSchoolYear,
+  generateUniqueColors,
+  hslToHex,
 };
