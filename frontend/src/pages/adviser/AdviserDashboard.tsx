@@ -7,6 +7,10 @@ import { useNavigate } from "react-router-dom";
 import DashboardButton from "../../components/DashboardButton";
 import DashboardItem from "../../components/DashboardItem";
 import Skeleton from "../../components/Skeleton";
+import Modal from "../../components/Modal";
+
+// [IMPORT] Types
+import { GeneralModalConfig } from "../../types";
 
 // ? [INTERFACES]
 interface Section {
@@ -31,6 +35,25 @@ const AdviserDashboard = () => {
   // [STATES]
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // [STATE] General Modal
+  const [generalModal, setGeneralModal] = useState<GeneralModalConfig>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "default",
+    confirmText: "OK",
+    isCancelable: true,
+    onConfirm: () => {},
+  });
+
+  const openGeneralModal = (config: Partial<Omit<GeneralModalConfig, "isOpen">>) => {
+    setGeneralModal(prev => ({ ...prev, isOpen: true, ...config }));
+  };
+
+  const closeGeneralModal = () => {
+    setGeneralModal(prev => ({ ...prev, isOpen: false }));
+  };
 
   // * [EFFECT] Fetch adviser's profile
   useEffect(() => {
@@ -86,6 +109,21 @@ const AdviserDashboard = () => {
     fetchProfile();
   }, [setShowTokenExpiredModal]);
 
+  // [HANDLE] Logout
+  const handleLogout = () => {
+    openGeneralModal({
+      title: "Confirm Logout",
+      message: "Are you sure you want to log out of your account?",
+      type: "info",
+      confirmText: "Logout",
+      isCancelable: true,
+      onConfirm: () => {
+        closeGeneralModal();
+        navigate("/login/adviser");
+      }
+    });
+  };
+
   if (loading) return <Skeleton />;
 
   // Get advisory section and class size
@@ -94,6 +132,18 @@ const AdviserDashboard = () => {
 
   return (
     <div className="py-10 px-4 space-y-4">
+      {/* [MODAL] General */}
+      <Modal
+        isOpen={generalModal.isOpen}
+        onClose={closeGeneralModal}
+        title={generalModal.title}
+        message={generalModal.message}
+        type={generalModal.type}
+        confirmText={generalModal.confirmText}
+        onConfirm={generalModal.onConfirm}
+        isCancelable={generalModal.isCancelable}
+      />
+
       {/* [UI] Dashboard */}
       <h1 className="text-[var(--color-text-800)]">Dashboard</h1>
 
@@ -119,7 +169,7 @@ const AdviserDashboard = () => {
 
           {/* [BUTTON] Logout */}
           <button 
-            onClick={() => navigate("/login/adviser")} 
+            onClick={handleLogout} 
             className="p-2 rounded-sm bg-[var(--color-red-700)] cursor-pointer"
           >
             <img src="/logout-icon-white.svg" alt="Logout" className="w-4 h-4" />
