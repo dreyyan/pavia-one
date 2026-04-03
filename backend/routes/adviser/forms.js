@@ -131,6 +131,7 @@ router.get("/section/:sectionId", verifyAdviser, async (req, res) => {
           gradeLevel: section.gradeLevel,
           schoolYear: section.schoolYear,
           curriculum: section.curriculum,
+          color: section.color,
           adviser: section.adviser,
           schoolForms: section.schoolForms,
         },
