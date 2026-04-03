@@ -1,8 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useRef } from "react";
 
-type SchoolFormType = "sf1" | "sf2" | "sf5";
-
 interface SectionForm {
   id: number;
   type: "SF1" | "SF5";
