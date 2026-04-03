@@ -1,17 +1,17 @@
 // ? [CONSTANTS] Options
 export const GRADE_LEVEL_OPTIONS = ["7", "8", "9", "10"];
 
-export const SEX_OPTIONS = [
-  { value: "MALE", label: "Male" },
-  { value: "FEMALE", label: "Female" }
-];
-
 export const CURRICULUM_OPTIONS: { value: string; label: string; description: string }[] = [
   { value: "Regular",  label: "Regular",  description: "Standard K to 12 curriculum" },
   { value: "STE",      label: "STE",      description: "Science, Technology & Engineering" },
   { value: "SPS",      label: "SPS",      description: "Specialization – Sports (Badminton)" },
   { value: "SPA",      label: "SPA",      description: "Specialization – Visual Arts" },
   { value: "SPJ",      label: "SPJ",      description: "Specialization – ICT / Journalism" },
+];
+
+export const SEX_OPTIONS = [
+  { value: "MALE", label: "Male" },
+  { value: "FEMALE", label: "Female" }
 ];
 
 export const LEARNING_MODALITY_OPTIONS = [
