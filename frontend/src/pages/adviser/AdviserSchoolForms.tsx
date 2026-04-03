@@ -1,18 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
+// [IMPORT] React
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import EmptyState from "../../components/EmptyState";
 import { useAuth } from "../../context/useAuth";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
-type FormStatus = "DRAFT" | "GENERATED" | "SUBMITTED" | "APPROVED" | "LOCKED";
+// [IMPORT] Helpers, Constants, Types
+import { STATUS_BADGE, STATUS_LABEL } from "../../constants";
+import { SchoolFormStatus } from "../../types";
 
 interface SectionForm {
   id: number;
   type: string;
-  status: FormStatus;
+  status: SchoolFormStatus;
   schoolYear: string;
 }
 
@@ -26,25 +27,7 @@ interface Section {
   schoolForms: SectionForm[];
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
-const STATUS_BADGE: Record<FormStatus, string> = {
-  DRAFT:     "bg-gray-100 text-gray-500 border border-gray-200",
-  GENERATED: "bg-blue-100 text-blue-700 border border-blue-200",
-  SUBMITTED: "bg-yellow-100 text-yellow-700 border border-yellow-200",
-  APPROVED:  "bg-green-100 text-green-700 border border-green-200",
-  LOCKED:    "bg-purple-100 text-purple-700 border border-purple-200",
-};
-
-const STATUS_LABEL: Record<FormStatus, string> = {
-  DRAFT:     "Draft",
-  GENERATED: "Generated",
-  SUBMITTED: "Submitted",
-  APPROVED:  "Approved",
-  LOCKED:    "Locked",
-};
-
+// [HELPER] Form badge
 function FormBadge({ type, form }: { type: string; form?: SectionForm }) {
   if (!form) {
     return (
@@ -60,32 +43,26 @@ function FormBadge({ type, form }: { type: string; form?: SectionForm }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Component
-// ─────────────────────────────────────────────────────────────────────────────
 const AdviserSchoolForms = () => {
   const { setShowTokenExpiredModal } = useAuth();
   const navigate = useNavigate();
 
+  // [STATES]
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState<string | null>(null);
 
-  const [search, setSearch]               = useState("");
-  const [selectedGrade, setSelectedGrade] = useState<string | null>(null);
-  const [showFilters, setShowFilters]     = useState(false);
+  // [STATES] Search, Sort, Filters
+  const [search, setSearch] = useState("");
+  const [sortOption, setSortOption] = useState("name-asc");
+  const [selectedGrade, setSelectedGrade] = useState("All");
+
+  const [showSortFilters, setShowSortFilters] = useState(false);
+  const [showGradeFilters, setShowGradeFilters] = useState(false);
+
   const filterRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const close = (e: MouseEvent) => {
-      if (filterRef.current && !filterRef.current.contains(e.target as Node))
-        setShowFilters(false);
-    };
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
-  }, []);
-
-  // Fetch adviser's sections with their school forms
+  // * [EFFECT] Fetch adviser's sections with their school forms
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -118,20 +95,51 @@ const AdviserSchoolForms = () => {
     })();
   }, [setShowTokenExpiredModal]);
 
+  // * [EFFECT] Filters dropdown
+  useEffect(() => {
+    const close = (e: MouseEvent) => {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setShowSortFilters(false);
+        setShowGradeFilters(false);
+      }
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, []);
+
+  // [FILTER]
   const filtered = sections
     .filter((s) => {
       const q = search.toLowerCase();
+
       const matchSearch =
         !q ||
         s.name.toLowerCase().includes(q) ||
-        s.schoolYear.includes(q);
-      const matchGrade = !selectedGrade || String(s.gradeLevel) === selectedGrade;
+        s.schoolYear.toLowerCase().includes(q);
+
+      const matchGrade =
+        selectedGrade === "All" || String(s.gradeLevel) === selectedGrade;
+
       return matchSearch && matchGrade;
+    })
+    .sort((a, b) => {
+      switch (sortOption) {
+        case "name-asc":
+          return a.name.localeCompare(b.name);
+        case "name-desc":
+          return b.name.localeCompare(a.name);
+        case "grade-asc":
+          return a.gradeLevel - b.gradeLevel;
+        case "grade-desc":
+          return b.gradeLevel - a.gradeLevel;
+        default:
+          return 0;
+      }
     });
 
   return (
     <div className="py-10 px-4 space-y-5">
-      {/* Header */}
+      {/* [COMPONENT] Header */}
       <div>
         <h2 className="text-[var(--color-text-800)]">School Forms</h2>
         <p className="text-sm text-[var(--color-text-500)] font-roboto mt-0.5">
@@ -139,42 +147,55 @@ const AdviserSchoolForms = () => {
         </p>
       </div>
 
-      {/* Search & Filter */}
-      <div className="flex items-center gap-3">
+      {/* [SECTION] Search & Filters */}
+      <div className="bg-[var(--color-bg-100)] px-3 rounded-lg py-4 flex md:flex-row gap-2 md:gap-4 items-stretch w-full">
+        {/* Search */}
         <div className="relative flex-1">
           <input
             type="text"
-            placeholder="Search by section name or school year..."
+            placeholder="Search by name or school year..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-[var(--color-bg-50)] font-roboto rounded-sm py-2 px-3 outline-none border border-[var(--color-text-300)] focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm"
+            className="w-full bg-[var(--color-bg-50)] body-default rounded-sm px-3 outline-none border border-[var(--color-text-300)] focus:ring-2 focus:ring-[var(--color-primary-600)] h-full"
           />
         </div>
+
+        {/* Sort */}
         <div ref={filterRef} className="relative">
           <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center justify-center rounded-sm p-2.5 border transition cursor-pointer ${
-              selectedGrade
-                ? "bg-[var(--color-primary-600)] border-[var(--color-primary-700)] text-white"
-                : "bg-[var(--color-bg-50)] border-[var(--color-text-300)] hover:bg-[var(--color-bg-200)]"
-            }`}
+            onClick={() => setShowSortFilters(!showSortFilters)}
+            className="flex items-center justify-center rounded-sm px-3 h-10 bg-[var(--color-bg-50)] hover:opacity-80"
           >
-            <img src="/filter-icon.svg" alt="Filter" className="w-4 h-4" />
+            <img src="/sort-icon.svg" alt="Sort" className="size-4" />
           </button>
-          {showFilters && (
-            <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-md shadow-lg p-2 space-y-1 z-50">
-              <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-500)] px-2 pt-1 pb-0.5">
-                Grade Level
-              </p>
-              <button
-                onClick={() => { setSelectedGrade(null); setShowFilters(false); }}
-                className={`w-full text-left px-2 py-1.5 text-sm rounded hover:bg-gray-100 ${!selectedGrade ? "bg-blue-50 text-blue-700 font-semibold" : ""}`}
-              >All Grades</button>
-              {["7", "8", "9", "10"].map((g) => (
+
+          {showSortFilters && (
+            <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-300 rounded-md shadow-lg p-2 space-y-1 z-50">
+              <button onClick={() => { setSortOption("name-asc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-asc" ? "bg-blue-100" : ""}`}>Name ↑</button>
+              <button onClick={() => { setSortOption("name-desc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-desc" ? "bg-blue-100" : ""}`}>Name ↓</button>
+              <button onClick={() => { setSortOption("grade-asc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "grade-asc" ? "bg-blue-100" : ""}`}>Grade ↑</button>
+              <button onClick={() => { setSortOption("grade-desc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "grade-desc" ? "bg-blue-100" : ""}`}>Grade ↓</button>
+            </div>
+          )}
+        </div>
+
+        {/* Grade Filter */}
+        <div className="relative">
+          <button
+            onClick={() => setShowGradeFilters(!showGradeFilters)}
+            className="flex items-center justify-center rounded-sm px-3 h-10 bg-[var(--color-bg-50)] hover:opacity-80"
+          >
+            <img src="/filter-icon.svg" alt="Filter" className="size-4" />
+          </button>
+
+          {showGradeFilters && (
+            <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-300 rounded-md shadow-lg p-2 space-y-1 z-50">
+              <button onClick={() => { setSelectedGrade("All"); setShowGradeFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedGrade === "All" ? "bg-blue-100" : ""}`}>All</button>
+              {["7","8","9","10"].map((g) => (
                 <button
                   key={g}
-                  onClick={() => { setSelectedGrade(g); setShowFilters(false); }}
-                  className={`w-full text-left px-2 py-1.5 text-sm rounded hover:bg-gray-100 ${selectedGrade === g ? "bg-blue-50 text-blue-700 font-semibold" : ""}`}
+                  onClick={() => { setSelectedGrade(g); setShowGradeFilters(false); }}
+                  className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedGrade === g ? "bg-blue-100" : ""}`}
                 >
                   Grade {g}
                 </button>

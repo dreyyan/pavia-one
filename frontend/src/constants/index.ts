@@ -77,3 +77,19 @@ export const FORM_TYPES: Record<
       "Records the action taken (promoted, conditional, retained) for each student at year-end.",
   },
 };
+
+export const STATUS_BADGE: Record<SchoolFormStatus, string> = {
+  DRAFT:     "bg-gray-100 text-gray-500 border border-gray-200",
+  GENERATED: "bg-blue-100 text-blue-700 border border-blue-200",
+  SUBMITTED: "bg-yellow-100 text-yellow-700 border border-yellow-200",
+  APPROVED:  "bg-green-100 text-green-700 border border-green-200",
+  LOCKED:    "bg-purple-100 text-purple-700 border border-purple-200",
+};
+
+export const STATUS_LABEL: Record<SchoolFormStatus, string> = {
+  DRAFT:     "Draft",
+  GENERATED: "Generated",
+  SUBMITTED: "Submitted",
+  APPROVED:  "Approved",
+  LOCKED:    "Locked",
+};
