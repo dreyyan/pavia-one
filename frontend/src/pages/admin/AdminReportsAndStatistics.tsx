@@ -1,12 +1,10 @@
-// [IMPORT] Hooks
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/useAuth";
 import { useNavigate } from "react-router-dom";
+import { usePageTitle } from "../../hooks/usePageTitle";
 
-// [IMPORT] Components
 import Skeleton from "../../components/Skeleton";
-
-// [IMPORT] Recharts
 import {
   BarChart,
   Bar,
@@ -20,7 +18,8 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-// ? [INTERFACES]
+const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#CA28A4"];
+
 interface DashboardProfile {
   id: number;
   name: string;
@@ -32,62 +31,67 @@ interface ReportsData {
   totalAdvisers: number;
   totalSections: number;
   totalFormsPending: number;
-  studentsByGrade: { gradeLevel: string; count: number }[];
+  studentsByGrade: { gradeLevel: number; count: number }[];
   studentsByModality: { modality: string; count: number }[];
   sectionsPerAdviser: { adviserName: string; sections: number }[];
-  averageGradesPerGrade: { gradeLevel: string; average: number }[];
+  averageGradesPerGrade: { gradeLevel: number; average: number }[];
   failingStudentsCount: number;
 }
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#CA28A4"];
-
-// *────────────────────────────────────────────────
-// * Admin Reports & Statistics Component
-// *────────────────────────────────────────────────
 const AdminReportsAndStatistics = () => {
+  usePageTitle("Reports & Statistics");
+
   const { setShowTokenExpiredModal } = useAuth();
   const navigate = useNavigate();
 
-  // [STATES]
   const [profile, setProfile] = useState<DashboardProfile | null>(null);
   const [reports, setReports] = useState<ReportsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // * [EFFECT] Fetch reports data
   useEffect(() => {
-    const token = localStorage.getItem("token"); // may be null
-
     const fetchReports = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setShowTokenExpiredModal(true);
+        setLoading(false);
+        return;
+      }
+
       try {
         const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/reports`, {
-          headers: { 
-            Authorization: token ? `Bearer ${token}` : "", 
-            "Content-Type": "application/json" 
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
           },
         });
 
         if (res.status === 401) {
-          setShowTokenExpiredModal(true);
-          return;
-        }
-
-        const data: { success: boolean; data: ReportsData; adminProfile: DashboardProfile } =
-          await res.json();
-
-        if (!data.success) {
-          console.error("Failed to fetch reports:", data);
           localStorage.removeItem("token");
           setShowTokenExpiredModal(true);
           return;
         }
 
-        // Map backend response
-        setProfile(data.adminProfile);
-        setReports(data.data);
-      } catch (err) {
+        if (!res.ok) {
+          throw new Error(`Server error: ${res.status}`);
+        }
+
+        const result = await res.json();
+
+        if (!result.success) {
+          throw new Error(result.message || "Failed to fetch reports");
+        }
+
+        setProfile(result.data.adminProfile);
+        setReports(result.data.data);
+        setError(null);
+      } catch (err: any) {
         console.error("Error fetching reports:", err);
-        localStorage.removeItem("token");
-        setShowTokenExpiredModal(true);
+        setError(err.message || "Failed to load reports");
+        if (String(err).includes("401")) {
+          localStorage.removeItem("token");
+          setShowTokenExpiredModal(true);
+        }
       } finally {
         setLoading(false);
       }
@@ -98,120 +102,142 @@ const AdminReportsAndStatistics = () => {
 
   if (loading) return <Skeleton />;
 
+  if (error || !reports) {
+    return (
+      <div className="py-10 px-4">
+        <h1 className="text-[var(--color-text-800)]">Reports & Statistics</h1>
+        <div className="mt-8 bg-[var(--color-bg-100)] rounded-lg p-10 text-center">
+          <p className="text-[var(--color-red-600)] mb-6">{error || "No report data available"}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-2.5 bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white rounded-md transition-colors font-medium"
+          >
+            Retry Loading
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="py-10 px-4 space-y-6">
-      {/* [HEADER] */}
-      <h1 className="text-[var(--color-text-800)]">Admin Reports & Statistics</h1>
-
-      {/* [SECTION] Profile */}
-      <div className="relative flex items-center bg-[var(--color-bg-100)] rounded-lg px-4 py-3 gap-x-4 shadow-md">
-        <div className="flex-1">
-          <h2 className="font-roboto font-extrabold text-[var(--color-text-800)]">
-            {profile?.name}
-          </h2>
-          <p className="body-large text-[var(--color-text-800)]">Administrator</p>
-        </div>
-
-        {/* [BUTTON] Profile */}
-        <button
-          onClick={() => navigate("/admin/profile")}
-          className="p-2 rounded-sm bg-[var(--color-secondary-500)] cursor-pointer"
-        >
-          <img src="/profile-icon-white.svg" alt="Profile" className="w-4 h-4" />
-        </button>
+    <div className="py-10 px-4 space-y-8 max-w-7xl mx-auto">
+      {/* Page Header */}
+      <div>
+        <h1 className="text-[var(--color-text-800)]">Reports & Statistics</h1>
+        <p className="font-roboto text-[var(--color-text-700)] mt-1">
+          Overview of school performance and enrollment data
+        </p>
       </div>
 
-      {/* [SECTION] Key Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-[var(--color-bg-100)] rounded-lg p-4 shadow-md">
-          <p className="text-sm">Total Students</p>
-          <h3 className="text-xl font-bold">{reports?.totalStudents}</h3>
+      {/* Key Metrics */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+        <div className="bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-xl p-6 shadow-sm hover:shadow transition-shadow">
+          <p className="text-sm font-roboto text-[var(--color-text-600)]">Total Students</p>
+          <h3 className="text-4xl font-semibold text-[var(--color-text-800)] mt-3">
+            {reports.totalStudents.toLocaleString()}
+          </h3>
         </div>
-        <div className="bg-[var(--color-bg-100)] rounded-lg p-4 shadow-md">
-          <p className="text-sm">Total Advisers</p>
-          <h3 className="text-xl font-bold">{reports?.totalAdvisers}</h3>
+
+        <div className="bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-xl p-6 shadow-sm hover:shadow transition-shadow">
+          <p className="text-sm font-roboto text-[var(--color-text-600)]">Total Advisers</p>
+          <h3 className="text-4xl font-semibold text-[var(--color-text-800)] mt-3">
+            {reports.totalAdvisers}
+          </h3>
         </div>
-        <div className="bg-[var(--color-bg-100)] rounded-lg p-4 shadow-md">
-          <p className="text-sm">Total Sections</p>
-          <h3 className="text-xl font-bold">{reports?.totalSections}</h3>
+
+        <div className="bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-xl p-6 shadow-sm hover:shadow transition-shadow">
+          <p className="text-sm font-roboto text-[var(--color-text-600)]">Total Sections</p>
+          <h3 className="text-4xl font-semibold text-[var(--color-text-800)] mt-3">
+            {reports.totalSections}
+          </h3>
         </div>
-        <div className="bg-[var(--color-bg-100)] rounded-lg p-4 shadow-md">
-          <p className="text-sm">Pending Forms</p>
-          <h3 className="text-xl font-bold">{reports?.totalFormsPending}</h3>
+
+        <div className="bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-xl p-6 shadow-sm hover:shadow transition-shadow">
+          <p className="text-sm font-roboto text-[var(--color-text-600)]">Pending Forms</p>
+          <h3 className="text-4xl font-semibold text-[var(--color-accent-600)] mt-3">
+            {reports.totalFormsPending}
+          </h3>
         </div>
       </div>
 
-      {/* [SECTION] Students by Grade Level */}
-      <div className="bg-[var(--color-bg-100)] p-4 rounded-lg shadow-md">
-        <h2 className="mb-3">Students by Grade Level</h2>
-        <ResponsiveContainer width="100%" height={250}>
-          <BarChart data={reports?.studentsByGrade || []}>
-            <XAxis dataKey="gradeLevel" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="count" fill="#0088FE" />
-          </BarChart>
-        </ResponsiveContainer>
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Students by Grade Level */}
+        <div className="bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-xl p-6 shadow-sm">
+          <h2 className="font-semibold text-[var(--color-text-800)] mb-5">Students by Grade Level</h2>
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={reports.studentsByGrade}>
+              <XAxis dataKey="gradeLevel" stroke="var(--color-text-500)" />
+              <YAxis stroke="var(--color-text-500)" />
+              <Tooltip />
+              <Bar dataKey="count" fill="var(--color-primary-600)" radius={4} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Students by Learning Modality */}
+        <div className="bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-xl p-6 shadow-sm">
+          <h2 className="font-semibold text-[var(--color-text-800)] mb-5">Students by Learning Modality</h2>
+          <ResponsiveContainer width="100%" height={320}>
+            <PieChart>
+              <Pie
+                data={reports.studentsByModality}
+                dataKey="count"
+                nameKey="modality"
+                cx="50%"
+                cy="50%"
+                outerRadius={110}
+                label
+              >
+                {reports.studentsByModality.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Sections per Adviser */}
+        <div className="bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-xl p-6 shadow-sm lg:col-span-2">
+          <h2 className="font-semibold text-[var(--color-text-800)] mb-5">Sections per Adviser</h2>
+          <ResponsiveContainer width="100%" height={340}>
+            <BarChart data={reports.sectionsPerAdviser}>
+              <XAxis 
+                dataKey="adviserName" 
+                angle={-30} 
+                textAnchor="end" 
+                height={70}
+                stroke="var(--color-text-500)"
+              />
+              <YAxis stroke="var(--color-text-500)" />
+              <Tooltip />
+              <Bar dataKey="sections" fill="var(--color-accent-600)" radius={4} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
-      {/* [SECTION] Students by Learning Modality */}
-      <div className="bg-[var(--color-bg-100)] p-4 rounded-lg shadow-md">
-        <h2 className="mb-3">Students by Learning Modality</h2>
-        <ResponsiveContainer width="100%" height={250}>
-          <PieChart>
-            <Pie
-              data={reports?.studentsByModality || []}
-              dataKey="count"
-              nameKey="modality"
-              cx="50%"
-              cy="50%"
-              outerRadius={80}
-              label
-            >
-              {(reports?.studentsByModality || []).map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip />
-            <Legend />
-          </PieChart>
-        </ResponsiveContainer>
+      {/* Failing Students */}
+      <div className="bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-xl p-8 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-semibold text-[var(--color-text-800)]">Failing Students</h2>
+            <p className="text-sm text-[var(--color-text-600)] mt-1">Students with final rating below 75</p>
+          </div>
+          <h3 className="text-6xl font-bold text-[var(--color-red-600)]">
+            {reports.failingStudentsCount}
+          </h3>
+        </div>
       </div>
 
-      {/* [SECTION] Sections per Adviser */}
-      <div className="bg-[var(--color-bg-100)] p-4 rounded-lg shadow-md">
-        <h2 className="mb-3">Sections per Adviser</h2>
-        <ResponsiveContainer width="100%" height={250}>
-          <BarChart data={reports?.sectionsPerAdviser || []}>
-            <XAxis dataKey="adviserName" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="sections" fill="#00C49F" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* [SECTION] Average Grades per Grade Level */}
-      <div className="bg-[var(--color-bg-100)] p-4 rounded-lg shadow-md">
-        <h2 className="mb-3">Average Grades per Grade Level</h2>
-        <ResponsiveContainer width="100%" height={250}>
-          <BarChart data={reports?.averageGradesPerGrade || []}>
-            <XAxis dataKey="gradeLevel" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="average" fill="#FFBB28" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* [SECTION] Failing Students Count */}
-      <div className="bg-[var(--color-bg-100)] p-4 rounded-lg shadow-md">
-        <h2 className="mb-3">Failing Students</h2>
-        <h3 className="text-xl font-bold">{reports?.failingStudentsCount}</h3>
-      </div>
+      {/* Note for empty average grades */}
+      {reports.averageGradesPerGrade.length === 0 && (
+        <div className="text-center text-sm text-[var(--color-text-500)] py-4">
+          Average grades data will appear here once SF9 grades are recorded.
+        </div>
+      )}
     </div>
   );
 };
