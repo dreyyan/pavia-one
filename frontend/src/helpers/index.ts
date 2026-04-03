@@ -28,3 +28,12 @@ export const getMissingInfo = (section: SectionOverview): string[] => {
   if (section.enrollments.length === 0) missing.push("No enrolled students");
   return missing;
 };
+
+// [HELPER] Darken a hex color by a percentage
+export function darkenColor(hex: string, percent: number) {
+    const num = parseInt(hex.replace("#", ""), 16);
+    const r = Math.max(0, Math.min(255, ((num >> 16) & 0xff) * (1 - percent)));
+    const g = Math.max(0, Math.min(255, ((num >> 8) & 0xff) * (1 - percent)));
+    const b = Math.max(0, Math.min(255, (num & 0xff) * (1 - percent)));
+    return `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+}
