@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/useAuth";
-import { useNavigate } from "react-router-dom";
 import { usePageTitle } from "../../hooks/usePageTitle";
 
 import Skeleton from "../../components/Skeleton";
@@ -42,7 +43,6 @@ const AdminReportsAndStatistics = () => {
   usePageTitle("Reports & Statistics");
 
   const { setShowTokenExpiredModal } = useAuth();
-  const navigate = useNavigate();
 
   const [profile, setProfile] = useState<DashboardProfile | null>(null);
   const [reports, setReports] = useState<ReportsData | null>(null);
