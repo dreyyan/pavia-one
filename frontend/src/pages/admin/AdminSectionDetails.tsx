@@ -303,6 +303,11 @@ const AdminSectionDetails = () => {
       setFormData((prev) => ({ ...prev, [field]: e.target.value }));
     };
 
+  // [HANDLE] Bulk enroll students in a section (SF1 -> Assign Students in Section)
+  const handleBulkEnrollStudents = () => {
+      
+  };
+
   // [LOADING STATE]
   if (loading) return <Skeleton />;
 
@@ -437,6 +442,12 @@ const AdminSectionDetails = () => {
             </div>
 
             <div className="space-y-2">
+              <button
+                onClick={handleBulkEnrollStudents}
+                className="flex justify-center items-center gap-x-2 w-full py-3 rounded-md cursor-pointer text-button font-bold text-[var(--color-text-50)] bg-[var(--color-primary-600)] transition-all duration-200 hover:bg-[var(--color-primary-700)] disabled:opacity-50"
+              >   
+                <p className="button text-text-on-primary">Enroll Students (SF1)</p>
+              </button>
               <DeleteButton onClick={() => handleDelete(section.id)} text="Delete Section" disabled={loading} />
             </div>
 
