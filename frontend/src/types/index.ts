@@ -1,3 +1,6 @@
+import { CURRICULUM_OPTIONS } from "../constants";
+
+// ? [INTERFACE] Modal
 export interface GeneralModalConfig {
   isOpen: boolean;
   title: string;
@@ -8,12 +11,13 @@ export interface GeneralModalConfig {
   onConfirm: () => void;
 }
 
+// ? [INTERFACE] Form Data
 export type LearningAreaFormData = {
   id?: number;
   name: string;
-  gradeLevel: string;                // stored as string in the form; cast to Number on submit
+  gradeLevel: string;
   curriculum: string;
-  writtenWorkWeight: string;         // stored as "0.3" etc.; cast to Float on submit
+  writtenWorkWeight: string;
   performanceTaskWeight: string;
   quarterlyAssessmentWeight: string;
 };
@@ -48,6 +52,31 @@ export type SectionFormData = {
   adviserName?: string;
 };
 
+export type AdviserFormData = {
+  id?: number;
+  adviserId: string;
+  firstName: string;
+  middleName: string;
+  lastName: string;
+  email: string;
+  password: string;
+};
+
+export interface SectionForm {
+  id: number;
+  sectionId: number;
+  schoolYear: string;
+  type: SchoolFormType;
+  status: SchoolFormStatus;
+  generatedAt?: string;
+  submittedAt?: string;
+  approvedAt?: string;
+  lockedAt?: string;
+  generatedBy?: number;
+  approvedBy?: number;
+}
+
+// ? [INTERFACE] Entities
 export interface Section {
   id: number;
   name: string;
@@ -59,15 +88,6 @@ export interface Section {
   room?: string;
   createdAt: string;
   adviser?: { id: number; name: string; adviserId: string };
-}
-
-export interface AdviserSection {
-  id: number;
-  name: string;
-  gradeLevel: number;
-  schoolYear: string;
-  curriculum: string;
-  classSize: number;
 }
 
 export interface Adviser {
@@ -106,16 +126,6 @@ export interface Student {
   }[];
 }
 
-export interface LearningAreaDetails {
-  id: number;
-  name: string;
-  gradeLevel: number;
-  curriculum: string;
-  writtenWorkWeight: number;
-  performanceTaskWeight: number;
-  quarterlyAssessmentWeight: number;
-};
-
 export interface Enrollment {
   id: number;
   sectionId: number;
@@ -130,6 +140,38 @@ export interface Enrollment {
   };
 }
 
+// ? [TYPES] Specific Fields
+
+export interface AdviserSection {
+  id: number;
+  name: string;
+  gradeLevel: number;
+  schoolYear: string;
+  curriculum: string;
+  classSize: number;
+}
+
+export interface SectionStudent {
+  id: number;
+  lrn: string;
+  fullName: string;
+  sex?: string;
+  status: string;
+  learningModality: string;
+}
+
+export interface SectionOverview {
+  id: number;
+  name: string;
+  gradeLevel: number;
+  schoolYear: string;
+  curriculum: Curriculum;
+  adviser: { id: number; adviserId: string; name: string; email: string };
+  schoolForms: SectionForm[];
+  enrollments: { id: number }[];
+}
+
+// ? [INTERFACE] Details
 export interface StudentDetails {
   id: number;
   lrn: string;
@@ -167,13 +209,20 @@ export interface StudentDetails {
   contactNumber?: string;
 }
 
-export interface SectionStudent {
+export interface AdviserDetails {
   id: number;
-  lrn: string;
+  adviserId: string;
+  firstName: string;
+  middleName?: string;
+  lastName: string;
+  nameExtension?: string;
   fullName: string;
   sex?: string;
-  status: string;
-  learningModality: string;
+  birthDate?: string;
+  email?: string;
+  contactNumber?: string;
+  createdAt: string;
+  sections: AdviserSection[];
 }
 
 export interface SectionDetails {
@@ -190,37 +239,18 @@ export interface SectionDetails {
   students: SectionStudent[];
 }
 
-export type AdviserFormData = {
-  id?: number;
-  adviserId: string;
-  firstName: string;
-  middleName: string;
-  lastName: string;
-  email: string;
-  password: string;
-};
-
-export interface AdviserSection {
+export interface LearningAreaDetails {
   id: number;
   name: string;
   gradeLevel: number;
-  schoolYear: string;
   curriculum: string;
-  classSize: number;
-}
+  writtenWorkWeight: number;
+  performanceTaskWeight: number;
+  quarterlyAssessmentWeight: number;
+};
 
-export interface AdviserDetails {
-  id: number;
-  adviserId: string;
-  firstName: string;
-  middleName?: string;
-  lastName: string;
-  nameExtension?: string;
-  fullName: string;
-  sex?: string;
-  birthDate?: string;
-  email?: string;
-  contactNumber?: string;
-  createdAt: string;
-  sections: AdviserSection[];
-}
+// ? [TYPES] Form
+export type SchoolFormType   = "SF1" | "SF5";
+export type SchoolFormStatus = "DRAFT" | "GENERATED" | "SUBMITTED" | "APPROVED" | "LOCKED";
+export type StudentFormStatus = "COMPLETE" | "PARTIAL" | "PENDING";
+export type Curriculum = typeof CURRICULUM_OPTIONS[number]["value"];
