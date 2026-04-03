@@ -78,7 +78,7 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="pb-20 bg-[var(--color-bg-50)] min-h-screen">
+    <div className="pb-20 bg-[var(--color-bg-100)] min-h-screen flex flex-col items-center">
       {/* [COMPONENT] Modal */}
       {showModal && (
         <Modal

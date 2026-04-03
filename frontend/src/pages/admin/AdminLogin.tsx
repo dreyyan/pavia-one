@@ -178,7 +178,7 @@ const AdminLogin = () => {
             </div>
 
             {/* [LINK] Adviser Login */}
-            <div className="flex justify-center mt-4 w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl">
+            <div className="flex justify-center gap-x-1 mt-4 w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl">
                 <p className="label-caption text-center">
                     Not an Admin?{" "}
                     <a

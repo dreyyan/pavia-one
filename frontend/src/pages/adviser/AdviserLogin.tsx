@@ -11,7 +11,7 @@ import Modal from "../../components/Modal";
 
 const AdviserLogin = () => {
     const navigate = useNavigate();
-    const { setUser, setShowTokenExpiredModal } = useAuth();
+    const { setUser } = useAuth();
 
     // [STATES]
     const [adviserId, setAdviserId] = useState("");
@@ -99,7 +99,7 @@ const AdviserLogin = () => {
     };
 
     return (
-        <div className="pb-20 bg-[var(--color-bg-100)]">
+        <div className="pb-20 bg-[var(--color-bg-100)] min-h-screen flex flex-col items-center">
             {/* [COMPONENT] Modal */}
             {showModal && (
                 <Modal
@@ -120,9 +120,9 @@ const AdviserLogin = () => {
             <ImageHeader />
 
             {/* [SECTION] Login Form */}
-            <div className="flex flex-col pt-15 px-6">
+            <div className="flex flex-col pt-15 px-6 w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl">
                 {/* [UI] Adviser Login */}
-                <h1 className="text-[var(--color-primary-700)]">
+                <h1 className="text-[var(--color-primary-700)] text-lg sm:text-xl md:text-2xl">
                     Adviser Login
                 </h1>
 
@@ -149,7 +149,7 @@ const AdviserLogin = () => {
                 </div>
 
                 {/* [SECTION] Auxiliary Actions */}
-                <div className="flex justify-between items-center mt-2 px-2 mb-10">
+                <div className="flex sm:flex-row justify-between items-center mt-2 px-2 mb-10">
                     <label className="flex items-center gap-2 label-caption text-[var(--color-text-900)]">
                         <input
                             type="checkbox"
@@ -173,11 +173,11 @@ const AdviserLogin = () => {
             </div>
 
             {/* [LINK] Admin Login */}
-            <div className="flex justify-center items-center gap-x-1 mt-4 text-sm">
-                <span className="label-caption">Not an Adviser?</span>
+            <div className="flex justify-center gap-x-1 mt-4 w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl">
+                <span className="label-caption text-center">Not an Adviser?</span>
                 <a
                     href="/login/admin"
-                    className="link hover:underline text-[var(--color-primary-600)]"
+                    className="link text-[var(--color-primary-600)] hover:underline"
                 >
                     Login as Admin
                 </a>
