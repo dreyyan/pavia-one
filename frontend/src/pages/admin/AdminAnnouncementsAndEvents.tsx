@@ -11,6 +11,7 @@ import EmptyState from "../../components/EmptyState";
 
 // Types
 import { GeneralModalConfig } from "../../types";
+import SecondaryButton from "../../components/SecondaryButton";
 
 // ? [INTERFACES]
 interface Announcement {
@@ -784,7 +785,7 @@ const AdminAnnouncementsAndEvents = () => {
 
         {/* [BUTTON] Add Event */}
         <div className="mb-3">
-          <PrimaryButton text="Add Event" iconSrc="/add-icon.svg" onClick={handleAddEvent} />
+          <SecondaryButton text="Add Event" iconSrc="/add-icon.svg" onClick={handleAddEvent} />
         </div>
 
         {events.length > 0 ? (
