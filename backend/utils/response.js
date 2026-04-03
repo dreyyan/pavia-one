@@ -1,14 +1,14 @@
 // [MESSAGE] Return success message
 const successResponse = (message, data = null) => ({
   success: true,
-  message: `[SUCCESS] ${message}.`,
+  message: `${message}.`,
   data,
 });
 
 // [MESSAGE] Return error message
 const errorResponse = (message, data = null) => ({
   success: false,
-  message: `[ERROR] ${message}.`,
+  message: `${message}.`,
   data,
 });
 
