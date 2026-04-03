@@ -7,11 +7,8 @@ const prisma = require("../../lib/prisma");
 const { successResponse, errorResponse } = require("../../utils/response");
 const { verifyAdmin } = require("../../middleware/authMiddleware");
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ?[GET] Get all sections with their school forms (admin overview)
-// GET /api/admin/school-forms
-// Returns every section + adviser + all SchoolForms for that section
-// ─────────────────────────────────────────────────────────────────────────────
+// ?[GET] Get All Sections w/ Respective School Forms
+// /api/admin/school-forms
 router.get("/", verifyAdmin, async (req, res) => {
   try {
     const { schoolYear } = req.query;
@@ -42,11 +39,8 @@ router.get("/", verifyAdmin, async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ?[GET] Get single section detail with forms + student form statuses
-// GET /api/admin/school-forms/section/:sectionId
-// Returns section info, all SchoolForms, and per-student SF9/SF10 statuses
-// ─────────────────────────────────────────────────────────────────────────────
+// ?[GET] Get Section Detail w/ Forms + Student Form Statuses
+// /api/admin/school-forms/section/:sectionId
 router.get("/section/:sectionId", verifyAdmin, async (req, res) => {
   try {
     const sectionId = Number(req.params.sectionId);
@@ -181,10 +175,8 @@ router.get("/section/:sectionId", verifyAdmin, async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ?[GET] Get single student form detail within a section
+// ?[GET] Get Section's Student Form Detail
 // GET /api/admin/school-forms/section/:sectionId/student/:studentId
-// ─────────────────────────────────────────────────────────────────────────────
 router.get(
   "/section/:sectionId/student/:studentId",
   verifyAdmin,
@@ -244,11 +236,8 @@ router.get(
   },
 );
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ?[PUT] Update a school form's status (admin approval / locking)
-// PUT /api/admin/school-forms/:formId
-// Body: { status: SchoolFormStatus }
-// ─────────────────────────────────────────────────────────────────────────────
+// ?[PUT] Update School Form's Status (Admin Approval/Locking)
+// /api/admin/school-forms/:formId
 router.put("/:formId", verifyAdmin, async (req, res) => {
   try {
     const formId = Number(req.params.formId);
@@ -295,12 +284,8 @@ router.put("/:formId", verifyAdmin, async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // ?[POST] Auto-generate default school forms for all sections in a school year
-// POST /api/admin/school-forms/generate
-// Body: { schoolYear: string }
-// Creates SF1 + SF5 for every section that doesn't already have them
-// ─────────────────────────────────────────────────────────────────────────────
+// /api/admin/school-forms/generate
 router.post("/generate", verifyAdmin, async (req, res) => {
   try {
     const { schoolYear } = req.body;
@@ -362,10 +347,8 @@ router.post("/generate", verifyAdmin, async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // ?[DELETE] Delete all school forms
-// DELETE /api/admin/school-forms
-// ─────────────────────────────────────────────────────────────────────────────
+// /api/admin/school-forms
 router.delete("/", verifyAdmin, async (req, res) => {
   try {
     // Delete all school forms
