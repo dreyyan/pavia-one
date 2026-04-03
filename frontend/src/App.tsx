@@ -23,6 +23,7 @@ import AdviserClassStudentGradesOverview from "./pages/adviser/AdviserClassStude
 import AdviserClassStudentGradesDetails from "./pages/adviser/AdviserClassStudentGradesDetails";
 import AdviserProfile from "./pages/adviser/AdviserProfile";
 import AdviserSettings from "./pages/adviser/AdviserSettings";
+import AdviserAnnouncementsAndEvents from "./pages/adviser/AdviserAnnouncementsAndEvents";
 import SF1View from "./pages/adviser/school_form_view/SF1View";
 
 // [IMPORT] Routes: Admin
@@ -76,6 +77,8 @@ function App() {
 
           <Route path="/adviser/profile" element={<AdviserProfile />} />
           <Route path="/adviser/settings" element={<AdviserSettings />} />
+
+          <Route path="/adviser/announcements-and-events" element={<AdviserAnnouncementsAndEvents />} />
         </Route>
 
         {/* [ROUTES] Admin */}
