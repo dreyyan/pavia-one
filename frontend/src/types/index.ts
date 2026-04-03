@@ -249,6 +249,33 @@ export interface LearningAreaDetails {
   quarterlyAssessmentWeight: number;
 };
 
+export interface SectionForm {
+  id: number;
+  type: "SF1" | "SF5";
+  status: SchoolFormStatus;
+  schoolYear: string;
+  generatedAt?: string;
+  submittedAt?: string;
+}
+
+export interface SectionInfo {
+  id: number;
+  name: string;
+  gradeLevel: number;
+  schoolYear: string;
+  color: string;
+  classSize: number;
+  schoolForms: SectionForm[];
+}
+
+export interface ImportResult {
+  created: number;
+  updated: number;
+  enrolled: number;
+  skippedEnrollment: number;
+  errors: { lrn: string; reason: string }[];
+}
+
 // ? [TYPES] Form
 export type SchoolFormType   = "SF1" | "SF5";
 export type SchoolFormStatus = "DRAFT" | "GENERATED" | "SUBMITTED" | "APPROVED" | "LOCKED";

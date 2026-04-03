@@ -1,66 +1,37 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
+// [IMPORT] React
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
+
+// [IMPORT] Components
 import Modal from "../../components/Modal";
 import EmptyState from "../../components/EmptyState";
-import { GeneralModalConfig } from "../../types";
 import SchoolFormCard from "../../components/SchoolFormCard";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
-type FormStatus = "DRAFT" | "GENERATED" | "SUBMITTED" | "APPROVED" | "LOCKED";
+// [IMPORT] Helpers, Constants, Types
+import { GeneralModalConfig, SchoolFormStatus, SectionInfo, ImportResult } from "../../types";
 
-interface SectionForm {
-  id: number;
-  type: "SF1" | "SF5";
-  status: FormStatus;
-  schoolYear: string;
-  generatedAt?: string;
-  submittedAt?: string;
-}
-
-interface SectionInfo {
-  id: number;
-  name: string;
-  gradeLevel: number;
-  schoolYear: string;
-  color: string;
-  classSize: number;
-  schoolForms: SectionForm[];
-}
-
-interface ImportResult {
-  created: number;
-  updated: number;
-  enrolled: number;
-  skippedEnrollment: number;
-  errors: { lrn: string; reason: string }[];
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Component
-// ─────────────────────────────────────────────────────────────────────────────
 const AdviserClassSchoolForms = () => {
   const { sectionId } = useParams<{ sectionId: string }>();
-  const navigate = useNavigate();
   const { setShowTokenExpiredModal } = useAuth();
+  const navigate = useNavigate();
 
+  // [STATES]
   const [section, setSection]   = useState<SectionInfo | null>(null);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState<string | null>(null);
 
-  // Export state
-  const [exporting, setExporting] = useState<string | null>(null); // form type currently exporting
+  // [STATES] Import/Export
+  const [exporting, setExporting] = useState<string | null>(null);
 
-  // Import state
-  const [importingFor, setImportingFor] = useState<"SF1" | null>(null); // which form is being imported
+  const [importingFor, setImportingFor] = useState<"SF1" | null>(null);
   const [importLoading, setImportLoading] = useState(false);
   const [importResult, setImportResult]   = useState<ImportResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // General modal
+  // [STATES] General Modal
   const [generalModal, setGeneralModal] = useState<GeneralModalConfig>({
     isOpen: false, title: "", message: "", type: "default",
     confirmText: "OK", isCancelable: false, onConfirm: () => {},
@@ -69,52 +40,52 @@ const AdviserClassSchoolForms = () => {
     setGeneralModal((p) => ({ ...p, isOpen: true, ...cfg }));
   const closeModal = () => setGeneralModal((p) => ({ ...p, isOpen: false }));
 
-  // ── Fetch section + its forms ─────────────────────────────────────────────
-const fetchSection = async () => {
-  setLoading(true);
-  setError(null);
-  try {
-    const token = localStorage.getItem("token");
-    const res = await fetch(
-      `${import.meta.env.VITE_API_BASE_URL}/api/adviser/forms/section/${sectionId}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    if (res.status === 401) { setShowTokenExpiredModal(true); return; }
-    const data = await res.json();
-    if (!data.success) throw new Error(data.message || "Failed to fetch section");
+  // * [HANDLE] Fetch Section
+  const fetchSection = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/adviser/forms/section/${sectionId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.status === 401) { setShowTokenExpiredModal(true); return; }
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message || "Failed to fetch section");
 
-    const rawSection = data.data.section;
+      const rawSection = data.data.section;
 
-    // Map API response to frontend SectionInfo type
-    const mappedSection: SectionInfo = {
-      id: rawSection.id,
-      name: rawSection.name,
-      gradeLevel: rawSection.gradeLevel,
-      schoolYear: rawSection.schoolYear,
-      color: "#4F46E5", // you can customize this or fetch from constants
-      classSize: data.data.students?.length || 0,
-      schoolForms: rawSection.schoolForms.map((f: any) => ({
-        id: f.id,
-        type: f.type,
-        status: f.status as FormStatus,
-        schoolYear: f.schoolYear,
-        generatedAt: f.generatedAt ?? undefined,
-        submittedAt: f.submittedAt ?? undefined,
-      })),
-    };
+      // Map API response to frontend SectionInfo type
+      const mappedSection: SectionInfo = {
+        id: rawSection.id,
+        name: rawSection.name,
+        gradeLevel: rawSection.gradeLevel,
+        schoolYear: rawSection.schoolYear,
+        color: "#4F46E5", // you can customize this or fetch from constants
+        classSize: data.data.students?.length || 0,
+        schoolForms: rawSection.schoolForms.map((f: any) => ({
+          id: f.id,
+          type: f.type,
+          status: f.status as SchoolFormStatus,
+          schoolYear: f.schoolYear,
+          generatedAt: f.generatedAt ?? undefined,
+          submittedAt: f.submittedAt ?? undefined,
+        })),
+      };
 
-    setSection(mappedSection);
+      setSection(mappedSection);
 
-  } catch (err: any) {
-    setError(err.message);
-  } finally {
-    setLoading(false);
-  }
-};
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => { fetchSection(); }, [sectionId]);
 
-  // ── Export handler ────────────────────────────────────────────────────────
+  // * [HANDLE] Export School Form
   const handleExport = async (formType: "SF1" | "SF5") => {
     setExporting(formType);
     try {
@@ -197,14 +168,14 @@ const fetchSection = async () => {
     }
   };
 
-  // ── Import: trigger file picker ───────────────────────────────────────────
+  // [HANDLE] Click Import Button
   const handleImportClick = (formType: "SF1") => {
     setImportingFor(formType);
     setImportResult(null);
     fileInputRef.current?.click();
   };
 
-  // ── Import: handle file chosen ────────────────────────────────────────────
+  // [HANDLE] File Import
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     // Reset so the same file can be re-selected
@@ -277,19 +248,22 @@ const fetchSection = async () => {
     }
   };
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Render
-  // ─────────────────────────────────────────────────────────────────────────
-  if (loading) {
-    return (
-      <div className="py-10 px-4 space-y-4">
-        <div className="h-8 w-48 bg-[var(--color-bg-200)] rounded animate-pulse" />
-        <div className="h-32 bg-[var(--color-bg-100)] rounded-lg animate-pulse" />
-        <div className="h-28 bg-[var(--color-bg-100)] rounded-lg animate-pulse" />
-        <div className="h-28 bg-[var(--color-bg-100)] rounded-lg animate-pulse" />
-      </div>
-    );
-  }
+  // [DEBUG] School Forms
+  console.log("Full schoolForms array:", section?.schoolForms);
+  const sf1 = section?.schoolForms?.find((f) => 
+    f.type?.toString().toUpperCase() === "SF1"
+  );
+  const sf5 = section?.schoolForms?.find((f) => 
+    f.type?.toString().toUpperCase() === "SF5"
+  );
+  console.log("Extracted SF1:", sf1);
+  console.log("Extracted SF5:", sf5);
+
+  // *[BREADCRUMBS] Admin Adviser Details navigation
+  const breadcrumbs = [
+    { label: "School Forms", path: "/adviser/school-forms" },
+    { label: `${section?.gradeLevel} - ${section?.name}`, path: null },
+  ];
 
   if (error || !section) {
     return (
@@ -303,24 +277,6 @@ const fetchSection = async () => {
     );
   }
 
-  console.log("Full schoolForms array:", section?.schoolForms);
-
-  const sf1 = section?.schoolForms?.find((f) => 
-    f.type?.toString().toUpperCase() === "SF1"
-  );
-  const sf5 = section?.schoolForms?.find((f) => 
-    f.type?.toString().toUpperCase() === "SF5"
-  );
-
-  console.log("Extracted SF1:", sf1);
-  console.log("Extracted SF5:", sf5);
-
-  // *[BREADCRUMBS] Admin Adviser Details navigation
-  const breadcrumbs = [
-    { label: "School Forms", path: "/adviser/school-forms" },
-    { label: `${section?.gradeLevel} - ${section?.name}`, path: null },
-  ];
-
   return (
     <div className="py-10 px-4 space-y-5">
       {/* Hidden file input for import */}
@@ -332,7 +288,7 @@ const fetchSection = async () => {
         onChange={handleFileChange}
       />
 
-      {/* General Modal */}
+      {/* [MODAL] General */}
       <Modal
         isOpen={generalModal.isOpen}
         onClose={closeModal}
@@ -346,7 +302,7 @@ const fetchSection = async () => {
 
       {/* [SECTION] Header & Breadcrumbs */}
       <div>
-        <h2 className="text-[var(--color-text-800)] leading-0">Adviser Details</h2>
+        <h2 className="text-[var(--color-text-800)] leading-0">School Forms</h2>
         <nav className="font-roboto text-sm text-[var(--color-text-700)]">
           {breadcrumbs.map((crumb, idx) => (
             <span key={idx}>
@@ -388,35 +344,51 @@ const fetchSection = async () => {
       </div>
 
       {/* Forms */}
-      <div className="space-y-3">
-        <h4 className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-500)]">
-          Section Forms
-        </h4>
+      <div className="space-y-3 bg-[var(--color-bg-100)] p-4 rounded-lg">
+        {(error || !section) && (
+          <EmptyState
+            title="We couldn’t load this section"
+            subtitle={
+              error ||
+              "This section may no longer exist or you may not have access to it."
+            }
+            iconSrc="/error-icon.svg"
+          />
+        )}
 
-        {/* SF1 Card */}
-        <SchoolFormCard
-          form={sf1}
-          sectionId={section.id}
-          sectionColor={section.color}
-          sectionSchoolYear={section.schoolYear}
-          onExport={() => handleExport("SF1")}
-          onImport={() => handleImportClick("SF1")}
-          exporting={exporting === "SF1"}
-          importing={importLoading && importingFor === "SF1"}
-          supportsImport={true}
-        />
+        {(!error && section && !sf1 && !sf5) && (
+          <EmptyState
+            title="Missing School Forms"
+            subtitle="There are no school forms available for this section right now."
+            iconSrc="/no-data-icon.svg"
+          />
+        )}
+        {sf1 && (
+          <SchoolFormCard
+            form={sf1}
+            sectionId={section.id}
+            sectionColor={section.color}
+            sectionSchoolYear={section.schoolYear}
+            onExport={() => handleExport("SF1")}
+            onImport={() => handleImportClick("SF1")}
+            exporting={exporting === "SF1"}
+            importing={importLoading && importingFor === "SF1"}
+            supportsImport={true}
+          />
+        )}
 
-        {/* SF5 Card */}
-        <SchoolFormCard
-          form={sf5}
-          sectionId={section.id}
-          sectionColor={section.color}
-          sectionSchoolYear={section.schoolYear}
-          onExport={() => handleExport("SF5")}
-          exporting={exporting === "SF5"}
-          importing={false}
-          supportsImport={false}
-        />
+        {sf5 && (
+          <SchoolFormCard
+            form={sf5}
+            sectionId={section.id}
+            sectionColor={section.color}
+            sectionSchoolYear={section.schoolYear}
+            onExport={() => handleExport("SF5")}
+            exporting={exporting === "SF5"}
+            importing={false}
+            supportsImport={false}
+          />
+        )}
       </div>
 
       {/* Import result detail (errors) */}
