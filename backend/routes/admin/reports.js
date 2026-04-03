@@ -22,19 +22,26 @@ router.get("/", verifyAdmin, async (req, res) => {
       select: { id: true, name: true, email: true },
     });
 
-    // Key metrics
-    const totalStudents = await prisma.student.count();
-    const totalAdvisers = await prisma.adviser.count();
-    const totalSections = await prisma.section.count();
-    const totalFormsPending = await prisma.schoolForm.count({
-      where: { status: SchoolFormStatus.DRAFT },
-    });
+    if (!adminProfile) {
+      return res.status(404).json(errorResponse("Admin not found"));
+    }
 
-    // Students by Grade
+    // Key metrics
+    const [totalStudents, totalAdvisers, totalSections, totalFormsPending] =
+      await Promise.all([
+        prisma.student.count(),
+        prisma.adviser.count(),
+        prisma.section.count(),
+        prisma.schoolForm.count({
+          where: { status: SchoolFormStatus.DRAFT },
+        }),
+      ]);
+
+    // Students by Grade Level
     const sectionsWithEnrollments = await prisma.section.findMany({
       select: {
         gradeLevel: true,
-        enrollments: { select: { id: true } },
+        _count: { select: { enrollments: true } }, // Much more efficient than fetching all enrollments
       },
     });
 
@@ -42,28 +49,25 @@ router.get("/", verifyAdmin, async (req, res) => {
     sectionsWithEnrollments.forEach((section) => {
       studentsByGradeMap[section.gradeLevel] =
         (studentsByGradeMap[section.gradeLevel] || 0) +
-        section.enrollments.length;
+        section._count.enrollments;
     });
 
     const studentsByGrade = Object.entries(studentsByGradeMap).map(
-      ([gradeLevel, count]) => ({ gradeLevel: parseInt(gradeLevel), count }),
+      ([gradeLevel, count]) => ({
+        gradeLevel: parseInt(gradeLevel),
+        count,
+      }),
     );
 
-    // Safety check
-    if (!prisma.enrollment) {
-      console.error("Prisma model 'Enrollment' is undefined");
-      process.exit(1); // optional: stop server so you notice the error
-    }
-
-    // Students by Modality
+    // Students by Learning Modality
     const enrollments = await prisma.enrollment.findMany({
       select: { learningModality: true },
     });
 
     const modalityMap = {};
     enrollments.forEach((e) => {
-      modalityMap[e.learningModality] =
-        (modalityMap[e.learningModality] || 0) + 1;
+      const mod = e.learningModality || "Unknown";
+      modalityMap[mod] = (modalityMap[mod] || 0) + 1;
     });
 
     const studentsByModality = Object.entries(modalityMap).map(
@@ -73,48 +77,57 @@ router.get("/", verifyAdmin, async (req, res) => {
       }),
     );
 
-    // Sections per Adviser
+    // Sections per Adviser (Optimized - avoid N+1)
     const sectionsPerAdviserRaw = await prisma.section.groupBy({
       by: ["adviserId"],
       _count: { id: true },
     });
 
-    const sectionsPerAdviser = await Promise.all(
-      sectionsPerAdviserRaw.map(async (s) => {
-        const adviser = await prisma.adviser.findUnique({
-          where: { id: s.adviserId },
-          select: { name: true },
-        });
-        return {
-          adviserName: adviser ? adviser.name : "Unknown",
-          sections: s._count.id,
-        };
-      }),
-    );
+    const adviserIds = sectionsPerAdviserRaw
+      .map((s) => s.adviserId)
+      .filter(Boolean);
 
-    // Average Grades per Grade Level
+    const advisers = await prisma.adviser.findMany({
+      where: { id: { in: adviserIds } },
+      select: { id: true, name: true },
+    });
+
+    const adviserMap = {};
+    advisers.forEach((a) => {
+      adviserMap[a.id] = a.name;
+    });
+
+    const sectionsPerAdviser = sectionsPerAdviserRaw.map((s) => ({
+      adviserName: adviserMap[s.adviserId] || "Unknown Adviser",
+      sections: s._count.id,
+    }));
+
+    // Average Grades per Grade Level (Fixed nested access)
     const sf9Grades = await prisma.sF9Grade.findMany({
       select: { finalRating: true, studentId: true },
     });
 
-    // Build studentId -> gradeLevel map
     const enrollmentsForGrades = await prisma.enrollment.findMany({
-      select: { studentId: true, section: { select: { gradeLevel: true } } },
+      select: {
+        studentId: true,
+        section: { select: { gradeLevel: true } },
+      },
     });
 
     const studentGradeMap = {};
     enrollmentsForGrades.forEach((enroll) => {
-      if (enroll.section)
+      if (enroll.section?.gradeLevel) {
         studentGradeMap[enroll.studentId] = enroll.section.gradeLevel;
+      }
     });
 
-    // Aggregate averages
     const gradeSumCount = {};
     sf9Grades.forEach((grade) => {
       const gradeLevel = studentGradeMap[grade.studentId];
       if (gradeLevel && grade.finalRating != null) {
-        if (!gradeSumCount[gradeLevel])
+        if (!gradeSumCount[gradeLevel]) {
           gradeSumCount[gradeLevel] = { sum: 0, count: 0 };
+        }
         gradeSumCount[gradeLevel].sum += grade.finalRating;
         gradeSumCount[gradeLevel].count += 1;
       }
@@ -123,7 +136,7 @@ router.get("/", verifyAdmin, async (req, res) => {
     const averageGradesPerGrade = Object.entries(gradeSumCount).map(
       ([gradeLevel, { sum, count }]) => ({
         gradeLevel: parseInt(gradeLevel),
-        average: count > 0 ? sum / count : 0,
+        average: count > 0 ? Number((sum / count).toFixed(2)) : 0,
       }),
     );
 
