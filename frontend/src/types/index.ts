@@ -88,6 +88,7 @@ export interface Section {
   room?: string;
   createdAt: string;
   adviser?: { id: number; name: string; adviserId: string };
+  color?: string;
 }
 
 export interface Adviser {
