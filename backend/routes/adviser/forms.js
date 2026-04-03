@@ -12,6 +12,139 @@ const bcrypt = require("bcrypt");
 const { successResponse, errorResponse } = require("../../utils/response");
 const verifyAdviser = require("../../middleware/authMiddleware").verifyAdviser;
 
+// ?[GET] Get Section Detail w/ Forms + Student Form Statuses for Adviser
+// /api/adviser/forms/section/:sectionId
+router.get("/section/:sectionId", verifyAdviser, async (req, res) => {
+  try {
+    const sectionId = Number(req.params.sectionId);
+    if (isNaN(sectionId))
+      return res.status(400).json(errorResponse("Invalid section ID"));
+
+    // --- Section + adviser + school forms ---
+    const section = await prisma.section.findUnique({
+      where: { id: sectionId },
+      include: {
+        adviser: {
+          select: { id: true, adviserId: true, name: true, email: true },
+        },
+        schoolForms: {
+          orderBy: { type: "asc" },
+        },
+      },
+    });
+
+    if (!section)
+      return res.status(404).json(errorResponse("Section not found"));
+
+    // --- Enrolled students with their SF9 grades and SF5 reports ---
+    const enrollments = await prisma.enrollment.findMany({
+      where: { sectionId, schoolYear: section.schoolYear },
+      include: {
+        student: {
+          select: {
+            id: true,
+            lrn: true,
+            firstName: true,
+            middleName: true,
+            lastName: true,
+            nameExtension: true,
+            sex: true,
+            sf9Grades: {
+              where: { schoolYear: section.schoolYear },
+              select: {
+                id: true,
+                learningAreaId: true,
+                q1: true,
+                q2: true,
+                q3: true,
+                q4: true,
+                q1Ready: true,
+                q2Ready: true,
+                q3Ready: true,
+                q4Ready: true,
+                finalRating: true,
+                remarks: true,
+              },
+            },
+            sf9Summaries: {
+              where: { schoolYear: section.schoolYear },
+              select: { id: true, generalAverage: true },
+            },
+            sf5Reports: {
+              select: { id: true, generalAverage: true, actionTaken: true },
+            },
+          },
+        },
+      },
+      orderBy: { student: { lastName: "asc" } },
+    });
+
+    // --- Derive per-student form statuses ---
+    const students = enrollments.map((e) => {
+      const s = e.student;
+
+      const sf9Grades = s.sf9Grades ?? [];
+      const allReady =
+        sf9Grades.length > 0 &&
+        sf9Grades.every(
+          (g) => g.q1Ready && g.q2Ready && g.q3Ready && g.q4Ready,
+        );
+      const partialReady =
+        sf9Grades.length > 0 &&
+        sf9Grades.some((g) => g.q1Ready || g.q2Ready || g.q3Ready || g.q4Ready);
+
+      const sf9Status = allReady
+        ? "COMPLETE"
+        : partialReady
+          ? "PARTIAL"
+          : "PENDING";
+
+      const sf9Summary = s.sf9Summaries?.[0] ?? null;
+      const sf10Status =
+        sf9Summary?.generalAverage != null ? "COMPLETE" : "PENDING";
+
+      const sf5Report = s.sf5Reports?.[0] ?? null;
+      const sf5Status = sf5Report ? "COMPLETE" : "PENDING";
+
+      return {
+        id: s.id,
+        lrn: s.lrn,
+        firstName: s.firstName,
+        middleName: s.middleName,
+        lastName: s.lastName,
+        nameExtension: s.nameExtension,
+        sex: s.sex,
+        enrollmentStatus: e.status,
+        sf9Status,
+        sf10Status,
+        sf5Status,
+        generalAverage: sf9Summary?.generalAverage ?? null,
+        actionTaken: sf5Report?.actionTaken ?? null,
+      };
+    });
+
+    res.json(
+      successResponse("Section detail retrieved", {
+        section: {
+          id: section.id,
+          name: section.name,
+          gradeLevel: section.gradeLevel,
+          schoolYear: section.schoolYear,
+          curriculum: section.curriculum,
+          adviser: section.adviser,
+          schoolForms: section.schoolForms,
+        },
+        students,
+      }),
+    );
+  } catch (err) {
+    console.error("[ERROR] Fetch section detail for adviser:", err);
+    res
+      .status(500)
+      .json(errorResponse("Failed to fetch section detail", err.message));
+  }
+});
+
 // ?[GET] Get all forms for adviser
 // /api/adviser/forms
 router.get("/", verifyAdviser, async (req, res) => {
