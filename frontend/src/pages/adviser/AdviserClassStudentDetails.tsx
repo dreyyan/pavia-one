@@ -218,7 +218,7 @@ const AdviserClassStudentDetails = () => {
     } catch (err) {
       setModalTitle("Error");
       setModalMessage("Something went wrong while saving.");
-      setModalType("success");
+      setModalType("error");
       setRedirectOnConfirm(false);
       setShowModal(true);
     } finally {
@@ -260,10 +260,12 @@ const AdviserClassStudentDetails = () => {
 
   // *[EFFECT] Fetch student's birthdate
   useEffect(() => {
-    setForm((prev) => ({
-      ...prev,
-      age: calculateAgeFromBirthDate(prev.birthDate),
-    }));
+    if (form.birthDate) {
+      setForm((prev) => ({
+        ...prev,
+        age: calculateAgeFromBirthDate(prev.birthDate),
+      }));
+    }
   }, [form.birthDate]);
 
   // *[EFFECT] Fetch student information
@@ -296,6 +298,8 @@ const AdviserClassStudentDetails = () => {
         const data = await res.json();
         const studentData = data.data;
 
+        console.log("Fetched student data:", studentData);
+
         // ![ERROR] Backend failure or missing data
         if (!data.success || !data.data) {
           setError(data.message || "Failed to fetch student data");
@@ -317,7 +321,12 @@ const AdviserClassStudentDetails = () => {
           lastName: studentData.lastName ?? "",
           firstName: studentData.firstName ?? "",
           middleName: studentData.middleName ?? "",
-          sex: studentData.sex ?? "",
+          sex:
+            studentData.sex?.toUpperCase() === "MALE"
+              ? "M"
+              : studentData.sex?.toUpperCase() === "FEMALE"
+              ? "F"
+              : "",
           birthDate: studentData.birthDate ?? "",
           age: calculateAgeFromBirthDate(studentData.birthDate),
           motherTongue: studentData.motherTongue ?? "",
@@ -378,7 +387,7 @@ const AdviserClassStudentDetails = () => {
   ];
 
   return (
-    <div className="py-8 px-4 space-y-4">
+    <div className="py-10 px-4 space-y-4">
       {/* [COMPONENT] Modal */}
       {showModal && (
         <Modal
@@ -393,33 +402,27 @@ const AdviserClassStudentDetails = () => {
           type={modalType}
         />
       )}
-      {/* [SECTION] Breadcrumbs Navigation */}
-      <nav className="font-roboto text-sm text-[var(--color-text-700)] px-2 pb-2">
-        {breadcrumbs.map((crumb, index) => (
-          <span key={index}>
-            {crumb.path ? (
-              <span className="cursor-pointer hover:underline" onClick={() => navigate(crumb.path!)}>
-                {crumb.label}
-              </span>
-            ) : (
-              <span className="font-roboto font-medium text-[var(--color-text-900)]">{crumb.label}</span>
-            )}
-            {index < breadcrumbs.length - 1 && " / "}
-          </span>
-        ))}
-      </nav>
+      {/* [SECTION] Header & Breadcrumbs */}
+      <div>
+        <h2 className="text-[var(--color-text-800)] leading-0">Student Details</h2>
+        <nav className="font-roboto text-sm text-[var(--color-text-700)]">
+          {breadcrumbs.map((crumb, idx) => (
+            <span key={idx}>
+              {crumb.path ? (
+                <span className="cursor-pointer hover:underline" onClick={() => navigate(crumb.path!)}>
+                  {crumb.label}
+                </span>
+              ) : (
+                <span className="font-medium text-[var(--color-text-900)]">{crumb.label}</span>
+              )}
+              {idx < breadcrumbs.length - 1 && " / "}
+            </span>
+          ))}
+        </nav>
+      </div>
 
       {/* [SECTION] Student Information */}
-      <div className="bg-[var(--color-bg-50)] shadow-lg rounded-lg flex flex-col md:flex-row md:items-start gap-y-4">
-        <div className="flex justify-center items-center text-center pt-4">
-          {/* [UI] Profile Picture */}
-          <img
-            src={student.profilePic ?? "/default-profile.png"}
-            alt=""
-            className="w-24 h-24 rounded-full object-cover bg-[var(--color-bg-400)] flex-shrink-0"
-          />
-        </div>
-
+      <div className="p-4 bg-[var(--color-bg-50)] shadow-lg rounded-lg flex flex-col md:flex-row md:items-start gap-y-4">
         {/* [SECTION] Name + Details */}
         <div className="flex-1 flex flex-col gap-4">
           {/* [UI] Full Name */}
@@ -468,7 +471,7 @@ const AdviserClassStudentDetails = () => {
       </div>
 
       {/* [PRIMARY BUTTON] Generate SF9 */}
-      <PrimaryButton text="Generate SF9" onClick={handleGenerateSF9} />
+      <PrimaryButton text="Generate SF9" onClick={handleGenerateSF9} iconSrc="/generate-file-icon-white.svg" />
 
       {/* [SECTION] Multi-page Student Information */}
       <div className="shadow-lg rounded-xl p-6 bg-[var(--color-bg-100)] space-y-2">
@@ -543,15 +546,17 @@ const AdviserClassStudentDetails = () => {
           <>
             <h3 className="pb-2 font-semibold">Basic Information</h3>
             <div className="space-y-3">
-              <InputField label="Last Name" value={form.lastName} onChange={(e) => handleChange("lastName", e.target.value)} disabled={!isEditing} />
-              <InputField label="First Name" value={form.firstName} onChange={(e) => handleChange("firstName", e.target.value)} disabled={!isEditing} />
-              <InputField label="Middle Name" value={form.middleName ?? ""} onChange={(e) => handleChange("middleName", e.target.value)} disabled={!isEditing} />
-              <InputField label="Sex (M/F)" type="select" value={form.sex ?? ""} onChange={(e) => handleChange("sex", e.target.value)} options={["M", "F"]} placeholder="Select sex" disabled={!isEditing} />
-              <InputField label="Birth Date" type="date" value={form.birthDate ?? ""} onChange={(e) => handleChange("birthDate", e.target.value)} disabled={!isEditing} />
-              <InputField label="Age" type="number" value={form.age ?? ""} onChange={(e) => { const val = e.target.value; handleChange("age", val !== "" ? parseInt(val) : 0); }} maxLength={3} disabled={true} />
-              <InputField label="Mother Tongue" value={form.motherTongue ?? ""} onChange={(e) => handleChange("motherTongue", e.target.value)} disabled={!isEditing} />
+              <InputField label="Last Name" value={form.lastName} onChange={(e) => handleChange("lastName", e.target.value)} disabled={!isEditing} required />
+              <InputField label="First Name" value={form.firstName} onChange={(e) => handleChange("firstName", e.target.value)} disabled={!isEditing} required />
+              <InputField label="Middle Name" value={form.middleName ?? ""} onChange={(e) => handleChange("middleName", e.target.value)} disabled={!isEditing} required />
+              <InputField label="Sex (M/F)" type="select" value={form.sex ?? ""} onChange={(e) => handleChange("sex", e.target.value)} options={["M", "F"]} placeholder="Select sex" disabled={!isEditing} required />
+              <div className="flex gap-x-4">
+                <InputField label="Birth Date" type="date" value={form.birthDate ?? ""} onChange={(e) => handleChange("birthDate", e.target.value)} disabled={!isEditing} required />
+                <InputField label="Age" type="number" value={form.age ?? ""} onChange={(e) => { const val = e.target.value; handleChange("age", val !== "" ? parseInt(val) : 0); }} maxLength={3} disabled={true} />
+              </div>
+              <InputField label="Mother Tongue" value={form.motherTongue ?? ""} onChange={(e) => handleChange("motherTongue", e.target.value)} disabled={!isEditing} required />
               <InputField label="IP (Ethnic Group)" value={form.ip ?? ""} onChange={(e) => handleChange("ip", e.target.value)} disabled={!isEditing} />
-              <InputField label="Religion" value={form.religion ?? ""} onChange={(e) => handleChange("religion", e.target.value)} disabled={!isEditing} />
+              <InputField label="Religion" value={form.religion ?? ""} onChange={(e) => handleChange("religion", e.target.value)} disabled={!isEditing} required />
             </div>
           </>
         )}
@@ -567,9 +572,9 @@ const AdviserClassStudentDetails = () => {
                 <InputField label="Purok" value={form.purok ?? ""} onChange={(e) => handleChange("purok", e.target.value)} disabled={!isEditing} />
               </div>
 
-              <InputField label="Barangay" value={form.barangay ?? ""} onChange={(e) => handleChange("barangay", e.target.value)} disabled={!isEditing} />
-              <InputField label="Municipality / City" value={form.municipality ?? ""} onChange={(e) => handleChange("municipality", e.target.value)} disabled={!isEditing} />
-              <InputField label="Province" value={form.province ?? ""} onChange={(e) => handleChange("province", e.target.value)} disabled={!isEditing} />
+              <InputField label="Barangay" value={form.barangay ?? ""} onChange={(e) => handleChange("barangay", e.target.value)} disabled={!isEditing} required />
+              <InputField label="Municipality / City" value={form.municipality ?? ""} onChange={(e) => handleChange("municipality", e.target.value)} disabled={!isEditing} required />
+              <InputField label="Province" value={form.province ?? ""} onChange={(e) => handleChange("province", e.target.value)} disabled={!isEditing} required />
             </div>
           </>
         )}
@@ -578,9 +583,9 @@ const AdviserClassStudentDetails = () => {
           <>
             <h3 className="pb-2 font-semibold">Parents / Guardian</h3>
             <div className="space-y-3">
-              <InputField label="Father's Name" value={form.fatherName ?? ""} onChange={(e) => handleChange("fatherName", e.target.value)} disabled={!isEditing} />
-              <InputField label="Mother's Maiden Name" value={form.motherName ?? ""} onChange={(e) => handleChange("motherName", e.target.value)} disabled={!isEditing} />
-              <InputField label="Guardian's Name" value={form.guardianName ?? ""} onChange={(e) => handleChange("guardianName", e.target.value)} disabled={!isEditing} />
+              <InputField label="Father's Name" sublabel="(Last Name, First Name, Middle Name)" value={form.fatherName ?? ""} onChange={(e) => handleChange("fatherName", e.target.value)} disabled={!isEditing} required />
+              <InputField label="Mother's Maiden Name" sublabel="(Last Name, First Name, Middle Name)" value={form.motherName ?? ""} onChange={(e) => handleChange("motherName", e.target.value)} disabled={!isEditing} required />
+              <InputField label="Guardian's Name" sublabel="(Last Name, First Name, Middle Name)" value={form.guardianName ?? ""} onChange={(e) => handleChange("guardianName", e.target.value)} disabled={!isEditing} />
               <InputField label="Relationship" value={form.guardianRelationship ?? ""} onChange={(e) => handleChange("guardianRelationship", e.target.value)} disabled={!isEditing} />
               <InputField label="Contact Number" value={form.guardianContact ?? ""} onChange={(e) => handleChange("guardianContact", e.target.value)} disabled={!isEditing} />
               <InputField
@@ -595,6 +600,7 @@ const AdviserClassStudentDetails = () => {
                 options={LEARNING_MODALITIES.map(m => m.label)}
                 placeholder="Select learning modality"
                 disabled={!isEditing}
+                required
               />
             </div>
           </>

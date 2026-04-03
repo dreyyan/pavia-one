@@ -2,6 +2,7 @@ import { useState, type CSSProperties } from "react";
 
 interface InputFieldProps {
   label?: string;
+  sublabel?: string;
   type?: string; // "text", "number", "password", "date", "select", or "checkbox"
   value: string | number | boolean;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
@@ -19,6 +20,7 @@ interface InputFieldProps {
 
 const InputField = ({
   label,
+  sublabel,
   type = "text",
   value,
   onChange,
@@ -80,7 +82,7 @@ const InputField = ({
         {/* [UI] Label */}
         {label && (
           <label className="text-[var(--color-text-900)]">
-            {label} {required && <span className="text-red-500">*</span>}
+            {label} {required && <span className="text-[var(--color-red-700)]">*</span>}
           </label>
         )}
 
@@ -104,7 +106,14 @@ const InputField = ({
       {/* [UI] Label */}
       {label && (
         <label className="input-field-label text-[var(--color-text-900)]">
-          {label} {required && <span className="text-red-500">*</span>}
+          {label} {required && <span className="text-[var(--color-red-700)]">*</span>}
+        </label>
+      )}
+
+      {/* [UI] Sublabel */}
+      {sublabel && (
+        <label className="text-xs font-roboto text-[var(--color-text-600)]">
+          {sublabel}
         </label>
       )}
 
