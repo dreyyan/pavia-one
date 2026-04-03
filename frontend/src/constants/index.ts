@@ -8,13 +8,15 @@ export const SEX_OPTIONS = [
   { value: "FEMALE", label: "Female" }
 ];
 
-export const CURRICULUM_OPTIONS: { value: string; label: string; description: string }[] = [
-  { value: "Regular",  label: "Regular",  description: "Standard K to 12 curriculum" },
-  { value: "STE",      label: "STE",      description: "Science, Technology & Engineering" },
-  { value: "SPS",      label: "SPS",      description: "Specialization – Sports (Badminton)" },
-  { value: "SPA",      label: "SPA",      description: "Specialization – Visual Arts" },
-  { value: "SPJ",      label: "SPJ",      description: "Specialization – ICT / Journalism" },
+export const CURRICULUM_OPTIONS = [
+  { value: "Regular", label: "Regular", description: "Standard K to 12 curriculum" },
+  { value: "STE", label: "STE", description: "Science, Technology & Engineering" },
+  { value: "SPS", label: "SPS", description: "Specialization – Sports (Badminton)" },
+  { value: "SPA", label: "SPA", description: "Specialization – Visual Arts" },
+  { value: "SPJ", label: "SPJ", description: "Specialization – ICT / Journalism" },
 ] as const;
+
+export type Curriculum = typeof CURRICULUM_OPTIONS[number]["value"];
 
 export const LEARNING_MODALITY_OPTIONS = [
   { value: "Face to Face", label: "Face to Face" },

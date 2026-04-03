@@ -1,4 +1,4 @@
-import { CURRICULUM_OPTIONS } from "../constants";
+import type { Curriculum } from "../constants";
 
 // ? [INTERFACE] Modal
 export interface GeneralModalConfig {
@@ -253,4 +253,3 @@ export interface LearningAreaDetails {
 export type SchoolFormType   = "SF1" | "SF5";
 export type SchoolFormStatus = "DRAFT" | "GENERATED" | "SUBMITTED" | "APPROVED" | "LOCKED";
 export type StudentFormStatus = "COMPLETE" | "PARTIAL" | "PENDING";
-export type Curriculum = typeof CURRICULUM_OPTIONS[number]["value"];
