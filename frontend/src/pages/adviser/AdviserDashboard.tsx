@@ -163,27 +163,18 @@ const AdviserDashboard = () => {
         {/* [SECTION] Profile Buttons */}
         <div className="absolute top-3 right-3 space-x-1">
           {/* [BUTTON] Profile */}
-          <button 
-            onClick={() => navigate("/adviser/profile")} 
-            className="p-2 rounded-sm bg-[var(--color-secondary-500)] cursor-pointer"
-          >
+          <button onClick={() => {navigate("/adviser/profile")}} className="p-2 rounded-sm bg-[var(--color-secondary-500)] hover:bg-[var(--color-secondary-600)] transition-colors duration-200 ease-in-out cursor-pointer">
             <img src="/profile-icon-white.svg" alt="Adviser Profile" className="w-4 h-4" />
           </button>
 
           {/* [BUTTON] Settings */}
-          <button 
-            onClick={() => navigate("/adviser/settings")} 
-            className="p-2 rounded-sm bg-[var(--color-bg-500)] cursor-pointer"
-          >
-            <img src="/settings-icon-white.svg" alt="Settings" className="w-4 h-4" />
+          <button onClick={() => {navigate("/adviser/settings")}} className="p-2 rounded-sm bg-[var(--color-bg-500)] hover:bg-[var(--color-bg-600)] transition-colors duration-200 ease-in-out cursor-pointer">
+            <img src="/settings-icon-white.svg" alt="Adviser Profile" className="w-4 h-4" />
           </button>
 
           {/* [BUTTON] Logout */}
-          <button 
-            onClick={handleLogout} 
-            className="p-2 rounded-sm bg-[var(--color-red-700)] cursor-pointer"
-          >
-            <img src="/logout-icon-white.svg" alt="Logout" className="w-4 h-4" />
+          <button onClick={handleLogout} className="p-2 rounded-sm bg-[var(--color-red-700)] hover:bg-[var(--color-red-800)] transition-colors duration-200 ease-in-out cursor-pointer">
+            <img src="/logout-icon-white.svg" alt="Adviser Profile" className="w-4 h-4" />
           </button>
         </div>
 
