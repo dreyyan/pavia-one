@@ -15,6 +15,8 @@ import Modal from "../../components/Modal";
 // [IMPORT] Constants & Types
 import { GRADE_LEVEL_OPTIONS, CURRICULUM_OPTIONS, LEARNING_MODALITY_OPTIONS } from "../../constants";
 import { GeneralModalConfig, SectionDetails } from "../../types";
+import PrimaryButton from "../../components/PrimaryButton";
+import { AssignAdviserFormModal } from "../../components/forms/AssignAdviserFormModal";
 
 // [COMPONENT] Student Pagination
 const StudentPagination = ({ students }: { students: SectionDetails["students"] }) => {
@@ -113,6 +115,11 @@ const AdminSectionDetails = () => {
   const [activePage, setActivePage] = useState<FormPage>(0);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<SectionDetails>>({});
+
+  // [STATES] Assign Adviser Modal
+  const [showAssignModal, setShowAssignModal]   = useState(false);
+  const [advisers, setAdvisers]                 = useState<any[]>([]);
+  const [assignLoading, setAssignLoading]       = useState(false);
 
   // [STATE] General Modal
   const [generalModal, setGeneralModal] = useState<GeneralModalConfig>({
@@ -303,9 +310,91 @@ const AdminSectionDetails = () => {
       setFormData((prev) => ({ ...prev, [field]: e.target.value }));
     };
 
-  // [HANDLE] Bulk enroll students in a section (SF1 -> Assign Students in Section)
-  const handleBulkEnrollStudents = () => {
-      
+  // * [FETCH] Advisers (lazy — only when the assign modal is first opened)
+  const fetchAdvisers = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/advisers`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.status === 401) { setShowTokenExpiredModal(true); return; }
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message || "Failed to fetch advisers");
+      const list = data.data?.data;
+      setAdvisers(Array.isArray(list) ? list : []);
+    } catch (err) {
+      console.error("Fetch advisers error:", err);
+      openGeneralModal({
+        title: "Unable to Load Advisers",
+        message: "We couldn't load the adviser list. Please close and try again.",
+        type: "error",
+        confirmText: "Close",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
+    }
+  };
+
+  // [HANDLE] Open assign adviser modal
+  const handleAssignAdviser = async () => {
+    // Fetch advisers if we haven't loaded them yet
+    if (advisers.length === 0) await fetchAdvisers();
+    setShowAssignModal(true);
+  };
+
+  // [HANDLE] Submit adviser assignment — PUT /api/admin/sections/:id
+  const handleAssignSubmit = async (adviserId: string, adviserName: string) => {
+    setAssignLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/sections/${id}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ adviserId }),
+      });
+
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message || "Failed to assign adviser");
+
+      // Optimistically update the adviser card without a full re-fetch
+      setSection((prev) =>
+        prev
+          ? {
+              ...prev,
+              adviser: {
+                id: data.data?.adviserId ?? prev.adviser?.id ?? 0,
+                adviserId,
+                name: adviserName,
+              },
+            }
+          : prev
+      );
+
+      setShowAssignModal(false);
+      openGeneralModal({
+        title: "Adviser Assigned",
+        message: `"${adviserName}" has been assigned to ${section?.name} successfully.`,
+        type: "success",
+        confirmText: "Done",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
+    } catch (err: any) {
+      console.error("Assign adviser error:", err);
+      openGeneralModal({
+        title: "Assignment Failed",
+        message: err?.message || "We couldn't assign the adviser. Please check your connection and try again.",
+        type: "error",
+        confirmText: "Close",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
+    } finally {
+      setAssignLoading(false);
+    }
   };
 
   // [LOADING STATE]
@@ -406,6 +495,17 @@ const AdminSectionDetails = () => {
         isCancelable={generalModal.isCancelable}
       />
 
+      {/* [MODAL] Assign Adviser */}
+      <AssignAdviserFormModal
+        isOpen={showAssignModal}
+        sectionName={section?.name ?? ""}
+        currentAdviser={section?.adviser ?? null}
+        advisers={advisers}
+        loading={assignLoading}
+        onClose={() => setShowAssignModal(false)}
+        onSubmit={handleAssignSubmit}
+      />
+
       <div className="py-10 px-4 space-y-4 relative">
         {/* [SECTION] Header & Breadcrumbs */}
         <div>
@@ -442,12 +542,7 @@ const AdminSectionDetails = () => {
             </div>
 
             <div className="space-y-2">
-              <button
-                onClick={handleBulkEnrollStudents}
-                className="flex justify-center items-center gap-x-2 w-full py-3 rounded-md cursor-pointer text-button font-bold text-[var(--color-text-50)] bg-[var(--color-primary-600)] transition-all duration-200 hover:bg-[var(--color-primary-700)] disabled:opacity-50"
-              >   
-                <p className="button text-text-on-primary">Enroll Students (SF1)</p>
-              </button>
+              <PrimaryButton text="Assign Adviser" iconSrc="/advisers-icon-white.svg" onClick={handleAssignAdviser} />
               <DeleteButton onClick={() => handleDelete(section.id)} text="Delete Section" disabled={loading} />
             </div>
 
