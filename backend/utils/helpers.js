@@ -128,6 +128,17 @@ async function updateGeneralAverage(studentId, schoolYear) {
   return generalAverage;
 }
 
+// [HELPER] Derive section name from grade + curriculum
+const buildSectionName = (curriculum) => {
+  return curriculum;
+};
+
+// [HELPER] Validate school year string "YYYY - YYYY"
+const isValidSchoolYear = (sy) => {
+  const match = (sy || "").match(/^(\d{4})\s-\s(\d{4})$/);
+  return match && parseInt(match[2], 10) === parseInt(match[1], 10) + 1;
+};
+
 module.exports = {
   hashPassword,
   getFullName,
@@ -136,4 +147,6 @@ module.exports = {
   calculateAge,
   validateSF2Completeness,
   updateGeneralAverage,
+  buildSectionName,
+  isValidSchoolYear,
 };
