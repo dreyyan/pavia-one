@@ -7,6 +7,10 @@ import { useNavigate } from "react-router-dom";
 import DashboardButton from "../../components/DashboardButton";
 import DashboardItem from "../../components/DashboardItem";
 import Skeleton from "../../components/Skeleton";
+import Modal from "../../components/Modal";
+
+// [IMPORT] Types
+import { GeneralModalConfig } from "../../types";
 
 // ? [INTERFACES]
 interface Profile {
@@ -38,6 +42,25 @@ const AdminDashboard = () => {
   const [totalAdmins, setTotalAdmins] = useState(0);
   const [loading, setLoading] = useState(true);
 
+  // [STATE] General Modal
+  const [generalModal, setGeneralModal] = useState<GeneralModalConfig>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "default",
+    confirmText: "OK",
+    isCancelable: true,
+    onConfirm: () => {},
+  });
+
+  const openGeneralModal = (config: Partial<Omit<GeneralModalConfig, "isOpen">>) => {
+    setGeneralModal(prev => ({ ...prev, isOpen: true, ...config }));
+  };
+
+  const closeGeneralModal = () => {
+    setGeneralModal(prev => ({ ...prev, isOpen: false }));
+  };
+
   // * [EFFECT] Fetch dashboard summary
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -47,11 +70,6 @@ const AdminDashboard = () => {
         const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/dashboard/summary`, {
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         });
-
-        if (res.status === 401) {
-          setShowTokenExpiredModal(true);
-          return;
-        }
 
         const data: { success: boolean; data: DashboardSummary } = await res.json();
         console.log("Fetched dashboard summary:", data);
@@ -82,10 +100,36 @@ const AdminDashboard = () => {
     fetchDashboard();
   }, [setShowTokenExpiredModal]);
 
+  // [HANDLE] Logout
+  const handleLogout = () => {
+    openGeneralModal({
+      title: "Confirm Logout",
+      message: "Are you sure you want to log out of your account?",
+      type: "info",
+      confirmText: "Logout",
+      isCancelable: true,
+      onConfirm: () => {
+        closeGeneralModal();
+        navigate("/login/admin");
+      }
+    });
+  };
+
   if (loading) return <Skeleton />;
 
   return (
     <div className="py-10 px-4 space-y-4">
+      {/* [MODAL] General */}
+      <Modal
+        isOpen={generalModal.isOpen}
+        onClose={closeGeneralModal}
+        title={generalModal.title}
+        message={generalModal.message}
+        type={generalModal.type}
+        confirmText={generalModal.confirmText}
+        onConfirm={generalModal.onConfirm}
+        isCancelable={generalModal.isCancelable}
+      />
       {/* [UI] Dashboard */}
       <h1 className="text-[var(--color-text-800)]">Dashboard</h1>
 
@@ -104,7 +148,7 @@ const AdminDashboard = () => {
           </button>
 
           {/* [BUTTON] Logout */}
-          <button onClick={() => {navigate("/login/admin")}} className="p-2 rounded-sm bg-[var(--color-red-700)] cursor-pointer">
+          <button onClick={handleLogout} className="p-2 rounded-sm bg-[var(--color-red-700)] cursor-pointer">
             <img src="/logout-icon-white.svg" alt="Admin Profile" className="w-4 h-4" />
           </button>
         </div>
