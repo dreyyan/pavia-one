@@ -36,7 +36,7 @@ interface Profile {
 };
 
 const AdviserClassDetails = () => {
-  const { sectionId } = useParams<{ id: string }>();
+  const { sectionId } = useParams<{ sectionId: string }>();
   const navigate = useNavigate();
 
   // [STATES]
