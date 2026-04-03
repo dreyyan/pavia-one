@@ -1,0 +1,612 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+
+// Components
+import Skeleton from "../../components/Skeleton";
+import Modal from "../../components/Modal";
+import EmptyState from "../../components/EmptyState";
+
+// Types
+import { GeneralModalConfig } from "../../types";
+
+// Shared types & constants (re-exported from AdminSchoolForms)
+import {
+  SchoolFormType,
+  SchoolFormStatus,
+  StudentFormStatus,
+  SectionForm,
+  FORM_STATUS_LABELS,
+  FORM_STATUS_BADGE,
+} from "./AdminSchoolForms";
+
+// ? [INTERFACES]
+interface SectionDetail {
+  id: number;
+  name: string;
+  gradeLevel: number;
+  schoolYear: string;
+  curriculum: string;
+  adviser: { id: number; adviserId: string; name: string; email: string };
+  schoolForms: SectionForm[];
+}
+
+interface StudentRow {
+  id: number;
+  lrn: string;
+  firstName: string;
+  middleName?: string;
+  lastName: string;
+  nameExtension?: string;
+  sex: "MALE" | "FEMALE";
+  enrollmentStatus: string;
+  sf9Status: StudentFormStatus;
+  sf10Status: StudentFormStatus;
+  sf5Status: StudentFormStatus;
+  generalAverage?: number;
+  actionTaken?: string;
+}
+
+// [CONSTANTS]
+const FORM_TYPE_LABELS: Record<SchoolFormType, string> = {
+  SF1: "SF1 — Class Register",
+  SF5: "SF5 — Report on Promotion",
+};
+
+const FORM_TYPE_DESCRIPTIONS: Record<SchoolFormType, string> = {
+  SF1: "The master list of all enrolled students in the section for the school year.",
+  SF5: "Records the action taken (promoted, conditional, retained) for each student at year-end.",
+};
+
+const STUDENT_FORM_LABELS: Record<StudentFormStatus, string> = {
+  COMPLETE: "Complete",
+  PARTIAL:  "Partial",
+  PENDING:  "Pending",
+};
+
+const STUDENT_STATUS_BADGE: Record<StudentFormStatus, string> = {
+  COMPLETE: "bg-green-100 text-green-700 border border-green-200",
+  PARTIAL:  "bg-yellow-100 text-yellow-700 border border-yellow-200",
+  PENDING:  "bg-[var(--color-bg-300)] text-[var(--color-text-500)] border border-[var(--color-bg-400)]",
+};
+
+const STATUS_FLOW: SchoolFormStatus[] = ["DRAFT", "GENERATED", "SUBMITTED", "APPROVED", "LOCKED"];
+
+// [HELPER] Safe JSON parse
+const safeJson = async (res: Response) => {
+  const text = await res.text();
+  try { return JSON.parse(text); }
+  catch { return { success: false, message: `Server error (${res.status})` }; }
+};
+
+// [HELPER] Build full student name
+const fullName = (s: Pick<StudentRow, "firstName" | "middleName" | "lastName" | "nameExtension">) =>
+  [s.lastName, s.firstName, s.middleName, s.nameExtension].filter(Boolean).join(", ");
+
+// [HELPER] Format date
+const fmtDate = (d?: string) =>
+  d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
+
+// [HELPER] Detect missing student-level info
+const getStudentMissingFields = (student: StudentRow): string[] => {
+  const missing: string[] = [];
+  if (student.sf9Status  !== "COMPLETE") missing.push("SF9");
+  if (student.sf10Status !== "COMPLETE") missing.push("SF10");
+  if (student.sf5Status  !== "COMPLETE") missing.push("SF5");
+  if (student.generalAverage == null)    missing.push("General Average");
+  if (!student.actionTaken)              missing.push("Action Taken");
+  return missing;
+};
+
+const AdminSchoolFormDetails = () => {
+  const { sectionId } = useParams<{ sectionId: string }>();
+  const navigate = useNavigate();
+
+  // [STATES] Data
+  const [section, setSection]       = useState<SectionDetail | null>(null);
+  const [students, setStudents]     = useState<StudentRow[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  // [STATES] Student search
+  const [studentSearch, setStudentSearch] = useState("");
+
+  // [STATES] Form status update modal
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [statusTarget, setStatusTarget]       = useState<SectionForm | null>(null);
+  const [pendingStatus, setPendingStatus]     = useState<SchoolFormStatus>("DRAFT");
+
+  // [STATE] General Modal
+  const [generalModal, setGeneralModal] = useState<GeneralModalConfig>({
+    isOpen: false, title: "", message: "", type: "default",
+    confirmText: "OK", isCancelable: true, onConfirm: () => {},
+  });
+
+  const openGeneralModal = (config: Partial<Omit<GeneralModalConfig, "isOpen">>) =>
+    setGeneralModal((prev) => ({ ...prev, isOpen: true, ...config }));
+  const closeGeneralModal = () =>
+    setGeneralModal((prev) => ({ ...prev, isOpen: false }));
+
+  // * [HANDLE] Fetch section detail
+  const fetchSectionDetail = async () => {
+    if (!sectionId) return;
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/admin/school-forms/section/${sectionId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const data = await safeJson(res);
+      if (!data.success) throw new Error(data.message || "Failed to load section");
+      setSection(data.data.section);
+      setStudents(data.data.students ?? []);
+    } catch (err) {
+      console.error(err);
+      openGeneralModal({
+        title: "Unable to Load Section",
+        message: "We couldn't load the section details. Please try again.",
+        type: "error", confirmText: "Close", isCancelable: false,
+        onConfirm: () => { closeGeneralModal(); navigate("/admin/school-forms"); },
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchSectionDetail(); }, [sectionId]);
+
+  // * [HANDLE] Open status update modal
+  const handleStatusClick = (form: SectionForm, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setStatusTarget(form);
+    setPendingStatus(form.status);
+    setShowStatusModal(true);
+  };
+
+  // * [HANDLE] Submit form status update
+  const handleStatusUpdate = async () => {
+    if (!statusTarget) return;
+    setSubmitting(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/admin/school-forms/${statusTarget.id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ status: pendingStatus }),
+        }
+      );
+      const data = await safeJson(res);
+      if (!data.success) throw new Error(data.message || "Update failed");
+
+      setShowStatusModal(false);
+      await fetchSectionDetail();
+      openGeneralModal({
+        title: "Status Updated",
+        message: `Form status updated to "${FORM_STATUS_LABELS[pendingStatus]}".`,
+        type: "success", isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
+    } catch (err: any) {
+      console.error(err);
+      openGeneralModal({
+        title: "Update Failed",
+        message: err.message || "Could not update form status. Please try again.",
+        type: "error", isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // [DERIVED] Filtered students
+  const filteredStudents = students.filter((s) => {
+    const q = studentSearch.toLowerCase();
+    return s.lrn.includes(q) || s.firstName.toLowerCase().includes(q) || s.lastName.toLowerCase().includes(q);
+  });
+
+  // [DERIVED] Student completion summary
+  const totalStudents    = students.length;
+  const completeStudents = students.filter((s) => getStudentMissingFields(s).length === 0).length;
+  const partialStudents  = students.filter((s) => {
+    const missing = getStudentMissingFields(s);
+    return missing.length > 0 && missing.length < 5;
+  }).length;
+  const pendingStudents  = students.filter((s) => getStudentMissingFields(s).length === 5).length;
+
+  if (loading) return <Skeleton />;
+
+  return (
+    <div>
+      {/* [MODAL] General */}
+      <Modal
+        isOpen={generalModal.isOpen}
+        onClose={closeGeneralModal}
+        title={generalModal.title}
+        message={generalModal.message}
+        type={generalModal.type}
+        confirmText={generalModal.confirmText}
+        onConfirm={generalModal.onConfirm}
+        isCancelable={generalModal.isCancelable}
+      />
+
+      {/* [MODAL] Update Form Status */}
+      <Modal
+        isOpen={showStatusModal}
+        onClose={() => setShowStatusModal(false)}
+        title="Update Form Status"
+        type="default"
+        confirmText={submitting ? "Saving..." : "Save"}
+        onConfirm={handleStatusUpdate}
+        isCancelable={!submitting}
+      >
+        <div className="p-1 space-y-3">
+          {statusTarget && (
+            <p className="text-sm text-[var(--color-text-600)]">
+              Updating status for{" "}
+              <span className="font-bold text-[var(--color-text-900)]">
+                {FORM_TYPE_LABELS[statusTarget.type]}
+              </span>
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            {STATUS_FLOW.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setPendingStatus(s)}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
+                  pendingStatus === s
+                    ? FORM_STATUS_BADGE[s] + " ring-2 ring-offset-1 ring-[var(--color-primary-400)]"
+                    : "bg-[var(--color-bg-100)] text-[var(--color-text-500)] border-[var(--color-text-200)] hover:bg-[var(--color-bg-200)]"
+                }`}
+              >
+                {FORM_STATUS_LABELS[s]}
+              </button>
+            ))}
+          </div>
+        </div>
+      </Modal>
+
+      <div className="py-10 px-4 space-y-5 relative">
+
+        {/* [SECTION] Header & Breadcrumbs */}
+        <div>
+          <h2 className="text-[var(--color-text-800)] leading-tight">School Forms</h2>
+          <nav className="font-roboto text-sm text-[var(--color-text-700)] flex items-center gap-1 flex-wrap">
+            <span
+              className="cursor-pointer hover:underline text-[var(--color-text-700)]"
+              onClick={() => navigate("/admin/school-forms")}
+            >
+              School Forms
+            </span>
+            <span className="text-[var(--color-text-400)]">/</span>
+            <span className="font-medium text-[var(--color-text-900)]">
+              {section ? `Grade ${section.gradeLevel} — ${section.name}` : "Section Detail"}
+            </span>
+          </nav>
+        </div>
+
+        {section && (
+          <div className="space-y-6">
+
+            {/* [CARD] Section Info */}
+            <div className="bg-[var(--color-bg-100)] rounded-lg border border-[var(--color-bg-200)] overflow-hidden">
+              <div className="bg-[var(--color-bg-50)] border-b border-[var(--color-bg-200)] px-4 py-3 flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex items-center gap-3">
+                  <div className="size-10 rounded-md bg-[var(--color-primary-100)] flex items-center justify-center text-[var(--color-primary-700)] font-bold text-sm border border-[var(--color-primary-200)] flex-shrink-0">
+                    G{section.gradeLevel}
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-[var(--color-text-900)] leading-tight">
+                      Grade {section.gradeLevel} — {section.name}
+                    </h3>
+                    <p className="text-xs text-[var(--color-text-500)] mt-0.5">
+                      {section.schoolYear} · {section.curriculum} Curriculum
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => navigate("/admin/school-forms")}
+                  className="text-sm text-[var(--color-primary-600)] hover:underline cursor-pointer flex items-center gap-1"
+                >
+                  ← Back to Sections
+                </button>
+              </div>
+              <div className="px-4 py-3 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm font-roboto">
+                <div>
+                  <p className="text-xs text-[var(--color-text-500)] uppercase tracking-wide mb-0.5">Adviser</p>
+                  <p className="font-semibold text-[var(--color-text-800)]">{section.adviser.name}</p>
+                  <p className="text-xs text-[var(--color-text-400)]">{section.adviser.email}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-[var(--color-text-500)] uppercase tracking-wide mb-0.5">School Year</p>
+                  <p className="font-semibold text-[var(--color-text-800)] font-mono">{section.schoolYear}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-[var(--color-text-500)] uppercase tracking-wide mb-0.5">Total Students</p>
+                  <p className="font-semibold text-[var(--color-text-800)]">{totalStudents}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* [CARD] Student Completion Summary */}
+            {totalStudents > 0 && (
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: "Complete", value: completeStudents, color: "text-green-700", bg: "bg-green-50 border-green-200" },
+                  { label: "Partial",  value: partialStudents,  color: "text-yellow-700", bg: "bg-yellow-50 border-yellow-200" },
+                  { label: "Pending",  value: pendingStudents,  color: "text-[var(--color-text-500)]", bg: "bg-[var(--color-bg-100)] border-[var(--color-bg-200)]" },
+                ].map((stat) => (
+                  <div key={stat.label} className={`rounded-lg px-4 py-3 border ${stat.bg}`}>
+                    <p className="text-xs text-[var(--color-text-500)] font-roboto uppercase tracking-wide mb-1">{stat.label} Students</p>
+                    <p className={`text-2xl font-bold font-roboto ${stat.color}`}>{stat.value}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* [SECTION] Section-level forms: SF1, SF5 */}
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-600)] mb-3">
+                Section Forms
+              </h4>
+
+              {/* Mobile */}
+              <div className="flex flex-col gap-3 sm:hidden">
+                {section.schoolForms.length === 0 ? (
+                  <div className="py-8 text-center border-2 border-dashed border-amber-200 rounded-xl bg-amber-50">
+                    <p className="text-amber-600 font-medium text-sm">⚠ No forms generated yet.</p>
+                    <p className="text-xs text-amber-500 mt-1">Go back and generate forms for this section.</p>
+                  </div>
+                ) : (
+                  section.schoolForms.map((form) => (
+                    <div key={form.id} className="bg-[var(--color-bg-50)] border border-[var(--color-bg-200)] rounded-lg p-4">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div>
+                          <p className="font-bold text-[var(--color-text-900)] text-sm">{FORM_TYPE_LABELS[form.type]}</p>
+                          <p className="text-xs text-[var(--color-text-500)] mt-0.5">{FORM_TYPE_DESCRIPTIONS[form.type]}</p>
+                        </div>
+                        <span className={`flex-shrink-0 text-xs px-2 py-0.5 rounded-full font-semibold ${FORM_STATUS_BADGE[form.status]}`}>
+                          {FORM_STATUS_LABELS[form.status]}
+                        </span>
+                      </div>
+                      <div className="flex gap-4 text-xs text-[var(--color-text-500)] mb-3">
+                        <span>Generated: {fmtDate(form.generatedAt)}</span>
+                        <span>Submitted: {fmtDate(form.submittedAt)}</span>
+                      </div>
+                      {/* Missing info for this form */}
+                      {!form.generatedAt && (
+                        <div className="mb-2 text-xs bg-amber-50 border border-amber-200 rounded px-2 py-1 text-amber-700">
+                          ⚠ Not yet generated
+                        </div>
+                      )}
+                      {form.generatedAt && !form.submittedAt && (
+                        <div className="mb-2 text-xs bg-blue-50 border border-blue-200 rounded px-2 py-1 text-blue-700">
+                          Awaiting submission
+                        </div>
+                      )}
+                      <button
+                        onClick={(e) => handleStatusClick(form, e)}
+                        className="text-xs text-[var(--color-primary-600)] hover:underline cursor-pointer"
+                      >
+                        Update Status
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Desktop */}
+              <div className="hidden sm:block bg-[var(--color-bg-100)] rounded-lg overflow-hidden border border-[var(--color-bg-200)]">
+                <table className="w-full text-sm font-roboto">
+                  <thead>
+                    <tr className="border-b border-[var(--color-bg-200)] text-[var(--color-text-600)] text-xs uppercase tracking-wide bg-[var(--color-bg-50)]">
+                      <th className="px-4 py-3 text-left">Form</th>
+                      <th className="px-4 py-3 text-left">Description</th>
+                      <th className="px-4 py-3 text-left">Status</th>
+                      <th className="px-4 py-3 text-left">Generated</th>
+                      <th className="px-4 py-3 text-left">Submitted</th>
+                      <th className="px-4 py-3 text-left">Approved</th>
+                      <th className="px-4 py-3 text-left">Missing</th>
+                      <th className="px-4 py-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {section.schoolForms.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="px-4 py-10">
+                          <div className="text-center border-2 border-dashed border-amber-200 rounded-xl bg-amber-50 py-6">
+                            <p className="text-amber-600 font-medium text-sm">⚠ No forms generated for this section yet.</p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      section.schoolForms.map((form) => {
+                        const formMissing: string[] = [];
+                        if (!form.generatedAt) formMissing.push("Not generated");
+                        else if (!form.submittedAt) formMissing.push("Not submitted");
+                        else if (!form.approvedAt)  formMissing.push("Not approved");
+                        return (
+                          <tr key={form.id} className={`border-b border-[var(--color-bg-200)] ${formMissing.length > 0 ? "bg-amber-50/30" : ""}`}>
+                            <td className="px-4 py-3 font-bold text-[var(--color-text-900)]">{form.type}</td>
+                            <td className="px-4 py-3 text-[var(--color-text-600)] text-xs max-w-[200px]">{FORM_TYPE_DESCRIPTIONS[form.type]}</td>
+                            <td className="px-4 py-3">
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${FORM_STATUS_BADGE[form.status]}`}>
+                                {FORM_STATUS_LABELS[form.status]}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-xs text-[var(--color-text-500)]">{fmtDate(form.generatedAt)}</td>
+                            <td className="px-4 py-3 text-xs text-[var(--color-text-500)]">{fmtDate(form.submittedAt)}</td>
+                            <td className="px-4 py-3 text-xs text-[var(--color-text-500)]">{fmtDate(form.approvedAt)}</td>
+                            <td className="px-4 py-3">
+                              {formMissing.length > 0 ? (
+                                <span className="text-xs text-amber-600 font-medium flex items-center gap-1">
+                                  <span>⚠</span> {formMissing.join(", ")}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-green-600 font-medium">✓ Complete</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <button
+                                onClick={(e) => handleStatusClick(form, e)}
+                                className="text-xs text-[var(--color-primary-600)] hover:underline cursor-pointer"
+                              >
+                                Update Status
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* [SECTION] Per-student form status */}
+            <div>
+              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                <h4 className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-600)]">
+                  Students — Per-Student Form Status
+                </h4>
+                <input
+                  type="text"
+                  placeholder="Search students..."
+                  value={studentSearch}
+                  onChange={(e) => setStudentSearch(e.target.value)}
+                  className="bg-[var(--color-bg-50)] body-default rounded-sm px-3 outline-none border border-[var(--color-text-300)] focus:ring-2 focus:ring-[var(--color-primary-600)] h-9 text-sm w-full sm:w-64"
+                />
+              </div>
+
+              {/* Mobile */}
+              <div className="flex flex-col gap-3 sm:hidden">
+                {filteredStudents.length === 0 ? (
+                  <EmptyState title="No students found" subtitle="No students match your search." iconSrc="/no-data-icon.svg" />
+                ) : (
+                  filteredStudents.map((student) => {
+                    const missing = getStudentMissingFields(student);
+                    return (
+                      <div
+                        key={student.id}
+                        onClick={() => navigate(`/admin/school-forms/section/${section.id}/student/${student.id}`)}
+                        className={`bg-white rounded-md border overflow-hidden hover:translate-y-[-1px] hover:shadow-md transition-all duration-200 cursor-pointer ${
+                          missing.length > 0 ? "border-amber-200" : "border-[var(--color-bg-200)]"
+                        }`}
+                      >
+                        {missing.length > 0 && (
+                          <div className="bg-amber-50 border-b border-amber-200 px-3 py-1 flex items-center gap-1.5">
+                            <span className="text-amber-500 text-xs">⚠</span>
+                            <p className="text-xs text-amber-700">Missing: {missing.join(", ")}</p>
+                          </div>
+                        )}
+                        <div className="bg-[var(--color-bg-50)] px-3 py-3 border-b border-[var(--color-bg-200)]">
+                          <p className="font-roboto font-bold text-[var(--color-text-900)] text-sm">{fullName(student)}</p>
+                          <p className="text-xs font-mono text-[var(--color-text-500)] mt-0.5">{student.lrn}</p>
+                        </div>
+                        <div className="px-4 py-3 flex flex-wrap gap-2">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${STUDENT_STATUS_BADGE[student.sf9Status]}`}>SF9: {STUDENT_FORM_LABELS[student.sf9Status]}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${STUDENT_STATUS_BADGE[student.sf10Status]}`}>SF10: {STUDENT_FORM_LABELS[student.sf10Status]}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${STUDENT_STATUS_BADGE[student.sf5Status]}`}>SF5: {STUDENT_FORM_LABELS[student.sf5Status]}</span>
+                          {student.generalAverage != null ? (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--color-bg-200)] text-[var(--color-text-700)]">Avg: {student.generalAverage}</span>
+                          ) : (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200">Avg: —</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Desktop */}
+              <div className="hidden sm:block bg-[var(--color-bg-100)] rounded-lg overflow-hidden border border-[var(--color-bg-200)]">
+                <table className="w-full text-sm font-roboto">
+                  <thead>
+                    <tr className="border-b border-[var(--color-bg-200)] text-[var(--color-text-600)] text-xs uppercase tracking-wide bg-[var(--color-bg-50)]">
+                      <th className="px-4 py-3 text-left">Student</th>
+                      <th className="px-4 py-3 text-left">LRN</th>
+                      <th className="px-4 py-3 text-left">Sex</th>
+                      <th className="px-4 py-3 text-left">SF9</th>
+                      <th className="px-4 py-3 text-left">SF10</th>
+                      <th className="px-4 py-3 text-left">SF5</th>
+                      <th className="px-4 py-3 text-left">Gen. Avg.</th>
+                      <th className="px-4 py-3 text-left">Action Taken</th>
+                      <th className="px-4 py-3 text-left">Missing</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredStudents.length === 0 ? (
+                      <tr><td colSpan={9} className="px-4 py-8 text-center text-[var(--color-text-400)] italic text-sm">No students found.</td></tr>
+                    ) : (
+                      filteredStudents.map((student) => {
+                        const missing = getStudentMissingFields(student);
+                        return (
+                          <tr
+                            key={student.id}
+                            onClick={() => navigate(`/admin/school-forms/section/${section.id}/student/${student.id}`)}
+                            className={`border-b border-[var(--color-bg-200)] hover:bg-[var(--color-bg-50)] transition-colors cursor-pointer ${
+                              missing.length > 0 ? "bg-amber-50/30" : ""
+                            }`}
+                          >
+                            <td className="px-4 py-3 font-medium text-[var(--color-text-900)]">{fullName(student)}</td>
+                            <td className="px-4 py-3 font-mono text-[var(--color-text-600)] text-xs">{student.lrn}</td>
+                            <td className="px-4 py-3 text-[var(--color-text-700)]">{student.sex === "MALE" ? "M" : "F"}</td>
+                            <td className="px-4 py-3">
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${STUDENT_STATUS_BADGE[student.sf9Status]}`}>
+                                {STUDENT_FORM_LABELS[student.sf9Status]}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${STUDENT_STATUS_BADGE[student.sf10Status]}`}>
+                                {STUDENT_FORM_LABELS[student.sf10Status]}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${STUDENT_STATUS_BADGE[student.sf5Status]}`}>
+                                {STUDENT_FORM_LABELS[student.sf5Status]}
+                              </span>
+                            </td>
+                            <td className={`px-4 py-3 ${student.generalAverage == null ? "text-amber-500 font-medium" : "text-[var(--color-text-700)]"}`}>
+                              {student.generalAverage ?? "—"}
+                            </td>
+                            <td className={`px-4 py-3 ${!student.actionTaken ? "text-amber-500 font-medium" : "text-[var(--color-text-700)]"}`}>
+                              {student.actionTaken ?? "—"}
+                            </td>
+                            <td className="px-4 py-3">
+                              {missing.length > 0 ? (
+                                <span
+                                  className="text-xs text-amber-600 font-medium flex items-center gap-1"
+                                  title={missing.join(", ")}
+                                >
+                                  <span>⚠</span> {missing.length} field{missing.length > 1 ? "s" : ""}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-green-600 font-medium">✓</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+};
+
+export default AdminSchoolFormDetails;

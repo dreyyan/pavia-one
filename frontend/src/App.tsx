@@ -39,6 +39,7 @@ import AdminProfile from "./pages/admin/AdminProfile";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminAnnouncementsAndEvents from "./pages/admin/AdminAnnouncementsAndEvents";
 import AdminSchoolForms from "./pages/admin/AdminSchoolForms";
+import AdminSchoolFormDetails from "./pages/admin/AdminSchoolFormDetails";
 import AdminReportsAndStatistics from "./pages/admin/AdminReportsAndStatistics";
 
 // [IMPORT] Context & Layout
@@ -97,6 +98,7 @@ function App() {
           <Route path="/admin/settings" element={<AdminSettings />} />
 
           <Route path="/admin/school-forms" element={<AdminSchoolForms />} />
+          <Route path="/admin/school-forms/section/:sectionId" element={<AdminSchoolFormDetails />} />
 
           <Route path="/admin/reports-and-statistics" element={<AdminReportsAndStatistics />} />
           <Route path="/admin/announcements-and-events" element={<AdminAnnouncementsAndEvents />} />
