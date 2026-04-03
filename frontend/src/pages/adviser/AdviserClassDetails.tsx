@@ -148,7 +148,7 @@ const AdviserClassDetails = () => {
       </div>
 
       {/* [SECTION] Class Overview */}
-      <div className="bg-[var(--color-bg-100)] border-2 border-[var(--color-bg-300)]/60 rounded-2xl px-4 py-4 gap-x-3 shadow-md">
+      <div className="bg-[var(--color-bg-100)] border-2 border-[var(--color-bg-300)]/60 rounded-xl px-4 py-4 gap-x-3 shadow-md">
         <h2 className="mb-3">Overview</h2>
         <div className="flex flex-col gap-y-2">
           <ClassSummaryItem iconSrc="/attendance-icon.svg" text="Attendance Rate" value={profile?.attendanceRate || 0} />
@@ -171,11 +171,11 @@ const AdviserClassDetails = () => {
           color="#CA8E02"
           to={`/adviser/classes/${sectionId}/grades`}
         />
-        <DashboardButton
+        {/* <DashboardButton
           iconSrc="/reports-dashboard.svg"
           text="Reports"
           color="#8F28A4"
-        />
+        /> */}
       </div>
     </div>
   );
