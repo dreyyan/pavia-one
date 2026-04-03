@@ -68,8 +68,6 @@ const AdviserDashboard = () => {
 
     const fetchProfile = async () => {
       try {
-        console.log("Fetching profile with token:", token ? "Token exists (length: " + token.length + ")" : "No token");
-
         const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/adviser/profile`, {
           method: "GET",
           headers: { 
@@ -97,6 +95,19 @@ const AdviserDashboard = () => {
         }
 
         setProfile(data.data);
+
+        if (!data.data.advisorySection) {
+          openGeneralModal({
+            title: "No Advisory Section",
+            message: "You do not have an advisory section assigned. Please contact the administrator.",
+            type: "error",
+            confirmText: "OK",
+            isCancelable: false,
+            onConfirm: () => {
+              closeGeneralModal();
+            }
+          });
+        }
       } catch (err) {
         console.error("Failed to fetch profile:", err);
         localStorage.removeItem("token");
@@ -229,23 +240,27 @@ const AdviserDashboard = () => {
           text="View Students"
           color="#0066CC"
           to={advisorySection ? `/adviser/classes/${advisorySection.id}/students` : "#"}
+          disabled={!advisorySection}
         />
         <DashboardButton
           iconSrc="/grades-dashboard.svg"
           text="Grades"
           color="#CA8E02"
           to={advisorySection ? `/adviser/classes/${advisorySection.id}/grades` : "#"}
+          disabled={!advisorySection}
         />
         <DashboardButton
           iconSrc="/reports-dashboard.svg"
           text="Reports"
           color="#8F28A4"
+          disabled={!advisorySection}
         />
         <DashboardButton
           iconSrc="/school-forms-dashboard.svg"
           text="School Forms"
           color="#28A428"
           to={advisorySection ? `/adviser/school-forms/${advisorySection.id}` : "#"}
+          disabled={!advisorySection}
         />
       </div>
     </div>
