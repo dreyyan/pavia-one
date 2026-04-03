@@ -1,105 +1,19 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+// [IMPORT] React
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
-// Components
+// [IMPORT] Components
 import Skeleton from "../../components/Skeleton";
 import Modal from "../../components/Modal";
 import EmptyState from "../../components/EmptyState";
 
-// Types
-import { GeneralModalConfig } from "../../types";
-
-// ? [INTERFACES]
-export type SchoolFormType   = "SF1" | "SF5";
-export type SchoolFormStatus = "DRAFT" | "GENERATED" | "SUBMITTED" | "APPROVED" | "LOCKED";
-export type StudentFormStatus = "COMPLETE" | "PARTIAL" | "PENDING";
-export type Curriculum = "Regular" | "STE" | "SPS" | "SPA" | "SPJ";
-
-export interface SectionForm {
-  id: number;
-  sectionId: number;
-  schoolYear: string;
-  type: SchoolFormType;
-  status: SchoolFormStatus;
-  generatedAt?: string;
-  submittedAt?: string;
-  approvedAt?: string;
-  lockedAt?: string;
-  generatedBy?: number;
-  approvedBy?: number;
-}
-
-export interface SectionOverview {
-  id: number;
-  name: string;
-  gradeLevel: number;
-  schoolYear: string;
-  curriculum: Curriculum;
-  adviser: { id: number; adviserId: string; name: string; email: string };
-  schoolForms: SectionForm[];
-  enrollments: { id: number }[];
-}
-
-// [CONSTANTS]
-export const FORM_STATUS_LABELS: Record<SchoolFormStatus, string> = {
-  DRAFT:     "Draft",
-  GENERATED: "Generated",
-  SUBMITTED: "Submitted",
-  APPROVED:  "Approved",
-  LOCKED:    "Locked",
-};
-
-export const FORM_STATUS_BADGE: Record<SchoolFormStatus, string> = {
-  DRAFT:     "bg-[var(--color-bg-300)] text-[var(--color-text-500)] border border-[var(--color-bg-400)]",
-  GENERATED: "bg-blue-100 text-blue-700 border border-blue-200",
-  SUBMITTED: "bg-yellow-100 text-yellow-700 border border-yellow-200",
-  APPROVED:  "bg-green-100 text-green-700 border border-green-200",
-  LOCKED:    "bg-purple-100 text-purple-700 border border-purple-200",
-};
-
-const FORM_TYPE_LABELS: Record<SchoolFormType, string> = {
-  SF1: "SF1 — Class Register",
-  SF5: "SF5 — Report on Promotion",
-};
-
-const FORM_TYPE_DESCRIPTIONS: Record<SchoolFormType, string> = {
-  SF1: "The master list of all enrolled students in the section for the school year.",
-  SF5: "Records the action taken (promoted, conditional, retained) for each student at year-end.",
-};
-
-// [HELPER] Safe JSON parse
-const safeJson = async (res: Response) => {
-  const text = await res.text();
-  try { return JSON.parse(text); }
-  catch { return { success: false, message: `Server error (${res.status})` }; }
-};
-
-// [HELPER] Section overall status = worst-status of its forms
-const sectionFormSummary = (forms: SectionForm[]): SchoolFormStatus => {
-  if (!forms.length) return "DRAFT";
-  const priority: SchoolFormStatus[] = ["DRAFT", "GENERATED", "SUBMITTED", "APPROVED", "LOCKED"];
-  return forms.reduce<SchoolFormStatus>((worst, f) =>
-    priority.indexOf(f.status) < priority.indexOf(worst) ? f.status : worst
-  , "LOCKED");
-};
-
-// [HELPER] Detect missing info for a section's forms
-const getMissingInfo = (section: SectionOverview): string[] => {
-  const missing: string[] = [];
-  const sf1 = section.schoolForms.find((f) => f.type === "SF1");
-  const sf5 = section.schoolForms.find((f) => f.type === "SF5");
-  if (!sf1) missing.push("SF1 not generated");
-  else if (sf1.status === "DRAFT") missing.push("SF1 still in draft");
-  if (!sf5) missing.push("SF5 not generated");
-  else if (sf5.status === "DRAFT") missing.push("SF5 still in draft");
-  if (section.enrollments.length === 0) missing.push("No enrolled students");
-  return missing;
-};
-
-const STATUS_FLOW: SchoolFormStatus[] = ["DRAFT", "GENERATED", "SUBMITTED", "APPROVED", "LOCKED"];
+// [IMPORT] Constants, Types, Helpers
+import { FORM_STATUS_BADGE, FORM_STATUS_LABELS } from "../../constants/index";
+import { SectionOverview, GeneralModalConfig } from "../../types/index";
+import { safeJson, getMissingInfo, sectionFormSummary } from "./../../helpers/index";
 
 const AdminSchoolForms = () => {
   const navigate = useNavigate();
@@ -229,25 +143,31 @@ const AdminSchoolForms = () => {
   const availableYears  = [...new Set(sections.map((s) => s.schoolYear))].sort((a, b) => b.localeCompare(a));
   const availableGrades = [...new Set(sections.map((s) => String(s.gradeLevel)))].sort();
 
-  // [HANDLE] Filter + sort
-  const filteredSections = sections
-    .filter((s) => {
-      const q = search.toLowerCase();
-      return (
-        (s.name.toLowerCase().includes(q) || s.adviser.name.toLowerCase().includes(q) || s.schoolYear.includes(q)) &&
-        (filterYear  === "All" || s.schoolYear    === filterYear) &&
-        (filterGrade === "All" || String(s.gradeLevel) === filterGrade)
-      );
-    })
-    .sort((a, b) => {
-      switch (sortOption) {
-        case "name-asc":   return a.name.localeCompare(b.name);
-        case "name-desc":  return b.name.localeCompare(a.name);
-        case "grade-asc":  return a.gradeLevel - b.gradeLevel;
-        case "grade-desc": return b.gradeLevel - a.gradeLevel;
-        default: return 0;
-      }
-    });
+// [HANDLE] Filter + sort (null-safe)
+const filteredSections = sections
+  .filter((s) => {
+    const q = search.toLowerCase();
+
+    // Safe adviser name
+    const adviserName = s.adviser?.name?.toLowerCase() || "";
+
+    return (
+      s.name.toLowerCase().includes(q) ||   // section name
+      adviserName.includes(q) ||             // adviser name safely
+      s.schoolYear.includes(q)               // school year
+    ) &&
+    (filterYear === "All" || s.schoolYear === filterYear) &&
+    (filterGrade === "All" || String(s.gradeLevel) === filterGrade);
+  })
+  .sort((a, b) => {
+    switch (sortOption) {
+      case "name-asc":   return a.name.localeCompare(b.name);
+      case "name-desc":  return b.name.localeCompare(a.name);
+      case "grade-asc":  return a.gradeLevel - b.gradeLevel;
+      case "grade-desc": return b.gradeLevel - a.gradeLevel;
+      default: return 0;
+    }
+  });
 
   const totalPages        = Math.ceil(filteredSections.length / itemsPerPage);
   const displayedSections = filteredSections.slice((page - 1) * itemsPerPage, page * itemsPerPage);
@@ -481,7 +401,7 @@ const AdminSchoolForms = () => {
                   <div className="px-4 py-3 space-y-2 text-sm">
                     <div className="flex justify-between items-center">
                       <span className="text-[var(--color-text-700)] font-semibold">Adviser</span>
-                      <span className="text-[var(--color-text-900)]">{section.adviser.name}</span>
+                      <span className="text-[var(--color-text-900)]">{section?.adviser?.name}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-[var(--color-text-700)] font-semibold">Curriculum</span>
@@ -550,7 +470,7 @@ const AdminSchoolForms = () => {
                     >
                       <td className="px-4 py-3 font-medium text-[var(--color-text-900)]">{section.name}</td>
                       <td className="px-4 py-3 text-[var(--color-text-700)]">Grade {section.gradeLevel}</td>
-                      <td className="px-4 py-3 text-[var(--color-text-700)]">{section.adviser.name}</td>
+                      <td className="px-4 py-3 text-[var(--color-text-700)]">{section?.adviser?.name}</td>
                       <td className="px-4 py-3 font-mono text-[var(--color-text-600)] text-xs">{section.schoolYear}</td>
                       <td className="px-4 py-3 text-[var(--color-text-700)]">{section.curriculum}</td>
                       <td className={`px-4 py-3 font-medium ${section.enrollments.length === 0 ? "text-amber-600" : "text-[var(--color-text-700)]"}`}>

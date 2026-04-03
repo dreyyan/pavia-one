@@ -1,26 +1,18 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+// [IMPORT] React
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-// Components
+// [IMPORT] Components
 import Skeleton from "../../components/Skeleton";
 import Modal from "../../components/Modal";
 import EmptyState from "../../components/EmptyState";
 
-// Types
-import { GeneralModalConfig } from "../../types";
-
-// Shared types & constants (re-exported from AdminSchoolForms)
-import {
-  SchoolFormType,
-  SchoolFormStatus,
-  StudentFormStatus,
-  SectionForm,
-  FORM_STATUS_LABELS,
-  FORM_STATUS_BADGE,
-} from "./AdminSchoolForms";
+// [IMPORT] Constants, Types, Helpers
+import { GeneralModalConfig, SchoolFormType, SchoolFormStatus, SectionForm, StudentFormStatus } from "../../types";
+import { FORM_STATUS_BADGE, FORM_STATUS_LABELS } from "../../constants/index";
 
 // ? [INTERFACES]
 interface SectionDetail {
@@ -321,8 +313,8 @@ const AdminSchoolFormDetails = () => {
               <div className="px-4 py-3 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm font-roboto">
                 <div>
                   <p className="text-xs text-[var(--color-text-500)] uppercase tracking-wide mb-0.5">Adviser</p>
-                  <p className="font-semibold text-[var(--color-text-800)]">{section.adviser.name}</p>
-                  <p className="text-xs text-[var(--color-text-400)]">{section.adviser.email}</p>
+                  <p className="font-semibold text-[var(--color-text-800)]">{section.adviser?.name}</p>
+                  <p className="text-xs text-[var(--color-text-400)]">{section?.adviser?.email}</p>
                 </div>
                 <div>
                   <p className="text-xs text-[var(--color-text-500)] uppercase tracking-wide mb-0.5">School Year</p>
