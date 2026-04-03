@@ -1,11 +1,16 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 // [IMPORT] Hooks
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { usePageTitle } from "../../hooks/usePageTitle"; // Assuming you have this hook
 
 // [IMPORT] Components
 import Skeleton from "../../components/Skeleton";
+import ProfileInfo from "../../components/ProfileInfo";
 import InputField from "../../components/InputField";
 import Modal from "../../components/Modal";
+
+// [IMPORT] Types (if you have a shared types file, import from there)
+import { GeneralModalConfig } from "../../types";
 
 // ?[INTERFACES]
 interface Section {
@@ -35,8 +40,7 @@ interface AdviserProfileData {
   role?: string;
 }
 
-// ?[FORM INTERFACE]
-interface AdviserForm {
+interface AdviserProfileForm {
   name: string;
   email: string;
   sex?: string;
@@ -47,9 +51,14 @@ interface AdviserForm {
 }
 
 const AdviserProfile = () => {
+  usePageTitle("My Profile");
+
   // [STATES]
   const [profile, setProfile] = useState<AdviserProfileData | null>(null);
-  const [form, setForm] = useState<AdviserForm>({
+  const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+
+  const [formData, setFormData] = useState<AdviserProfileForm>({
     name: "",
     email: "",
     sex: "",
@@ -58,48 +67,129 @@ const AdviserProfile = () => {
     contactNumber: "",
     role: "",
   });
-  const [originalForm, setOriginalForm] = useState<AdviserForm | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = 3;
-  const [isEditing, setIsEditing] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [modalTitle, setModalTitle] = useState("");
-  const [modalMessage, setModalMessage] = useState("");
-  const [modalType, setModalType] = useState<"default" | "success" | "error" | "info" | "warning">("default");
 
-  // [HANDLE] Form change
-  const handleChange = (field: keyof AdviserForm, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+  // [STATE] General Modal
+  const [generalModal, setGeneralModal] = useState<GeneralModalConfig>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "default",
+    confirmText: "OK",
+    isCancelable: true,
+    onConfirm: () => {},
+  });
+
+  const openGeneralModal = (config: Partial<Omit<GeneralModalConfig, "isOpen">>) => {
+    setGeneralModal((prev) => ({ ...prev, isOpen: true, ...config }));
   };
 
-  // [HANDLE] Toggle edit mode
-  const toggleEdit = () => {
-    if (isEditing && originalForm) setForm(originalForm);
-    else if (!isEditing) setOriginalForm(form);
+  const closeGeneralModal = () => {
+    setGeneralModal((prev) => ({ ...prev, isOpen: false }));
+  };
+
+  // [SEX OPTIONS]
+  const SEX_OPTIONS = [
+    { label: "Male", value: "MALE" },
+    { label: "Female", value: "FEMALE" },
+  ];
+
+  // *[EFFECT] Fetch profile
+  useEffect(() => {
+    const fetchProfile = async () => {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        openGeneralModal({
+          title: "Authentication Error",
+          message: "You are not logged in. Please log in again.",
+          type: "error",
+          isCancelable: false,
+        });
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/adviser/profile`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const data = await res.json();
+
+        if (!data.success) {
+          throw new Error(data.message || "Failed to fetch profile");
+        }
+
+        setProfile(data.data);
+
+        setFormData({
+          name: data.data.name,
+          email: data.data.email,
+          sex: data.data.sex || "",
+          dateOfBirth: data.data.dateOfBirth || "",
+          nationality: data.data.nationality || "",
+          contactNumber: data.data.contactNumber || "",
+          role: data.data.role || "Adviser",
+        });
+      } catch (err) {
+        console.error(err);
+        openGeneralModal({
+          title: "Unable to Load Profile",
+          message: "We couldn't load your profile at the moment. Please check your internet connection and try again.",
+          type: "error",
+          confirmText: "Close",
+          isCancelable: false,
+          onConfirm: () => closeGeneralModal(),
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  // [HANDLE] Toggle Edit Mode
+  const handleEditToggle = () => {
+    if (isEditing && profile) {
+      // Reset form to original values on cancel
+      setFormData({
+        name: profile.name,
+        email: profile.email,
+        sex: profile.sex || "",
+        dateOfBirth: profile.dateOfBirth || "",
+        nationality: profile.nationality || "",
+        contactNumber: profile.contactNumber || "",
+        role: profile.role || "Adviser",
+      });
+    }
     setIsEditing((prev) => !prev);
   };
 
-  // [HANDLE] Pagination
-  const nextPage = () => { if (currentPage < totalPages) setCurrentPage((p) => p + 1); };
-  const prevPage = () => { if (currentPage > 1) setCurrentPage((p) => p - 1); };
+  // [HANDLE] Form Field Change
+  const handleFieldChange =
+    (field: keyof AdviserProfileForm) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      setFormData((prev) => ({ ...prev, [field]: e.target.value }));
+    };
 
-  // [HANDLE] Save
+  // [HANDLE] Save Profile
   const handleSave = async () => {
-    if (!form) return;
-
-    // Validate required fields
-    if (!form.name || !form.email) {
-      setModalTitle("Validation Error");
-      setModalMessage("Name and Email are required.");
-      setModalType("error");
-      setShowModal(true);
+    if (!formData.name.trim() || !formData.email.trim()) {
+      openGeneralModal({
+        title: "Validation Error",
+        message: "Name and Email are required fields.",
+        type: "error",
+        confirmText: "OK",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
       return;
     }
 
+    setLoading(true);
     try {
-      setLoading(true);
       const token = localStorage.getItem("token");
       const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/adviser/profile`, {
         method: "PUT",
@@ -107,260 +197,223 @@ const AdviserProfile = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify(formData),
       });
 
       const data = await res.json();
 
-      const cleanMessage = data.message?.replace(/^\[ERROR\]\s*/, "");
       if (!data.success) {
-        setModalTitle("Save Failed");
-        setModalMessage(cleanMessage);
-        setModalType("error");
-        setShowModal(true);
-        return;
+        throw new Error(data.message || "Failed to update profile");
       }
 
-      setProfile((prev) => ({
-        ...prev!,
-        ...data.data,
-      }));
-      setModalTitle("Success");
-      setModalMessage("Profile updated successfully!");
-      setModalType("success");
-      setShowModal(true);
+      setProfile((prev) => ({ ...prev!, ...data.data }));
       setIsEditing(false);
-      setOriginalForm(form);
 
+      openGeneralModal({
+        title: "Profile Updated",
+        message: "Your profile has been updated successfully.",
+        type: "success",
+        confirmText: "Close",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
     } catch (err) {
       console.error(err);
-      setModalTitle("Error");
-      setModalMessage("Something went wrong while saving.");
-      setModalType("error");
-      setShowModal(true);
+      openGeneralModal({
+        title: "Unable to Save Changes",
+        message: "We couldn't save your changes. Please check your connection and try again.",
+        type: "error",
+        confirmText: "Close",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  // *[EFFECT] Fetch profile
-  useEffect(() => {
-    const fetchProfile = async () => {
-      setLoading(true);
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setIsAuthenticated(false); // optional, used internally for form logic
-        setLoading(false);
-        return;
-      }
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/adviser/profile`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        if (!data.success) {
-          localStorage.removeItem("token");
-          setIsAuthenticated(false);
-          return;
-        }
-        setProfile(data.data);
-        setForm({
-          name: data.data.name,
-          email: data.data.email,
-          sex: data.data.sex,
-          dateOfBirth: data.data.dateOfBirth,
-          nationality: data.data.nationality,
-          contactNumber: data.data.contactNumber,
-          role: data.data.role,
-        });
-        setOriginalForm({
-          name: data.data.name,
-          email: data.data.email,
-          sex: data.data.sex,
-          dateOfBirth: data.data.dateOfBirth,
-          nationality: data.data.nationality,
-          contactNumber: data.data.contactNumber,
-          role: data.data.role,
-        });
-        setIsAuthenticated(true);
-      } catch (err) {
-        console.error(err);
-        localStorage.removeItem("token");
-        setIsAuthenticated(false);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProfile();
-  }, []);
-
-  const SEX_OPTIONS = [
-    { label: "M", value: "MALE" },
-    { label: "F", value: "FEMALE" },
-  ];
-
-  if (loading || isAuthenticated === null) return <Skeleton />;
+  if (loading) return <Skeleton />;
 
   return (
-    <div className="py-6 px-4 flex flex-col items-center gap-y-4">
-      {/* Modal */}
-      {showModal && (
-        <Modal
-          isOpen={showModal}
-          onClose={() => setShowModal(false)}
-          onConfirm={() => setShowModal(false)}
-          title={modalTitle}
-          message={modalMessage}
-          type={modalType}
-        />
-      )}
+    <div>
+      {/* [MODAL] General */}
+      <Modal
+        isOpen={generalModal.isOpen}
+        onClose={closeGeneralModal}
+        title={generalModal.title}
+        message={generalModal.message}
+        type={generalModal.type}
+        confirmText={generalModal.confirmText}
+        onConfirm={generalModal.onConfirm}
+        isCancelable={generalModal.isCancelable}
+      />
 
-      {/* Profile Header */}
-      <div className="flex items-center bg-[var(--color-primary-600)] border-2 border-[var(--color-primary-700)]/60 rounded-xl px-5 py-6 gap-x-4 shadow-md w-full max-w-md">
-        <div className="flex-1 flex flex-col">
-          <p className="font-roboto font-medium text-sm text-[var(--color-text-50)] mb-1">
-            Welcome, Ma'am/Sir
+      <div className="py-10 px-4 space-y-4 relative">
+        {/* [SECTION] Header */}
+        <div>
+          <h2 className="text-[var(--color-text-800)] leading-0">My Profile</h2>
+          <p className="font-roboto text-sm text-[var(--color-text-700)]">
+            Manage your account details.
           </p>
-          <p className="font-roboto font-extrabold text-xl mb-2 text-[var(--color-text-50)]">
-            {profile?.name}
-          </p>
-          {profile?.advisorySection ? (
-            <>
-              <p className="font-roboto font-semibold text-sm text-[var(--color-text-100)]">
-                Grade {profile.advisorySection.gradeLevel} — {profile.advisorySection.name}
-              </p>
-              <p className="font-roboto font-medium text-xs text-[var(--color-text-100)]">
-                Class Adviser
-              </p>
-            </>
-          ) : (
-            <p className="text-[var(--color-red-600)] font-semibold text-sm">
-              You are not assigned to any advisory section.
+        </div>
+
+        {profile ? (
+          <>
+            {/* [COMPONENT] Profile Info Banner */}
+            {profile && (() => {
+              const [firstName, ...lastParts] = profile.name.split(" ");
+              const lastName = lastParts.length > 0 ? lastParts.join(" ") : firstName;
+              const displayFirstName = lastParts.length > 0 ? firstName : "";
+
+              return (
+                <ProfileInfo
+                  lastName={lastName}
+                  firstName={displayFirstName}
+                  role="Class Adviser"
+                />
+              );
+            })()}
+
+            {/* [CARD] Personal Information */}
+            <div className="bg-[var(--color-bg-100)] rounded-lg p-6 space-y-6">
+              {/* Section Header + Buttons */}
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)]">
+                  Personal Information
+                </p>
+
+                <div className="flex items-center gap-2">
+                  {isEditing && (
+                    <button
+                      onClick={handleSave}
+                      disabled={loading}
+                      className="text-xs font-roboto font-semibold text-white bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] px-4 py-2 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Save
+                    </button>
+                  )}
+
+                  <button
+                    onClick={handleEditToggle}
+                    disabled={loading}
+                    className={`text-xs font-roboto font-medium px-4 py-2 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                      isEditing
+                        ? "text-[var(--color-text-50)] bg-[var(--color-red-700)] hover:bg-[var(--color-red-800)]"
+                        : "text-[var(--color-text-50)] bg-[var(--color-accent-600)] hover:bg-[var(--color-accent-700)]"
+                    }`}
+                  >
+                    {isEditing ? "Cancel" : "Edit"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Form Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <InputField
+                  label="Full Name"
+                  value={formData.name}
+                  onChange={handleFieldChange("name")}
+                  placeholder="e.g. Maria Santos"
+                  disabled={!isEditing}
+                  required
+                />
+
+                <InputField
+                  label="Sex"
+                  type="select"
+                  value={SEX_OPTIONS.find((s) => s.value === formData.sex)?.label ?? ""}
+                  onChange={(e) => {
+                    const selected = SEX_OPTIONS.find((s) => s.label === e.target.value);
+                    handleFieldChange("sex")({ target: { value: selected?.value || "" } } as any);
+                  }}
+                  options={SEX_OPTIONS.map((s) => s.label)}
+                  placeholder="Select Sex"
+                  disabled={!isEditing}
+                />
+
+                <InputField
+                  label="Date of Birth"
+                  type="date"
+                  value={formData.dateOfBirth ?? ""}
+                  onChange={handleFieldChange("dateOfBirth")}
+                  disabled={!isEditing}
+                />
+
+                <InputField
+                  label="Nationality"
+                  value={formData.nationality ?? ""}
+                  onChange={handleFieldChange("nationality")}
+                  placeholder="e.g. Filipino"
+                  disabled={!isEditing}
+                />
+
+                <InputField
+                  label="Contact Number"
+                  value={formData.contactNumber ?? ""}
+                  onChange={handleFieldChange("contactNumber")}
+                  placeholder="e.g. 09123456789"
+                  disabled={!isEditing}
+                />
+
+                <InputField
+                  label="Email Address"
+                  value={formData.email}
+                  onChange={handleFieldChange("email")}
+                  placeholder="your.email@example.com"
+                  disabled={!isEditing}
+                  required
+                />
+
+                <InputField
+                  label="Adviser ID"
+                  value={profile.adviserId}
+                  disabled={true}
+                />
+
+                <InputField
+                  label="Role"
+                  value={formData.role || "Class Adviser"}
+                  disabled={true}
+                />
+
+                {profile.advisorySection && (
+                  <>
+                    <InputField
+                      label="Advisory Grade"
+                      value={`Grade ${profile.advisorySection.gradeLevel}`}
+                      disabled={true}
+                    />
+                    <InputField
+                      label="Advisory Section"
+                      value={profile.advisorySection.name}
+                      disabled={true}
+                    />
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* [META] Account Created */}
+            <p className="text-xs font-roboto text-[var(--color-text-500)] text-right">
+              Account created{" "}
+              {new Date(profile.createdAt).toLocaleDateString("en-PH", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
             </p>
-          )}
-        </div>
-      </div>
-
-      {/* Profile Form */}
-      <div className="w-full max-w-md bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-lg shadow-sm p-5 space-y-3">
-        {/* [SECTION] Pagination */}
-        <div className="flex justify-between items-center space-x-4 my-3">
-          {/* [BUTTON] Previous */}
-          <button
-            onClick={prevPage}
-            disabled={currentPage === 1}
-            className={`w-24 py-2 rounded-md text-[var(--color-text-50)] font-roboto text-xs font-semibold transition-colors duration-150 ${
-              currentPage === 1
-                ? "bg-[var(--color-bg-400)] cursor-not-allowed opacity-50"
-                : "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)]"
-            }`}
-          >
-            &lt; Previous
-          </button>
-
-          {/* [UI] Page Number */}
-          <span className="flex gap-x-1 text-sm text-[var(--color-text-900)] font-medium">
-            Page <span className="font-bold">{currentPage}</span> of <span className="font-bold">{totalPages}</span>
-          </span>
-
-          {/* [BUTTON] Next */}
-          <button
-            onClick={nextPage}
-            disabled={currentPage === totalPages}
-            className={`w-24 py-2 rounded-md text-[var(--color-text-50)] font-roboto text-xs font-semibold transition-colors duration-150 ${
-              currentPage === totalPages
-                ? "bg-[var(--color-bg-400)] cursor-not-allowed opacity-50"
-                : "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)]"
-            }`}
-          >
-            Next &gt;
-          </button>
-        </div>
-
-        {/* [BUTTON] Edit / Cancel */}
-        <div className="flex justify-end gap-4">
-          <button
-            onClick={toggleEdit}
-            disabled={currentPage === 2}
-            className={`flex items-center gap-2 rounded-md text-sm px-4 py-2 transition font-roboto font-medium ${
-              currentPage === 2
-                ? "bg-[var(--color-bg-400)] cursor-not-allowed text-[var(--color-text-300)]"
-                : "bg-[var(--color-secondary-600)] hover:bg-[var(--color-secondary-700)] text-[var(--color-text-50)]"
-            }`}
-          >
-            {isEditing ? "Cancel" : "Edit"}
-
-            {!isEditing && currentPage !== 2 && (
-              <img
-                src="/edit-icon.svg"
-                className="size-4 object-contain"
-                alt="edit icon"
-              />
-            )}
-          </button>
-
-          {/* [BUTTON] Save */}
-          {isEditing && currentPage !== 2 && (
+          </>
+        ) : (
+          <div className="bg-[var(--color-bg-100)] rounded-lg p-8 text-center">
+            <p className="text-sm font-roboto text-[var(--color-text-600)]">
+              Profile could not be loaded.
+            </p>
             <button
-              onClick={handleSave}
-              disabled={loading}
-              className="rounded-md text-sm px-4 py-2 bg-[var(--color-accent-600)] hover:bg-[var(--color-accent-700)] transition text-white font-roboto font-medium"
+              onClick={() => window.location.reload()}
+              className="mt-3 text-sm font-roboto text-[var(--color-primary-600)] hover:underline cursor-pointer"
             >
-              Save
+              Try again
             </button>
-          )}
-        </div>
-
-        {/* Form Pages */}
-        {currentPage === 1 && (
-          <div className="space-y-3">
-            <InputField label="Full Name" value={form.name} onChange={(e) => handleChange("name", e.target.value)} disabled={!isEditing} />
-            <InputField
-              label="Sex"
-              type="select"
-              value={SEX_OPTIONS.find((s) => s.value === form.sex)?.label ?? ""}
-              onChange={(e) => {
-                const selectedLabel = e.target.value;
-                const sexOption = SEX_OPTIONS.find((s) => s.label === selectedLabel);
-                handleChange("sex", sexOption?.value ?? "");
-              }}
-              options={SEX_OPTIONS.map((s) => s.label)}
-              placeholder="Select Sex"
-              disabled={!isEditing}
-            />
-            <InputField label="Date of Birth" type="date" value={form.dateOfBirth ?? ""} onChange={(e) => handleChange("dateOfBirth", e.target.value)} disabled={!isEditing} />
-            <InputField label="Nationality" value={form.nationality ?? ""} onChange={(e) => handleChange("nationality", e.target.value)} disabled={!isEditing} />
-          </div>
-        )}
-
-        {currentPage === 2 && (
-          <div className="space-y-3">
-            <InputField
-              label="Adviser ID"
-              value={profile?.adviserId ?? ""}
-              disabled={true}
-              onChange={() => {}}
-            />
-            <InputField
-              label="Advisory Grade"
-              value={profile?.advisorySection?.gradeLevel?.toString() ?? ""}
-              disabled={true}
-              onChange={() => {}}
-            />
-            <InputField
-              label="Section"
-              value={profile?.advisorySection?.name ?? ""}
-              disabled={true}
-              onChange={() => {}}
-            />
-          </div>
-        )}
-
-        {currentPage === 3 && (
-          <div className="space-y-3">
-            <InputField label="Email Address" value={form.email} onChange={(e) => handleChange("email", e.target.value)} disabled={true} />
-            <InputField label="Contact Number" value={form.contactNumber ?? ""} onChange={(e) => handleChange("contactNumber", e.target.value)} disabled={!isEditing} />
-            <InputField label="Role" value={form.role ?? "Adviser"} onChange={(e) => handleChange("role", e.target.value)} disabled={true} />
           </div>
         )}
       </div>
