@@ -7,6 +7,9 @@ const prisma = require("../../lib/prisma");
 const { successResponse, errorResponse } = require("../../utils/response");
 const { verifyAdmin } = require("../../middleware/authMiddleware");
 
+// [IMPORT] Helpers
+const { normalizeSchoolYear } = require("../../utils/helpers");
+
 // ?[GET] Get All Sections w/ Respective School Forms
 // /api/admin/school-forms
 router.get("/", verifyAdmin, async (req, res) => {
@@ -288,9 +291,12 @@ router.put("/:formId", verifyAdmin, async (req, res) => {
 // /api/admin/school-forms/generate
 router.post("/generate", verifyAdmin, async (req, res) => {
   try {
-    const { schoolYear } = req.body;
+    let { schoolYear } = req.body;
     if (!schoolYear || typeof schoolYear !== "string")
       return res.status(400).json(errorResponse("schoolYear is required"));
+
+    // Normalize input
+    schoolYear = normalizeSchoolYear(schoolYear);
 
     const sections = await prisma.section.findMany({
       where: { schoolYear },

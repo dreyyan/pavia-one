@@ -174,6 +174,13 @@ function hslToHex(h, s, l) {
     .slice(1)}`;
 }
 
+// [HELPER] Accept "2025-2026" or "2025 - 2026" and normalize to "2025 - 2026"
+function normalizeSchoolYear(input) {
+  const parts = input.trim().split(/\s*-\s*/);
+  if (parts.length !== 2) return input; // fallback, validation should catch
+  return `${parts[0]} - ${parts[1]}`;
+}
+
 module.exports = {
   hashPassword,
   getFullName,
@@ -186,4 +193,5 @@ module.exports = {
   isValidSchoolYear,
   generateUniqueColors,
   hslToHex,
+  normalizeSchoolYear,
 };
