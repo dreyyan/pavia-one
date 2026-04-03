@@ -13,7 +13,6 @@ interface SectionForm {
 interface SchoolFormCardProps {
   form?: SectionForm;
   sectionId: number;
-  sectionColor: string;
   sectionSchoolYear?: string;
   onExport: () => void;
   onImport?: () => void;
@@ -27,10 +26,12 @@ const FORM_INFO = {
   SF1: {
     title: "(SF1)",
     description: "School Register",
+    color: "#004C99"
   },
   SF5: {
     title: "(SF5)",
     description: "Report on Promotion",
+    color: "#4B1751"
   },
 } as const;
 
@@ -56,7 +57,6 @@ const fmtDate = (d?: string) =>
 const SchoolFormCard: React.FC<SchoolFormCardProps> = ({
   form,
   sectionId,
-  sectionColor,
   sectionSchoolYear,
   onExport,
   onImport,
@@ -122,7 +122,7 @@ const SchoolFormCard: React.FC<SchoolFormCardProps> = ({
   return (
     <div className="rounded-lg shadow-md text-[var(--color-text-50)] font-roboto overflow-hidden">
       {/* Top Colored Header */}
-      <div style={{ backgroundColor: sectionColor }} className="p-4">
+      <div style={{ backgroundColor: formInfo.color }} className="p-4">
         <p className="text-lg font-bold">{formInfo.description} {formInfo.title}</p>
         
         {displaySchoolYear && (
@@ -151,7 +151,7 @@ const SchoolFormCard: React.FC<SchoolFormCardProps> = ({
       <div className="px-3 py-3 bg-[var(--color-bg-50)] flex gap-2 rounded-b-lg">
         <button
           onClick={handleView}
-          style={{ backgroundColor: sectionColor }}
+          style={{ backgroundColor: formInfo.color }}
           className="font-figtree text-[var(--color-text-50)] font-bold py-1 px-4 rounded text-sm transition hover:opacity-90 flex-1"
         >
           View

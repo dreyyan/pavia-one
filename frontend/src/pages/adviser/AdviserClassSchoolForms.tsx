@@ -13,6 +13,7 @@ import SchoolFormCard from "../../components/SchoolFormCard";
 
 // [IMPORT] Helpers, Constants, Types
 import { GeneralModalConfig, SchoolFormStatus, SectionInfo, ImportResult } from "../../types";
+import { darkenColor } from "../../helpers";
 
 const AdviserClassSchoolForms = () => {
   const { sectionId } = useParams<{ sectionId: string }>();
@@ -63,7 +64,7 @@ const AdviserClassSchoolForms = () => {
         name: rawSection.name,
         gradeLevel: rawSection.gradeLevel,
         schoolYear: rawSection.schoolYear,
-        color: "#4F46E5", // you can customize this or fetch from constants
+        color: rawSection.color,
         classSize: data.data.students?.length || 0,
         schoolForms: rawSection.schoolForms.map((f: any) => ({
           id: f.id,
@@ -324,12 +325,12 @@ const AdviserClassSchoolForms = () => {
       <div className="bg-[var(--color-bg-100)] rounded-lg overflow-hidden border border-[var(--color-bg-200)]">
         <div
           className="h-1.5 w-full"
-          style={{ backgroundColor: section.color }}
+          style={{ backgroundColor: darkenColor(section.color, 0.1) }}
         />
         <div className="px-4 py-4 flex items-center gap-4 flex-wrap">
           <div
             className="size-12 rounded-lg flex items-center justify-center text-white font-bold text-base flex-shrink-0"
-            style={{ backgroundColor: section.color }}
+            style={{ backgroundColor: darkenColor(section.color, 0.1) }}
           >
             G{section.gradeLevel}
           </div>
@@ -368,7 +369,6 @@ const AdviserClassSchoolForms = () => {
           <SchoolFormCard
             form={sf1}
             sectionId={section.id}
-            sectionColor={section.color}
             sectionSchoolYear={section.schoolYear}
             onExport={() => handleExport("SF1")}
             onImport={() => handleImportClick("SF1")}
@@ -382,7 +382,6 @@ const AdviserClassSchoolForms = () => {
           <SchoolFormCard
             form={sf5}
             sectionId={section.id}
-            sectionColor={section.color}
             sectionSchoolYear={section.schoolYear}
             onExport={() => handleExport("SF5")}
             exporting={exporting === "SF5"}
