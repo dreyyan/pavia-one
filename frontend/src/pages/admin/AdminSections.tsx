@@ -15,6 +15,7 @@ import { GRADE_LEVEL_OPTIONS, CURRICULUM_OPTIONS } from "../../constants";
 import type { GeneralModalConfig, Section, SectionFormData } from "../../types";
 import { SectionFormModal } from "../../components/forms/SectionFormModal";
 import EmptyState from "../../components/EmptyState";
+import SecondaryButton from "../../components/SecondaryButton";
 
 const EMPTY_FORM: SectionFormData = {
   name: "",
@@ -23,6 +24,7 @@ const EMPTY_FORM: SectionFormData = {
   curriculum: "",
   learningModality: "Face to Face",
   room: "",
+  color: "",
   adviserId: "",
   adviserName: "",
 };
@@ -520,13 +522,11 @@ const AdminSections = () => {
             iconSrc="/add-icon.svg"
             onClick={handleAddSection}
           />
-          <button
+          <SecondaryButton
+            text="Auto-Generate Sections"
+            iconSrc="/auto-generate-icon.svg"
             onClick={() => { setGenerateYear(""); setGenerateColor(""); setGenerateError(""); setShowGenerateModal(true); }}
-            className="flex items-center gap-2 px-4 py-2 rounded-sm border border-[var(--color-primary-700)] text-[var(--color-primary-700)] text-sm font-semibold hover:bg-[var(--color-primary-50)] transition-colors cursor-pointer"
-          >
-            <img src="/add-icon.svg" alt="" className="size-4 opacity-70" />
-            Auto-Generate Sections
-          </button>
+          />
         </div>
 
         {/* [CARDS] Sections — Mobile View */}
