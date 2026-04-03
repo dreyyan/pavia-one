@@ -14,6 +14,7 @@ import EmptyState from "../../components/EmptyState";
 import { FORM_STATUS_BADGE, FORM_STATUS_LABELS } from "../../constants/index";
 import { SectionOverview, GeneralModalConfig } from "../../types/index";
 import { safeJson, getMissingInfo, sectionFormSummary } from "./../../helpers/index";
+import PrimaryButton from "../../components/PrimaryButton";
 
 const AdminSchoolForms = () => {
   const navigate = useNavigate();
@@ -43,7 +44,7 @@ const AdminSchoolForms = () => {
 
   // [STATES] Pagination
   const [page, setPage] = useState(1);
-  const itemsPerPage = 8;
+  const itemsPerPage = 5;
 
   // [STATE] General Modal
   const [generalModal, setGeneralModal] = useState<GeneralModalConfig>({
@@ -226,7 +227,7 @@ const filteredSections = sections
         </div>
       </Modal>
 
-      <div className="py-10 px-4 space-y-5 relative">
+      <div className="py-10 px-4 space-y-4 relative">
 
         {/* [SECTION] Header */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -236,13 +237,7 @@ const filteredSections = sections
               Manage and track SF1 and SF5 forms across all sections.
             </p>
           </div>
-          <button
-            onClick={() => { setGenerateYear(""); setShowGenerateModal(true); }}
-            className="flex items-center gap-2 px-4 py-2 rounded-sm bg-[var(--color-primary-700)] text-[var(--color-text-50)] text-sm font-semibold hover:bg-[var(--color-primary-600)] transition-colors cursor-pointer flex-shrink-0"
-          >
-            <img src="/add-icon.svg" alt="" className="size-4" />
-            Generate Forms
-          </button>
+          <PrimaryButton text="Auto-Generate School Forms" iconSrc="/auto-generate-icon.svg" onClick={() => { setGenerateYear(""); setShowGenerateModal(true); }} />
         </div>
 
         {/* [SECTION] Summary Stats */}
@@ -378,7 +373,7 @@ const filteredSections = sections
                   {/* Missing info banner */}
                   {missing.length > 0 && (
                     <div className="bg-amber-50 border-b border-amber-200 px-3 py-1.5 flex items-center gap-1.5">
-                      <span className="text-amber-500 text-xs">⚠</span>
+                      <img src="/error-icon.svg" className="size-6" />
                       <p className="text-xs text-amber-700 font-medium">{missing.join(" · ")}</p>
                     </div>
                   )}
