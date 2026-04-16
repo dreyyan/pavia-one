@@ -40,7 +40,7 @@ const SubjectCard: React.FC<SubjectCardProps> = ({
       <div className="bg-[var(--color-bg-50)] px-3 pr-4 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
         <div className="flex items-center w-full gap-3 min-w-0">
           <div className="size-10 rounded-md bg-[var(--color-primary-100)] flex items-center justify-center text-[var(--color-primary-700)] font-bold text-sm border border-[var(--color-primary-200)] flex-shrink-0 px-1">
-            G{subject.gradeLevel}
+            {subject.gradeLevel}
           </div>
 
           <div className="flex-1 min-w-0">
