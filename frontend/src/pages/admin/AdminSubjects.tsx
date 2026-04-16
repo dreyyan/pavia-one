@@ -406,8 +406,6 @@ const AdminSubjects = () => {
                 <SubjectCard
                   key={s.id}
                   subject={s}
-                  onDelete={handleDelete}
-                  showActions={true}
                 />
               ))
             )
