@@ -354,6 +354,29 @@ const AdminStudents = () => {
   const handlePrevPage = () => setPage(prev => Math.max(prev - 1, 1));
   const handleNextPage = () => setPage(prev => Math.min(prev + 1, totalPages));
 
+  // [HANDLE] Get visible pagination pages
+  const getVisiblePages = (current: number, total: number) => {
+    const delta = 1; // how many pages around current
+
+    const range: (number | "...")[] = [];
+    const left = Math.max(2, current - delta);
+    const right = Math.min(total - 1, current + delta);
+
+    range.push(1);
+
+    if (left > 2) range.push("...");
+
+    for (let i = left; i <= right; i++) {
+      range.push(i);
+    }
+
+    if (right < total - 1) range.push("...");
+
+    if (total > 1) range.push(total);
+
+    return range;
+  };
+
   // * [BREADCRUMBS] Admin Dashboard navigation
   const breadcrumbs = [
     { label: "Admin Dashboard", path: "/admin/dashboard" },
@@ -610,20 +633,28 @@ const AdminStudents = () => {
 
           {/* Page Dots with Numbers */}
           <div className="flex items-center gap-2">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
-              <button
-                key={num}
-                onClick={() => setPage(num)}
-                className={`size-6 flex items-center justify-center rounded-full font-bold text-xs transition-all duration-150 ${
-                  num === page
-                    ? "size-7 bg-[var(--color-primary-500)] text-[var(--color-text-50)] scale-110"
-                    : "bg-[var(--color-bg-300)] text-[var(--color-text-900)] hover:bg-[var(--color-primary-400)]"
-                }`}
-                aria-label={`Go to page ${num}`}
-              >
-                {num}
-              </button>
-            ))}
+            {getVisiblePages(page, totalPages).map((num, idx) =>
+              num === "..." ? (
+                <span
+                  key={`dots-${idx}`}
+                  className="px-1 text-[var(--color-text-600)]"
+                >
+                  ...
+                </span>
+              ) : (
+                <button
+                  key={num}
+                  onClick={() => setPage(num as number)}
+                  className={`size-6 flex items-center justify-center rounded-full font-bold text-xs transition-all duration-150 ${
+                    num === page
+                      ? "size-7 bg-[var(--color-primary-500)] text-[var(--color-text-50)] scale-110"
+                      : "bg-[var(--color-bg-300)] text-[var(--color-text-900)] hover:bg-[var(--color-primary-400)]"
+                  }`}
+                >
+                  {num}
+                </button>
+              )
+            )}
           </div>
 
           {/* Next Button */}
