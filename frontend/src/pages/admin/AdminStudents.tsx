@@ -226,6 +226,14 @@ const AdminStudents = () => {
 
   // * [HANDLE] Submit create/edit form
   const handleSubmit = async () => {
+    const adviserId = formData.createdByAdviserId?.trim();
+
+    if (!adviserId) {
+      setFormError("Please select an adviser.");
+      setLoading(false);
+      return;
+    }
+
     const dataToSubmit = isEditMode
       ? {
           id: formData.id,
@@ -248,7 +256,7 @@ const AdminStudents = () => {
           email: formData.email || null,
           sex: formData.sex,
           birthDate: formData.birthDate || null,
-          createdByAdviserId: formData.createdByAdviserId,
+          createdByAdviserId: adviserId,
           learningModality: formData.learningModality,
           ...(formData.advisorySection ? { sectionId: formData.advisorySection.id } : {}),
         };

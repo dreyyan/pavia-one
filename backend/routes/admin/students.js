@@ -248,17 +248,11 @@ router.post("/", verifyAdmin, async (req, res) => {
 
     // Map possible input strings to Prisma LearningModality enum
     const modalityMap = {
-      FACE_TO_FACE: "FACE_TO_FACE",
       "Face to Face": "FACE_TO_FACE",
-      DISTANCE_LEARNING: "DISTANCE_LEARNING",
       "Distance Learning": "DISTANCE_LEARNING",
-      BLENDED: "BLENDED",
       Blended: "BLENDED",
-      ONLINE: "ONLINE",
       Online: "ONLINE",
-      HOMESCHOOL: "HOMESCHOOL",
       Homeschool: "HOMESCHOOL",
-      OTHER: "OTHER",
       Other: "OTHER",
     };
 
@@ -293,9 +287,25 @@ router.post("/", verifyAdmin, async (req, res) => {
         continue;
       }
 
-      const existing = await prisma.student.findFirst({
-        where: { OR: [{ email }, { lrn }] },
+      // ! [CHECK] Adviser must exist (IMPORTANT FIX)
+      const adviserExists = await prisma.adviser.findUnique({
+        where: { adviserId: createdByAdviserId },
       });
+
+      if (!adviserExists) {
+        errors.push({
+          lrn,
+          message: "Adviser does not exist",
+        });
+        continue;
+      }
+
+      const existing = await prisma.student.findFirst({
+        where: {
+          OR: [email ? { email } : undefined, { lrn }].filter(Boolean),
+        },
+      });
+
       if (existing) {
         errors.push({ lrn, message: "Student already exists" });
         continue;
@@ -303,7 +313,7 @@ router.post("/", verifyAdmin, async (req, res) => {
 
       const parsedBirthDate = birthDate ? new Date(birthDate) : null;
 
-      // Map learningModality to enum or default to FACE_TO_FACE
+      // Map learningModality safely
       const safeModality = modalityMap[learningModality] || "FACE_TO_FACE";
 
       // Build student data
@@ -333,6 +343,7 @@ router.post("/", verifyAdmin, async (req, res) => {
         const section = await prisma.section.findUnique({
           where: { id: sectionId },
         });
+
         if (!section) {
           errors.push({ lrn, sectionId, message: "Section not found" });
           continue;
@@ -348,36 +359,61 @@ router.post("/", verifyAdmin, async (req, res) => {
         };
       }
 
-      const newStudent = await prisma.student.create({
-        data: studentData,
-        select: {
-          id: true,
-          lrn: true,
-          firstName: true,
-          middleName: true,
-          lastName: true,
-          nameExtension: true,
-          email: true,
-          sex: true,
-          birthDate: true,
-          motherTongue: true,
-          religion: true,
-          createdAt: true,
-          adviser: { select: { id: true, name: true, adviserId: true } },
-          address: {
-            select: { barangay: true, municipalityCity: true, province: true },
-          },
-          enrollments: {
-            where: { status: "ENROLLED" },
-            select: {
-              section: { select: { id: true, name: true } },
-              learningModality: true,
-              status: true,
+      let newStudent;
+
+      try {
+        newStudent = await prisma.student.create({
+          data: studentData,
+          select: {
+            id: true,
+            lrn: true,
+            firstName: true,
+            middleName: true,
+            lastName: true,
+            nameExtension: true,
+            email: true,
+            sex: true,
+            birthDate: true,
+            motherTongue: true,
+            religion: true,
+            createdAt: true,
+            adviser: {
+              select: {
+                id: true,
+                name: true,
+                adviserId: true,
+              },
             },
-            take: 1,
+            address: {
+              select: {
+                barangay: true,
+                municipalityCity: true,
+                province: true,
+              },
+            },
+            enrollments: {
+              where: { status: "ENROLLED" },
+              select: {
+                section: { select: { id: true, name: true } },
+                learningModality: true,
+                status: true,
+              },
+              take: 1,
+            },
           },
-        },
-      });
+        });
+      } catch (err) {
+        console.error("Add student(s) error:", err);
+
+        errors.push({
+          lrn,
+          message: err.message,
+          meta: err.meta,
+          code: err.code,
+        });
+
+        continue;
+      }
 
       createdStudents.push({
         ...newStudent,
@@ -387,7 +423,16 @@ router.post("/", verifyAdmin, async (req, res) => {
       });
     }
 
-    res.status(201).json(
+    // ! [ERROR] No students created
+    if (createdStudents.length === 0) {
+      return res.status(400).json(
+        errorResponse("No students were created", {
+          failed: errors,
+        }),
+      );
+    }
+
+    return res.status(201).json(
       successResponse("Student(s) processed successfully", {
         created: createdStudents,
         failed: errors,
@@ -395,7 +440,7 @@ router.post("/", verifyAdmin, async (req, res) => {
     );
   } catch (err) {
     console.error("Create student(s) error:", err);
-    res
+    return res
       .status(500)
       .json(errorResponse("Failed to create student(s)", err.message));
   }
