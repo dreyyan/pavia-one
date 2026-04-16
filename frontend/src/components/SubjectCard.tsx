@@ -58,15 +58,6 @@ const SubjectCard: React.FC<SubjectCardProps> = ({
       <div className="px-4 py-3 space-y-2 text-sm">
         <div className="flex justify-between items-center">
           <span className="text-[var(--color-text-700)] font-figree font-semibold">
-            Grade Level
-          </span>
-          <span className="text-[var(--color-text-900)]">
-            {subject.gradeLevel ?? "—"}
-          </span>
-        </div>
-
-        <div className="flex justify-between items-center">
-          <span className="text-[var(--color-text-700)] font-figree font-semibold">
             Curriculum
           </span>
           <span className="text-[var(--color-text-900)]">
