@@ -13,6 +13,7 @@ import EmptyState from "../../components/EmptyState";
 // [IMPORT] Constants & Types
 import type { Adviser, AdviserFormData, GeneralModalConfig } from "../../types";
 import { AdviserFormModal } from "../../components/forms/AdviserFormModal";
+import AdviserCard from "../../components/AdviserCard";
 
 const EMPTY_FORM: AdviserFormData = {
   adviserId: "",
@@ -299,33 +300,7 @@ const handleSubmit = async () => {
             ) : null
           )}
           {displayedAdvisers.map((a) => (
-            <div
-              key={a.id}
-              className="bg-white rounded-md border border-[var(--color-bg-200)] overflow-hidden hover:translate-y-[-1px] hover:shadow-md active:shadow-md transition-all duration-200 cursor-pointer"
-              onClick={() => navigate(`/admin/advisers/view/${a.id}`)}
-            >
-              <div className="bg-[var(--color-bg-50)] px-3 pr-4 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
-                <div className="flex items-center w-full gap-3 min-w-0">
-                  <div className="size-10 rounded-md bg-[var(--color-primary-100)] flex items-center justify-center text-[var(--color-primary-700)] font-bold text-sm border border-[var(--color-primary-200)] flex-shrink-0">
-                    {a.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-roboto font-bold text-[var(--color-text-900)] text-base leading-tight truncate">{a.name}</p>
-                    <p className="text-xs font-mono text-[var(--color-text-600)] mt-0.5 tracking-wider truncate">#{a.adviserId}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="px-4 py-3 space-y-2 text-sm">
-                <div className="flex justify-between items-center">
-                  <span className="text-[var(--color-text-700)] font-figree font-semibold">Email</span>
-                  <span className="text-[var(--color-text-900)] truncate text-right max-w-[200px]">{a.email}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-[var(--color-text-700)] font-figree font-semibold">Sections</span>
-                  <span className="text-[var(--color-text-900)]">{a.sectionCount ?? 0}</span>
-                </div>
-              </div>
-            </div>
+            <AdviserCard key={a.id} adviser={a} />
           ))}
         </div>
 
