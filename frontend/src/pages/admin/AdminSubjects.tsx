@@ -41,11 +41,10 @@ const AdminSubjects = () => {
   // [STATES] Search, Sort, and Filter
   const [search, setSearch] = useState("");
   const [sortOption, setSortOption] = useState<"name-asc" | "name-desc" | "grade-asc" | "grade-desc">("name-asc");
-  const [showSortFilters, setShowSortFilters] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
+  const [activeDropdown, setActiveDropdown] = useState<"sort" | "grade" | null>(null);
 
   const [selectedGrade, setSelectedGrade] = useState<string | "All">("All");
-  const [showGradeFilters, setShowGradeFilters] = useState(false);
 
   // [STATES] Subject Form Modal
   const [showSubjectModal, setShowSubjectModal] = useState(false);
@@ -124,7 +123,7 @@ const AdminSubjects = () => {
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
-        setShowSortFilters(false);
+        setActiveDropdown(null);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -334,7 +333,7 @@ const AdminSubjects = () => {
         </div>
 
         {/* [SECTION] Search & Filters */}
-        <div className="bg-[var(--color-bg-100)] px-3 rounded-lg py-4 flex md:flex-row gap-2 md:gap-4 items-stretch w-full">
+        <div ref={filterRef} className="bg-[var(--color-bg-100)] px-3 rounded-lg py-4 flex md:flex-row gap-2 md:gap-4 items-stretch w-full">
           {/* [INPUT] Search */}
           <div className="relative flex-1">
             <input
@@ -347,19 +346,19 @@ const AdminSubjects = () => {
           </div>
 
           {/* [DROPDOWN] Sort Filter */}
-          <div ref={filterRef} className="relative">
+          <div className="relative">
             <button
-              onClick={() => setShowSortFilters(!showSortFilters)}
+              onClick={() => setActiveDropdown(activeDropdown === "sort" ? null : "sort")}
               className="flex items-center justify-center text-[var(--color-text-50)] rounded-sm px-3 h-10 transition cursor-pointer bg-[var(--color-bg-50)] hover:opacity-80"
             >
               <img src="/sort-icon.svg" alt="Sort" className="size-4" />
             </button>
-            {showSortFilters && (
+            {activeDropdown === "sort" && (
               <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-300 rounded-md shadow-lg p-2 space-y-1 z-50">
-                <button onClick={() => { setSortOption("name-asc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-asc" ? "bg-blue-100" : ""}`}>Name ↑</button>
-                <button onClick={() => { setSortOption("name-desc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-desc" ? "bg-blue-100" : ""}`}>Name ↓</button>
-                <button onClick={() => { setSortOption("grade-asc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "grade-asc" ? "bg-blue-100" : ""}`}>Grade ↑</button>
-                <button onClick={() => { setSortOption("grade-desc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "grade-desc" ? "bg-blue-100" : ""}`}>Grade ↓</button>
+                <button onClick={() => { setSortOption("name-asc"); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-asc" ? "bg-blue-100" : ""}`}>Name ↑</button>
+                <button onClick={() => { setSortOption("name-desc"); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-desc" ? "bg-blue-100" : ""}`}>Name ↓</button>
+                <button onClick={() => { setSortOption("grade-asc"); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "grade-asc" ? "bg-blue-100" : ""}`}>Grade ↑</button>
+                <button onClick={() => { setSortOption("grade-desc"); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "grade-desc" ? "bg-blue-100" : ""}`}>Grade ↓</button>
               </div>
             )}
           </div>
@@ -367,16 +366,16 @@ const AdminSubjects = () => {
           {/* [DROPDOWN] Grade Filter */}
           <div className="relative">
             <button
-              onClick={() => setShowGradeFilters(!showGradeFilters)}
+              onClick={() => setActiveDropdown(activeDropdown === "grade" ? null : "grade")}
               className="flex items-center justify-center text-[var(--color-text-50)] rounded-sm px-3 h-10 transition cursor-pointer bg-[var(--color-bg-50)] hover:opacity-80"
             >
               <img src="/filter-icon.svg" alt="Grade Filter" className="size-4" />
             </button>
-            {showGradeFilters && (
+            {activeDropdown === "grade" && (
               <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-300 rounded-md shadow-lg p-2 space-y-1 z-50 max-h-48 overflow-y-auto">
-                <button onClick={() => { setSelectedGrade("All"); setPage(1); setShowGradeFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedGrade === "All" ? "bg-blue-100" : ""}`}>All</button>
+                <button onClick={() => { setSelectedGrade("All"); setPage(1); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedGrade === "All" ? "bg-blue-100" : ""}`}>All</button>
                 {GRADE_LEVEL_OPTIONS.map(g => (
-                  <button key={g} onClick={() => { setSelectedGrade(g); setPage(1); setShowGradeFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedGrade === g ? "bg-blue-100" : ""}`}>Grade {g}</button>
+                  <button key={g} onClick={() => { setSelectedGrade(g); setPage(1); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedGrade === g ? "bg-blue-100" : ""}`}>Grade {g}</button>
                 ))}
               </div>
             )}
