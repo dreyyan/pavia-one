@@ -235,7 +235,7 @@ const filteredSections = sections
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h2 className="text-[var(--color-text-800)] leading-tight">School Forms</h2>
-            <p className="text-sm text-[var(--color-text-500)] mt-0.5 font-roboto">
+            <p className="text-sm text-[var(--color-text-700)] mt-0.5 font-roboto">
               Manage and track SF1 and SF5 forms across all sections.
             </p>
           </div>
