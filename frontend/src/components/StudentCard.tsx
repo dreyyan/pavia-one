@@ -27,6 +27,19 @@ const StudentCard: React.FC<StudentCardProps> = ({ student: s }) => {
     .toUpperCase()
     .slice(0, 2);
 
+  const avatarStyle =
+    s.sex === "FEMALE"
+      ? {
+          bg: "bg-[var(--color-red-50)]",
+          text: "text-[var(--color-red-600)]",
+          border: "border-[var(--color-red-200)]",
+        }
+      : {
+          bg: "bg-[var(--color-primary-50)]",
+          text: "text-[var(--color-primary-700)]",
+          border: "border-[var(--color-primary-200)]",
+        };
+
   return (
     <div
       className="bg-white rounded-md border border-[var(--color-bg-300)] overflow-hidden hover:translate-y-[-1px] hover:shadow-md active:shadow-md transition-all duration-200 cursor-pointer"
@@ -36,7 +49,9 @@ const StudentCard: React.FC<StudentCardProps> = ({ student: s }) => {
       <div className="bg-[var(--color-bg-50)] px-3 pr-4 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
         <div className="flex items-center w-full gap-3 min-w-0">
           {/* Initials Avatar */}
-          <div className="size-10 rounded-md bg-[var(--color-primary-100)] flex items-center justify-center text-[var(--color-primary-700)] font-bold px-4 text-xl border border-[var(--color-primary-200)] flex-shrink-0">
+          <div
+            className={`size-10 rounded-md flex items-center justify-center font-bold px-4 text-xl border flex-shrink-0 ${avatarStyle.bg} ${avatarStyle.text} ${avatarStyle.border}`}
+          >
             {initials}
           </div>
 
