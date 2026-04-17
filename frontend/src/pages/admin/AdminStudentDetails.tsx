@@ -16,6 +16,7 @@ import { StatusBadge } from "../../components/StatusBadge";
 // [IMPORT] Constants & Types
 import { STUDENT_DETAILS_PAGE_LABELS } from "../../constants";
 import type { StudentDetails, GeneralModalConfig } from "../../types";
+import { normalizeSex } from "../../helpers";
 
 // ?[TYPE] Form pages
 type FormPage = 0 | 1 | 2;
@@ -67,8 +68,14 @@ const AdminStudentDetails = () => {
 
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed to fetch student");
-      setStudent(data.data);
-      setFormData(data.data);
+
+      const normalizedStudent = {
+        ...data.data,
+        sex: normalizeSex(data.data.sex),
+      };
+
+      setStudent(normalizedStudent);
+      setFormData(normalizedStudent);
     } catch (err) {
       // ! [ERROR] Fetching student failed
       console.error(err);

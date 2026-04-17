@@ -37,3 +37,15 @@ export function darkenColor(hex: string, percent: number) {
     const b = Math.max(0, Math.min(255, (num & 0xff) * (1 - percent)));
     return `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
 }
+
+// [HELPER] Normalize sex value
+export const normalizeSex = (sex: any): string => {
+  if (!sex) return "";
+
+  const s = String(sex).trim().toLowerCase();
+
+  if (s === "male" || s === "m") return "Male";
+  if (s === "female" || s === "f") return "Female";
+
+  return "";
+};
