@@ -48,7 +48,7 @@ const SectionFormCard = ({ section, onClick }: SectionFormCardProps) => {
           <div
             className={`size-10 rounded-md flex items-center justify-center font-bold text-sm border flex-shrink-0 ${colors.badge}`}
           >
-            {section.gradeLevel}
+            G{section.gradeLevel}
           </div>
 
           {/* [UI] Section name + school year */}
@@ -78,8 +78,14 @@ const SectionFormCard = ({ section, onClick }: SectionFormCardProps) => {
           <span className="text-[var(--color-text-700)] font-semibold">
             Adviser
           </span>
-          <span className="text-[var(--color-text-900)]">
-            {section?.adviser?.name}
+          <span
+            className={` ${
+              !section?.adviser?.name
+                ? "text-[var(--color-red-600)] italic"
+                : "text-[var(--color-text-900)] font-semibold"
+            }`}
+          >
+            {section?.adviser?.name ?? "Unassigned"}
           </span>
         </div>
 
