@@ -346,6 +346,7 @@ const AdminAnnouncementsAndEvents = () => {
           title: "Announcement Deleted",
           message: "The announcement has been deleted successfully.",
           type: "success",
+          confirmText: "OK",
           isCancelable: false,
           onConfirm: () => closeGeneralModal(),
         });
@@ -486,6 +487,7 @@ const AdminAnnouncementsAndEvents = () => {
           title: "Event Deleted",
           message: "The event has been deleted successfully.",
           type: "success",
+          confirmText: "OK",
           isCancelable: false,
           onConfirm: () => closeGeneralModal(),
         });
