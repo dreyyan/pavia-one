@@ -5,6 +5,8 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../../context/useAuth";
 import { usePageTitle } from "../../hooks/usePageTitle";
 
+// [IMPORT] Components
+import DashboardItem from "../../components/DashboardItem";
 import Skeleton from "../../components/Skeleton";
 import {
   BarChart,
@@ -120,43 +122,26 @@ const AdminReportsAndStatistics = () => {
   }
 
   return (
-    <div className="py-10 px-4 space-y-8 max-w-7xl mx-auto">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-[var(--color-text-800)]">Reports & Statistics</h1>
-        <p className="font-roboto text-[var(--color-text-700)] mt-1">
-          Overview of school performance and enrollment data
-        </p>
-      </div>
-
-      {/* Key Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-        <div className="bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-xl p-6 shadow-sm hover:shadow transition-shadow">
-          <p className="text-sm font-roboto text-[var(--color-text-600)]">Total Students</p>
-          <h3 className="text-4xl font-semibold text-[var(--color-text-800)] mt-3">
-            {reports.totalStudents.toLocaleString()}
-          </h3>
+    <div className="py-10 px-4 space-y-4 max-w-7xl mx-auto">
+        {/* [SECTION] Header */}
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h2 className="text-[var(--color-text-800)] leading-tight">Reports & Statistics</h2>
+            <p className="text-sm text-[var(--color-text-700)] mt-0.5 font-roboto">
+              Overview of school performance and enrollment data.
+            </p>
+          </div>
         </div>
 
-        <div className="bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-xl p-6 shadow-sm hover:shadow transition-shadow">
-          <p className="text-sm font-roboto text-[var(--color-text-600)]">Total Advisers</p>
-          <h3 className="text-4xl font-semibold text-[var(--color-text-800)] mt-3">
-            {reports.totalAdvisers}
-          </h3>
-        </div>
-
-        <div className="bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-xl p-6 shadow-sm hover:shadow transition-shadow">
-          <p className="text-sm font-roboto text-[var(--color-text-600)]">Total Sections</p>
-          <h3 className="text-4xl font-semibold text-[var(--color-text-800)] mt-3">
-            {reports.totalSections}
-          </h3>
-        </div>
-
-        <div className="bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-xl p-6 shadow-sm hover:shadow transition-shadow">
-          <p className="text-sm font-roboto text-[var(--color-text-600)]">Pending Forms</p>
-          <h3 className="text-4xl font-semibold text-[var(--color-accent-600)] mt-3">
-            {reports.totalFormsPending}
-          </h3>
+      {/* [SECTION] Key Metrics */}
+      <div className="bg-[var(--color-bg-100)] border-2 border-[var(--color-bg-300)]/60 rounded-xl px-5 py-6 gap-x-3 shadow-md">
+        <h2 className="mb-3">Overview</h2>
+        <div className="space-y-2">
+          <DashboardItem iconSrc="/total-sections-icon.svg" text="Total Students" value={reports.totalStudents} />
+          <DashboardItem iconSrc="/total-advisers-icon.svg" text="Total Advisers" value={reports.totalAdvisers} color="#0066CC" />
+          <DashboardItem iconSrc="/total-sections-icon.svg" text="Total Sections" value={reports.totalSections} />
+          <DashboardItem iconSrc="/school-forms-dashboard.svg" text="Pending Forms" value={reports.totalFormsPending} color="#0066CC" />
+          <DashboardItem iconSrc="/students-dashboard-icon.svg" text="Failing Students" value={reports.failingStudentsCount} color="#E60000" />
         </div>
       </div>
 
@@ -164,7 +149,7 @@ const AdminReportsAndStatistics = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Students by Grade Level */}
         <div className="bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-xl p-6 shadow-sm">
-          <h2 className="font-semibold text-[var(--color-text-800)] mb-5">Students by Grade Level</h2>
+          <h3 className="font-semibold text-[var(--color-text-800)] mb-5">Students by Grade Level</h3>
           <ResponsiveContainer width="100%" height={320}>
             <BarChart data={reports.studentsByGrade}>
               <XAxis dataKey="gradeLevel" stroke="var(--color-text-500)" />
@@ -176,8 +161,8 @@ const AdminReportsAndStatistics = () => {
         </div>
 
         {/* Students by Learning Modality */}
-        <div className="bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-xl p-6 shadow-sm">
-          <h2 className="font-semibold text-[var(--color-text-800)] mb-5">Students by Learning Modality</h2>
+        <div className="bg-[var(--color-bg-100)] rounded-xl p-6 shadow-sm">
+          <h3 className="font-semibold text-[var(--color-text-800)] mb-5">Students by Learning Modality</h3>
           <ResponsiveContainer width="100%" height={320}>
             <PieChart>
               <Pie
@@ -200,8 +185,8 @@ const AdminReportsAndStatistics = () => {
         </div>
 
         {/* Sections per Adviser */}
-        <div className="bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-xl p-6 shadow-sm lg:col-span-2">
-          <h2 className="font-semibold text-[var(--color-text-800)] mb-5">Sections per Adviser</h2>
+        <div className="bg-[var(--color-bg-100)] rounded-xl p-6 shadow-sm lg:col-span-2">
+          <h3 className="font-semibold text-[var(--color-text-800)] mb-5">Sections per Adviser</h3>
           <ResponsiveContainer width="100%" height={340}>
             <BarChart data={reports.sectionsPerAdviser}>
               <XAxis 
@@ -216,19 +201,6 @@ const AdminReportsAndStatistics = () => {
               <Bar dataKey="sections" fill="var(--color-accent-600)" radius={4} />
             </BarChart>
           </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Failing Students */}
-      <div className="bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-xl p-8 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="font-semibold text-[var(--color-text-800)]">Failing Students</h2>
-            <p className="text-sm text-[var(--color-text-600)] mt-1">Students with final rating below 75</p>
-          </div>
-          <h3 className="text-6xl font-bold text-[var(--color-red-600)]">
-            {reports.failingStudentsCount}
-          </h3>
         </div>
       </div>
 
