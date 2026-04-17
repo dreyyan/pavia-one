@@ -1,19 +1,8 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
-export interface Subject {
-  id: number;
-  code: string;
-  name: string;
-  gradeLevel: number;
-  hoursPerWeek?: number;
-  description?: string;
-  curriculum?: string;
-  writtenWorkWeight?: number;
-  performanceTaskWeight?: number;
-  quarterlyAssessmentWeight?: number;
-  createdAt: string;
-}
+// [IMPORT] Types
+import type { Subject } from "../types";
 
 interface SubjectCardProps {
   subject: Subject;

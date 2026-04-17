@@ -141,6 +141,20 @@ export interface Enrollment {
   };
 }
 
+export interface Subject {
+  id: number;
+  code: string;
+  name: string;
+  gradeLevel: number;
+  hoursPerWeek?: number;
+  description?: string;
+  curriculum?: string;
+  writtenWorkWeight?: number;
+  performanceTaskWeight?: number;
+  quarterlyAssessmentWeight?: number;
+  createdAt: string;
+}
+
 // ? [TYPES] Specific Fields
 
 export interface AdviserSection {
