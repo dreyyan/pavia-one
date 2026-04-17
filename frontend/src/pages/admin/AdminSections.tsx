@@ -437,7 +437,7 @@ const AdminSections = () => {
         </div>
 
         {/* [SECTION] Search & Filters */}
-        <div className="bg-[var(--color-bg-100)] px-3 rounded-lg py-4 flex md:flex-row gap-2 md:gap-4 items-stretch w-full">
+        <div ref={filterRef} className="bg-[var(--color-bg-100)] px-3 rounded-lg py-4 flex md:flex-row gap-2 md:gap-4 items-stretch w-full">
           <div className="relative flex-1">
             <input
               type="text"
@@ -449,7 +449,7 @@ const AdminSections = () => {
           </div>
 
           {/* [DROPDOWN] Sort Filter */}
-          <div ref={filterRef} className="relative">
+          <div className="relative">
             <button
               onClick={() => setActiveDropdown(activeDropdown === "sort" ? null : "sort")}
               className="flex items-center justify-center text-[var(--color-text-50)] rounded-sm px-3 h-10 transition cursor-pointer bg-[var(--color-bg-50)] hover:opacity-80"
