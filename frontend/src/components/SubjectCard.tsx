@@ -1,6 +1,9 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
+// [IMPORT] Helpers
+import { getGradeColor } from "../helpers";
+
 // [IMPORT] Types
 import type { Subject } from "../types";
 
@@ -14,6 +17,7 @@ const SubjectCard: React.FC<SubjectCardProps> = ({
   onClick,
 }) => {
   const navigate = useNavigate();
+  const colors = getGradeColor(subject.gradeLevel);
 
   const handleClick = () => {
     if (onClick) onClick(subject.id);
@@ -28,7 +32,9 @@ const SubjectCard: React.FC<SubjectCardProps> = ({
       {/* HEADER */}
       <div className="bg-[var(--color-bg-50)] px-3 pr-4 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
         <div className="flex items-center w-full gap-3 min-w-0">
-          <div className="size-10 rounded-md bg-[var(--color-primary-100)] flex items-center justify-center text-[var(--color-primary-700)] font-bold text-sm border border-[var(--color-primary-200)] flex-shrink-0 px-1">
+          <div
+            className={`size-10 rounded-md flex items-center justify-center font-bold text-sm border flex-shrink-0 px-1 ${colors.badge}`}
+          >
             {subject.gradeLevel}
           </div>
 
