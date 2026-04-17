@@ -117,13 +117,31 @@ export interface Student {
   email?: string;
   createdByAdviserId: string;
   createdAt: string;
-  adviser?: { id: number; name: string; adviserId: string };
+
+  adviser?: {
+    id: number;
+    name: string;
+    adviserId: string;
+  };
+
   enrollments: {
     id: number;
     sectionId: number;
     schoolYear: string;
     status: string;
     learningModality: string;
+
+    section?: {
+      id: number;
+      name: string;
+      gradeLevel: number;
+      curriculum: string;
+    } | null;
+
+    learningAreas?: {
+      id: number;
+      name: string;
+    }[];
   }[];
 }
 

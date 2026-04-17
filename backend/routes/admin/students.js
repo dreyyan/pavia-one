@@ -75,6 +75,14 @@ router.get("/", verifyAdmin, async (req, res) => {
               schoolYear: true,
               status: true,
               learningModality: true,
+              section: {
+                select: {
+                  id: true,
+                  name: true,
+                  gradeLevel: true,
+                  curriculum: true,
+                },
+              },
               learningAreas: {
                 select: {
                   learningArea: {
@@ -121,7 +129,10 @@ router.get("/", verifyAdmin, async (req, res) => {
       // Map learning areas per enrollment
       const enrollmentsWithLearningAreas = s.enrollments.map((enr) => ({
         ...enr,
+
         learningAreas: enr.learningAreas.map((ela) => ela.learningArea),
+
+        section: enr.section ?? null,
       }));
 
       return {

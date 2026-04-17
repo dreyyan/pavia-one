@@ -28,8 +28,8 @@ const AdminStudents = () => {
   const [search, setSearch] = useState("");
   const [adviserSearch, setAdviserSearch] = useState("");
   const [sortOption, setSortOption] = useState<"name-asc" | "name-desc" | "lrn-asc" | "lrn-desc">("name-asc");
-  const filterRef = useRef<HTMLDivElement>(null);
   const [activeDropdown, setActiveDropdown] = useState<"sort" | "sex" | null>(null);
+  const filterRef = useRef<HTMLDivElement>(null);
 
   const [selectedSex, setSelectedSex] = useState<string | "All">("All");
 
@@ -262,7 +262,7 @@ const AdminStudents = () => {
         };
 
     setLoading(true);
-    setFormError("");   // ← Clear previous error
+    setFormError("");
 
     try {
       const token = localStorage.getItem("token");
@@ -542,7 +542,7 @@ const AdminStudents = () => {
         </div>
       )}
 
-      {/* [CARDS] Students - Mobile View */}
+      {/* [CARDS] Students (Mobile View) */}
       <div className="flex flex-col gap-4 sm:hidden mt-2 bg-[var(--color-bg-100)] px-3 py-4 rounded-lg">
         {!loading && (
           <>
@@ -568,6 +568,120 @@ const AdminStudents = () => {
         ))}
       </div>
 
+      {/* [TABLE] Students (Tablet & Desktop View) */}
+      <div className="hidden sm:block mt-2 bg-[var(--color-bg-100)] px-3 py-4 rounded-lg overflow-x-auto">
+        {!loading && (
+          <>
+            {/* [EMPTY STATE] */}
+            {displayedStudents.length === 0 ? (
+              <EmptyState
+                title="No students found"
+                subtitle="No students match your current filters or search. Try adjusting your criteria."
+                iconSrc="/no-data-icon.svg"
+              />
+            ) : students.length === 0 ? (
+              <EmptyState
+                title="No students found"
+                subtitle="You currently have no assigned students. Please contact admin if this is an error."
+                iconSrc="/no-data-icon.svg"
+              />
+            ) : null}
+          </>
+        )}
+
+        {displayedStudents.length > 0 && (
+          <table className="min-w-full border-separate border-spacing-y-2">
+            
+            {/* [TABLE HEADER] */}
+            <thead>
+              <tr className="text-left">
+                {/* [HEADER] Checkbox */}
+                <th className="px-3 py-2">
+                  <input
+                    type="checkbox"
+                    checked={
+                      displayedStudents.length > 0 &&
+                      displayedStudents.every(s => selectedStudents.includes(s.id))
+                    }
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedStudents(prev => [
+                          ...new Set([...prev, ...displayedStudents.map(s => s.id)])
+                        ]);
+                      } else {
+                        setSelectedStudents(prev =>
+                          prev.filter(id => !displayedStudents.some(s => s.id === id))
+                        );
+                      }
+                    }}
+                  />
+                </th>
+
+                {/* [HEADER] Columns */}
+                <th className="px-3 py-2 font-figtree font-semibold text-[16px] text-[var(--color-text-700)]">Name</th>
+                <th className="px-3 py-2 font-figtree font-semibold text-[16px] text-[var(--color-text-700)]">LRN</th>
+                <th className="px-3 py-2 font-figtree font-semibold text-[16px] text-[var(--color-text-700)]">Grade, Section & Curriculum</th>
+                <th className="px-3 py-2 font-figtree font-semibold text-[16px] text-[var(--color-text-700)]">Adviser</th>
+              </tr>
+            </thead>
+
+            {/* [TABLE BODY] */}
+            <tbody>
+              {displayedStudents.map((s) => {
+                const isSelected = selectedStudents.includes(s.id);
+
+                return (
+                  <tr
+                    key={s.id}
+                    className="bg-[var(--color-bg-50)] hover:bg-[var(--color-bg-200)] transition"
+                  >
+                    {/* [CELL] Checkbox */}
+                    <td className="px-3 py-3">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedStudents(prev => [...prev, s.id]);
+                          } else {
+                            setSelectedStudents(prev => prev.filter(id => id !== s.id));
+                          }
+                        }}
+                      />
+                    </td>
+
+                    {/* [CELL] Name (Clickable) */}
+                    <td
+                      onClick={() => navigate(`/admin/students/view/${s.id}`)}
+                      className="px-3 py-3 font-roboto font-semibold text-sm text-[var(--color-primary-700)] cursor-pointer hover:underline"
+                    >
+                      {s.fullName}
+                    </td>
+
+                    {/* [CELL] LRN */}
+                    <td className="px-3 py-3 font-roboto font-medium text-sm text-[var(--color-text-800)]">
+                      {s.lrn}
+                    </td>
+
+                    {/* [CELL] Grade, Section & Curriculum */}
+                    <td className="px-3 py-3 font-roboto font-medium text-sm text-[var(--color-text-800)]">
+                      {s.enrollments?.[0]?.section
+                        ? `Grade ${s.enrollments[0].section.gradeLevel} - ${s.enrollments[0].section.name} (${s.enrollments[0].section.curriculum ?? "No Curriculum"})`
+                        : "—"}
+                    </td>
+
+                    {/* [CELL] Adviser (FIXED) */}
+                    <td className="px-3 py-3 font-roboto font-medium text-sm text-[var(--color-text-800)]">
+                      {s.adviser?.name ?? "—"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
       {/* [SECTION] Pagination */}
       {displayedStudents.length !== 0 && (
         <div className="flex justify-center items-center mt-4 gap-4">
@@ -582,7 +696,7 @@ const AdminStudents = () => {
             &lt;
           </button>
 
-          {/* Page Dots with Numbers */}
+          {/* Page Dots w/ Numbers */}
           <div className="flex items-center gap-2">
             {getVisiblePages(page, totalPages).map((num, idx) =>
               num === "..." ? (
@@ -608,7 +722,7 @@ const AdminStudents = () => {
             )}
           </div>
 
-          {/* Next Button */}
+          {/* [BUTTON] Next */}
           <button
             onClick={handleNextPage}
             disabled={page === totalPages}
