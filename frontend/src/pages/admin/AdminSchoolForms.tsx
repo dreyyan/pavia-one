@@ -230,7 +230,6 @@ const filteredSections = sections
       </Modal>
 
       <div className="py-10 px-4 space-y-4 relative">
-
         {/* [SECTION] Header */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
@@ -246,9 +245,9 @@ const filteredSections = sections
         <div className="bg-[var(--color-bg-100)] border-2 border-[var(--color-bg-300)]/60 rounded-xl px-5 py-6 gap-x-3 shadow-md">
           <h2 className="mb-3">Overview</h2>
           <div className="space-y-2">
-            <DashboardItem iconSrc="/total-sections-icon.svg" text="Total Sections"    value={totalSections} />
-            <DashboardItem iconSrc="/check-icon.svg"          text="Approved / Locked" value={approvedSections}   color="#0066CC" />
-            <DashboardItem iconSrc="/error-icon-white.svg"          text="Needs Attention"   value={incompleteSections} color="#E60000" />
+            <DashboardItem iconSrc="/total-sections-icon.svg" text="Total Sections" value={totalSections} />
+            <DashboardItem iconSrc="/check-icon.svg" text="Approved / Locked" value={approvedSections} color="#0066CC" />
+            <DashboardItem iconSrc="/error-icon-white.svg" text="Needs Attention" value={incompleteSections} color="#E60000" />
           </div>
         </div>
 
