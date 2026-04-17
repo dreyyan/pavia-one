@@ -156,7 +156,6 @@ export interface Subject {
 }
 
 // ? [TYPES] Specific Fields
-
 export interface AdviserSection {
   id: number;
   name: string;
@@ -295,3 +294,21 @@ export interface ImportResult {
 export type SchoolFormType   = "SF1" | "SF5";
 export type SchoolFormStatus = "DRAFT" | "GENERATED" | "SUBMITTED" | "APPROVED" | "LOCKED";
 export type StudentFormStatus = "COMPLETE" | "PARTIAL" | "PENDING";
+
+// ? [TYPES] Dashboard
+export interface Profile {
+  id: number;
+  name: string;
+  username: string;
+  email: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DashboardSummary {
+  adminProfile: Profile;
+  totalStudents: number;
+  totalAdvisers: number;
+  totalSections: number;
+  totalAdmins: number;
+}
