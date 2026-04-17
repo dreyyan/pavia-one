@@ -77,7 +77,7 @@ const SectionCard: React.FC<SectionCardProps> = ({ section, onClick }) => {
           <span
             className={`truncate text-right max-w-[180px] ${
               !section.adviser
-                ? "text-amber-600 italic"
+                ? "text-[var(--color-red-600)] italic"
                 : "text-[var(--color-text-900)] font-semibold"
             }`}
           >
