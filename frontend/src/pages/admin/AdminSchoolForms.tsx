@@ -15,6 +15,8 @@ import { FORM_STATUS_BADGE, FORM_STATUS_LABELS } from "../../constants/index";
 import { SectionOverview, GeneralModalConfig } from "../../types/index";
 import { safeJson, getMissingInfo, sectionFormSummary } from "./../../helpers/index";
 import PrimaryButton from "../../components/PrimaryButton";
+import DashboardItem from "../../components/DashboardItem";
+import SectionFormCard from "../../components/SectionFormCard";
 
 const AdminSchoolForms = () => {
   const navigate = useNavigate();
@@ -240,26 +242,14 @@ const filteredSections = sections
           <PrimaryButton text="Auto-Generate School Forms" iconSrc="/auto-generate-icon.svg" onClick={() => { setGenerateYear(""); setShowGenerateModal(true); }} />
         </div>
 
-        {/* [SECTION] Summary Stats */}
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { label: "Total Sections", value: totalSections, color: "text-[var(--color-text-900)]" },
-            {
-              label: "Needs Attention",
-              value: incompleteSections,
-              color: incompleteSections > 0 ? "text-amber-600" : "text-[var(--color-text-900)]",
-              icon: incompleteSections > 0 ? "⚠" : null,
-            },
-            { label: "Approved / Locked", value: approvedSections, color: "text-green-700" },
-          ].map((stat) => (
-            <div key={stat.label} className="bg-[var(--color-bg-100)] rounded-lg px-4 py-3 border border-[var(--color-bg-200)]">
-              <p className="text-xs text-[var(--color-text-500)] font-roboto uppercase tracking-wide mb-1">{stat.label}</p>
-              <p className={`text-2xl font-bold font-roboto ${stat.color} flex items-center gap-1`}>
-                {stat.icon && <span className="text-amber-500 text-lg">{stat.icon}</span>}
-                {stat.value}
-              </p>
-            </div>
-          ))}
+        {/* [SECTION] Overview */}
+        <div className="bg-[var(--color-bg-100)] border-2 border-[var(--color-bg-300)]/60 rounded-xl px-5 py-6 gap-x-3 shadow-md">
+          <h2 className="mb-3">Overview</h2>
+          <div className="space-y-2">
+            <DashboardItem iconSrc="/total-sections-icon.svg" text="Total Sections"    value={totalSections} />
+            <DashboardItem iconSrc="/check-icon.svg"          text="Approved / Locked" value={approvedSections}   color="#0066CC" />
+            <DashboardItem iconSrc="/error-icon-white.svg"          text="Needs Attention"   value={incompleteSections} color="#E60000" />
+          </div>
         </div>
 
         {/* [SECTION] Search & Filters */}
@@ -280,10 +270,10 @@ const filteredSections = sections
           <div ref={yearRef} className="relative">
             <button
               onClick={() => setShowYearFilters(!showYearFilters)}
-              className={`h-10 px-3 rounded-sm text-xs font-semibold border transition-colors cursor-pointer ${
+              className={`h-10 px-3 rounded-sm text-xs font-semibold transition-colors cursor-pointer ${
                 filterYear !== "All"
-                  ? "bg-[var(--color-primary-600)] text-[var(--color-text-50)] border-[var(--color-primary-700)]"
-                  : "bg-[var(--color-bg-50)] text-[var(--color-text-700)] border-[var(--color-text-300)] hover:bg-[var(--color-bg-200)]"
+                  ? "bg-[var(--color-primary-600)] text-[var(--color-text-50)]"
+                  : "bg-[var(--color-bg-50)] text-[var(--color-text-700)] hover:bg-[var(--color-bg-200)]"
               }`}
             >
               {filterYear === "All" ? "School Year" : filterYear}
@@ -304,10 +294,10 @@ const filteredSections = sections
           <div ref={gradeRef} className="relative">
             <button
               onClick={() => setShowGradeFilters(!showGradeFilters)}
-              className={`h-10 px-3 rounded-sm text-xs font-semibold border transition-colors cursor-pointer ${
+              className={`h-10 px-3 rounded-sm text-xs font-semibold transition-colors cursor-pointer ${
                 filterGrade !== "All"
-                  ? "bg-[var(--color-primary-600)] text-[var(--color-text-50)] border-[var(--color-primary-700)]"
-                  : "bg-[var(--color-bg-50)] text-[var(--color-text-700)] border-[var(--color-text-300)] hover:bg-[var(--color-bg-200)]"
+                  ? "bg-[var(--color-primary-600)] text-[var(--color-text-50)]"
+                  : "bg-[var(--color-bg-50)] text-[var(--color-text-700)] hover:bg-[var(--color-bg-200)]"
               }`}
             >
               {filterGrade === "All" ? "Grade Level" : `Grade ${filterGrade}`}
@@ -328,7 +318,7 @@ const filteredSections = sections
           <div ref={sortRef} className="relative">
             <button
               onClick={() => setShowSortFilters(!showSortFilters)}
-              className="flex items-center justify-center rounded-sm px-3 h-10 transition cursor-pointer bg-[var(--color-bg-50)] hover:bg-[var(--color-bg-200)] border border-[var(--color-text-300)]"
+              className="flex items-center justify-center rounded-sm px-3 h-10 transition cursor-pointer bg-[var(--color-bg-50)] hover:bg-[var(--color-bg-200)]"
             >
               <img src="/sort-icon.svg" alt="Sort" className="size-4" />
             </button>
@@ -357,69 +347,13 @@ const filteredSections = sections
               iconSrc="/no-data-icon.svg"
             />
           ) : (
-            displayedSections.map((section) => {
-              const summary = sectionFormSummary(section.schoolForms);
-              const sf1     = section.schoolForms.find((f) => f.type === "SF1");
-              const sf5     = section.schoolForms.find((f) => f.type === "SF5");
-              const missing = getMissingInfo(section);
-              return (
-                <div
-                  key={section.id}
-                  onClick={() => handleSectionClick(section.id)}
-                  className={`bg-white rounded-md border overflow-hidden hover:translate-y-[-1px] hover:shadow-md active:shadow-md transition-all duration-200 cursor-pointer ${
-                    missing.length > 0 ? "border-amber-200" : "border-[var(--color-bg-200)]"
-                  }`}
-                >
-                  {/* Missing info banner */}
-                  {missing.length > 0 && (
-                    <div className="bg-amber-50 border-b border-amber-200 px-3 py-1.5 flex items-center gap-1.5">
-                      <img src="/error-icon.svg" className="size-6" />
-                      <p className="text-xs text-amber-700 font-medium">{missing.join(" · ")}</p>
-                    </div>
-                  )}
-                  {/* Card Header */}
-                  <div className="bg-[var(--color-bg-50)] px-3 pr-4 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
-                    <div className="flex items-center w-full gap-3 min-w-0">
-                      <div className="size-10 rounded-md bg-[var(--color-primary-100)] flex items-center justify-center text-[var(--color-primary-700)] font-bold text-sm border border-[var(--color-primary-200)] flex-shrink-0">
-                        G{section.gradeLevel}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-roboto font-bold text-[var(--color-text-900)] text-base leading-tight truncate">{section.name}</p>
-                        <p className="text-xs text-[var(--color-text-500)] mt-0.5">{section.schoolYear}</p>
-                      </div>
-                    </div>
-                    <span className={`ml-2 flex-shrink-0 text-xs px-2 py-0.5 rounded-full font-semibold ${FORM_STATUS_BADGE[summary]}`}>
-                      {FORM_STATUS_LABELS[summary]}
-                    </span>
-                  </div>
-                  {/* Card Body */}
-                  <div className="px-4 py-3 space-y-2 text-sm">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[var(--color-text-700)] font-semibold">Adviser</span>
-                      <span className="text-[var(--color-text-900)]">{section?.adviser?.name}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-[var(--color-text-700)] font-semibold">Curriculum</span>
-                      <span className="text-[var(--color-text-900)]">{section.curriculum}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-[var(--color-text-700)] font-semibold">Enrolled</span>
-                      <span className={`font-semibold ${section.enrollments.length === 0 ? "text-amber-600" : "text-[var(--color-text-900)]"}`}>
-                        {section.enrollments.length} students
-                      </span>
-                    </div>
-                    <div className="flex gap-2 pt-1 flex-wrap">
-                      {sf1
-                        ? <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${FORM_STATUS_BADGE[sf1.status]}`}>SF1: {FORM_STATUS_LABELS[sf1.status]}</span>
-                        : <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200 font-semibold">SF1: Missing</span>}
-                      {sf5
-                        ? <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${FORM_STATUS_BADGE[sf5.status]}`}>SF5: {FORM_STATUS_LABELS[sf5.status]}</span>
-                        : <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200 font-semibold">SF5: Missing</span>}
-                    </div>
-                  </div>
-                </div>
-              );
-            })
+            displayedSections.map((section) => (
+              <SectionFormCard
+                key={section.id}
+                section={section}
+                onClick={handleSectionClick}
+              />
+            ))
           )}
         </div>
 
