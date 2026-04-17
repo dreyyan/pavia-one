@@ -26,7 +26,7 @@ const SubjectCard: React.FC<SubjectCardProps> = ({
 
   return (
     <div
-      className="bg-white rounded-md border border-[var(--color-bg-200)] overflow-hidden hover:translate-y-[-1px] hover:shadow-md active:shadow-md transition-all duration-200 cursor-pointer"
+      className="bg-white rounded-md border border-[var(--color-bg-300)] overflow-hidden hover:translate-y-[-1px] hover:shadow-md active:shadow-md transition-all duration-200 cursor-pointer"
       onClick={handleClick}
     >
       {/* HEADER */}
