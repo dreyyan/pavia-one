@@ -187,25 +187,62 @@ router.post("/", verifyAdmin, async (req, res) => {
     if (Array.isArray(req.body)) {
       areasToCreate = req.body;
     } else if (req.body.name) {
-      areasToCreate = [
-        { name: req.body.name, curriculum: req.body.curriculum ?? "Regular" },
-      ];
+      areasToCreate = [req.body]; // Pass the whole body so all fields are included
     } else {
       return res
         .status(400)
         .json(errorResponse("Name is required to create a learning area"));
     }
 
+    // Validate each area before creating
+    for (const area of areasToCreate) {
+      if (
+        !area.name ||
+        typeof area.name !== "string" ||
+        area.name.trim() === ""
+      ) {
+        return res.status(400).json(errorResponse("Valid name is required"));
+      }
+
+      const gradeLevel = Number(area.gradeLevel);
+      if (
+        !area.gradeLevel ||
+        isNaN(gradeLevel) ||
+        gradeLevel < 7 ||
+        gradeLevel > 10
+      ) {
+        return res
+          .status(400)
+          .json(errorResponse("Valid gradeLevel between 7 and 10 is required"));
+      }
+
+      // Optional: Validate weights (sum should ideally be 1.0)
+      const ww = Number(area.writtenWorkWeight) || 0.3;
+      const pt = Number(area.performanceTaskWeight) || 0.5;
+      const qa = Number(area.quarterlyAssessmentWeight) || 0.2;
+
+      if (ww + pt + qa !== 1) {
+        return res
+          .status(400)
+          .json(
+            errorResponse(
+              "Grade weights must sum to exactly 1.0 (Written Work + Performance Task + Quarterly Assessment)",
+            ),
+          );
+      }
+    }
+
     const createdAreas = await prisma.$transaction(
       areasToCreate.map((area) =>
         prisma.learningArea.create({
           data: {
-            name: area.name,
-            gradeLevel: area.gradeLevel ?? 7,
-            curriculum: area.curriculum ?? "Regular",
-            writtenWorkWeight: area.writtenWorkWeight ?? 0.3,
-            performanceTaskWeight: area.performanceTaskWeight ?? 0.5,
-            quarterlyAssessmentWeight: area.quarterlyAssessmentWeight ?? 0.2,
+            name: area.name.trim(),
+            gradeLevel: Number(area.gradeLevel),
+            curriculum: (area.curriculum ?? "Regular").trim(),
+            writtenWorkWeight: Number(area.writtenWorkWeight) ?? 0.3,
+            performanceTaskWeight: Number(area.performanceTaskWeight) ?? 0.5,
+            quarterlyAssessmentWeight:
+              Number(area.quarterlyAssessmentWeight) ?? 0.2,
           },
         }),
       ),
@@ -218,8 +255,13 @@ router.post("/", verifyAdmin, async (req, res) => {
     if (err.code === "P2002") {
       return res
         .status(409)
-        .json(errorResponse("One or more learning areas already exist"));
+        .json(
+          errorResponse(
+            "One or more learning areas with this name and curriculum already exist",
+          ),
+        );
     }
+    console.error("Create learning area error:", err);
     res
       .status(500)
       .json(errorResponse("Failed to create learning area(s)", err.message));
