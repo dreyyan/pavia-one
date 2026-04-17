@@ -7,16 +7,16 @@ import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
 import Skeleton from "../../components/Skeleton";
-import PrimaryButton from "../../components/PrimaryButton";
+import PrimaryButton from "../../components/buttons/PrimaryButton";
 import Modal from "../../components/Modal";
-import SectionCard from "../../components/SectionCard";
+import SectionCard from "../../components/cards/SectionCard";
 
 // [IMPORT] Constants & Types
 import { GRADE_LEVEL_OPTIONS, CURRICULUM_OPTIONS } from "../../constants";
 import type { GeneralModalConfig, Section, SectionFormData } from "../../types";
 import { SectionFormModal } from "../../components/forms/SectionFormModal";
 import EmptyState from "../../components/EmptyState";
-import SecondaryButton from "../../components/SecondaryButton";
+import SecondaryButton from "../../components/buttons/SecondaryButton";
 
 const EMPTY_FORM: SectionFormData = {
   name: "",

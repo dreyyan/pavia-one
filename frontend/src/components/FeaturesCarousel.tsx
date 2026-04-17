@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import PrimaryButton from "./PrimaryButton";
+import PrimaryButton from "./buttons/PrimaryButton";
 
 const images = [
   "/carousel-1.png",

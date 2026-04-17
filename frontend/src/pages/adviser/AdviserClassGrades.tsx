@@ -5,7 +5,7 @@ import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
 import Modal from "../../components/Modal";
-import ClassCard from "../../components/ClassCard";
+import ClassCard from "../../components/cards/ClassCard";
 
 // ?[INTERFACES]
 interface StudentGrade {

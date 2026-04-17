@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Helpers
-import { getGradeColor } from "../helpers";
+import { getGradeColor } from "../../helpers";
 
 export interface Section {
   id: number;

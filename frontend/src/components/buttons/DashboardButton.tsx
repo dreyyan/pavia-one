@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { darkenColor } from "../helpers";
+import { darkenColor } from "../../helpers";
 
 interface DashboardButtonProps {
   iconSrc?: string;

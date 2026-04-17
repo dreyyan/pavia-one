@@ -7,8 +7,8 @@ import { useNavigate, useParams } from "react-router-dom";
 // [IMPORT] Components
 import Skeleton from "../../components/Skeleton";
 import ProfileInfo from "../../components/ProfileInfo";
-import PrimaryButton from "../../components/PrimaryButton";
-import DeleteButton from "../../components/DeleteButton";
+import PrimaryButton from "../../components/buttons/PrimaryButton";
+import DeleteButton from "../../components/buttons/DeleteButton";
 import InputField from "../../components/InputField";
 import Modal from "../../components/Modal";
 import { StatusBadge } from "../../components/StatusBadge";

@@ -8,7 +8,7 @@ import { useAuth } from "../../context/useAuth";
 // [IMPORT] Components
 import Skeleton from "../../components/Skeleton";
 import EmptyState from "../../components/EmptyState";
-import ClassCard from "../../components/ClassCard";
+import ClassCard from "../../components/cards/ClassCard";
 
 // ? [INTERFACES]
 interface Student {

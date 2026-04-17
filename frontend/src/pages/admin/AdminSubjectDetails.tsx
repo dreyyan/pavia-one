@@ -5,7 +5,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 // [IMPORT] Components
 import Skeleton from "../../components/Skeleton";
-import DeleteButton from "../../components/DeleteButton";
+import DeleteButton from "../../components/buttons/DeleteButton";
 import InputField from "../../components/InputField";
 import Modal from "../../components/Modal";
 import { WeightRow } from "../../components/WeightRow";

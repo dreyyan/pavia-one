@@ -6,9 +6,9 @@ import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Components
 import Skeleton from "../../components/Skeleton";
-import PrimaryButton from "../../components/PrimaryButton";
+import PrimaryButton from "../../components/buttons/PrimaryButton";
 import StudentFormModal from "../../components/forms/StudentFormModal";
-import StudentCard from "../../components/StudentCard";
+import StudentCard from "../../components/cards/StudentCard";
 import EmptyState from "../../components/EmptyState";
 import Modal from "../../components/Modal";
 

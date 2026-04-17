@@ -3,7 +3,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Types
-import type { Adviser } from "../types";
+import type { Adviser } from "../../types";
 
 interface AdviserCardProps {
   adviser: Adviser;

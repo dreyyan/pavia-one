@@ -4,7 +4,7 @@ import { useAuth } from "../../context/useAuth";
 import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Components
-import DashboardButton from "../../components/DashboardButton";
+import DashboardButton from "../../components/buttons/DashboardButton";
 import DashboardItem from "../../components/DashboardItem";
 import Skeleton from "../../components/Skeleton";
 import Modal from "../../components/Modal";

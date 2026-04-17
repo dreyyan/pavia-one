@@ -5,14 +5,14 @@ import { useState, useEffect } from "react";
 
 // Components
 import Skeleton from "../../components/Skeleton";
-import PrimaryButton from "../../components/PrimaryButton";
+import PrimaryButton from "../../components/buttons/PrimaryButton";
 import Modal from "../../components/Modal";
 import EmptyState from "../../components/EmptyState";
 
 // Types
 import { GeneralModalConfig } from "../../types";
-import SecondaryButton from "../../components/SecondaryButton";
-import DeleteButton from "../../components/DeleteButton";
+import SecondaryButton from "../../components/buttons/SecondaryButton";
+import DeleteButton from "../../components/buttons/DeleteButton";
 
 // ? [INTERFACES]
 interface Announcement {

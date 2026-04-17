@@ -3,8 +3,8 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
 // [IMPORT] Components
-import ClassCard from "../../components/ClassCard";
-import DashboardButton from "../../components/DashboardButton";
+import ClassCard from "../../components/cards/ClassCard";
+import DashboardButton from "../../components/buttons/DashboardButton";
 
 // ?[INTERFACES]
 interface ScheduleItem {

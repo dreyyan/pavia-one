@@ -7,7 +7,7 @@ import { useAuth } from "../../context/useAuth";
 // [IMPORT] Components
 import Skeleton from "../../components/Skeleton";
 import ProfileInfo from "../../components/ProfileInfo";
-import DeleteButton from "../../components/DeleteButton";
+import DeleteButton from "../../components/buttons/DeleteButton";
 import InputField from "../../components/InputField";
 import Modal from "../../components/Modal";
 

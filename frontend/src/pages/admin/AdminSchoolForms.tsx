@@ -14,9 +14,9 @@ import EmptyState from "../../components/EmptyState";
 import { FORM_STATUS_BADGE, FORM_STATUS_LABELS } from "../../constants/index";
 import { SectionOverview, GeneralModalConfig } from "../../types/index";
 import { safeJson, getMissingInfo, sectionFormSummary } from "./../../helpers/index";
-import PrimaryButton from "../../components/PrimaryButton";
+import PrimaryButton from "../../components/buttons/PrimaryButton";
 import DashboardItem from "../../components/DashboardItem";
-import SectionFormCard from "../../components/SectionFormCard";
+import SectionFormCard from "../../components/cards/SectionFormCard";
 
 const AdminSchoolForms = () => {
   const navigate = useNavigate();

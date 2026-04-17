@@ -6,14 +6,14 @@ import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Components
 import Skeleton from "../../components/Skeleton";
-import PrimaryButton from "../../components/PrimaryButton";
+import PrimaryButton from "../../components/buttons/PrimaryButton";
 import Modal from "../../components/Modal";
 import EmptyState from "../../components/EmptyState";
 
 // [IMPORT] Constants & Types
 import type { Adviser, AdviserFormData, GeneralModalConfig } from "../../types";
 import { AdviserFormModal } from "../../components/forms/AdviserFormModal";
-import AdviserCard from "../../components/AdviserCard";
+import AdviserCard from "../../components/cards/AdviserCard";
 
 const EMPTY_FORM: AdviserFormData = {
   adviserId: "",

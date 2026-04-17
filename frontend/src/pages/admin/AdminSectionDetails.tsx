@@ -8,14 +8,14 @@ import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
 import Skeleton from "../../components/Skeleton";
-import DeleteButton from "../../components/DeleteButton";
+import DeleteButton from "../../components/buttons/DeleteButton";
 import InputField from "../../components/InputField";
 import Modal from "../../components/Modal";
 
 // [IMPORT] Constants & Types
 import { GRADE_LEVEL_OPTIONS, CURRICULUM_OPTIONS, LEARNING_MODALITY_OPTIONS } from "../../constants";
 import { GeneralModalConfig, SectionDetails } from "../../types";
-import PrimaryButton from "../../components/PrimaryButton";
+import PrimaryButton from "../../components/buttons/PrimaryButton";
 import { AssignAdviserFormModal } from "../../components/forms/AssignAdviserFormModal";
 
 // [COMPONENT] Student Pagination

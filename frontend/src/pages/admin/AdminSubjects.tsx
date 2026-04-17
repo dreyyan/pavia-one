@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 
 // Components
 import Skeleton from "../../components/Skeleton";
-import PrimaryButton from "../../components/PrimaryButton";
+import PrimaryButton from "../../components/buttons/PrimaryButton";
 import Modal from "../../components/Modal";
 import EmptyState from "../../components/EmptyState";
 import SubjectFormModal from "../../components/forms/SubjectFormModal";
@@ -14,7 +14,7 @@ import SubjectFormModal from "../../components/forms/SubjectFormModal";
 // Constants & Types
 import { GRADE_LEVEL_OPTIONS } from "../../constants";
 import { LearningAreaFormData, GeneralModalConfig } from "../../types";
-import SubjectCard from "../../components/SubjectCard";
+import SubjectCard from "../../components/cards/SubjectCard";
 
 // ? [INTERFACES]
 interface Subject {

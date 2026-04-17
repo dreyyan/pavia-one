@@ -5,7 +5,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 // [IMPORT] Components
 import ImageHeader from "../components/ImageHeader";
 import InputField from "../components/InputField";
-import PrimaryButton from "../components/PrimaryButton";
+import PrimaryButton from "../components/buttons/PrimaryButton";
 import Modal from "../components/Modal";
 
 const ForgotPassword = () => {

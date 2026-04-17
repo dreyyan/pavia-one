@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
-import ClassCard from "../../components/ClassCard";
+import ClassCard from "../../components/cards/ClassCard";
 import EmptyState from "../../components/EmptyState";
 import Skeleton from "../../components/Skeleton";
 

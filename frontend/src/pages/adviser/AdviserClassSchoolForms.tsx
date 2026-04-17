@@ -9,7 +9,7 @@ import { useAuth } from "../../context/useAuth";
 // [IMPORT] Components
 import Modal from "../../components/Modal";
 import EmptyState from "../../components/EmptyState";
-import SchoolFormCard from "../../components/SchoolFormCard";
+import SchoolFormCard from "../../components/cards/SchoolFormCard";
 
 // [IMPORT] Helpers, Constants, Types
 import { GeneralModalConfig, SchoolFormStatus, SectionInfo, ImportResult } from "../../types";

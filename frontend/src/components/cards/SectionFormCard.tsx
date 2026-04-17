@@ -1,10 +1,10 @@
 // [IMPORT] Constants, Types, Helpers
-import { FORM_STATUS_BADGE, FORM_STATUS_LABELS } from "../constants/index";
-import { SectionOverview } from "../types/index";
-import { getMissingInfo, sectionFormSummary } from "../helpers/index";
+import { FORM_STATUS_BADGE, FORM_STATUS_LABELS } from "../../constants/index";
+import { SectionOverview } from "../../types/index";
+import { getMissingInfo, sectionFormSummary } from "../../helpers/index";
 
 // [IMPORT] Helpers
-import { getGradeColor } from "../helpers/index";
+import { getGradeColor } from "../../helpers/index";
 
 // ? [INTERFACE]
 interface SectionFormCardProps {
