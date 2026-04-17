@@ -1,6 +1,9 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
+// [IMPORT] Helpers
+import { getGradeColor } from "../helpers";
+
 export interface Section {
   id: number;
   name: string;
@@ -15,35 +18,6 @@ interface SectionCardProps {
   section: Section;
   onClick?: (sectionId: number) => void;
 }
-
-const getGradeColor = (grade: number) => {
-  switch (grade) {
-    case 7:
-      return {
-        bg: "bg-[var(--color-accent-50)]",
-        text: "text-[var(--color-accent-700)]",
-        badge: "text-[var(--color-accent-700)] bg-[var(--color-accent-100)] border-[var(--color-accent-300)]"
-      };
-    case 8:
-      return {
-        bg: "bg-[var(--color-secondary-50)]",
-        text: "text-[var(--color-secondary-700)]",
-        badge: "text-[var(--color-secondary-600)] bg-[var(--color-secondary-100)] border-[var(--color-secondary-300)]"
-      };
-    case 9:
-      return {
-        bg: "bg-[var(--color-primary-50)]",
-        text: "text-[var(--color-primary-700)]",
-        badge: "text-[var(--color-primary-700)] bg-[var(--color-primary-100)] border-[var(--color-primary-300)]"
-      };
-    case 10:
-      return {
-        bg: "bg-[var(--color-red-50)]",
-        text: "text-[var(--color-red-700)]",
-        badge: "text-[var(--color-red-700)] bg-[var(--color-red-100)] border-[var(--color-red-300)]"
-      };
-  }
-};
 
 const SectionCard: React.FC<SectionCardProps> = ({ section, onClick }) => {
   const navigate = useNavigate();

@@ -39,7 +39,7 @@ export function darkenColor(hex: string, percent: number) {
 }
 
 // [HELPER] Normalize sex value
-export const normalizeSex = (sex: any): string => {
+export const normalizeSex = (sex: unknown): string => {
   if (!sex) return "";
 
   const s = String(sex).trim().toLowerCase();
@@ -48,4 +48,40 @@ export const normalizeSex = (sex: any): string => {
   if (s === "female" || s === "f") return "Female";
 
   return "";
+};
+
+// [HELPER] Get grade level color scheme
+export const getGradeColor = (grade: number) => {
+  switch (grade) {
+    case 7:
+      return {
+        bg: "bg-[var(--color-accent-50)]",
+        text: "text-[var(--color-accent-700)]",
+        badge: "text-[var(--color-accent-700)] bg-[var(--color-accent-100)] border-[var(--color-accent-300)]"
+      };
+    case 8:
+      return {
+        bg: "bg-[var(--color-secondary-50)]",
+        text: "text-[var(--color-secondary-700)]",
+        badge: "text-[var(--color-secondary-600)] bg-[var(--color-secondary-100)] border-[var(--color-secondary-300)]"
+      };
+    case 9:
+      return {
+        bg: "bg-[var(--color-primary-50)]",
+        text: "text-[var(--color-primary-700)]",
+        badge: "text-[var(--color-primary-700)] bg-[var(--color-primary-100)] border-[var(--color-primary-300)]"
+      };
+    case 10:
+      return {
+        bg: "bg-[var(--color-red-50)]",
+        text: "text-[var(--color-red-700)]",
+        badge: "text-[var(--color-red-700)] bg-[var(--color-red-100)] border-[var(--color-red-300)]"
+      };
+    default:
+      return {
+        bg: "bg-[var(--color-bg-50)]",
+        text: "text-[var(--color-text-700)]",
+        badge: "text-[var(--color-text-700)] bg-[var(--color-bg-100)] border-[var(--color-bg-300)]"
+      };
+  }
 };
