@@ -28,11 +28,10 @@ const AdminStudents = () => {
   const [search, setSearch] = useState("");
   const [adviserSearch, setAdviserSearch] = useState("");
   const [sortOption, setSortOption] = useState<"name-asc" | "name-desc" | "lrn-asc" | "lrn-desc">("name-asc");
-  const [showSortFilters, setShowSortFilters] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
+  const [activeDropdown, setActiveDropdown] = useState<"sort" | "sex" | null>(null);
 
   const [selectedSex, setSelectedSex] = useState<string | "All">("All");
-  const [showSexFilters, setShowSexFilters] = useState(false);
 
   // [STATES] Student Form Modal
   const [showStudentModal, setShowStudentModal] = useState(false);
@@ -462,20 +461,20 @@ const AdminStudents = () => {
         {/* [DROPDOWN] Sort Filter */}
         <div ref={filterRef} className="relative">
           <button
-            onClick={() => setShowSortFilters(!showSortFilters)}
+            onClick={() => setActiveDropdown(activeDropdown === "sort" ? null : "sort")}
             className={`flex items-center justify-center text-[var(--color-text-50)] rounded-sm px-3 h-10 transition cursor-pointer ${
-              showSortFilters ? "bg-[var(--color-bg-50)]" : "bg-[var(--color-bg-50)] hover:opacity-80"
+              activeDropdown === "sort" ? "bg-[var(--color-bg-50)]" : "bg-[var(--color-bg-50)] hover:opacity-80"
             }`}
           >
             <img src="/sort-icon.svg" alt="Sort" className="size-4" />
           </button>
 
-          {showSortFilters && (
+          {activeDropdown === "sort" && (
             <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-300 rounded-md shadow-lg p-2 space-y-1 z-50">
-              <button onClick={() => { setSortOption("name-asc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-asc" ? "bg-blue-100" : ""}`}>Name ↑</button>
-              <button onClick={() => { setSortOption("name-desc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-desc" ? "bg-blue-100" : ""}`}>Name ↓</button>
-              <button onClick={() => { setSortOption("lrn-asc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "lrn-asc" ? "bg-blue-100" : ""}`}>LRN ↑</button>
-              <button onClick={() => { setSortOption("lrn-desc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "lrn-desc" ? "bg-blue-100" : ""}`}>LRN ↓</button>
+              <button onClick={() => { setSortOption("name-asc"); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-asc" ? "bg-blue-100" : ""}`}>Name ↑</button>
+              <button onClick={() => { setSortOption("name-desc"); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-desc" ? "bg-blue-100" : ""}`}>Name ↓</button>
+              <button onClick={() => { setSortOption("lrn-asc"); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "lrn-asc" ? "bg-blue-100" : ""}`}>LRN ↑</button>
+              <button onClick={() => { setSortOption("lrn-desc"); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "lrn-desc" ? "bg-blue-100" : ""}`}>LRN ↓</button>
             </div>
           )}
         </div>
@@ -483,18 +482,18 @@ const AdminStudents = () => {
         {/* [DROPDOWN] Sex Filter */}
         <div className="relative">
           <button
-            onClick={() => setShowSexFilters(!showSexFilters)}
+            onClick={() => setActiveDropdown(activeDropdown === "sex" ? null : "sex")}
             className={`flex items-center justify-center text-[var(--color-text-50)] rounded-sm px-3 h-10 transition cursor-pointer ${
-              showSexFilters ? "bg-[var(--color-bg-50)]" : "bg-[var(--color-bg-50)] hover:opacity-80"
+              activeDropdown === "sex" ? "bg-[var(--color-bg-50)]" : "bg-[var(--color-bg-50)] hover:opacity-80"
             }`}
           >
             <img src="/filter-icon.svg" alt="Sex Filter" className="size-4" />
           </button>
 
-          {showSexFilters && (
+          {activeDropdown === "sex" && (
             <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-300 rounded-md shadow-lg p-2 space-y-1 z-50">
               <button
-                onClick={() => { setSelectedSex("All"); setPage(1); setShowSexFilters(false); }}
+                onClick={() => { setSelectedSex("All"); setPage(1); setActiveDropdown(null); }}
                 className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedSex === "All" ? "bg-blue-100" : ""}`}
               >
                 All
@@ -505,7 +504,7 @@ const AdminStudents = () => {
                     onClick={() => { 
                       setSelectedSex(option.value); 
                       setPage(1); 
-                      setShowSexFilters(false); 
+                      setActiveDropdown(null); 
                     }}
                     className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedSex === option.value ? "bg-blue-100" : ""}`}
                   >
