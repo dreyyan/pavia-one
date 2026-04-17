@@ -9,10 +9,12 @@ import { useNavigate, useParams } from "react-router-dom";
 import Skeleton from "../../components/Skeleton";
 import Modal from "../../components/Modal";
 import EmptyState from "../../components/EmptyState";
+import DashboardItem from "../../components/DashboardItem";
 
 // [IMPORT] Constants, Types, Helpers
 import { GeneralModalConfig, SchoolFormType, SchoolFormStatus, SectionForm, StudentFormStatus } from "../../types";
 import { FORM_STATUS_BADGE, FORM_STATUS_LABELS } from "../../constants/index";
+import { safeJson } from "../../helpers/index";
 
 // ? [INTERFACES]
 interface SectionDetail {
@@ -66,13 +68,6 @@ const STUDENT_STATUS_BADGE: Record<StudentFormStatus, string> = {
 
 const STATUS_FLOW: SchoolFormStatus[] = ["DRAFT", "GENERATED", "SUBMITTED", "APPROVED", "LOCKED"];
 
-// [HELPER] Safe JSON parse
-const safeJson = async (res: Response) => {
-  const text = await res.text();
-  try { return JSON.parse(text); }
-  catch { return { success: false, message: `Server error (${res.status})` }; }
-};
-
 // [HELPER] Build full student name
 const fullName = (s: Pick<StudentRow, "firstName" | "middleName" | "lastName" | "nameExtension">) =>
   [s.lastName, s.firstName, s.middleName, s.nameExtension].filter(Boolean).join(", ");
@@ -102,8 +97,10 @@ const AdminSchoolFormDetails = () => {
   const [loading, setLoading]       = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  // [STATES] Student search
+  // [STATES] Student search & pagination
   const [studentSearch, setStudentSearch] = useState("");
+  const [studentPage, setStudentPage]     = useState(1);
+  const studentItemsPerPage               = 5;
 
   // [STATES] Form status update modal
   const [showStatusModal, setShowStatusModal] = useState(false);
@@ -199,15 +196,25 @@ const AdminSchoolFormDetails = () => {
   // [DERIVED] Filtered students
   const filteredStudents = students.filter((s) => {
     const q = studentSearch.toLowerCase();
-    return s.lrn.includes(q) || s.firstName.toLowerCase().includes(q) || s.lastName.toLowerCase().includes(q);
+    return (
+      s.lrn.includes(q) ||
+      s.firstName.toLowerCase().includes(q) ||
+      s.lastName.toLowerCase().includes(q)
+    );
   });
+
+  // [PAGINATION] Student cards
+  const totalStudentPages     = Math.ceil(filteredStudents.length / studentItemsPerPage);
+  const displayedStudents     = filteredStudents.slice((studentPage - 1) * studentItemsPerPage, studentPage * studentItemsPerPage);
+  const handleStudentPrevPage = () => setStudentPage((p) => Math.max(p - 1, 1));
+  const handleStudentNextPage = () => setStudentPage((p) => Math.min(p + 1, totalStudentPages));
 
   // [DERIVED] Student completion summary
   const totalStudents    = students.length;
   const completeStudents = students.filter((s) => getStudentMissingFields(s).length === 0).length;
   const partialStudents  = students.filter((s) => {
-    const missing = getStudentMissingFields(s);
-    return missing.length > 0 && missing.length < 5;
+    const m = getStudentMissingFields(s);
+    return m.length > 0 && m.length < 5;
   }).length;
   const pendingStudents  = students.filter((s) => getStudentMissingFields(s).length === 5).length;
 
@@ -265,19 +272,16 @@ const AdminSchoolFormDetails = () => {
         </div>
       </Modal>
 
-      <div className="py-10 px-4 space-y-5 relative">
+      <div className="py-10 px-4 space-y-4 relative">
 
         {/* [SECTION] Header & Breadcrumbs */}
         <div>
           <h2 className="text-[var(--color-text-800)] leading-tight">School Forms</h2>
-          <nav className="font-roboto text-sm text-[var(--color-text-700)] flex items-center gap-1 flex-wrap">
-            <span
-              className="cursor-pointer hover:underline text-[var(--color-text-700)]"
-              onClick={() => navigate("/admin/school-forms")}
-            >
+          <nav className="font-roboto text-sm text-[var(--color-text-700)]">
+            <span className="cursor-pointer hover:underline" onClick={() => navigate("/admin/school-forms")}>
               School Forms
             </span>
-            <span className="text-[var(--color-text-400)]">/</span>
+            {" / "}
             <span className="font-medium text-[var(--color-text-900)]">
               {section ? `Grade ${section.gradeLevel} — ${section.name}` : "Section Detail"}
             </span>
@@ -285,36 +289,43 @@ const AdminSchoolFormDetails = () => {
         </div>
 
         {section && (
-          <div className="space-y-6">
+          <div className="space-y-4">
 
             {/* [CARD] Section Info */}
             <div className="bg-[var(--color-bg-100)] rounded-lg border border-[var(--color-bg-200)] overflow-hidden">
+
+              {/* [CARD] Header */}
               <div className="bg-[var(--color-bg-50)] border-b border-[var(--color-bg-200)] px-4 py-3 flex items-center justify-between gap-4 flex-wrap">
                 <div className="flex items-center gap-3">
+                  {/* [UI] Grade level avatar */}
                   <div className="size-10 rounded-md bg-[var(--color-primary-100)] flex items-center justify-center text-[var(--color-primary-700)] font-bold text-sm border border-[var(--color-primary-200)] flex-shrink-0">
                     G{section.gradeLevel}
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-[var(--color-text-900)] leading-tight">
+                    <h3 className="font-roboto font-bold text-[var(--color-text-900)] text-base leading-tight">
                       Grade {section.gradeLevel} — {section.name}
                     </h3>
-                    <p className="text-xs text-[var(--color-text-500)] mt-0.5">
+                    <p className="text-xs text-[var(--color-text-500)] mt-0.5 font-roboto">
                       {section.schoolYear} · {section.curriculum} Curriculum
                     </p>
                   </div>
                 </div>
+
+                {/* [BUTTON] Back */}
                 <button
                   onClick={() => navigate("/admin/school-forms")}
-                  className="text-sm text-[var(--color-primary-600)] hover:underline cursor-pointer flex items-center gap-1"
+                  className="text-sm font-roboto text-[var(--color-primary-600)] hover:underline cursor-pointer flex items-center gap-1"
                 >
                   ← Back to Sections
                 </button>
               </div>
-              <div className="px-4 py-3 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm font-roboto">
+
+              {/* [CARD] Body — Adviser, School Year, Students */}
+              <div className="px-4 py-3 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm font-roboto">
                 <div>
                   <p className="text-xs text-[var(--color-text-500)] uppercase tracking-wide mb-0.5">Adviser</p>
                   <p className="font-semibold text-[var(--color-text-800)]">{section.adviser?.name}</p>
-                  <p className="text-xs text-[var(--color-text-400)]">{section?.adviser?.email}</p>
+                  <p className="text-xs text-[var(--color-text-400)]">{section.adviser?.email}</p>
                 </div>
                 <div>
                   <p className="text-xs text-[var(--color-text-500)] uppercase tracking-wide mb-0.5">School Year</p>
@@ -327,74 +338,101 @@ const AdminSchoolFormDetails = () => {
               </div>
             </div>
 
-            {/* [CARD] Student Completion Summary */}
+            {/* [SECTION] Student Completion Overview */}
             {totalStudents > 0 && (
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { label: "Complete", value: completeStudents, color: "text-green-700", bg: "bg-green-50 border-green-200" },
-                  { label: "Partial",  value: partialStudents,  color: "text-yellow-700", bg: "bg-yellow-50 border-yellow-200" },
-                  { label: "Pending",  value: pendingStudents,  color: "text-[var(--color-text-500)]", bg: "bg-[var(--color-bg-100)] border-[var(--color-bg-200)]" },
-                ].map((stat) => (
-                  <div key={stat.label} className={`rounded-lg px-4 py-3 border ${stat.bg}`}>
-                    <p className="text-xs text-[var(--color-text-500)] font-roboto uppercase tracking-wide mb-1">{stat.label} Students</p>
-                    <p className={`text-2xl font-bold font-roboto ${stat.color}`}>{stat.value}</p>
-                  </div>
-                ))}
+              <div className="bg-[var(--color-bg-100)] border-2 border-[var(--color-bg-300)]/60 rounded-xl px-5 py-6 shadow-md">
+                <h2 className="mb-3">Student Overview</h2>
+                <div className="space-y-2">
+                  <DashboardItem iconSrc="/total-students-icon.svg" text="Total Students"    value={totalStudents} />
+                  <DashboardItem iconSrc="/check-icon.svg"          text="Complete"          value={completeStudents} color="#0066CC" />
+                  <DashboardItem iconSrc="/sort-icon.svg"           text="Partial"           value={partialStudents}  color="#B45309" />
+                  <DashboardItem iconSrc="/error-icon-white.svg"    text="Pending"           value={pendingStudents}  color="#6B7280" />
+                </div>
               </div>
             )}
 
-            {/* [SECTION] Section-level forms: SF1, SF5 */}
+            {/* [SECTION] Section-level Forms (SF1, SF5) */}
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-600)] mb-3">
+              <h4 className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-600)] mb-3 font-roboto">
                 Section Forms
               </h4>
 
-              {/* Mobile */}
+              {/* ── MOBILE: Form Cards ── */}
               <div className="flex flex-col gap-3 sm:hidden">
                 {section.schoolForms.length === 0 ? (
                   <div className="py-8 text-center border-2 border-dashed border-amber-200 rounded-xl bg-amber-50">
-                    <p className="text-amber-600 font-medium text-sm">⚠ No forms generated yet.</p>
-                    <p className="text-xs text-amber-500 mt-1">Go back and generate forms for this section.</p>
+                    <p className="text-amber-600 font-medium text-sm font-roboto">⚠ No forms generated yet.</p>
+                    <p className="text-xs text-amber-500 mt-1 font-roboto">Go back and generate forms for this section.</p>
                   </div>
                 ) : (
-                  section.schoolForms.map((form) => (
-                    <div key={form.id} className="bg-[var(--color-bg-50)] border border-[var(--color-bg-200)] rounded-lg p-4">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div>
-                          <p className="font-bold text-[var(--color-text-900)] text-sm">{FORM_TYPE_LABELS[form.type]}</p>
-                          <p className="text-xs text-[var(--color-text-500)] mt-0.5">{FORM_TYPE_DESCRIPTIONS[form.type]}</p>
-                        </div>
-                        <span className={`flex-shrink-0 text-xs px-2 py-0.5 rounded-full font-semibold ${FORM_STATUS_BADGE[form.status]}`}>
-                          {FORM_STATUS_LABELS[form.status]}
-                        </span>
-                      </div>
-                      <div className="flex gap-4 text-xs text-[var(--color-text-500)] mb-3">
-                        <span>Generated: {fmtDate(form.generatedAt)}</span>
-                        <span>Submitted: {fmtDate(form.submittedAt)}</span>
-                      </div>
-                      {/* Missing info for this form */}
-                      {!form.generatedAt && (
-                        <div className="mb-2 text-xs bg-amber-50 border border-amber-200 rounded px-2 py-1 text-amber-700">
-                          ⚠ Not yet generated
-                        </div>
-                      )}
-                      {form.generatedAt && !form.submittedAt && (
-                        <div className="mb-2 text-xs bg-blue-50 border border-blue-200 rounded px-2 py-1 text-blue-700">
-                          Awaiting submission
-                        </div>
-                      )}
-                      <button
-                        onClick={(e) => handleStatusClick(form, e)}
-                        className="text-xs text-[var(--color-primary-600)] hover:underline cursor-pointer"
+                  section.schoolForms.map((form) => {
+                    const notGenerated = !form.generatedAt;
+                    const awaitingSubmit = form.generatedAt && !form.submittedAt;
+                    return (
+                      <div
+                        key={form.id}
+                        className="bg-white rounded-md border border-[var(--color-bg-200)] overflow-hidden"
                       >
-                        Update Status
-                      </button>
-                    </div>
-                  ))
+                        {/* [CARD] Header */}
+                        <div className="bg-[var(--color-bg-50)] px-3 pr-4 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
+                          <div className="flex items-center gap-3 min-w-0">
+                            {/* [UI] Form type avatar */}
+                            <div className="size-10 rounded-md bg-[var(--color-primary-100)] flex items-center justify-center text-[var(--color-primary-700)] font-bold text-xs border border-[var(--color-primary-200)] flex-shrink-0">
+                              {form.type}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-roboto font-bold text-[var(--color-text-900)] text-sm leading-tight truncate">
+                                {FORM_TYPE_LABELS[form.type]}
+                              </p>
+                              <p className="text-xs text-[var(--color-text-500)] mt-0.5 truncate">
+                                {FORM_TYPE_DESCRIPTIONS[form.type]}
+                              </p>
+                            </div>
+                          </div>
+                          {/* [BADGE] Form status */}
+                          <span className={`ml-2 flex-shrink-0 text-xs px-2 py-0.5 rounded-full font-semibold ${FORM_STATUS_BADGE[form.status]}`}>
+                            {FORM_STATUS_LABELS[form.status]}
+                          </span>
+                        </div>
+
+                        {/* [CARD] Body */}
+                        <div className="px-4 py-3 space-y-2 text-sm">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[var(--color-text-700)] font-semibold">Generated</span>
+                            <span className="text-[var(--color-text-900)]">{fmtDate(form.generatedAt)}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-[var(--color-text-700)] font-semibold">Submitted</span>
+                            <span className="text-[var(--color-text-900)]">{fmtDate(form.submittedAt)}</span>
+                          </div>
+
+                          {/* [BANNER] Status hints */}
+                          {notGenerated && (
+                            <div className="text-xs bg-amber-50 border border-amber-200 rounded px-2 py-1 text-amber-700 font-roboto">
+                              ⚠ Not yet generated
+                            </div>
+                          )}
+                          {awaitingSubmit && (
+                            <div className="text-xs bg-blue-50 border border-blue-200 rounded px-2 py-1 text-blue-700 font-roboto">
+                              Awaiting submission
+                            </div>
+                          )}
+
+                          {/* [BUTTON] Update Status */}
+                          <button
+                            onClick={(e) => handleStatusClick(form, e)}
+                            className="text-xs text-[var(--color-primary-600)] hover:underline cursor-pointer font-roboto"
+                          >
+                            Update Status
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
                 )}
               </div>
 
-              {/* Desktop */}
+              {/* ── DESKTOP: Forms Table ── */}
               <div className="hidden sm:block bg-[var(--color-bg-100)] rounded-lg overflow-hidden border border-[var(--color-bg-200)]">
                 <table className="w-full text-sm font-roboto">
                   <thead>
@@ -413,19 +451,24 @@ const AdminSchoolFormDetails = () => {
                     {section.schoolForms.length === 0 ? (
                       <tr>
                         <td colSpan={8} className="px-4 py-10">
-                          <div className="text-center border-2 border-dashed border-amber-200 rounded-xl bg-amber-50 py-6">
-                            <p className="text-amber-600 font-medium text-sm">⚠ No forms generated for this section yet.</p>
-                          </div>
+                          <EmptyState
+                            title="No forms generated"
+                            subtitle="Go back and generate forms for this section."
+                            iconSrc="/no-data-icon.svg"
+                          />
                         </td>
                       </tr>
                     ) : (
                       section.schoolForms.map((form) => {
                         const formMissing: string[] = [];
-                        if (!form.generatedAt) formMissing.push("Not generated");
+                        if (!form.generatedAt)  formMissing.push("Not generated");
                         else if (!form.submittedAt) formMissing.push("Not submitted");
                         else if (!form.approvedAt)  formMissing.push("Not approved");
                         return (
-                          <tr key={form.id} className={`border-b border-[var(--color-bg-200)] ${formMissing.length > 0 ? "bg-amber-50/30" : ""}`}>
+                          <tr
+                            key={form.id}
+                            className={`border-b border-[var(--color-bg-200)] ${formMissing.length > 0 ? "bg-amber-50/30" : ""}`}
+                          >
                             <td className="px-4 py-3 font-bold text-[var(--color-text-900)]">{form.type}</td>
                             <td className="px-4 py-3 text-[var(--color-text-600)] text-xs max-w-[200px]">{FORM_TYPE_DESCRIPTIONS[form.type]}</td>
                             <td className="px-4 py-3">
@@ -462,55 +505,100 @@ const AdminSchoolFormDetails = () => {
               </div>
             </div>
 
-            {/* [SECTION] Per-student form status */}
+            {/* [SECTION] Per-Student Form Status */}
             <div>
               <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                <h4 className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-600)]">
+                <h4 className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-600)] font-roboto">
                   Students — Per-Student Form Status
                 </h4>
+                {/* [INPUT] Search */}
                 <input
                   type="text"
                   placeholder="Search students..."
                   value={studentSearch}
-                  onChange={(e) => setStudentSearch(e.target.value)}
+                  onChange={(e) => { setStudentSearch(e.target.value); setStudentPage(1); }}
                   className="bg-[var(--color-bg-50)] body-default rounded-sm px-3 outline-none border border-[var(--color-text-300)] focus:ring-2 focus:ring-[var(--color-primary-600)] h-9 text-sm w-full sm:w-64"
                 />
               </div>
 
-              {/* Mobile */}
+              {/* ── MOBILE: Student Cards ── */}
               <div className="flex flex-col gap-3 sm:hidden">
                 {filteredStudents.length === 0 ? (
-                  <EmptyState title="No students found" subtitle="No students match your search." iconSrc="/no-data-icon.svg" />
+                  <EmptyState
+                    title="No students found"
+                    subtitle="No students match your search."
+                    iconSrc="/no-data-icon.svg"
+                  />
                 ) : (
-                  filteredStudents.map((student) => {
+                  displayedStudents.map((student) => {
                     const missing = getStudentMissingFields(student);
                     return (
                       <div
                         key={student.id}
                         onClick={() => navigate(`/admin/school-forms/section/${section.id}/student/${student.id}`)}
-                        className={`bg-white rounded-md border overflow-hidden hover:translate-y-[-1px] hover:shadow-md transition-all duration-200 cursor-pointer ${
+                        className={`bg-white rounded-md border overflow-hidden hover:translate-y-[-1px] hover:shadow-md active:shadow-md transition-all duration-200 cursor-pointer ${
                           missing.length > 0 ? "border-amber-200" : "border-[var(--color-bg-200)]"
                         }`}
                       >
+                        {/* [BANNER] Missing info warning */}
                         {missing.length > 0 && (
-                          <div className="bg-amber-50 border-b border-amber-200 px-3 py-1 flex items-center gap-1.5">
-                            <span className="text-amber-500 text-xs">⚠</span>
-                            <p className="text-xs text-amber-700">Missing: {missing.join(", ")}</p>
+                          <div className="bg-amber-50 border-b border-amber-200 px-3 py-1.5 flex items-center gap-1.5">
+                            <img src="/error-icon.svg" className="size-6" />
+                            <p className="text-xs text-amber-700 font-medium">Missing: {missing.join(" · ")}</p>
                           </div>
                         )}
-                        <div className="bg-[var(--color-bg-50)] px-3 py-3 border-b border-[var(--color-bg-200)]">
-                          <p className="font-roboto font-bold text-[var(--color-text-900)] text-sm">{fullName(student)}</p>
-                          <p className="text-xs font-mono text-[var(--color-text-500)] mt-0.5">{student.lrn}</p>
+
+                        {/* [CARD] Header */}
+                        <div className="bg-[var(--color-bg-50)] px-3 pr-4 py-3 flex items-center gap-3 border-b border-[var(--color-bg-200)]">
+                          {/* [UI] Initials avatar */}
+                          <div className="size-10 rounded-md bg-[var(--color-primary-100)] flex items-center justify-center text-[var(--color-primary-700)] font-bold text-sm border border-[var(--color-primary-200)] flex-shrink-0">
+                            {student.firstName[0]}{student.lastName[0]}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-roboto font-bold text-[var(--color-text-900)] text-sm leading-tight truncate">
+                              {fullName(student)}
+                            </p>
+                            <p className="text-xs font-mono text-[var(--color-text-500)] mt-0.5 tracking-wider">
+                              LRN <span className="font-semibold text-[var(--color-text-700)]">{student.lrn}</span>
+                            </p>
+                          </div>
+                          {/* [BADGE] Sex */}
+                          <div className={`px-2 py-0.5 text-xs font-semibold rounded-full flex-shrink-0 ${
+                            student.sex === "MALE"
+                              ? "bg-[var(--color-primary-100)] text-[var(--color-primary-500)]"
+                              : "bg-[var(--color-red-100)] text-[var(--color-red-500)]"
+                          }`}>
+                            {student.sex === "MALE" ? "M" : "F"}
+                          </div>
                         </div>
-                        <div className="px-4 py-3 flex flex-wrap gap-2">
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${STUDENT_STATUS_BADGE[student.sf9Status]}`}>SF9: {STUDENT_FORM_LABELS[student.sf9Status]}</span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${STUDENT_STATUS_BADGE[student.sf10Status]}`}>SF10: {STUDENT_FORM_LABELS[student.sf10Status]}</span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${STUDENT_STATUS_BADGE[student.sf5Status]}`}>SF5: {STUDENT_FORM_LABELS[student.sf5Status]}</span>
-                          {student.generalAverage != null ? (
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--color-bg-200)] text-[var(--color-text-700)]">Avg: {student.generalAverage}</span>
-                          ) : (
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200">Avg: —</span>
-                          )}
+
+                        {/* [CARD] Body */}
+                        <div className="px-4 py-3 space-y-2 text-sm">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[var(--color-text-700)] font-semibold">Gen. Average</span>
+                            <span className={student.generalAverage == null ? "text-amber-600 font-semibold" : "text-[var(--color-text-900)]"}>
+                              {student.generalAverage ?? "—"}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-[var(--color-text-700)] font-semibold">Action Taken</span>
+                            <span className={!student.actionTaken ? "text-amber-600 font-semibold italic" : "text-[var(--color-text-900)]"}>
+                              {student.actionTaken ?? "—"}
+                            </span>
+                          </div>
+
+                          {/* [BADGES] Individual form statuses */}
+                          <div className="flex gap-2 pt-1 flex-wrap">
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${STUDENT_STATUS_BADGE[student.sf9Status]}`}>
+                              SF9: {STUDENT_FORM_LABELS[student.sf9Status]}
+                            </span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${STUDENT_STATUS_BADGE[student.sf10Status]}`}>
+                              SF10: {STUDENT_FORM_LABELS[student.sf10Status]}
+                            </span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${STUDENT_STATUS_BADGE[student.sf5Status]}`}>
+                              SF5: {STUDENT_FORM_LABELS[student.sf5Status]}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     );
@@ -518,7 +606,7 @@ const AdminSchoolFormDetails = () => {
                 )}
               </div>
 
-              {/* Desktop */}
+              {/* ── DESKTOP: Students Table ── */}
               <div className="hidden sm:block bg-[var(--color-bg-100)] rounded-lg overflow-hidden border border-[var(--color-bg-200)]">
                 <table className="w-full text-sm font-roboto">
                   <thead>
@@ -536,9 +624,17 @@ const AdminSchoolFormDetails = () => {
                   </thead>
                   <tbody>
                     {filteredStudents.length === 0 ? (
-                      <tr><td colSpan={9} className="px-4 py-8 text-center text-[var(--color-text-400)] italic text-sm">No students found.</td></tr>
+                      <tr>
+                        <td colSpan={9} className="px-4 py-12 text-center">
+                          <EmptyState
+                            title="No students found"
+                            subtitle="No students match your current search."
+                            iconSrc="/no-data-icon.svg"
+                          />
+                        </td>
+                      </tr>
                     ) : (
-                      filteredStudents.map((student) => {
+                      displayedStudents.map((student) => {
                         const missing = getStudentMissingFields(student);
                         return (
                           <tr
@@ -574,10 +670,7 @@ const AdminSchoolFormDetails = () => {
                             </td>
                             <td className="px-4 py-3">
                               {missing.length > 0 ? (
-                                <span
-                                  className="text-xs text-amber-600 font-medium flex items-center gap-1"
-                                  title={missing.join(", ")}
-                                >
+                                <span className="text-xs text-amber-600 font-medium flex items-center gap-1" title={missing.join(", ")}>
                                   <span>⚠</span> {missing.length} field{missing.length > 1 ? "s" : ""}
                                 </span>
                               ) : (
@@ -591,8 +684,48 @@ const AdminSchoolFormDetails = () => {
                   </tbody>
                 </table>
               </div>
-            </div>
 
+              {/* [SECTION] Student Pagination */}
+              {totalStudentPages > 1 && (
+                <div className="flex justify-center items-center mt-4 gap-4">
+                  <button
+                    onClick={handleStudentPrevPage}
+                    disabled={studentPage === 1}
+                    className={`w-8 h-8 flex items-center justify-center rounded-full text-[var(--color-text-50)] font-roboto font-bold transition-colors duration-150 ${
+                      studentPage === 1 ? "bg-[var(--color-bg-400)] cursor-not-allowed opacity-50" : "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)]"
+                    }`}
+                  >
+                    &lt;
+                  </button>
+                  <div className="flex items-center gap-2">
+                    {Array.from({ length: totalStudentPages }, (_, i) => i + 1).map((num) => (
+                      <button
+                        key={num}
+                        onClick={() => setStudentPage(num)}
+                        aria-label={`Go to page ${num}`}
+                        className={`size-6 flex items-center justify-center rounded-full font-bold text-xs transition-all duration-150 ${
+                          num === studentPage
+                            ? "size-7 bg-[var(--color-primary-500)] text-[var(--color-text-50)] scale-110"
+                            : "bg-[var(--color-bg-300)] text-[var(--color-text-900)] hover:bg-[var(--color-primary-400)]"
+                        }`}
+                      >
+                        {num}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={handleStudentNextPage}
+                    disabled={studentPage === totalStudentPages}
+                    className={`size-8 flex items-center justify-center rounded-full text-[var(--color-text-50)] font-roboto font-bold transition-colors duration-150 ${
+                      studentPage === totalStudentPages ? "bg-[var(--color-bg-400)] cursor-not-allowed opacity-50" : "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)]"
+                    }`}
+                  >
+                    &gt;
+                  </button>
+                </div>
+              )}
+
+            </div>
           </div>
         )}
 
