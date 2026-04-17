@@ -12,6 +12,7 @@ import EmptyState from "../../components/EmptyState";
 // Types
 import { GeneralModalConfig } from "../../types";
 import SecondaryButton from "../../components/SecondaryButton";
+import DeleteButton from "../../components/DeleteButton";
 
 // ? [INTERFACES]
 interface Announcement {
@@ -526,23 +527,52 @@ const AdminAnnouncementsAndEvents = () => {
         title="Announcement Details"
         type="info"
         confirmText="Edit"
-        onConfirm={() => selectedAnnouncement && handleEditAnnouncement(selectedAnnouncement)}
+        onConfirm={() =>
+          selectedAnnouncement &&
+          handleEditAnnouncement(selectedAnnouncement)
+        }
         isCancelable={true}
       >
-        <div className="p-1 space-y-2">
-          <p className="text-[var(--color-text-500)] text-xs">{formatDate(selectedAnnouncement?.publishedAt)}</p>
-          <h3 className="text-lg font-bold text-[var(--color-text-900)]">{selectedAnnouncement?.title}</h3>
-          <p className="text-[var(--color-text-600)] text-sm leading-relaxed">{selectedAnnouncement?.content}</p>
+        <div className="space-y-4 p-1">
+          {/* Metadata */}
+          <div className="space-y-1">
+            <p className="text-[var(--color-text-500)] text-xs">
+              Published {formatDate(selectedAnnouncement?.publishedAt)}
+            </p>
+
+            <h3 className="text-lg font-bold text-[var(--color-text-900)] leading-snug">
+              {selectedAnnouncement?.title}
+            </h3>
+          </div>
+
+          {/* [SECTION] Content */}
+          <div className="bg-[var(--color-bg-50)] border border-[var(--color-bg-200)] rounded-md p-3">
+            <p className="text-[var(--color-text-700)] text-sm leading-relaxed whitespace-pre-wrap">
+              {selectedAnnouncement?.content}
+            </p>
+          </div>
+
+          {/* [SECTION] Footer Metadata */}
           {selectedAnnouncement?.expiresAt && (
-            <p className="text-[var(--color-text-400)] text-xs">Expires: {formatDate(selectedAnnouncement.expiresAt)}</p>
+            <div className="flex justify-between items-center text-xs text-[var(--color-text-500)]">
+              <span>Expiry Date</span>
+              <span className="font-medium text-[var(--color-text-700)]">
+                {formatDate(selectedAnnouncement.expiresAt)}
+              </span>
+            </div>
           )}
-          <div className="pt-2 border-t border-[var(--color-text-100)]">
-            <button
-              onClick={() => selectedAnnouncement && handleDeleteAnnouncement(selectedAnnouncement.id)}
-              className="text-xs text-[var(--color-red-500)] hover:underline cursor-pointer"
-            >
-              Delete Announcement
-            </button>
+
+          {/* [SECTION] Delete Button */}
+          <div className="border-t border-[var(--color-bg-200)] pt-3">
+            <div className="flex justify-end">
+              <DeleteButton
+                text="Delete Announcement"
+                onClick={() =>
+                  selectedAnnouncement &&
+                  handleDeleteAnnouncement(selectedAnnouncement.id)
+                }
+              />
+            </div>
           </div>
         </div>
       </Modal>
@@ -557,37 +587,78 @@ const AdminAnnouncementsAndEvents = () => {
         onConfirm={() => selectedEvent && handleEditEvent(selectedEvent)}
         isCancelable={true}
       >
-        <div className="p-1 space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold uppercase text-[var(--color-primary-600)]">
-              {selectedEvent && getEventDateDisplay(selectedEvent).month}{" "}
-              {selectedEvent && getEventDateDisplay(selectedEvent).day}
-            </span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--color-bg-200)] text-[var(--color-text-600)]">
-              {selectedEvent && EVENT_TYPE_LABELS[selectedEvent.type]}
-            </span>
-            {selectedEvent?.isOnline && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--color-secondary-100)] text-[var(--color-secondary-700)]">
-                Online
+        <div className="space-y-4 p-1">
+
+          {/* [SECTION] Metadata */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold uppercase text-[var(--color-primary-600)]">
+                {selectedEvent && getEventDateDisplay(selectedEvent).month}{" "}
+                {selectedEvent && getEventDateDisplay(selectedEvent).day}
               </span>
+
+              <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--color-bg-200)] text-[var(--color-text-600)]">
+                {selectedEvent && EVENT_TYPE_LABELS[selectedEvent.type]}
+              </span>
+
+              {selectedEvent?.isOnline && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--color-secondary-100)] text-[var(--color-secondary-700)]">
+                  Online
+                </span>
+              )}
+            </div>
+
+            <h3 className="text-lg font-bold text-[var(--color-text-900)] leading-snug">
+              {selectedEvent?.title}
+            </h3>
+          </div>
+
+          {/* [SECTION] Description */}
+          <div className="bg-[var(--color-bg-50)] border border-[var(--color-bg-200)] rounded-md p-3">
+            <p className="text-[var(--color-text-700)] text-sm leading-relaxed whitespace-pre-wrap">
+              {selectedEvent?.description || "No description available."}
+            </p>
+          </div>
+
+          {/* [SECTION] Details */}
+          <div className="space-y-2 text-sm">
+
+            {selectedEvent?.location && (
+              <div className="flex justify-between items-center">
+                <span className="text-[var(--color-text-700)] font-figree font-semibold">
+                  Location
+                </span>
+                <span className="text-[var(--color-text-900)] truncate text-right max-w-[220px]">
+                  📍 {selectedEvent.location}
+                </span>
+              </div>
+            )}
+
+            {selectedEvent?.endDate && (
+              <div className="flex justify-between items-center">
+                <span className="text-[var(--color-text-700)] font-figree font-semibold">
+                  Ends
+                </span>
+                <span className="text-[var(--color-text-900)]">
+                  {formatDate(selectedEvent.endDate)}
+                </span>
+              </div>
             )}
           </div>
-          <h3 className="text-lg font-bold text-[var(--color-text-900)]">{selectedEvent?.title}</h3>
-          <p className="text-[var(--color-text-600)] text-sm leading-relaxed">{selectedEvent?.description || "No description available."}</p>
-          {selectedEvent?.location && (
-            <p className="text-[var(--color-text-500)] text-xs">📍 {selectedEvent.location}</p>
-          )}
-          {selectedEvent?.endDate && (
-            <p className="text-[var(--color-text-400)] text-xs">Ends: {formatDate(selectedEvent.endDate)}</p>
-          )}
-          <div className="pt-2 border-t border-[var(--color-text-100)]">
-            <button
-              onClick={() => selectedEvent && handleDeleteEvent(selectedEvent.id)}
-              className="text-xs text-[var(--color-red-500)] hover:underline cursor-pointer"
-            >
-              Delete Event
-            </button>
+
+          {/* [SECTION] Footer Actions */}
+          <div className="border-t border-[var(--color-bg-200)] pt-3">
+            <div className="flex justify-end">
+              <DeleteButton
+                text="Delete Event"
+                onClick={() =>
+                  selectedEvent &&
+                  handleDeleteEvent(selectedEvent.id)
+                }
+              />
+            </div>
           </div>
+
         </div>
       </Modal>
 
