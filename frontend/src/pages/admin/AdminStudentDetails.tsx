@@ -117,7 +117,7 @@ const AdminStudentDetails = () => {
           message: "Student deleted successfully.",
           type: "success",
           confirmText: "OK",
-          isCancelable: true,
+          isCancelable: false,
           onConfirm: () => {
             closeGeneralModal();
             navigate("/admin/students");
