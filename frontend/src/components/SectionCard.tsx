@@ -78,7 +78,7 @@ const SectionCard: React.FC<SectionCardProps> = ({ section, onClick }) => {
             className={`truncate text-right max-w-[180px] ${
               !section.adviser
                 ? "text-amber-600 italic"
-                : "text-[var(--color-text-900)]"
+                : "text-[var(--color-text-900)] font-semibold"
             }`}
           >
             {section.adviser?.name ?? "Unassigned"}
