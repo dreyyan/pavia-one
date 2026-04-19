@@ -491,16 +491,21 @@ const AdminSections = () => {
               </div>
 
               {/* [ACTION BUTTONS] Add Section + Auto-Generate */}
-              <div className="flex flex-wrap gap-2 md:ml-auto">
+              <div className="flex flex-col md:flex-row gap-2 md:ml-auto w-full md:w-auto">
                 <PrimaryButton
                   text="Add Section"
                   iconSrc="/add-icon.svg"
                   onClick={handleAddSection}
                 />
+
                 <SecondaryButton
                   text="Auto-Generate Sections"
                   iconSrc="/auto-generate-icon.svg"
-                  onClick={() => { setGenerateYear(""); setGenerateError(""); setShowGenerateModal(true); }}
+                  onClick={() => {
+                    setGenerateYear("");
+                    setGenerateError("");
+                    setShowGenerateModal(true);
+                  }}
                 />
               </div>
             </div>
