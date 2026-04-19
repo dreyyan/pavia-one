@@ -43,9 +43,9 @@ const SidebarLink: React.FC<SidebarLinkProps> = ({ icon, hoverIcon, text, to, on
         alt={`${text} icon`}
         className="w-5 h-5"
       />
-      <h3 style={{ color: textColor }} className={`font-medium transition-colors duration-200`}>
+      <span style={{ color: textColor }} className={`sidebar-link`}>
         {text}
-      </h3>
+      </span>
     </button>
   );
 };
