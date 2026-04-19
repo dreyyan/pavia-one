@@ -1,20 +1,27 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/exhaustive-deps */
 // [IMPORT] Hooks
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Components
-import Skeleton from "../../components/Skeleton";
-import PrimaryButton from "../../components/buttons/PrimaryButton";
 import Modal from "../../components/Modal";
+import Skeleton from "../../components/Skeleton";
 import EmptyState from "../../components/EmptyState";
-
-// [IMPORT] Constants & Types
-import type { Adviser, AdviserFormData, GeneralModalConfig } from "../../types";
-import { AdviserFormModal } from "../../components/forms/AdviserFormModal";
+import Dropdown from "../../components/Dropdown";
+import SearchBar from "../../components/SearchBar";
+import Pagination from "../../components/Pagination";
+import Breadcrumbs from "../../components/Breadcrumbs";
 import AdviserCard from "../../components/cards/AdviserCard";
+import PrimaryButton from "../../components/buttons/PrimaryButton";
+import AdviserFormModal from "../../components/forms/AdviserFormModal";
+import AdminPageLayout from "../../components/layouts/AdminPageLayout";
 
+// [IMPORT] Helpers & Types
+import { getVisiblePages } from "../../helpers/index";
+import { Adviser, AdviserFormData, GeneralModalConfig } from "../../types";
+
+// [CONSTANT] Empty form state
 const EMPTY_FORM: AdviserFormData = {
   adviserId: "",
   firstName: "",
@@ -31,11 +38,15 @@ const AdminAdvisers = () => {
   const [advisers, setAdvisers] = useState<Adviser[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // [STATES] Search and Sort
+  // [STATES] Search, Sort, and Filter
   const [search, setSearch] = useState("");
-  const [sortOption, setSortOption] = useState<"name-asc" | "name-desc">("name-asc");
-  const [showSortFilters, setShowSortFilters] = useState(false);
-  const filterRef = useRef<HTMLDivElement>(null);
+  const [activeDropdown, setActiveDropdown] = useState<"sort" | "sections" | null>(null);
+
+  type SortOption = "name-asc" | "name-desc";
+  const [sortOption, setSortOption] = useState<SortOption>("name-asc");
+
+  type SectionsFilter = "All" | "with-sections" | "no-sections";
+  const [sectionsFilter, setSectionsFilter] = useState<SectionsFilter>("All");
 
   // [STATES] Adviser Form Modal
   const [showAdviserModal, setShowAdviserModal] = useState(false);
@@ -54,7 +65,11 @@ const AdminAdvisers = () => {
   });
 
   const openGeneralModal = (config: Partial<Omit<GeneralModalConfig, "isOpen">>) => {
-    setGeneralModal(prev => ({ ...prev, isOpen: true, ...config }));
+    setGeneralModal({
+      ...generalModal,
+      isOpen: true,
+      ...config,
+    });
   };
 
   const closeGeneralModal = () => {
@@ -65,7 +80,7 @@ const AdminAdvisers = () => {
   const [page, setPage] = useState(1);
   const itemsPerPage = 5;
 
-  // * [FETCH] Advisers
+  // * [HANDLE] Fetch Advisers
   const fetchAdvisers = async () => {
     setLoading(true);
     try {
@@ -75,9 +90,11 @@ const AdminAdvisers = () => {
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed to fetch advisers");
+
       const list = data.data?.data;
       setAdvisers(Array.isArray(list) ? list : []);
     } catch (err) {
+      // ! [ERROR] Fetching advisers failed
       console.error(err);
       openGeneralModal({
         title: "Unable to Load Advisers",
@@ -97,87 +114,92 @@ const AdminAdvisers = () => {
     fetchAdvisers();
   }, []);
 
-  // [HANDLE] Close sort dropdown on outside click
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
-        setShowSortFilters(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // * [HANDLE] Open create modal
+  // * [HANDLE] Open Create Modal
   const handleAddAdviser = () => {
     setFormData(EMPTY_FORM);
     setFormError("");
     setShowAdviserModal(true);
   };
 
-const handleSubmit = async () => {
-  const payload = {
-    adviserId: formData.adviserId.trim(),
-    name: [formData.firstName, formData.middleName, formData.lastName].filter(Boolean).join(" "),
-    email: formData.email.trim(),
-    password: formData.password.trim(),
+  // * [HANDLE] Submit Create Form
+  const handleSubmit = async () => {
+    const payload = {
+      adviserId: formData.adviserId.trim(),
+      name: [formData.firstName, formData.middleName, formData.lastName]
+        .filter(Boolean)
+        .join(" "),
+      email: formData.email.trim(),
+      password: formData.password?.trim(),
+    };
+
+    setLoading(true);
+    setFormError("");
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/advisers`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      // [HANDLE] Backend validation / business errors
+      if (!data.success) {
+        const errorMsg =
+          data.message ||
+          data.data?.failed?.[0]?.message ||
+          "Operation failed";
+        throw new Error(errorMsg);
+      }
+
+      const failed = data.data?.failed || [];
+      if (failed.length > 0) {
+        throw new Error(failed[0].message || "Some advisers failed to create");
+      }
+
+      await fetchAdvisers();
+      setShowAdviserModal(false);
+
+      // * [SUCCESS] Adviser Created
+      openGeneralModal({
+        title: "Adviser Created",
+        message: `${formData.firstName} ${formData.lastName} has been added successfully.`,
+        type: "success",
+        confirmText: "Got it",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
+    } catch (err: any) {
+      // ! [ERROR] Create Adviser Failed
+      console.error("Submit error:", err);
+      const errorMessage = err.message || "An unexpected error occurred while saving the adviser.";
+      setFormError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  setLoading(true);
-
-  try {
-    const token = localStorage.getItem("token");
-    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/advisers`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await res.json();
-
-    if (!data.success) throw new Error(data.message || "Operation failed");
-    
-    const failed = data.data?.failed || [];
-
-    if (failed.length > 0) {
-      throw new Error(failed[0].message || "Some advisers failed to create");
-    }
-    await fetchAdvisers();
-    setShowAdviserModal(false);
-
-    // Success
-    openGeneralModal({
-      title: "Adviser Created",
-      message: `${formData.firstName} ${formData.lastName} has been added successfully.`,
-      type: "success",
-      confirmText: "Got it",
-      isCancelable: false,
-      onConfirm: () => closeGeneralModal(),
-    });
-  } catch (err: any) {
-    // ! [ERROR] Show error modal
-    console.error(err);;
-    setShowAdviserModal(false);
-    openGeneralModal({
-      title: "Unable to Create Adviser",
-      message: "Something went wrong while adding the adviser. Please try again.",
-      type: "error",
-      confirmText: "Close",
-      isCancelable: false,
-      onConfirm: () => closeGeneralModal(),
-    });
-  } finally {
-    setLoading(false);
-  }
-};
-
-  // [HANDLE] Sorting and Searching
+  // * [HANDLE] Sorting, Searching & Filtering
   const filteredAdvisers = advisers
-    .filter(a =>
-      (a.name && a.name.toLowerCase().includes(search.toLowerCase())) ||
-      (a.email && a.email.toLowerCase().includes(search.toLowerCase())) ||
-      (a.adviserId && a.adviserId.toLowerCase().includes(search.toLowerCase()))
-    )
+    .filter(a => {
+      const matchesSearch =
+        (a.name && a.name.toLowerCase().includes(search.toLowerCase())) ||
+        (a.email && a.email.toLowerCase().includes(search.toLowerCase())) ||
+        (a.adviserId && a.adviserId.toLowerCase().includes(search.toLowerCase()));
+
+      const sectionCount = a.sectionCount ?? 0;
+      const matchesSections =
+        sectionsFilter === "All" ||
+        (sectionsFilter === "with-sections" && sectionCount > 0) ||
+        (sectionsFilter === "no-sections" && sectionCount === 0);
+
+      return matchesSearch && matchesSections;
+    })
     .sort((a, b) => {
       switch (sortOption) {
         case "name-asc": return a.name.localeCompare(b.name);
@@ -186,13 +208,10 @@ const handleSubmit = async () => {
       }
     });
 
-  // [PAGINATION]
   const totalPages = Math.ceil(filteredAdvisers.length / itemsPerPage);
   const displayedAdvisers = filteredAdvisers.slice((page - 1) * itemsPerPage, page * itemsPerPage);
-  const handlePrevPage = () => setPage(prev => Math.max(prev - 1, 1));
-  const handleNextPage = () => setPage(prev => Math.min(prev + 1, totalPages));
 
-  // *[BREADCRUMBS] Admin Dashboard navigation
+  // * [BREADCRUMBS] Admin Dashboard navigation
   const breadcrumbs = [
     { label: "Admin Dashboard", path: "/admin/dashboard" },
     { label: "Advisers", path: null },
@@ -202,7 +221,7 @@ const handleSubmit = async () => {
   if (loading) return <Skeleton />;
 
   return (
-    <div>
+    <>
       {/* [MODAL] General */}
       <Modal
         isOpen={generalModal.isOpen}
@@ -214,10 +233,11 @@ const handleSubmit = async () => {
         onConfirm={generalModal.onConfirm}
         isCancelable={generalModal.isCancelable}
       />
+
       {/* [MODAL] Adviser Form */}
       <AdviserFormModal
         isOpen={showAdviserModal}
-        title="Add Adviser"
+        title="Create Adviser"
         onClose={() => setShowAdviserModal(false)}
         onSubmit={handleSubmit}
         formData={formData}
@@ -227,149 +247,173 @@ const handleSubmit = async () => {
         setFormError={setFormError}
       />
 
-      <div className="py-10 px-4 space-y-4 relative">
+      {/* [LAYOUT] Admin Page */}
+      <AdminPageLayout
+        header={
+          <Breadcrumbs items={breadcrumbs} title="Advisers" />
+        }
+        toolbar={
+          <div className="bg-[var(--color-bg-100)] px-3 sm:px-4 py-4 rounded-lg flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">
+            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">
+              <div className="flex items-stretch gap-2 md:gap-4 w-full">
+                {/* [COMPONENT] Search Bar */}
+                <div className="w-full sm:w-64 md:w-80 lg:w-96">
+                  <SearchBar
+                    value={search}
+                    placeholder="Search by name, email, or adviser ID..."
+                    onChange={setSearch}
+                    onResetPage={() => setPage(1)}
+                  />
+                </div>
 
-        {/* [SECTION] Header & Breadcrumbs */}
-        <div>
-          <h2 className="text-[var(--color-text-800)] leading-0">Advisers</h2>
-          <nav className="font-roboto text-sm text-[var(--color-text-700)]">
-            {breadcrumbs.map((crumb, idx) => (
-              <span key={idx}>
-                {crumb.path ? (
-                  <span className="cursor-pointer hover:underline" onClick={() => navigate(crumb.path!)}>{crumb.label}</span>
-                ) : (
-                  <span className="font-medium text-[var(--color-text-900)]">{crumb.label}</span>
-                )}
-                {idx < breadcrumbs.length - 1 && " / "}
-              </span>
-            ))}
-          </nav>
-        </div>
+                {/* [COMPONENT] Sort & Filter Dropdowns */}
+                <div className="flex gap-x-2 ml-auto">
+                  <Dropdown
+                    icon="/sort-icon.svg"
+                    label="Sort"
+                    isOpen={activeDropdown === "sort"}
+                    onToggle={() =>
+                      setActiveDropdown(activeDropdown === "sort" ? null : "sort")
+                    }
+                    selected={sortOption}
+                    onSelect={(value) => {
+                      setSortOption(value as SortOption);
+                      setPage(1);
+                    }}
+                    options={[
+                      { label: "Name ↑", value: "name-asc" },
+                      { label: "Name ↓", value: "name-desc" },
+                    ]}
+                  />
 
-        {/* [SECTION] Search & Filters */}
-        <div className="bg-[var(--color-bg-100)] px-3 rounded-lg py-4 flex md:flex-row gap-2 md:gap-4 items-stretch w-full">
-          {/* [INPUT] Search */}
-          <div className="relative flex-1">
-            <input
-              type="text"
-              placeholder="Search by name, email, or adviser ID..."
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="w-full bg-[var(--color-bg-50)] body-default rounded-sm px-3 outline-none border border-[var(--color-text-300)] focus:ring-2 focus:ring-[var(--color-primary-600)] h-full"
-            />
+                  {/* [COMPONENT] Filter Dropdown */}
+                  <Dropdown
+                    icon="/filter-icon.svg"
+                    label="Filter"
+                    isOpen={activeDropdown === "sections"}
+                    onToggle={() =>
+                      setActiveDropdown(activeDropdown === "sections" ? null : "sections")
+                    }
+                    selected={sectionsFilter}
+                    onSelect={(value) => {
+                      setSectionsFilter(value as SectionsFilter);
+                      setPage(1);
+                    }}
+                    width="w-40"
+                    options={[
+                      { label: "All", value: "All" },
+                      { label: "With Sections", value: "with-sections" },
+                      { label: "No Sections", value: "no-sections" },
+                    ]}
+                  />
+                </div>
+              </div>
+
+              {/* [PRIMARY BUTTON] Add Adviser */}
+              <div className="w-full md:w-auto md:ml-auto">
+                <PrimaryButton
+                  text="Add Adviser"
+                  iconSrc="/add-icon.svg"
+                  onClick={handleAddAdviser}
+                  className="w-full md:w-auto"
+                />
+              </div>
+            </div>
           </div>
+        }
+        footer={
+          // [COMPONENT] Pagination
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            getVisiblePages={getVisiblePages}
+          />
+        }>
+        <div className="space-y-3">
 
-          {/* [DROPDOWN] Sort Filter */}
-          <div ref={filterRef} className="relative">
-            <button
-              onClick={() => setShowSortFilters(!showSortFilters)}
-              className="flex items-center justify-center text-[var(--color-text-50)] rounded-sm px-3 h-10 transition cursor-pointer bg-[var(--color-bg-50)] hover:opacity-80"
-            >
-              <img src="/sort-icon.svg" alt="Sort" className="size-4" />
-            </button>
-            {showSortFilters && (
-              <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-300 rounded-md shadow-lg p-2 space-y-1 z-50">
-                <button onClick={() => { setSortOption("name-asc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-asc" ? "bg-blue-100" : ""}`}>Name ↑</button>
-                <button onClick={() => { setSortOption("name-desc"); setShowSortFilters(false); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-desc" ? "bg-blue-100" : ""}`}>Name ↓</button>
+          {/* [SECTION] Adviser Cards (Mobile View) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:hidden gap-4 bg-[var(--color-bg-100)] px-3 py-4 rounded-lg">
+            {!loading && displayedAdvisers.length === 0 && (
+              <div className="sm:col-span-2 flex justify-center">
+                <EmptyState
+                  title="No advisers found"
+                  subtitle="No advisers match your current filters or search."
+                  iconSrc="/no-data-icon.svg"
+                />
               </div>
             )}
+
+            {displayedAdvisers.map((a) => (
+              <AdviserCard key={a.id} adviser={a} />
+            ))}
           </div>
-        </div>
 
-        {/* [SECTION] Add Adviser */}
-        <div className="mt-2 space-y-2">
-          <PrimaryButton text="Add Adviser" iconSrc="/add-icon.svg" onClick={handleAddAdviser} />
-        </div>
-
-        {/* [CARDS] Advisers — Mobile View */}
-        <div className="flex flex-col gap-4 sm:hidden mt-2 bg-[var(--color-bg-100)] px-3 py-4 rounded-lg">
-          {/* [EMPTY STATE] No Advisers */}
-          {!loading && (
-            advisers.length === 0 ? (
+          {/* [SECTION] Advisers Table (Desktop View) */}
+          <div className="hidden md:block bg-[var(--color-bg-100)] px-3 py-4 rounded-lg overflow-x-auto">
+            {!loading && displayedAdvisers.length === 0 && (
               <EmptyState
                 title="No advisers found"
-                subtitle="No advisers have been added yet. Click 'Add Adviser' to get started."
+                subtitle="No advisers match your current filters or search."
                 iconSrc="/no-data-icon.svg"
               />
-            ) : displayedAdvisers.length === 0 ? (
-              <EmptyState
-                title="No advisers found"
-                subtitle="No advisers match your current search. Try adjusting your criteria."
-                iconSrc="/no-data-icon.svg"
-              />
-            ) : null
-          )}
-          {displayedAdvisers.map((a) => (
-            <AdviserCard key={a.id} adviser={a} />
-          ))}
-        </div>
+            )}
 
-        {/* [TABLE] Advisers — Desktop View */}
-        <div className="hidden sm:block bg-[var(--color-bg-100)] rounded-lg overflow-hidden">
-          <table className="w-full text-sm font-roboto">
-            <thead>
-              <tr className="border-b border-[var(--color-bg-200)] text-[var(--color-text-600)] text-xs uppercase tracking-wide">
-                <th className="px-4 py-3 text-left">Adviser</th>
-                <th className="px-4 py-3 text-left">ID</th>
-                <th className="px-4 py-3 text-left">Email</th>
-                <th className="px-4 py-3 text-left">Sections</th>
-              </tr>
-            </thead>
-            <tbody>
-              {displayedAdvisers.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-[var(--color-text-600)]">No advisers found.</td>
-                </tr>
-              ) : (
-                displayedAdvisers.map((a) => (
-                  <tr
-                    key={a.id}
-                    className="border-b border-[var(--color-bg-200)] hover:bg-[var(--color-bg-50)] transition-colors cursor-pointer"
-                    onClick={() => navigate(`/admin/advisers/view/${a.id}`)}
-                  >
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="size-7 rounded-md bg-[var(--color-primary-100)] flex items-center justify-center text-[var(--color-primary-700)] font-bold text-xs border border-[var(--color-primary-200)] flex-shrink-0">
-                          {a.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
-                        </div>
-                        <span className="font-medium text-[var(--color-text-900)]">{a.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-[var(--color-text-600)]">#{a.adviserId}</td>
-                    <td className="px-4 py-3 text-[var(--color-text-700)]">{a.email}</td>
-                    <td className="px-4 py-3 text-[var(--color-text-700)]">{a.sectionCount ?? 0}</td>
+            {displayedAdvisers.length > 0 && (
+              <table className="min-w-full border-separate border-spacing-y-2">
+                <thead>
+                  <tr className="text-left">
+                    {/* [SECTION] Table Headers */}
+                    <th className="table-header">Adviser</th>
+                    <th className="table-header">ID</th>
+                    <th className="table-header">Email</th>
+                    <th className="table-header">Sections</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                </thead>
 
-        {/* [SECTION] Pagination */}
-        {displayedAdvisers.length !== 0 && (
-          <div className="flex justify-center items-center mt-4 gap-4">
-            <button onClick={handlePrevPage} disabled={page === 1}
-              className={`w-8 h-8 flex items-center justify-center rounded-full text-[var(--color-text-50)] font-roboto font-bold transition-colors duration-150 ${page === 1 ? "bg-[var(--color-bg-400)] cursor-not-allowed opacity-50" : "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)]"}`}>
-              &lt;
-            </button>
-            <div className="flex items-center gap-2">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
-                <button key={num} onClick={() => setPage(num)}
-                  className={`size-6 flex items-center justify-center rounded-full font-bold text-xs transition-all duration-150 ${num === page ? "size-7 bg-[var(--color-primary-500)] text-[var(--color-text-50)] scale-110" : "bg-[var(--color-bg-300)] text-[var(--color-text-900)] hover:bg-[var(--color-primary-400)]"}`}
-                  aria-label={`Go to page ${num}`}>
-                  {num}
-                </button>
-              ))}
-            </div>
-            <button onClick={handleNextPage} disabled={page === totalPages}
-              className={`size-8 flex items-center justify-center rounded-full text-[var(--color-text-50)] font-roboto font-bold transition-colors duration-150 ${page === totalPages ? "bg-[var(--color-bg-400)] cursor-not-allowed opacity-50" : "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)]"}`}>
-              &gt;
-            </button>
+                {/* [SECTION] Table Body */}
+                <tbody>
+                  {displayedAdvisers.map((a) => (
+                    <tr
+                      key={a.id}
+                      className="bg-[var(--color-bg-50)] hover:bg-[var(--color-bg-200)] transition cursor-pointer"
+                      onClick={() => navigate(`/admin/advisers/view/${a.id}`)}
+                    >
+                      <td className="table-cell table-text">
+                        <div className="flex items-center gap-2">
+                          <div className="size-7 rounded-md bg-[var(--color-primary-100)] flex items-center justify-center text-[var(--color-primary-700)] font-bold text-xs border border-[var(--color-primary-200)] flex-shrink-0">
+                            {a.name
+                              .split(" ")
+                              .map((n: string) => n[0])
+                              .join("")
+                              .toUpperCase()
+                              .slice(0, 2)}
+                          </div>
+                          <span className="table-text-link hover:underline">{a.name}</span>
+                        </div>
+                      </td>
+
+                      <td className="table-cell table-text table-text-default font-mono text-xs">
+                        #{a.adviserId}
+                      </td>
+
+                      <td className="table-cell table-text table-text-default">
+                        {a.email}
+                      </td>
+
+                      <td className="table-cell table-text table-text-default">
+                        {a.sectionCount ?? 0}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
-        )}
 
-      </div>
-    </div>
+        </div>
+      </AdminPageLayout>
+    </>
   );
 };
 
