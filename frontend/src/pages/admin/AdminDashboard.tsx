@@ -177,7 +177,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* [SECTION] Dashboard Overview */}
-        <div className="lg:flex-8 bg-[var(--color-bg-100)] rounded-xl px-4 sm:px-5 md:px-6 py-5 sm:py-6 shadow-md">
+        <div className="lg:flex-8 bg-[var(--color-bg-100)] rounded-xl px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 py-5 sm:py-8 md:py-11 lg:py-14 xl:py-17 shadow-md">
           
           <h2 className="mb-2 sm:mb-3 text-base sm:text-lg font-semibold">
             Overview
