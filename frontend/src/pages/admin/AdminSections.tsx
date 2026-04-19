@@ -324,8 +324,8 @@ const AdminSections = () => {
       switch (sortOption) {
         case "name-asc":   return a.name.localeCompare(b.name);
         case "name-desc":  return b.name.localeCompare(a.name);
-        case "grade-asc":  return a.gradeLevel - b.gradeLevel;
-        case "grade-desc": return b.gradeLevel - a.gradeLevel;
+        case "grade-asc":  return Number(a.gradeLevel) - Number(b.gradeLevel);
+        case "grade-desc": return Number(b.gradeLevel) - Number(a.gradeLevel);
         default: return 0;
       }
     });
