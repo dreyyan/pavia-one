@@ -1,15 +1,14 @@
 /* eslint-disable react-hooks/exhaustive-deps */
+// [IMPORT] Hooks
 import { useState, useEffect } from "react";
 
-// Constants & Types
+// [IMPORT] Constants & Types
 import { GRADE_LEVEL_OPTIONS, CURRICULUM_OPTIONS, WEIGHT_PRESETS } from "../../constants";
 import { LearningAreaFormData } from "../../types";
 
 const TOTAL_STEPS = 3;
 
-const inputCls = "bg-[var(--color-bg-50)] font-roboto rounded-md py-2 px-3 border border-[var(--color-text-300)] outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm";
-
-// Weight Preset Pill
+// [SUB-COMPONENT] Weight Preset Pill
 const WeightPresetPill = ({
   preset,
   active,
@@ -32,7 +31,7 @@ const WeightPresetPill = ({
   </button>
 );
 
-// Weight Input Row
+// [SUB-COMPONENT] Weight Input Row
 const WeightRow = ({
   label,
   hint,
@@ -57,7 +56,7 @@ const WeightRow = ({
         step="0.01"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={`${inputCls} w-20 text-right`}
+        className="input-base w-20 text-right"
       />
       <span className="text-xs font-roboto text-[var(--color-text-500)] w-8">
         {value ? `${Math.round(Number(value) * 100)}%` : "—"}
@@ -66,7 +65,7 @@ const WeightRow = ({
   </div>
 );
 
-// Main Component
+// [COMPONENT]
 const SubjectFormModal = ({
   isOpen,
   title,
@@ -90,14 +89,17 @@ const SubjectFormModal = ({
 }) => {
   const [step, setStep] = useState(1);
 
-  // Reset step when modal opens
+  // * [EFFECT] Reset to step 1 whenever opened
   useEffect(() => {
-    if (isOpen) setStep(1);
+    if (isOpen) {
+      const t = setTimeout(() => setStep(1), 0);
+      return () => clearTimeout(t);
+    }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
-  // Weight sum validation
+  // [COMPUTE] Live weight sum for validation and display
   const weightSum =
     (Number(formData.writtenWorkWeight) || 0) +
     (Number(formData.performanceTaskWeight) || 0) +
@@ -105,7 +107,7 @@ const SubjectFormModal = ({
 
   const weightsAreValid = Math.abs(weightSum - 1.0) < 0.001;
 
-  // Step validation
+  // [VALIDATE] Per-step before advancing or submitting
   const validateStep = (): boolean => {
     setFormError("");
     if (step === 1) {
@@ -137,23 +139,23 @@ const SubjectFormModal = ({
     return true;
   };
 
+  // [HANDLE] Navigation buttons
   const handleNext = () => {
     if (!validateStep()) return;
-    setStep((s) => Math.min(s + 1, TOTAL_STEPS));
+    setStep(s => Math.min(s + 1, TOTAL_STEPS));
   };
-
   const handleBack = () => {
     setFormError("");
-    setStep((s) => Math.max(s - 1, 1));
+    setStep(s => Math.max(s - 1, 1));
   };
-
   const handleConfirm = async () => {
     if (!validateStep()) return;
     await onSubmit();
   };
 
+  // [HANDLE] Apply a weight preset to all three fields at once
   const applyPreset = (preset: typeof WEIGHT_PRESETS[number]) => {
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       writtenWorkWeight: String(preset.ww),
       performanceTaskWeight: String(preset.pt),
@@ -165,15 +167,16 @@ const SubjectFormModal = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-[var(--color-bg-100)] rounded-lg p-6 w-full max-w-md shadow-lg">
-        {/* Header */}
+
+        {/* [HEADER] Title + Step Counter */}
         <div className="flex items-center justify-between mb-1">
-          <h2 className="text-lg font-bold text-[var(--color-text-900)]">{title}</h2>
+          <span className="form-title">{title}</span>
           <span className="text-xs font-roboto text-[var(--color-text-600)]">
             Step {step} of {TOTAL_STEPS}
           </span>
         </div>
 
-        {/* Progress Bar */}
+        {/* [UI] Progress bar segments */}
         <div className="flex gap-1.5 mb-5">
           {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
             <div
@@ -185,13 +188,14 @@ const SubjectFormModal = ({
           ))}
         </div>
 
-        {/* Step 1 — Identity */}
+        {/* [STEP 1] Subject Identity */}
         {step === 1 && (
           <div className="flex flex-col gap-3">
             <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)] mb-1">
               Subject Identity
             </p>
 
+            {/* [FIELD] Subject Name */}
             <div className="flex flex-col">
               <label className="font-roboto text-sm mb-1">
                 Subject Name <span className="text-[var(--color-red-500)]">*</span>
@@ -200,22 +204,23 @@ const SubjectFormModal = ({
                 type="text"
                 value={formData.name}
                 placeholder="e.g. Mathematics, Filipino, Science"
-                onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                className={inputCls}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                className="input-base"
               />
             </div>
 
+            {/* [FIELD] Grade Level */}
             <div className="flex flex-col">
               <label className="font-roboto text-sm mb-1">
                 Grade Level <span className="text-[var(--color-red-500)]">*</span>
               </label>
               <select
                 value={formData.gradeLevel}
-                onChange={(e) => setFormData((prev) => ({ ...prev, gradeLevel: e.target.value }))}
-                className={inputCls}
+                onChange={(e) => setFormData(prev => ({ ...prev, gradeLevel: e.target.value }))}
+                className="input-base"
               >
                 <option value="" disabled>Select grade level</option>
-                {GRADE_LEVEL_OPTIONS.map((g) => (
+                {GRADE_LEVEL_OPTIONS.map(g => (
                   <option key={g} value={g}>Grade {g}</option>
                 ))}
               </select>
@@ -223,15 +228,16 @@ const SubjectFormModal = ({
           </div>
         )}
 
-        {/* Step 2 — Curriculum */}
+        {/* [STEP 2] Curriculum */}
         {step === 2 && (
           <div className="flex flex-col gap-3">
             <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)] mb-1">
               Curriculum
             </p>
 
+            {/* [FIELD] Curriculum Radio Cards */}
             <div className="flex flex-col gap-2">
-              {CURRICULUM_OPTIONS.map((opt) => (
+              {CURRICULUM_OPTIONS.map(opt => (
                 <label
                   key={opt.value}
                   className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
@@ -245,7 +251,7 @@ const SubjectFormModal = ({
                     name="curriculum"
                     value={opt.value}
                     checked={formData.curriculum === opt.value}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, curriculum: e.target.value }))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, curriculum: e.target.value }))}
                     className="mt-0.5 accent-[var(--color-primary-600)]"
                   />
                   <div className="flex flex-col min-w-0">
@@ -262,7 +268,7 @@ const SubjectFormModal = ({
           </div>
         )}
 
-        {/* Step 3 — Grading Weights */}
+        {/* [STEP 3] Grading Weights */}
         {step === 3 && (
           <div className="flex flex-col gap-4">
             <div>
@@ -274,18 +280,17 @@ const SubjectFormModal = ({
               </p>
             </div>
 
-            {/* Weight Presets */}
+            {/* [UI] Weight Presets */}
             <div>
               <p className="text-xs font-roboto text-[var(--color-text-600)] mb-1.5">
                 Quick presets (WW / PT / QA)
               </p>
               <div className="flex flex-wrap gap-2">
-                {WEIGHT_PRESETS.map((preset) => {
+                {WEIGHT_PRESETS.map(preset => {
                   const isActive =
                     formData.writtenWorkWeight === String(preset.ww) &&
                     formData.performanceTaskWeight === String(preset.pt) &&
                     formData.quarterlyAssessmentWeight === String(preset.qa);
-
                   return (
                     <WeightPresetPill
                       key={preset.label}
@@ -300,29 +305,29 @@ const SubjectFormModal = ({
 
             <div className="border-t border-[var(--color-bg-200)]" />
 
-            {/* Individual Weight Inputs */}
+            {/* [FIELDS] Individual Weight Inputs */}
             <div className="flex flex-col gap-3">
               <WeightRow
                 label="Written Work"
                 hint="e.g. quizzes, seatwork, homework"
                 value={formData.writtenWorkWeight}
-                onChange={(v) => setFormData((prev) => ({ ...prev, writtenWorkWeight: v }))}
+                onChange={(v) => setFormData(prev => ({ ...prev, writtenWorkWeight: v }))}
               />
               <WeightRow
                 label="Performance Task"
                 hint="e.g. projects, experiments, recitation"
                 value={formData.performanceTaskWeight}
-                onChange={(v) => setFormData((prev) => ({ ...prev, performanceTaskWeight: v }))}
+                onChange={(v) => setFormData(prev => ({ ...prev, performanceTaskWeight: v }))}
               />
               <WeightRow
                 label="Quarterly Assessment"
                 hint="quarterly exam / summative test"
                 value={formData.quarterlyAssessmentWeight}
-                onChange={(v) => setFormData((prev) => ({ ...prev, quarterlyAssessmentWeight: v }))}
+                onChange={(v) => setFormData(prev => ({ ...prev, quarterlyAssessmentWeight: v }))}
               />
             </div>
 
-            {/* Live Weight Sum */}
+            {/* [UI] Live Weight Sum indicator */}
             <div
               className={`flex items-center justify-between px-3 py-2 rounded-md text-xs font-roboto font-medium ${
                 weightsAreValid
@@ -332,18 +337,19 @@ const SubjectFormModal = ({
             >
               <span>Total</span>
               <span>
-                {Math.round(weightSum * 100)}% {weightsAreValid ? "✓" : `— needs ${Math.round((1 - weightSum) * 100)}% more`}
+                {Math.round(weightSum * 100)}%{" "}
+                {weightsAreValid ? "✓" : `— needs ${Math.round((1 - weightSum) * 100)}% more`}
               </span>
             </div>
           </div>
         )}
 
-        {/* Form Error */}
+        {/* [ERROR] Form error message */}
         {formError && (
           <p className="text-[var(--color-red-500)] text-sm mt-3">{formError}</p>
         )}
 
-        {/* Footer Buttons */}
+        {/* [FOOTER] Back / Next / Submit */}
         <div className="flex justify-between items-center gap-3 mt-6">
           <button
             onClick={step === 1 ? onClose : handleBack}
@@ -371,6 +377,7 @@ const SubjectFormModal = ({
             </button>
           )}
         </div>
+
       </div>
     </div>
   );

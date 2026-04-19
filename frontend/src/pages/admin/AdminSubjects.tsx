@@ -1,22 +1,28 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
-import { useState, useEffect, useRef } from "react";
+// [IMPORT] Hooks
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-// Components
-import Skeleton from "../../components/Skeleton";
-import PrimaryButton from "../../components/buttons/PrimaryButton";
+// [IMPORT] Components
 import Modal from "../../components/Modal";
+import Skeleton from "../../components/Skeleton";
 import EmptyState from "../../components/EmptyState";
+import Dropdown from "../../components/Dropdown";
+import SearchBar from "../../components/SearchBar";
+import Pagination from "../../components/Pagination";
+import Breadcrumbs from "../../components/Breadcrumbs";
+import SubjectCard from "../../components/cards/SubjectCard";
+import PrimaryButton from "../../components/buttons/PrimaryButton";
 import SubjectFormModal from "../../components/forms/SubjectFormModal";
+import AdminPageLayout from "../../components/layouts/AdminPageLayout";
 
-// Constants & Types
+// [IMPORT] Helpers, Constants & Types
+import { getVisiblePages } from "../../helpers/index";
 import { GRADE_LEVEL_OPTIONS } from "../../constants";
 import { LearningAreaFormData, GeneralModalConfig } from "../../types";
-import SubjectCard from "../../components/cards/SubjectCard";
 
-// ? [INTERFACES]
+// ? [INTERFACE] Subject entity
 interface Subject {
   id: number;
   code: string;
@@ -31,6 +37,16 @@ interface Subject {
   createdAt: string;
 }
 
+// [CONSTANT] Empty form state
+const EMPTY_FORM: LearningAreaFormData = {
+  name: "",
+  gradeLevel: "",
+  curriculum: "Regular",
+  writtenWorkWeight: "0.3",
+  performanceTaskWeight: "0.5",
+  quarterlyAssessmentWeight: "0.2",
+};
+
 const AdminSubjects = () => {
   const navigate = useNavigate();
 
@@ -40,23 +56,16 @@ const AdminSubjects = () => {
 
   // [STATES] Search, Sort, and Filter
   const [search, setSearch] = useState("");
-  const [sortOption, setSortOption] = useState<"name-asc" | "name-desc" | "grade-asc" | "grade-desc">("name-asc");
-  const filterRef = useRef<HTMLDivElement>(null);
   const [activeDropdown, setActiveDropdown] = useState<"sort" | "grade" | null>(null);
 
+  type SortOption = "name-asc" | "name-desc" | "grade-asc" | "grade-desc";
+  const [sortOption, setSortOption] = useState<SortOption>("name-asc");
   const [selectedGrade, setSelectedGrade] = useState<string | "All">("All");
 
   // [STATES] Subject Form Modal
   const [showSubjectModal, setShowSubjectModal] = useState(false);
   const [formError, setFormError] = useState("");
-  const [formData, setFormData] = useState<LearningAreaFormData>({
-    name: "",
-    gradeLevel: "",
-    curriculum: "Regular",
-    writtenWorkWeight: "0.3",
-    performanceTaskWeight: "0.5",
-    quarterlyAssessmentWeight: "0.2",
-  });
+  const [formData, setFormData] = useState<LearningAreaFormData>(EMPTY_FORM);
 
   // [STATES] Pagination
   const [page, setPage] = useState(1);
@@ -94,7 +103,6 @@ const AdminSubjects = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-
       if (!data.success) throw new Error(data.message || "Failed to fetch subjects");
 
       setSubjects(Array.isArray(data.data) ? data.data : []);
@@ -119,32 +127,14 @@ const AdminSubjects = () => {
     fetchSubjects();
   }, []);
 
-  // [EFFECT] Close sort dropdown on outside click
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
-        setActiveDropdown(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // * [HANDLE] Add Subject
+  // * [HANDLE] Open Create Modal
   const handleAddSubject = () => {
-    setFormData({
-      name: "",
-      gradeLevel: "",
-      curriculum: "Regular",
-      writtenWorkWeight: "0.3",
-      performanceTaskWeight: "0.5",
-      quarterlyAssessmentWeight: "0.2",
-    });
+    setFormData(EMPTY_FORM);
     setFormError("");
     setShowSubjectModal(true);
   };
 
-  // * [HANDLE] Submit
+  // * [HANDLE] Submit Create Form
   const handleSubmit = async () => {
     setLoading(true);
     setFormError("");
@@ -170,11 +160,12 @@ const AdminSubjects = () => {
       const data = await res.json();
 
       // ! [ERROR] Failed API response
-      if (!data.success) {
-        console.error(data.message || "Failed to add subject");
-      }
+      if (!data.success) throw new Error(data.message || "Failed to add subject");
 
-      // * [SUCCESS] Subject created
+      setShowSubjectModal(false);
+      await fetchSubjects();
+
+      // * [SUCCESS] Subject Created
       openGeneralModal({
         title: "Subject Created",
         message: "The subject has been added successfully.",
@@ -182,20 +173,11 @@ const AdminSubjects = () => {
         isCancelable: false,
         onConfirm: () => closeGeneralModal(),
       });
-
-      setShowSubjectModal(false);
-      await fetchSubjects();
     } catch (err: any) {
       // ! [ERROR] Subject creation failed
       console.error(err);
-      openGeneralModal({
-        title: "Unable to Create Subject",
-        message: "We couldn't create your subject at the moment. Please check your internet connection and try again.",
-        type: "error",
-        isCancelable: false,
-        onConfirm: () => closeGeneralModal(),
-      });
-      setFormError(err.message || "An unexpected error occurred while creating the subject.");
+      const errorMessage = err.message || "An unexpected error occurred while creating the subject.";
+      setFormError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -203,45 +185,6 @@ const AdminSubjects = () => {
 
   // * [HANDLE] Delete Subject
   const handleDelete = (id: number) => {
-    const onDeleteConfirm = async () => {
-      setLoading(true);
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area/${id}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const data = await res.json();
-        if (!data.success) throw new Error(data.message || "Failed to delete subject");
-
-        setSubjects(prev => prev.filter(s => s.id !== id));
-
-        // * [SUCCESS] Subject deleted
-        openGeneralModal({
-          title: "Subject Deleted",
-          message: "The subject has been deleted successfully.",
-          type: "success",
-          isCancelable: false,
-          onConfirm: () => {
-            closeGeneralModal();
-          },
-        });
-      } catch (err) {
-        // ! [ERROR] Subject deletion failed
-        console.error("Delete error:", err);
-        openGeneralModal({
-          title: "Unable to Delete Subject",
-          message: "We couldn't delete the subject at the moment. Please check your internet connection and try again.",
-          type: "error",
-          isCancelable: true,
-          onConfirm: () => closeGeneralModal(),
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
     // ? [CONFIRMATION] Before deleting, ask user to confirm
     openGeneralModal({
       title: "Delete Subject",
@@ -249,11 +192,46 @@ const AdminSubjects = () => {
       type: "error",
       confirmText: "Delete",
       isCancelable: true,
-      onConfirm: onDeleteConfirm,
+      onConfirm: async () => {
+        setLoading(true);
+        try {
+          const token = localStorage.getItem("token");
+          const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area/${id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          const data = await res.json();
+          if (!data.success) throw new Error(data.message || "Failed to delete subject");
+
+          setSubjects(prev => prev.filter(s => s.id !== id));
+
+          // * [SUCCESS] Subject Deleted
+          openGeneralModal({
+            title: "Subject Deleted",
+            message: "The subject has been deleted successfully.",
+            type: "success",
+            isCancelable: false,
+            onConfirm: () => closeGeneralModal(),
+          });
+        } catch (err) {
+          // ! [ERROR] Subject deletion failed
+          console.error("Delete error:", err);
+          openGeneralModal({
+            title: "Unable to Delete Subject",
+            message: "We couldn't delete the subject at the moment. Please check your internet connection and try again.",
+            type: "error",
+            isCancelable: false,
+            onConfirm: () => closeGeneralModal(),
+          });
+        } finally {
+          setLoading(false);
+        }
+      },
     });
   };
 
-  // [HANDLE] Search, Sort, and Grade Filter
+  // * [HANDLE] Sorting, Searching & Filtering
   const filteredSubjects = subjects
     .filter(s =>
       (
@@ -265,9 +243,9 @@ const AdminSubjects = () => {
     )
     .sort((a, b) => {
       switch (sortOption) {
-        case "name-asc": return a.name.localeCompare(b.name);
-        case "name-desc": return b.name.localeCompare(a.name);
-        case "grade-asc": return a.gradeLevel - b.gradeLevel;
+        case "name-asc":   return a.name.localeCompare(b.name);
+        case "name-desc":  return b.name.localeCompare(a.name);
+        case "grade-asc":  return a.gradeLevel - b.gradeLevel;
         case "grade-desc": return b.gradeLevel - a.gradeLevel;
         default: return 0;
       }
@@ -276,19 +254,17 @@ const AdminSubjects = () => {
   const totalPages = Math.ceil(filteredSubjects.length / itemsPerPage);
   const displayedSubjects = filteredSubjects.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
-  const handlePrevPage = () => setPage(prev => Math.max(prev - 1, 1));
-  const handleNextPage = () => setPage(prev => Math.min(prev + 1, totalPages));
-
+  // * [BREADCRUMBS] Admin Dashboard navigation
   const breadcrumbs = [
     { label: "Admin Dashboard", path: "/admin/dashboard" },
     { label: "Subjects", path: null },
   ];
 
-  // ? [LOADING STATE] Show skeleton while loading
+  // ? [LOADING STATE]
   if (loading) return <Skeleton />;
 
   return (
-    <div>
+    <>
       {/* [MODAL] General */}
       <Modal
         isOpen={generalModal.isOpen}
@@ -300,6 +276,7 @@ const AdminSubjects = () => {
         onConfirm={generalModal.onConfirm}
         isCancelable={generalModal.isCancelable}
       />
+
       {/* [MODAL] Subject Form */}
       <SubjectFormModal
         isOpen={showSubjectModal}
@@ -313,169 +290,169 @@ const AdminSubjects = () => {
         setFormError={setFormError}
       />
 
-      <div className="py-10 px-4 space-y-4 relative">
+      {/* [LAYOUT] Admin Page */}
+      <AdminPageLayout
+        header={
+          <Breadcrumbs items={breadcrumbs} title="Subjects" />
+        }
+        toolbar={
+          <div className="bg-[var(--color-bg-100)] px-3 sm:px-4 py-4 rounded-lg flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">
+            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">
+              <div className="flex items-stretch gap-2 md:gap-4 w-full">
+                {/* [COMPONENT] Search Bar */}
+                <div className="w-full sm:w-64 md:w-80 lg:w-96">
+                  <SearchBar
+                    value={search}
+                    placeholder="Search by name or code..."
+                    onChange={setSearch}
+                    onResetPage={() => setPage(1)}
+                  />
+                </div>
 
-        {/* [SECTION] Header & Breadcrumbs */}
-        <div>
-          <h2 className="text-[var(--color-text-800)] leading-0">Subjects</h2>
-          <nav className="font-roboto text-sm text-[var(--color-text-700)]">
-            {breadcrumbs.map((crumb, idx) => (
-              <span key={idx}>
-                {crumb.path ? (
-                  <span className="cursor-pointer hover:underline" onClick={() => navigate(crumb.path!)}>{crumb.label}</span>
-                ) : (
-                  <span className="font-medium text-[var(--color-text-900)]">{crumb.label}</span>
-                )}
-                {idx < breadcrumbs.length - 1 && " / "}
-              </span>
+                {/* [COMPONENT] Sort & Filter Dropdowns */}
+                <div className="flex gap-x-2 ml-auto">
+                  <Dropdown
+                    icon="/sort-icon.svg"
+                    label="Sort"
+                    isOpen={activeDropdown === "sort"}
+                    onToggle={() =>
+                      setActiveDropdown(activeDropdown === "sort" ? null : "sort")
+                    }
+                    selected={sortOption}
+                    onSelect={(value) => {
+                      setSortOption(value as SortOption);
+                      setPage(1);
+                    }}
+                    options={[
+                      { label: "Name ↑", value: "name-asc" },
+                      { label: "Name ↓", value: "name-desc" },
+                      { label: "Grade ↑", value: "grade-asc" },
+                      { label: "Grade ↓", value: "grade-desc" },
+                    ]}
+                  />
+
+                  {/* [COMPONENT] Filter Dropdown */}
+                  <Dropdown
+                    icon="/filter-icon.svg"
+                    label="Filter"
+                    isOpen={activeDropdown === "grade"}
+                    onToggle={() =>
+                      setActiveDropdown(activeDropdown === "grade" ? null : "grade")
+                    }
+                    selected={selectedGrade}
+                    onSelect={(value) => {
+                      setSelectedGrade(value);
+                      setPage(1);
+                    }}
+                    width="w-36"
+                    options={[
+                      { label: "All", value: "All" },
+                      ...GRADE_LEVEL_OPTIONS.map(g => ({ label: `Grade ${g}`, value: g })),
+                    ]}
+                  />
+                </div>
+              </div>
+
+              {/* [PRIMARY BUTTON] Add Subject */}
+              <div className="w-full md:w-auto md:ml-auto">
+                <PrimaryButton
+                  text="Add Subject"
+                  iconSrc="/add-icon.svg"
+                  onClick={handleAddSubject}
+                  className="w-full md:w-auto"
+                />
+              </div>
+            </div>
+          </div>
+        }
+        footer={
+          // [COMPONENT] Pagination
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            getVisiblePages={getVisiblePages}
+          />
+        }>
+        <div className="space-y-3">
+
+          {/* [SECTION] Subject Cards (Mobile View) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:hidden gap-4 bg-[var(--color-bg-100)] px-3 py-4 rounded-lg">
+            {!loading && displayedSubjects.length === 0 && (
+              <div className="sm:col-span-2 flex justify-center">
+                <EmptyState
+                  title="No subjects found"
+                  subtitle="No subjects match your current filters or search."
+                  iconSrc="/no-data-icon.svg"
+                />
+              </div>
+            )}
+
+            {displayedSubjects.map((s) => (
+              <SubjectCard key={s.id} subject={s} />
             ))}
-          </nav>
-        </div>
-
-        {/* [SECTION] Search & Filters */}
-        <div ref={filterRef} className="bg-[var(--color-bg-100)] px-3 rounded-lg py-4 flex md:flex-row gap-2 md:gap-4 items-stretch w-full">
-          {/* [INPUT] Search */}
-          <div className="relative flex-1">
-            <input
-              type="text"
-              placeholder="Search by name or code..."
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="w-full bg-[var(--color-bg-50)] body-default rounded-sm px-3 outline-none border border-[var(--color-text-300)] focus:ring-2 focus:ring-[var(--color-primary-600)] h-full"
-            />
           </div>
 
-          {/* [DROPDOWN] Sort Filter */}
-          <div className="relative">
-            <button
-              onClick={() => setActiveDropdown(activeDropdown === "sort" ? null : "sort")}
-              className="flex items-center justify-center text-[var(--color-text-50)] rounded-sm px-3 h-10 transition cursor-pointer bg-[var(--color-bg-50)] hover:opacity-80"
-            >
-              <img src="/sort-icon.svg" alt="Sort" className="size-4" />
-            </button>
-            {activeDropdown === "sort" && (
-              <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-300 rounded-md shadow-lg p-2 space-y-1 z-50">
-                <button onClick={() => { setSortOption("name-asc"); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-asc" ? "bg-blue-100" : ""}`}>Name ↑</button>
-                <button onClick={() => { setSortOption("name-desc"); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-desc" ? "bg-blue-100" : ""}`}>Name ↓</button>
-                <button onClick={() => { setSortOption("grade-asc"); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "grade-asc" ? "bg-blue-100" : ""}`}>Grade ↑</button>
-                <button onClick={() => { setSortOption("grade-desc"); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "grade-desc" ? "bg-blue-100" : ""}`}>Grade ↓</button>
-              </div>
-            )}
-          </div>
-
-          {/* [DROPDOWN] Grade Filter */}
-          <div className="relative">
-            <button
-              onClick={() => setActiveDropdown(activeDropdown === "grade" ? null : "grade")}
-              className="flex items-center justify-center text-[var(--color-text-50)] rounded-sm px-3 h-10 transition cursor-pointer bg-[var(--color-bg-50)] hover:opacity-80"
-            >
-              <img src="/filter-icon.svg" alt="Grade Filter" className="size-4" />
-            </button>
-            {activeDropdown === "grade" && (
-              <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-300 rounded-md shadow-lg p-2 space-y-1 z-50 max-h-48 overflow-y-auto">
-                <button onClick={() => { setSelectedGrade("All"); setPage(1); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedGrade === "All" ? "bg-blue-100" : ""}`}>All</button>
-                {GRADE_LEVEL_OPTIONS.map(g => (
-                  <button key={g} onClick={() => { setSelectedGrade(g); setPage(1); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedGrade === g ? "bg-blue-100" : ""}`}>Grade {g}</button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* [SECTION] Add Subject */}
-        <div className="mt-2 space-y-2">
-          <PrimaryButton text="Add Subject" iconSrc="/add-icon.svg" onClick={handleAddSubject} />
-        </div>
-
-        {/* [SECTION] Subjects: Mobile View (Cards) */}
-        <div className="flex flex-col gap-4 sm:hidden mt-2 bg-[var(--color-bg-100)] px-3 py-4 rounded-lg">
-          {!loading && (
-            filteredSubjects.length === 0 ? (
+          {/* [SECTION] Subjects Table (Desktop View) */}
+          <div className="hidden md:block bg-[var(--color-bg-100)] px-3 py-4 rounded-lg overflow-x-auto">
+            {!loading && displayedSubjects.length === 0 && (
               <EmptyState
                 title="No subjects found"
-                subtitle={
-                  subjects.length === 0
-                    ? "You currently have no assigned subjects. Please contact admin if this is an error."
-                    : "No subjects match your current filters or search. Try adjusting your criteria."
-                }
+                subtitle="No subjects match your current filters or search."
                 iconSrc="/no-data-icon.svg"
               />
-            ) : (
-              displayedSubjects.map((s) => (
-                <SubjectCard
-                  key={s.id}
-                  subject={s}
-                />
-              ))
-            )
-          )}
-        </div>
+            )}
 
-        {/* [SECTION] Subjects: Desktop View (Table) */}
-        <div className="hidden sm:block bg-[var(--color-bg-100)] rounded-lg overflow-hidden">
-          <table className="w-full text-sm font-roboto">
-            <thead>
-              <tr className="border-b border-[var(--color-bg-200)] text-[var(--color-text-600)] text-xs uppercase tracking-wide">
-                <th className="px-4 py-3 text-left">Subject</th>
-                <th className="px-4 py-3 text-left">Code</th>
-                <th className="px-4 py-3 text-left">Grade</th>
-                <th className="px-4 py-3 text-left">Hrs/Week</th>
-                <th className="px-4 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {displayedSubjects.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-[var(--color-text-600)]">No subjects found.</td>
-                </tr>
-              ) : (
-                displayedSubjects.map((s) => (
-                  <tr
-                    key={s.id}
-                    className="border-b border-[var(--color-bg-200)] hover:bg-[var(--color-bg-50)] transition-colors cursor-pointer"
-                    onClick={() => navigate(`/admin/subjects/view/${s.id}`)}
-                  >
-                    <td className="px-4 py-3 font-medium text-[var(--color-text-900)]">{s.name}</td>
-                    <td className="px-4 py-3 font-mono text-[var(--color-text-600)] text-xs">{s.code}</td>
-                    <td className="px-4 py-3 text-[var(--color-text-700)]">Grade {s.gradeLevel}</td>
-                    <td className="px-4 py-3 text-[var(--color-text-700)]">{s.hoursPerWeek ?? "—"}</td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                        <button onClick={() => handleDelete(s.id)} className="text-xs font-roboto text-[var(--color-red-500)] hover:underline cursor-pointer">Delete</button>
-                      </div>
-                    </td>
+            {displayedSubjects.length > 0 && (
+              <table className="min-w-full border-separate border-spacing-y-2">
+                <thead>
+                  <tr className="text-left">
+                    {/* [SECTION] Table Headers */}
+                    <th className="table-header">Subject</th>
+                    <th className="table-header">Code</th>
+                    <th className="table-header">Grade</th>
+                    <th className="table-header">Curriculum</th>
+                    <th className="table-header">Hrs/Week</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                </thead>
 
-        {/* [SECTION] Pagination */}
-        {displayedSubjects.length !== 0 && (
-          <div className="flex justify-center items-center mt-4 gap-4">
-            <button onClick={handlePrevPage} disabled={page === 1}
-              className={`w-8 h-8 flex items-center justify-center rounded-full text-[var(--color-text-50)] font-roboto font-bold transition-colors duration-150 ${page === 1 ? "bg-[var(--color-bg-400)] cursor-not-allowed opacity-50" : "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)]"}`}>
-              &lt;
-            </button>
-            <div className="flex items-center gap-2">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
-                <button key={num} onClick={() => setPage(num)}
-                  className={`size-6 flex items-center justify-center rounded-full font-bold text-xs transition-all duration-150 ${num === page ? "size-7 bg-[var(--color-primary-500)] text-[var(--color-text-50)] scale-110" : "bg-[var(--color-bg-300)] text-[var(--color-text-900)] hover:bg-[var(--color-primary-400)]"}`}
-                  aria-label={`Go to page ${num}`}>
-                  {num}
-                </button>
-              ))}
-            </div>
-            <button onClick={handleNextPage} disabled={page === totalPages}
-              className={`size-8 flex items-center justify-center rounded-full text-[var(--color-text-50)] font-roboto font-bold transition-colors duration-150 ${page === totalPages ? "bg-[var(--color-bg-400)] cursor-not-allowed opacity-50" : "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)]"}`}>
-              &gt;
-            </button>
+                {/* [SECTION] Table Body */}
+                <tbody>
+                  {displayedSubjects.map((s) => (
+                    <tr
+                      key={s.id}
+                      className="bg-[var(--color-bg-50)] hover:bg-[var(--color-bg-200)] transition cursor-pointer"
+                      onClick={() => navigate(`/admin/subjects/view/${s.id}`)}
+                    >
+                      <td className="table-cell table-text table-text-link hover:underline">
+                        {s.name}
+                      </td>
+
+                      <td className="table-cell table-text table-text-default font-mono text-xs">
+                        {s.code}
+                      </td>
+
+                      <td className="table-cell table-text table-text-default">
+                        Grade {s.gradeLevel}
+                      </td>
+
+                      <td className="table-cell table-text table-text-default">
+                        {s.curriculum ?? "—"}
+                      </td>
+
+                      <td className="table-cell table-text table-text-default">
+                        {s.hoursPerWeek ?? "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
-        )}
 
-      </div>
-    </div>
+        </div>
+      </AdminPageLayout>
+    </>
   );
 };
 
