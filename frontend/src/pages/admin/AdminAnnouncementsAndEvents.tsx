@@ -1,97 +1,20 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+// [IMPORT] Hooks
 import { useState, useEffect } from "react";
 
-// Components
-import Skeleton from "../../components/Skeleton";
-import PrimaryButton from "../../components/buttons/PrimaryButton";
+// [IMPORT] Components
 import Modal from "../../components/Modal";
+import Skeleton from "../../components/Skeleton";
 import EmptyState from "../../components/EmptyState";
-
-// Types
-import { GeneralModalConfig } from "../../types";
+import PrimaryButton from "../../components/buttons/PrimaryButton";
 import SecondaryButton from "../../components/buttons/SecondaryButton";
 import DeleteButton from "../../components/buttons/DeleteButton";
 
-// ? [INTERFACES]
-interface Announcement {
-  id: number;
-  title: string;
-  content: string;
-  publishedAt?: string;
-  expiresAt?: string;
-  createdById: number;
-  createdBy?: { id: number; name: string };
-  createdAt: string;
-  updatedAt: string;
-}
-
-type EventType = "SCHOOL_EVENT" | "ACADEMIC_EVENT" | "COMMUNITY_SERVICE" | "OTHER";
-
-interface SchoolEvent {
-  id: number;
-  title: string;
-  description: string;
-  location?: string;
-  type: EventType;
-  startDate: string;
-  endDate?: string;
-  isOnline: boolean;
-  createdById: number;
-  createdBy?: { id: number; name: string };
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface AnnouncementFormData {
-  title: string;
-  content: string;
-  publishedAt: string;
-  expiresAt: string;
-}
-
-interface EventFormData {
-  title: string;
-  description: string;
-  location: string;
-  type: EventType;
-  startDate: string;
-  endDate: string;
-  isOnline: boolean;
-}
-
-// [CONSTANTS]
-const EVENT_TYPE_LABELS: Record<EventType, string> = {
-  SCHOOL_EVENT: "School Event",
-  ACADEMIC_EVENT: "Academic Event",
-  COMMUNITY_SERVICE: "Community Service",
-  OTHER: "Other",
-};
-
-const EVENT_TYPE_OPTIONS: EventType[] = [
-  "SCHOOL_EVENT",
-  "ACADEMIC_EVENT",
-  "COMMUNITY_SERVICE",
-  "OTHER",
-];
-
-const ANNOUNCEMENT_INITIAL: AnnouncementFormData = {
-  title: "",
-  content: "",
-  publishedAt: "",
-  expiresAt: "",
-};
-
-const EVENT_INITIAL: EventFormData = {
-  title: "",
-  description: "",
-  location: "",
-  type: "OTHER",
-  startDate: "",
-  endDate: "",
-  isOnline: false,
-};
+// [IMPORT] Constants & Types
+import { EVENT_TYPE_LABELS, EVENT_TYPE_OPTIONS, ANNOUNCEMENT_INITIAL, EVENT_INITIAL } from "../../constants";
+import { GeneralModalConfig, Announcement, SchoolEvent, EventType, AnnouncementFormData, EventFormData } from "../../types";
 
 const AdminAnnouncementsAndEvents = () => {
   // [STATES] Entities

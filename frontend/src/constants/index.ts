@@ -1,4 +1,4 @@
-import { SchoolFormType, SchoolFormStatus } from "../types";
+import { SchoolFormType, SchoolFormStatus, EventType, EventFormData, AnnouncementFormData } from "../types";
 
 // ? [CONSTANTS] Options
 export const GRADE_LEVEL_OPTIONS = ["7", "8", "9", "10"];
@@ -92,4 +92,35 @@ export const STATUS_LABEL: Record<SchoolFormStatus, string> = {
   SUBMITTED: "Submitted",
   APPROVED:  "Approved",
   LOCKED:    "Locked",
+};
+
+export const EVENT_TYPE_LABELS: Record<EventType, string> = {
+  SCHOOL_EVENT: "School Event",
+  ACADEMIC_EVENT: "Academic Event",
+  COMMUNITY_SERVICE: "Community Service",
+  OTHER: "Other",
+};
+
+export const EVENT_TYPE_OPTIONS: EventType[] = [
+  "SCHOOL_EVENT",
+  "ACADEMIC_EVENT",
+  "COMMUNITY_SERVICE",
+  "OTHER",
+];
+
+export const ANNOUNCEMENT_INITIAL: AnnouncementFormData = {
+  title: "",
+  content: "",
+  publishedAt: "",
+  expiresAt: "",
+};
+
+export const EVENT_INITIAL: EventFormData = {
+  title: "",
+  description: "",
+  location: "",
+  type: "OTHER",
+  startDate: "",
+  endDate: "",
+  isOnline: false,
 };

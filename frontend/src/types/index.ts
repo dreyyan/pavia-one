@@ -313,6 +313,7 @@ export interface ImportResult {
 export type SchoolFormType   = "SF1" | "SF5";
 export type SchoolFormStatus = "DRAFT" | "GENERATED" | "SUBMITTED" | "APPROVED" | "LOCKED";
 export type StudentFormStatus = "COMPLETE" | "PARTIAL" | "PENDING";
+export type EventType = "SCHOOL_EVENT" | "ACADEMIC_EVENT" | "COMMUNITY_SERVICE" | "OTHER";
 
 // ? [TYPES] Dashboard
 export interface Profile {
@@ -330,4 +331,48 @@ export interface DashboardSummary {
   totalAdvisers: number;
   totalSections: number;
   totalAdmins: number;
+}
+
+export interface Announcement {
+  id: number;
+  title: string;
+  content: string;
+  publishedAt?: string;
+  expiresAt?: string;
+  createdById: number;
+  createdBy?: { id: number; name: string };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SchoolEvent {
+  id: number;
+  title: string;
+  description: string;
+  location?: string;
+  type: EventType;
+  startDate: string;
+  endDate?: string;
+  isOnline: boolean;
+  createdById: number;
+  createdBy?: { id: number; name: string };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AnnouncementFormData {
+  title: string;
+  content: string;
+  publishedAt: string;
+  expiresAt: string;
+}
+
+export interface EventFormData {
+  title: string;
+  description: string;
+  location: string;
+  type: EventType;
+  startDate: string;
+  endDate: string;
+  isOnline: boolean;
 }
