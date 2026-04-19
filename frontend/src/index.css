@@ -110,10 +110,6 @@
    Typography (Responsive)
 ============================== */
 
-/* ==============================
-   Typography (Better Responsive)
-============================== */
-
 /* Headlines */
 .display-1 {
   font-family: var(--font-figtree);
@@ -197,9 +193,38 @@ h4 {
 /* Table Header */
 .table-header {
   font-family: var(--font-figtree);
-  font-weight: 600; /* semibold */
+  font-weight: 700;
   font-size: clamp(14px, 2vw, 16px);
   line-height: clamp(20px, 2.5vw, 24px);
+  color: var(--color-text-600);
+  padding: 0.5rem 0.75rem;
+}
+
+.table-text-link {
+  font-family: var(--font-roboto);
+  font-weight: 500;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--color-primary-700);
+}
+
+.table-text {
+  font-family: var(--font-roboto);
+  font-weight: 500;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.table-text-default {
+  color: var(--color-text-800);
+}
+
+.table-text-link {
+  color: var(--color-primary-700);
+}
+
+.table-cell {
+  padding: 0.75rem 0.75rem;
 }
 
 .input-field-label {
@@ -207,6 +232,15 @@ h4 {
   font-weight: 500; /* medium */
   font-size: clamp(13px, 2vw, 16px);
   line-height: clamp(18px, 2.3vw, 22px);
+}
+
+/* Custom Classes */
+.breadcrumb-header {
+  font-family: var(--font-figtree);
+  font-weight: 700;
+  font-size: clamp(24px, 4vw, 32px);
+  line-height: clamp(32px, 4.5vw, 44px);
+  color: var(--color-text-900);
 }
 
 /* Shadows */
