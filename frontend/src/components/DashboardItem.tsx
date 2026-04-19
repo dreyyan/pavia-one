@@ -15,7 +15,7 @@ const DashboardItem: React.FC<DashboardProps> = ({iconSrc, text, value, color}) 
                         flex items-center justify-center
                         bg-[var(--color-primary-700)]
                         rounded-l-sm lg:rounded-full
-                        p-2 sm:p-2.5 md:p-3 lg:p-3 xl:p-5
+                        p-2 sm:p-2.5 md:p-3 lg:p-3 xl:p-4
                         min-w-[40px] sm:min-w-[48px] md:min-w-[56px] lg:min-w-0
                         flex-shrink-0
                     "
@@ -23,11 +23,11 @@ const DashboardItem: React.FC<DashboardProps> = ({iconSrc, text, value, color}) 
                 >
                     <img
                         src={iconSrc}
-                        className="size-5 sm:size-7 md:size-9 lg:size-7 xl:size-8 2xl:size-9"
+                        className="size-5 sm:size-7 md:size-9 lg:size-7"
                     />
                 </div>
                 {/* Text */}
-                <p className="font-roboto font-semibold text-md sm:text-lg md:text-xl lg:text-2xl xl:text-3xl">{text}</p>
+                <p className="font-roboto font-semibold text-md sm:text-lg md:text-xl lg:text-2xl">{text}</p>
             </div>
 
             {/* Value */}

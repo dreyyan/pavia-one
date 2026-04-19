@@ -167,10 +167,10 @@ const AdminDashboard = () => {
             <p className="lg:text-end font-roboto font-extrabold text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-3xl text-[var(--color-text-800)]">
               {profile?.name}
             </p>
-            <p className="lg:text-end font-roboto sm:font-semibold lg:font-medium text-sm sm:text-md md:text-lg lg:text-md xl:text-3xl text-[var(--color-text-700)]">
+            <p className="lg:text-end font-roboto sm:font-semibold lg:font-medium text-sm sm:text-md md:text-lg lg:text-md xl:text-xl text-[var(--color-text-700)]">
               Administrator
             </p>
-            <p className="hidden lg:block lg:text-end font-roboto text-xs sm:text-sm md:text-base text-[var(--color-text-600)] break-all underline">
+            <p className="hidden lg:block lg:text-end font-roboto text-xs sm:text-sm md:text-md text-[var(--color-text-600)] break-all underline">
               {profile?.email || "No email available"}
             </p>
           </div>
