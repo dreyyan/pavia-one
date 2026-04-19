@@ -1,23 +1,30 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // [IMPORT] Hooks
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
-import Skeleton from "../../components/Skeleton";
-import PrimaryButton from "../../components/buttons/PrimaryButton";
 import Modal from "../../components/Modal";
-import SectionCard from "../../components/cards/SectionCard";
-
-// [IMPORT] Constants & Types
-import { GRADE_LEVEL_OPTIONS, CURRICULUM_OPTIONS } from "../../constants";
-import type { GeneralModalConfig, Section, SectionFormData } from "../../types";
-import { SectionFormModal } from "../../components/forms/SectionFormModal";
+import Skeleton from "../../components/Skeleton";
 import EmptyState from "../../components/EmptyState";
+import Dropdown from "../../components/Dropdown";
+import SearchBar from "../../components/SearchBar";
+import Pagination from "../../components/Pagination";
+import Breadcrumbs from "../../components/Breadcrumbs";
+import SectionCard from "../../components/cards/SectionCard";
+import PrimaryButton from "../../components/buttons/PrimaryButton";
 import SecondaryButton from "../../components/buttons/SecondaryButton";
+import SectionFormModal from "../../components/forms/SectionFormModal";
+import AdminPageLayout from "../../components/layouts/AdminPageLayout";
 
+// [IMPORT] Helpers, Constants & Types
+import { getVisiblePages } from "../../helpers/index";
+import { GRADE_LEVEL_OPTIONS, CURRICULUM_OPTIONS } from "../../constants";
+import { GeneralModalConfig, Section, SectionFormData } from "../../types";
+
+// [CONSTANT] Empty form state
 const EMPTY_FORM: SectionFormData = {
   name: "",
   gradeLevel: "",
@@ -42,10 +49,10 @@ const AdminSections = () => {
   // [STATES] Search, Sort, and Filter
   const [search, setSearch] = useState("");
   const [adviserSearch, setAdviserSearch] = useState("");
-  const [sortOption, setSortOption] = useState<"name-asc" | "name-desc" | "grade-asc" | "grade-desc">("name-asc");
-  const filterRef = useRef<HTMLDivElement>(null);
   const [activeDropdown, setActiveDropdown] = useState<"sort" | "grade" | null>(null);
 
+  type SortOption = "name-asc" | "name-desc" | "grade-asc" | "grade-desc";
+  const [sortOption, setSortOption] = useState<SortOption>("name-asc");
   const [selectedGrade, setSelectedGrade] = useState<string | "All">("All");
 
   // [STATES] Section Form Modal
@@ -56,9 +63,9 @@ const AdminSections = () => {
 
   // [STATES] Auto-Generate Modal
   const [showGenerateModal, setShowGenerateModal] = useState(false);
-  const [generateYear, setGenerateYear]           = useState("");
-  const [generating, setGenerating]               = useState(false);
-  const [generateError, setGenerateError]         = useState("");
+  const [generateYear, setGenerateYear] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState("");
 
   // [STATE] General Modal
   const [generalModal, setGeneralModal] = useState<GeneralModalConfig>({
@@ -72,7 +79,11 @@ const AdminSections = () => {
   });
 
   const openGeneralModal = (config: Partial<Omit<GeneralModalConfig, "isOpen">>) => {
-    setGeneralModal(prev => ({ ...prev, isOpen: true, ...config }));
+    setGeneralModal({
+      ...generalModal,
+      isOpen: true,
+      ...config,
+    });
   };
 
   const closeGeneralModal = () => {
@@ -94,9 +105,11 @@ const AdminSections = () => {
       if (res.status === 401) { setShowTokenExpiredModal(true); return; }
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed to fetch sections");
+
       const list = data.data?.data;
       setSections(Array.isArray(list) ? list : []);
     } catch (err) {
+      // ! [ERROR] Fetching sections failed
       console.error(err);
       openGeneralModal({
         title: "Unable to Load Sections",
@@ -112,7 +125,7 @@ const AdminSections = () => {
     }
   };
 
-  // * [FETCH] Advisers
+  // * [HANDLE] Fetch Advisers for Dropdown
   const fetchAdvisers = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -121,9 +134,11 @@ const AdminSections = () => {
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.message);
+
       const list = data.data?.data;
       setAdvisers(Array.isArray(list) ? list : []);
     } catch (err) {
+      // ! [ERROR] Fetching advisers failed
       console.error(err);
       openGeneralModal({
         title: "Unable to Load Advisers",
@@ -142,18 +157,7 @@ const AdminSections = () => {
     fetchAdvisers();
   }, []);
 
-  // [HANDLE] Close sort dropdown on outside click
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
-        setActiveDropdown(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // * [HANDLE] Open create modal
+  // * [HANDLE] Open Create Modal
   const handleAddSection = () => {
     setFormData(EMPTY_FORM);
     setAdviserSearch("");
@@ -162,7 +166,7 @@ const AdminSections = () => {
     setShowSectionModal(true);
   };
 
-  // * [HANDLE] Submit form (create or update)
+  // * [HANDLE] Submit Form (Create or Update)
   const handleSubmit = async () => {
     const rawYear = (formData.schoolYear || "").trim();
     const yearMatch = rawYear.match(/^(\d{4})\s*[-–—]\s*(\d{4})$/);
@@ -175,7 +179,7 @@ const AdminSections = () => {
     const dataToSubmit = {
       ...(isEditMode && { id: formData.id }),
       name: formData.name.trim(),
-      // adviser is optional — only include if actually set
+      // [NOTE] Adviser is optional — only include if set
       ...(formData.adviserId ? { adviserId: formData.adviserId } : {}),
       gradeLevel: Number(formData.gradeLevel),
       schoolYear: normalizedSchoolYear,
@@ -205,6 +209,8 @@ const AdminSections = () => {
         await fetchSections();
         setShowSectionModal(false);
         setAdviserSearch("");
+
+        // * [SUCCESS] Section Updated
         openGeneralModal({
           title: "Section Updated",
           message: `"${formData.name}" has been updated successfully.`,
@@ -217,6 +223,8 @@ const AdminSections = () => {
           const reason = data.data?.failed?.[0]?.message || "The section could not be created.";
           setShowSectionModal(false);
           setAdviserSearch("");
+
+          // ! [ERROR] Section Not Created
           openGeneralModal({
             title: "Section Not Created",
             message: `We couldn't create the section. ${reason}`,
@@ -230,6 +238,8 @@ const AdminSections = () => {
         await fetchSections();
         setShowSectionModal(false);
         setAdviserSearch("");
+
+        // * [SUCCESS] Section Created
         openGeneralModal({
           title: "Section Created",
           message: `"${formData.name}" has been created successfully.`,
@@ -239,6 +249,7 @@ const AdminSections = () => {
         });
       }
     } catch (err: any) {
+      // ! [ERROR] Save Section Failed
       console.error(err);
       setShowSectionModal(false);
       setAdviserSearch("");
@@ -255,7 +266,7 @@ const AdminSections = () => {
     }
   };
 
-  // * [HANDLE] Auto-generate all sections for a school year
+  // * [HANDLE] Auto-Generate All Sections for a School Year
   const handleGenerate = async () => {
     const rawYear = generateYear.trim();
     const yearMatch = rawYear.match(/^(\d{4})\s*[-–—]\s*(\d{4})$/);
@@ -272,9 +283,7 @@ const AdminSections = () => {
       const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/sections/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          schoolYear: normalizedYear,
-        }),
+        body: JSON.stringify({ schoolYear: normalizedYear }),
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Generation failed");
@@ -283,6 +292,8 @@ const AdminSections = () => {
       setShowGenerateModal(false);
       setGenerateYear("");
       await fetchSections();
+
+      // * [SUCCESS] Sections Generated
       openGeneralModal({
         title: "Sections Generated",
         message: `${created.length} section(s) created across ${CURRICULUM_OPTIONS.length} curricula × 4 grade levels. ${skipped.length} already existed and were skipped.`,
@@ -291,6 +302,7 @@ const AdminSections = () => {
         onConfirm: () => closeGeneralModal(),
       });
     } catch (err: any) {
+      // ! [ERROR] Generate Failed
       console.error(err);
       setGenerateError(err.message || "Something went wrong. Please try again.");
     } finally {
@@ -298,7 +310,7 @@ const AdminSections = () => {
     }
   };
 
-  // [HANDLE] Sorting and Searching
+  // * [HANDLE] Sorting, Searching & Filtering
   const filteredSections = sections
     .filter(s =>
       (
@@ -318,22 +330,20 @@ const AdminSections = () => {
       }
     });
 
-  // [PAGINATION]
-  const totalPages        = Math.ceil(filteredSections.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredSections.length / itemsPerPage);
   const displayedSections = filteredSections.slice((page - 1) * itemsPerPage, page * itemsPerPage);
-  const handlePrevPage    = () => setPage(prev => Math.max(prev - 1, 1));
-  const handleNextPage    = () => setPage(prev => Math.min(prev + 1, totalPages));
 
-  // [BREADCRUMBS]
+  // * [BREADCRUMBS] Admin Dashboard navigation
   const breadcrumbs = [
     { label: "Admin Dashboard", path: "/admin/dashboard" },
     { label: "Sections", path: null },
   ];
 
+  // ? [LOADING STATE]
   if (loading) return <Skeleton />;
 
   return (
-    <div>
+    <>
       {/* [MODAL] General */}
       <Modal
         isOpen={generalModal.isOpen}
@@ -374,7 +384,7 @@ const AdminSections = () => {
         isCancelable={!generating}
       >
         <div className="p-1 space-y-4">
-          {/* Description */}
+          {/* [INFO] Description */}
           <div className="bg-[var(--color-bg-50)] border border-[var(--color-bg-200)] rounded-lg p-3 space-y-2">
             <p className="text-sm text-[var(--color-text-700)]">
               This will create <strong>one section per grade level × curriculum</strong> combination
@@ -396,7 +406,7 @@ const AdminSections = () => {
             </p>
           </div>
 
-          {/* School Year */}
+          {/* [FIELD] School Year */}
           <div className="space-y-1">
             <label className="text-xs font-semibold text-[var(--color-text-700)]">
               School Year <span className="text-red-500">*</span>
@@ -410,185 +420,188 @@ const AdminSections = () => {
             />
           </div>
 
-          {/* Error */}
+          {/* [ERROR] Generate error */}
           {generateError && (
             <p className="text-xs text-red-600 font-medium">{generateError}</p>
           )}
         </div>
       </Modal>
 
-      <div className="py-10 px-4 space-y-4 relative">
+      {/* [LAYOUT] Admin Page */}
+      <AdminPageLayout
+        header={
+          <Breadcrumbs items={breadcrumbs} title="Sections" />
+        }
+        toolbar={
+          <div className="bg-[var(--color-bg-100)] px-3 sm:px-4 py-4 rounded-lg flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">
+            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">
+              <div className="flex items-stretch gap-2 md:gap-4 w-full">
+                {/* [COMPONENT] Search Bar */}
+                <div className="w-full sm:w-64 md:w-80 lg:w-96">
+                  <SearchBar
+                    value={search}
+                    placeholder="Search by name, curriculum, or school year..."
+                    onChange={setSearch}
+                    onResetPage={() => setPage(1)}
+                  />
+                </div>
 
-        {/* [SECTION] Header & Breadcrumbs */}
-        <div>
-          <h2 className="text-[var(--color-text-800)] leading-0">Sections</h2>
-          <nav className="font-roboto text-sm text-[var(--color-text-700)]">
-            {breadcrumbs.map((crumb, idx) => (
-              <span key={idx}>
-                {crumb.path ? (
-                  <span className="cursor-pointer hover:underline" onClick={() => navigate(crumb.path!)}>{crumb.label}</span>
-                ) : (
-                  <span className="font-medium text-[var(--color-text-900)]">{crumb.label}</span>
-                )}
-                {idx < breadcrumbs.length - 1 && " / "}
-              </span>
-            ))}
-          </nav>
-        </div>
+                {/* [COMPONENT] Sort & Filter Dropdowns */}
+                <div className="flex gap-x-2 ml-auto">
+                  <Dropdown
+                    icon="/sort-icon.svg"
+                    label="Sort"
+                    isOpen={activeDropdown === "sort"}
+                    onToggle={() =>
+                      setActiveDropdown(activeDropdown === "sort" ? null : "sort")
+                    }
+                    selected={sortOption}
+                    onSelect={(value) => {
+                      setSortOption(value as SortOption);
+                      setPage(1);
+                    }}
+                    options={[
+                      { label: "Name ↑", value: "name-asc" },
+                      { label: "Name ↓", value: "name-desc" },
+                      { label: "Grade ↑", value: "grade-asc" },
+                      { label: "Grade ↓", value: "grade-desc" },
+                    ]}
+                  />
 
-        {/* [SECTION] Search & Filters */}
-        <div ref={filterRef} className="bg-[var(--color-bg-100)] px-3 rounded-lg py-4 flex md:flex-row gap-2 md:gap-4 items-stretch w-full">
-          <div className="relative flex-1">
-            <input
-              type="text"
-              placeholder="Search by name, curriculum, or school year..."
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="w-full bg-[var(--color-bg-50)] body-default rounded-sm px-3 outline-none border border-[var(--color-text-300)] focus:ring-2 focus:ring-[var(--color-primary-600)] h-full"
-            />
-          </div>
-
-          {/* [DROPDOWN] Sort Filter */}
-          <div className="relative">
-            <button
-              onClick={() => setActiveDropdown(activeDropdown === "sort" ? null : "sort")}
-              className="flex items-center justify-center text-[var(--color-text-50)] rounded-sm px-3 h-10 transition cursor-pointer bg-[var(--color-bg-50)] hover:opacity-80"
-            >
-              <img src="/sort-icon.svg" alt="Sort" className="size-4" />
-            </button>
-            {activeDropdown === "sort" && (
-              <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-300 rounded-md shadow-lg p-2 space-y-1 z-50">
-                <button onClick={() => { setSortOption("name-asc"); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-asc" ? "bg-blue-100" : ""}`}>Name ↑</button>
-                <button onClick={() => { setSortOption("name-desc"); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-desc" ? "bg-blue-100" : ""}`}>Name ↓</button>
-                <button onClick={() => { setSortOption("grade-asc"); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "grade-asc" ? "bg-blue-100" : ""}`}>Grade ↑</button>
-                <button onClick={() => { setSortOption("grade-desc"); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "grade-desc" ? "bg-blue-100" : ""}`}>Grade ↓</button>
+                  {/* [COMPONENT] Filter Dropdown */}
+                  <Dropdown
+                    icon="/filter-icon.svg"
+                    label="Filter"
+                    isOpen={activeDropdown === "grade"}
+                    onToggle={() =>
+                      setActiveDropdown(activeDropdown === "grade" ? null : "grade")
+                    }
+                    selected={selectedGrade}
+                    onSelect={(value) => {
+                      setSelectedGrade(value);
+                      setPage(1);
+                    }}
+                    width="w-36"
+                    options={[
+                      { label: "All", value: "All" },
+                      ...GRADE_LEVEL_OPTIONS.map(g => ({ label: `Grade ${g}`, value: g })),
+                    ]}
+                  />
+                </div>
               </div>
-            )}
-          </div>
 
-          {/* [DROPDOWN] Grade Filter */}
-          <div className="relative">
-            <button
-              onClick={() => setActiveDropdown(activeDropdown === "grade" ? null : "grade")}
-              className="flex items-center justify-center text-[var(--color-text-50)] rounded-sm px-3 h-10 transition cursor-pointer bg-[var(--color-bg-50)] hover:opacity-80"
-            >
-              <img src="/filter-icon.svg" alt="Grade Filter" className="size-4" />
-            </button>
-            {activeDropdown === "grade" && (
-              <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-300 rounded-md shadow-lg p-2 space-y-1 z-50 max-h-48 overflow-y-auto">
-                <button onClick={() => { setSelectedGrade("All"); setPage(1); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedGrade === "All" ? "bg-blue-100" : ""}`}>All</button>
-                {GRADE_LEVEL_OPTIONS.map(g => (
-                  <button key={g} onClick={() => { setSelectedGrade(g); setPage(1); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedGrade === g ? "bg-blue-100" : ""}`}>Grade {g}</button>
-                ))}
+              {/* [ACTION BUTTONS] Add Section + Auto-Generate */}
+              <div className="flex flex-wrap gap-2 md:ml-auto">
+                <PrimaryButton
+                  text="Add Section"
+                  iconSrc="/add-icon.svg"
+                  onClick={handleAddSection}
+                />
+                <SecondaryButton
+                  text="Auto-Generate Sections"
+                  iconSrc="/auto-generate-icon.svg"
+                  onClick={() => { setGenerateYear(""); setGenerateError(""); setShowGenerateModal(true); }}
+                />
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* [SECTION] Action Buttons */}
-        <div className="flex flex-wrap gap-2">
-          <PrimaryButton
-            text="Add Section"
-            iconSrc="/add-icon.svg"
-            onClick={handleAddSection}
-          />
-          <SecondaryButton
-            text="Auto-Generate Sections"
-            iconSrc="/auto-generate-icon.svg"
-            onClick={() => { setGenerateYear(""); setGenerateError(""); setShowGenerateModal(true); }}
-          />
-        </div>
-
-        {/* [CARDS] Sections — Mobile View */}
-        <div className="flex flex-col gap-4 sm:hidden mt-2 bg-[var(--color-bg-100)] px-3 py-4 rounded-lg">
-          {!loading && (
-            sections.length === 0 ? (
-              <EmptyState
-                title="No sections found"
-                subtitle="You currently have no sections. Use 'Auto-Generate Sections' to create all sections at once."
-                iconSrc="/no-data-icon.svg"
-              />
-            ) : displayedSections.length === 0 ? (
-              <EmptyState
-                title="No sections found"
-                subtitle="No sections match your current filters or search. Try adjusting your criteria."
-                iconSrc="/no-data-icon.svg"
-              />
-            ) : null
-          )}
-          {displayedSections.map((s) => (
-            <SectionCard key={s.id} section={s} />
-          ))}
-        </div>
-
-        {/* [TABLE] Sections — Desktop View */}
-        <div className="hidden sm:block bg-[var(--color-bg-100)] rounded-lg overflow-hidden">
-          <table className="w-full text-sm font-roboto">
-            <thead>
-              <tr className="border-b border-[var(--color-bg-200)] text-[var(--color-text-600)] text-xs uppercase tracking-wide">
-                <th className="px-4 py-3 text-left">Section</th>
-                <th className="px-4 py-3 text-left">Grade</th>
-                <th className="px-4 py-3 text-left">School Year</th>
-                <th className="px-4 py-3 text-left">Curriculum</th>
-                <th className="px-4 py-3 text-left">Adviser</th>
-                <th className="px-4 py-3 text-left">Students</th>
-              </tr>
-            </thead>
-            <tbody>
-              {displayedSections.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-[var(--color-text-600)]">No sections found.</td>
-                </tr>
-              ) : (
-                displayedSections.map((s) => (
-                  <tr
-                    key={s.id}
-                    className="border-b border-[var(--color-bg-200)] hover:bg-[var(--color-bg-50)] transition-colors cursor-pointer"
-                    onClick={() => navigate(`/admin/sections/view/${s.id}`)}
-                  >
-                    <td className="px-4 py-3 font-medium text-[var(--color-text-900)]">{s.name}</td>
-                    <td className="px-4 py-3 text-[var(--color-text-700)]">Grade {s.gradeLevel}</td>
-                    <td className="px-4 py-3 text-[var(--color-text-700)]">{s.schoolYear}</td>
-                    <td className="px-4 py-3 text-[var(--color-text-700)]">{s.curriculum}</td>
-                    <td className="px-4 py-3">
-                      {s.adviser
-                        ? <span className="text-[var(--color-text-700)]">{s.adviser.name}</span>
-                        : <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200 font-semibold">Unassigned</span>
-                      }
-                    </td>
-                    <td className="px-4 py-3 text-[var(--color-text-700)]">{s.classSize}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* [SECTION] Pagination */}
-        {displayedSections.length !== 0 && (
-          <div className="flex justify-center items-center mt-4 gap-4">
-            <button onClick={handlePrevPage} disabled={page === 1}
-              className={`w-8 h-8 flex items-center justify-center rounded-full text-[var(--color-text-50)] font-roboto font-bold transition-colors duration-150 ${page === 1 ? "bg-[var(--color-bg-400)] cursor-not-allowed opacity-50" : "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)]"}`}>
-              &lt;
-            </button>
-            <div className="flex items-center gap-2">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
-                <button key={num} onClick={() => setPage(num)}
-                  className={`size-6 flex items-center justify-center rounded-full font-bold text-xs transition-all duration-150 ${num === page ? "size-7 bg-[var(--color-primary-500)] text-[var(--color-text-50)] scale-110" : "bg-[var(--color-bg-300)] text-[var(--color-text-900)] hover:bg-[var(--color-primary-400)]"}`}
-                  aria-label={`Go to page ${num}`}>
-                  {num}
-                </button>
-              ))}
             </div>
-            <button onClick={handleNextPage} disabled={page === totalPages}
-              className={`size-8 flex items-center justify-center rounded-full text-[var(--color-text-50)] font-roboto font-bold transition-colors duration-150 ${page === totalPages ? "bg-[var(--color-bg-400)] cursor-not-allowed opacity-50" : "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)]"}`}>
-              &gt;
-            </button>
           </div>
-        )}
+        }
+        footer={
+          // [COMPONENT] Pagination
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            getVisiblePages={getVisiblePages}
+          />
+        }>
+        <div className="space-y-3">
 
-      </div>
-    </div>
+          {/* [SECTION] Section Cards (Mobile View) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:hidden gap-4 bg-[var(--color-bg-100)] px-3 py-4 rounded-lg">
+            {!loading && displayedSections.length === 0 && (
+              <div className="sm:col-span-2 flex justify-center">
+                <EmptyState
+                  title="No sections found"
+                  subtitle="No sections match your current filters or search."
+                  iconSrc="/no-data-icon.svg"
+                />
+              </div>
+            )}
+
+            {displayedSections.map((s) => (
+              <SectionCard key={s.id} section={s} />
+            ))}
+          </div>
+
+          {/* [SECTION] Sections Table (Desktop View) */}
+          <div className="hidden md:block bg-[var(--color-bg-100)] px-3 py-4 rounded-lg overflow-x-auto">
+            {!loading && displayedSections.length === 0 && (
+              <EmptyState
+                title="No sections found"
+                subtitle="No sections match your current filters or search."
+                iconSrc="/no-data-icon.svg"
+              />
+            )}
+
+            {displayedSections.length > 0 && (
+              <table className="min-w-full border-separate border-spacing-y-2">
+                <thead>
+                  <tr className="text-left">
+                    {/* [SECTION] Table Headers */}
+                    <th className="table-header">Section</th>
+                    <th className="table-header">Grade</th>
+                    <th className="table-header">School Year</th>
+                    <th className="table-header">Curriculum</th>
+                    <th className="table-header">Adviser</th>
+                    <th className="table-header">Students</th>
+                  </tr>
+                </thead>
+
+                {/* [SECTION] Table Body */}
+                <tbody>
+                  {displayedSections.map((s) => (
+                    <tr
+                      key={s.id}
+                      className="bg-[var(--color-bg-50)] hover:bg-[var(--color-bg-200)] transition cursor-pointer"
+                      onClick={() => navigate(`/admin/sections/view/${s.id}`)}
+                    >
+                      <td className="table-cell table-text table-text-link hover:underline">
+                        {s.name}
+                      </td>
+
+                      <td className="table-cell table-text table-text-default">
+                        Grade {s.gradeLevel}
+                      </td>
+
+                      <td className="table-cell table-text table-text-default">
+                        {s.schoolYear}
+                      </td>
+
+                      <td className="table-cell table-text table-text-default">
+                        {s.curriculum}
+                      </td>
+
+                      <td className="table-cell table-text">
+                        {s.adviser
+                          ? <span className="table-text-default">{s.adviser.name}</span>
+                          : <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200 font-semibold">Unassigned</span>
+                        }
+                      </td>
+
+                      <td className="table-cell table-text table-text-default">
+                        {s.classSize}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+        </div>
+      </AdminPageLayout>
+    </>
   );
 };
 
