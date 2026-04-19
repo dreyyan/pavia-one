@@ -565,7 +565,6 @@ const AdminStudents = () => {
                   <th className="table-header">Grade, Section & Curriculum</th>
                   <th className="table-header">Email</th>
                   <th className="table-header">Adviser</th>
-                  <th className="table-header">Enrolled</th>
                 </tr>
               </thead>
 
@@ -617,14 +616,6 @@ const AdminStudents = () => {
 
                     <td className="table-cell table-text table-text-default">
                       {s.adviser?.name ?? "—"}
-                    </td>
-
-                    <td className="table-cell table-text table-text-default">
-                      {s.enrollments?.[0]?.enrollmentDate
-                        ? new Date(
-                            s.enrollments[0].enrollmentDate
-                          ).toLocaleDateString()
-                        : "—"}
                     </td>
                   </tr>
                 ))}
