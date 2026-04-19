@@ -12,6 +12,7 @@ import Dropdown from "../../components/Dropdown";
 import SearchBar from "../../components/SearchBar";
 import Pagination from "../../components/Pagination";
 import Breadcrumbs from "../../components/Breadcrumbs";
+import BulkActionsBar from "../../components/BulkActionsBar";
 import StudentCard from "../../components/cards/StudentCard";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
 import StudentFormModal from "../../components/forms/StudentFormModal";
@@ -409,62 +410,68 @@ const AdminStudents = () => {
           <Breadcrumbs items={breadcrumbs} title="Students" />
         }
         toolbar={
-          <div className="bg-[var(--color-bg-100)] px-3 py-4 rounded-lg flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">
-            <div className="flex flex-1 gap-2 md:gap-4 items-stretch">
-              {/* [COMPONENT] Search Bar */}
-              <SearchBar
-                value={search}
-                placeholder="Search by name, LRN, or email..."
-                onChange={setSearch}
-                onResetPage={() => setPage(1)}
-              />
+          <div className="bg-[var(--color-bg-100)] px-3 sm:px-4 py-4 rounded-lg flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">
+            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">
+              <div className="flex items-stretch gap-2 md:gap-4 w-full">
+                {/* Search */}
+                <div className="w-full sm:w-64 md:w-80 lg:w-96">
+                  <SearchBar
+                    value={search}
+                    placeholder="Search by name, LRN, or email..."
+                    onChange={setSearch}
+                    onResetPage={() => setPage(1)}
+                  />
+                </div>
 
-              {/* [COMPONENT] Sort Dropdown */}
-              <Dropdown
-                icon="/sort-icon.svg"
-                label="Sort"
-                isOpen={activeDropdown === "sort"}
-                onToggle={() =>
-                  setActiveDropdown(activeDropdown === "sort" ? null : "sort")
-                }
-                selected={sortOption}
-                onSelect={(value) => {
-                  setSortOption(value as SortOption);
-                  setPage(1);
-                }}
-                options={[
-                  { label: "Name ↑", value: "name-asc" },
-                  { label: "Name ↓", value: "name-desc" },
-                  { label: "LRN ↑", value: "lrn-asc" },
-                  { label: "LRN ↓", value: "lrn-desc" },
-                ]}
-              />
+                {/* Dropdowns */}
+                <div className="flex gap-x-2 ml-auto">
+                  <Dropdown
+                    icon="/sort-icon.svg"
+                    label="Sort"
+                    isOpen={activeDropdown === "sort"}
+                    onToggle={() =>
+                      setActiveDropdown(activeDropdown === "sort" ? null : "sort")
+                    }
+                    selected={sortOption}
+                    onSelect={(value) => {
+                      setSortOption(value as SortOption);
+                      setPage(1);
+                    }}
+                    options={[
+                      { label: "Name ↑", value: "name-asc" },
+                      { label: "Name ↓", value: "name-desc" },
+                      { label: "LRN ↑", value: "lrn-asc" },
+                      { label: "LRN ↓", value: "lrn-desc" },
+                    ]}
+                  />
 
-              {/* [COMPONENT] Filter Dropdown */}
-              <Dropdown
-                icon="/filter-icon.svg"
-                label="Filter"
-                isOpen={activeDropdown === "sex"}
-                onToggle={() =>
-                  setActiveDropdown(activeDropdown === "sex" ? null : "sex")
-                }
-                selected={selectedSex}
-                onSelect={(value) => {
-                  setSelectedSex(value);
-                  setPage(1);
-                }}
-                width="w-32"
-                options={[{ label: "All", value: "All" }, ...SEX_OPTIONS]}
-              />
-            </div>
+                  <Dropdown
+                    icon="/filter-icon.svg"
+                    label="Filter"
+                    isOpen={activeDropdown === "sex"}
+                    onToggle={() =>
+                      setActiveDropdown(activeDropdown === "sex" ? null : "sex")
+                    }
+                    selected={selectedSex}
+                    onSelect={(value) => {
+                      setSelectedSex(value);
+                      setPage(1);
+                    }}
+                    width="w-32"
+                    options={[{ label: "All", value: "All" }, ...SEX_OPTIONS]}
+                  />
+                </div>
+              </div>
 
-            <div className="md:ml-auto mt-2 md:mt-0">
               {/* [PRIMARY BUTTON] Add Student */}
-              <PrimaryButton
-                text="Add Student"
-                iconSrc="/add-icon.svg"
-                onClick={handleAddStudent}
-              />
+              <div className="w-full md:w-auto md:ml-auto">
+                <PrimaryButton
+                  text="Add Student"
+                  iconSrc="/add-icon.svg"
+                  onClick={handleAddStudent}
+                  className="w-full md:w-auto"
+                />
+              </div>
             </div>
           </div>
         }
@@ -476,152 +483,139 @@ const AdminStudents = () => {
             onPageChange={setPage}
             getVisiblePages={getVisiblePages}
           />
-        }
-      >
-        {/* [SECTION] Bulk Actions */}
-        {selectedStudents.length > 0 && (
-          <div className="flex items-center gap-3 px-3 py-2 bg-[var(--color-bg-50)] rounded-md border border-[var(--color-bg-200)]">
-            <span className="text-sm font-roboto text-[var(--color-text-700)]">
-              {selectedStudents.length} selected
-            </span>
+        }>
+        <div className="space-y-3">
+          {/* [COMPONENT] Bulk Actions */}
+          <BulkActionsBar
+            selectedCount={selectedStudents.length}
+            onDelete={handleBulkDelete}
+            onClear={() => setSelectedStudents([])}
+          />
 
-            <button
-              onClick={handleBulkDelete}
-              className="text-sm font-medium text-[var(--color-red-500)] hover:underline"
-            >
-              Delete Selected
-            </button>
+          {/* [SECTION] Student Cards (Mobile View) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:hidden gap-4 bg-[var(--color-bg-100)] px-3 py-4 rounded-lg">
+            {!loading && displayedStudents.length === 0 && (
+              <div className="sm:col-span-2 flex justify-center">
+                <EmptyState
+                  title="No students found"
+                  subtitle="No students match your current filters or search."
+                  iconSrc="/no-data-icon.svg"
+                />
+              </div>
+            )}
 
-            <button
-              onClick={() => setSelectedStudents([])}
-              className="text-sm font-medium text-[var(--color-text-600)] hover:underline ml-auto"
-            >
-              Clear
-            </button>
+            {displayedStudents.map((s) => (
+              <StudentCard key={s.id} student={s} />
+            ))}
           </div>
-        )}
 
-        {/* [SECTION] Student Cards (Mobile View) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:hidden gap-4 bg-[var(--color-bg-100)] px-3 py-4 rounded-lg">
-          {!loading && displayedStudents.length === 0 && (
-            <EmptyState
-              title="No students found"
-              subtitle="No students match your current filters or search."
-              iconSrc="/no-data-icon.svg"
-            />
-          )}
+          {/* [SECTION] Students Table (Desktop View) */}
+          <div className="hidden md:block bg-[var(--color-bg-100)] px-3 py-4 rounded-lg overflow-x-auto">
+            {!loading && displayedStudents.length === 0 && (
+              <EmptyState
+                title="No students found"
+                subtitle="No students match your current filters or search."
+                iconSrc="/no-data-icon.svg"
+              />
+            )}
 
-          {displayedStudents.map((s) => (
-            <StudentCard key={s.id} student={s} />
-          ))}
-        </div>
-
-        {/* [SECTION] Students Table (Desktop View) */}
-        <div className="hidden md:block bg-[var(--color-bg-100)] px-3 py-4 rounded-lg overflow-x-auto">
-          {!loading && displayedStudents.length === 0 && (
-            <EmptyState
-              title="No students found"
-              subtitle="No students match your current filters or search."
-              iconSrc="/no-data-icon.svg"
-            />
-          )}
-
-          {displayedStudents.length > 0 && (
-            <table className="min-w-full border-separate border-spacing-y-2">
-              <thead>
-                <tr className="text-left">
-                  <th className="px-3 py-2">
-                    <input
-                      type="checkbox"
-                      checked={
-                        displayedStudents.length > 0 &&
-                        displayedStudents.every(s =>
-                          selectedStudents.includes(s.id)
-                        )
-                      }
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedStudents(prev => [
-                            ...new Set([
-                              ...prev,
-                              ...displayedStudents.map(s => s.id),
-                            ]),
-                          ]);
-                        } else {
-                          setSelectedStudents(prev =>
-                            prev.filter(
-                              id =>
-                                !displayedStudents.some(s => s.id === id)
-                            )
-                          );
-                        }
-                      }}
-                    />
-                  </th>
-
-                  {/* [SECTION] Table Headers */}
-                  <th className="table-header">Name</th>
-                  <th className="table-header">LRN</th>
-                  <th className="table-header">Grade, Section & Curriculum</th>
-                  <th className="table-header">Email</th>
-                  <th className="table-header">Adviser</th>
-                </tr>
-              </thead>
-
-              {/* [SECTION] Table Body */}
-              <tbody>
-                {displayedStudents.map((s) => (
-                  <tr
-                    key={s.id}
-                    className="bg-[var(--color-bg-50)] hover:bg-[var(--color-bg-200)] transition"
-                  >
-                    <td className="px-3 py-3">
+            {displayedStudents.length > 0 && (
+              <table className="min-w-full border-separate border-spacing-y-2">
+                <thead>
+                  <tr className="text-left">
+                    <th className="px-3 py-2">
                       <input
                         type="checkbox"
-                        checked={selectedStudents.includes(s.id)}
+                        checked={
+                          displayedStudents.length > 0 &&
+                          displayedStudents.every(s =>
+                            selectedStudents.includes(s.id)
+                          )
+                        }
                         onChange={(e) => {
                           if (e.target.checked) {
-                            setSelectedStudents(prev => [...prev, s.id]);
+                            setSelectedStudents(prev => [
+                              ...new Set([
+                                ...prev,
+                                ...displayedStudents.map(s => s.id),
+                              ]),
+                            ]);
                           } else {
                             setSelectedStudents(prev =>
-                              prev.filter(id => id !== s.id)
+                              prev.filter(
+                                id =>
+                                  !displayedStudents.some(s => s.id === id)
+                              )
                             );
                           }
                         }}
                       />
-                    </td>
+                    </th>
 
-                    <td
-                      onClick={() =>
-                        navigate(`/admin/students/view/${s.id}`)
-                      }
-                      className="table-cell table-text table-text-link cursor-pointer hover:underline"
-                    >
-                      {s.fullName}
-                    </td>
-
-                    <td className="table-cell table-text table-text-default">
-                      {s.lrn}
-                    </td>
-
-                    <td className="table-cell table-text table-text-default">
-                      {s.enrollments?.[0]?.section
-                        ? `Grade ${s.enrollments[0].section.gradeLevel} - ${s.enrollments[0].section.name}`
-                        : "—"}
-                    </td>
-
-                    <td className="table-cell table-text table-text-default">
-                      {s.email ?? "—"}
-                    </td>
-
-                    <td className="table-cell table-text table-text-default">
-                      {s.adviser?.name ?? "—"}
-                    </td>
+                    {/* [SECTION] Table Headers */}
+                    <th className="table-header">Name</th>
+                    <th className="table-header">LRN</th>
+                    <th className="table-header">Grade, Section & Curriculum</th>
+                    <th className="table-header">Email</th>
+                    <th className="table-header">Adviser</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                </thead>
+
+                {/* [SECTION] Table Body */}
+                <tbody>
+                  {displayedStudents.map((s) => (
+                    <tr
+                      key={s.id}
+                      className="bg-[var(--color-bg-50)] hover:bg-[var(--color-bg-200)] transition"
+                    >
+                      <td className="px-3 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedStudents.includes(s.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedStudents(prev => [...prev, s.id]);
+                            } else {
+                              setSelectedStudents(prev =>
+                                prev.filter(id => id !== s.id)
+                              );
+                            }
+                          }}
+                        />
+                      </td>
+
+                      <td
+                        onClick={() =>
+                          navigate(`/admin/students/view/${s.id}`)
+                        }
+                        className="table-cell table-text table-text-link cursor-pointer hover:underline"
+                      >
+                        {s.fullName}
+                      </td>
+
+                      <td className="table-cell table-text table-text-default">
+                        {s.lrn}
+                      </td>
+
+                      <td className="table-cell table-text table-text-default">
+                        {s.enrollments?.[0]?.section
+                          ? `Grade ${s.enrollments[0].section.gradeLevel} - ${s.enrollments[0].section.name}`
+                          : "—"}
+                      </td>
+
+                      <td className="table-cell table-text table-text-default">
+                        {s.email ?? "—"}
+                      </td>
+
+                      <td className="table-cell table-text table-text-default">
+                        {s.adviser?.name ?? "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
       </AdminPageLayout>
     </>
