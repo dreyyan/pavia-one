@@ -4,17 +4,19 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 // [IMPORT] Components
-import Skeleton from "../../components/Skeleton";
-import DeleteButton from "../../components/buttons/DeleteButton";
-import InputField from "../../components/InputField";
 import Modal from "../../components/Modal";
+import Skeleton from "../../components/Skeleton";
+import InputField from "../../components/InputField";
+import Breadcrumbs from "../../components/Breadcrumbs";
+import AdminPageLayout from "../../components/layouts/AdminPageLayout";
 import { WeightRow } from "../../components/WeightRow";
+import DeleteButton from "../../components/buttons/DeleteButton";
 
 // [IMPORT] Constants & Types
 import { GRADE_LEVEL_OPTIONS, CURRICULUM_OPTIONS, SUBJECT_PAGE_LABELS } from "../../constants";
 import type { GeneralModalConfig, LearningAreaDetails } from "../../types";
 
-// ? [TYPE] Form pages
+// ? [TYPE] Active form page index
 type FormPage = 0 | 1;
 
 const AdminSubjectDetails = () => {
@@ -63,11 +65,11 @@ const AdminSubjectDetails = () => {
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed to fetch subject");
+
       setSubject(data.data);
       setFormData(data.data);
     } catch (err) {
-      console.error(err);
-      // ! [ERROR] Fetching subjects failed
+      // ! [ERROR] Fetching subject failed
       console.error(err);
       openGeneralModal({
         title: "Unable to Load Subject",
@@ -86,45 +88,8 @@ const AdminSubjectDetails = () => {
     fetchSubject();
   }, [id]);
 
-  // [HANDLE] Delete learning area
+  // * [HANDLE] Delete Subject
   const handleDelete = () => {
-    const onDeleteConfirm = async () => {
-      setLoading(true);
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area/${id}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        if (!data.success) throw new Error(data.message || "Failed to delete subject");
-
-        // * [SUCCESS] Subject deleted
-        openGeneralModal({
-          title: "Subject Deleted",
-          message: "The subject has been deleted successfully.",
-          type: "success",
-          isCancelable: false,
-          onConfirm: () => {
-            closeGeneralModal();
-            navigate("/admin/subjects");
-          },
-        });
-      } catch (err) {
-        // ! [ERROR] Subject deletion failed
-        console.error("Delete error:", err);
-        openGeneralModal({
-          title: "Unable to Delete Subject",
-          message: "We couldn't delete the subject at the moment. Please check your internet connection and try again.",
-          type: "error",
-          isCancelable: true,
-          onConfirm: () => closeGeneralModal(),
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
     // ? [CONFIRMATION] Before deleting, ask user to confirm
     openGeneralModal({
       title: "Delete Subject",
@@ -132,19 +97,52 @@ const AdminSubjectDetails = () => {
       type: "error",
       confirmText: "Delete",
       isCancelable: true,
-      onConfirm: onDeleteConfirm,
+      onConfirm: async () => {
+        setLoading(true);
+        try {
+          const token = localStorage.getItem("token");
+          const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area/${id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await res.json();
+          if (!data.success) throw new Error(data.message || "Failed to delete subject");
+
+          // * [SUCCESS] Subject Deleted
+          openGeneralModal({
+            title: "Subject Deleted",
+            message: "The subject has been deleted successfully.",
+            type: "success",
+            isCancelable: false,
+            onConfirm: () => {
+              closeGeneralModal();
+              navigate("/admin/subjects");
+            },
+          });
+        } catch (err) {
+          // ! [ERROR] Subject deletion failed
+          console.error("Delete error:", err);
+          openGeneralModal({
+            title: "Unable to Delete Subject",
+            message: "We couldn't delete the subject at the moment. Please check your internet connection and try again.",
+            type: "error",
+            isCancelable: false,
+            onConfirm: () => closeGeneralModal(),
+          });
+        } finally {
+          setLoading(false);
+        }
+      },
     });
   };
 
-  // [HANDLE] Edit toggle
+  // [HANDLE] Edit toggle — discard changes on cancel
   const handleEditToggle = () => {
-    if (isEditing) {
-      setFormData(subject ?? {});
-    }
-    setIsEditing((prev) => !prev);
+    if (isEditing) setFormData(subject ?? {});
+    setIsEditing(prev => !prev);
   };
 
-  // * [HANDLE] Save Subject Details
+  // * [HANDLE] Save Updated Subject Details
   const handleSave = async () => {
     // [VALIDATE] Weights must sum to 1.0 (100%) before hitting the backend
     const weightSum =
@@ -184,7 +182,11 @@ const AdminSubjectDetails = () => {
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed to update subject");
 
-      // * [SUCCESS] Show success modal
+      // [UPDATE] Merge saved changes into subject state
+      setSubject({ ...subject!, ...formData } as LearningAreaDetails);
+      setIsEditing(false);
+
+      // * [SUCCESS] Subject Updated
       openGeneralModal({
         title: "Subject Updated",
         message: "The subject has been updated successfully.",
@@ -192,10 +194,6 @@ const AdminSubjectDetails = () => {
         isCancelable: false,
         onConfirm: () => closeGeneralModal(),
       });
-
-      // [UPDATE] Merge saved changes back into the subject state
-      setSubject({ ...subject!, ...formData } as LearningAreaDetails);
-      setIsEditing(false);
     } catch (err) {
       // ! [ERROR] Subject update failed
       console.error(err);
@@ -212,38 +210,38 @@ const AdminSubjectDetails = () => {
   };
 
   // [HANDLE] Generic text / select field change
-  const handleFieldChange = (field: keyof LearningAreaDetails) =>
+  const handleFieldChange =
+    (field: keyof LearningAreaDetails) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-      setFormData((prev) => ({ ...prev, [field]: e.target.value }));
+      setFormData(prev => ({ ...prev, [field]: e.target.value }));
     };
 
   // [HANDLE] Numeric weight field change — casts to number immediately
-  const handleWeightChange = (field: keyof LearningAreaDetails) =>
+  const handleWeightChange =
+    (field: keyof LearningAreaDetails) =>
     (v: string) => {
-      setFormData((prev) => ({ ...prev, [field]: v === "" ? 0 : Number(v) }));
+      setFormData(prev => ({ ...prev, [field]: v === "" ? 0 : Number(v) }));
     };
-    
-  // *[BREADCRUMBS] Admin Subject Details navigation
+
+  // * [BREADCRUMBS] Admin Subject Details navigation
   const breadcrumbs = [
     { label: "Admin Dashboard", path: "/admin/dashboard" },
     { label: "Subjects", path: "/admin/subjects" },
     { label: subject?.name ?? "Details", path: null },
   ];
 
-  // [VALIDATION] Calculate weight sum and validity for live feedback
+  // [COMPUTE] Live weight sum for validation and display
   const weightSum =
     Number(formData.writtenWorkWeight ?? 0) +
     Number(formData.performanceTaskWeight ?? 0) +
     Number(formData.quarterlyAssessmentWeight ?? 0);
   const weightsAreValid = Math.abs(weightSum - 1.0) < 0.001;
 
-  // ? [LOADING STATE] Show skeleton while loading
-  if (loading) return <Skeleton />;
-
-  // *[handle] Render form fields per page
+  // * [RENDER] Form fields per active page
   const renderFormPage = () => {
     if (!subject) return null;
 
+    // [PAGE 0] Subject Identity
     if (activePage === 0) {
       return (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -283,8 +281,7 @@ const AdminSubjectDetails = () => {
       );
     }
 
-    // [PAGE 1] Grading Weights
-    // WW + PT + QA must always sum to 1.0 (100%)
+    // [PAGE 1] Grading Weights — WW + PT + QA must always sum to 1.0 (100%)
     if (activePage === 1) {
       return (
         <div className="flex flex-col gap-4">
@@ -313,11 +310,13 @@ const AdminSubjectDetails = () => {
           </div>
 
           {/* [UI] Live weight sum indicator */}
-          <div className={`flex items-center justify-between px-3 py-2 rounded-md text-xs font-roboto font-medium ${
-            weightsAreValid
-              ? "bg-green-50 text-[var(--color-accent-700)] border border-[var(--color-accent-200)]"
-              : "bg-amber-50 text-[var(--color-red-700)] border border-[var(--color-red-200)]"
-          }`}>
+          <div
+            className={`flex items-center justify-between px-3 py-2 rounded-md text-xs font-roboto font-medium ${
+              weightsAreValid
+                ? "bg-green-50 text-[var(--color-accent-700)] border border-[var(--color-accent-200)]"
+                : "bg-amber-50 text-[var(--color-red-700)] border border-[var(--color-red-200)]"
+            }`}
+          >
             <span>Total</span>
             <span>
               {Math.round(weightSum * 100)}%{" "}
@@ -331,8 +330,11 @@ const AdminSubjectDetails = () => {
     return null;
   };
 
+  // ? [LOADING STATE]
+  if (loading) return <Skeleton />;
+
   return (
-    <div>
+    <>
       {/* [MODAL] General */}
       <Modal
         isOpen={generalModal.isOpen}
@@ -345,30 +347,16 @@ const AdminSubjectDetails = () => {
         isCancelable={generalModal.isCancelable}
       />
 
-      <div className="py-10 px-4 space-y-4 relative">
-
-        {/* [SECTION] Header & Breadcrumbs */}
-        <div>
-          <h2 className="text-[var(--color-text-800)] leading-0">Subject Details</h2>
-          <nav className="font-roboto text-sm text-[var(--color-text-700)]">
-            {breadcrumbs.map((crumb, idx) => (
-              <span key={idx}>
-                {crumb.path ? (
-                  <span className="cursor-pointer hover:underline" onClick={() => navigate(crumb.path!)}>
-                    {crumb.label}
-                  </span>
-                ) : (
-                  <span className="font-medium text-[var(--color-text-900)]">{crumb.label}</span>
-                )}
-                {idx < breadcrumbs.length - 1 && " / "}
-              </span>
-            ))}
-          </nav>
-        </div>
-
+      {/* [LAYOUT] Admin Page */}
+      <AdminPageLayout
+        header={
+          <Breadcrumbs items={breadcrumbs} title="Subject Details" />
+        }
+      >
         {subject ? (
-          <>
-            {/* [SUBJECT HEADER] Name + grade badge + curriculum pill */}
+          <div className="space-y-4">
+
+            {/* [HEADER] Subject name + grade badge + curriculum pill */}
             <div className="bg-[var(--color-bg-100)] rounded-lg px-4 py-4 flex items-center gap-4">
               <div className="size-14 rounded-lg bg-[var(--color-primary-100)] flex items-center justify-center text-[var(--color-primary-700)] font-bold text-lg border border-[var(--color-primary-200)] flex-shrink-0 text-center leading-tight">
                 G{subject.gradeLevel}
@@ -389,7 +377,7 @@ const AdminSubjectDetails = () => {
               </div>
             </div>
 
-            {/* [BUTTON] Delete */}
+            {/* [ACTIONS] Delete */}
             <div className="space-y-2">
               <DeleteButton onClick={handleDelete} text="Delete Subject" disabled={loading} />
             </div>
@@ -397,7 +385,7 @@ const AdminSubjectDetails = () => {
             {/* [CARD] Subject Identity */}
             <div className="bg-[var(--color-bg-100)] rounded-lg p-4 space-y-4">
 
-              {/* [PAGINATION] Page tabs */}
+              {/* [UI] Page tabs */}
               <div className="flex gap-1 bg-[var(--color-bg-200)] rounded-lg p-1">
                 {SUBJECT_PAGE_LABELS.map((label, idx) => (
                   <button
@@ -414,10 +402,9 @@ const AdminSubjectDetails = () => {
                 ))}
               </div>
 
-              {/* [DIVIDER] */}
               <div className="border-t border-[var(--color-bg-200)]" />
 
-              {/* [HEADER] Section title + Edit / Save / Cancel buttons */}
+              {/* [HEADER] Section title + Edit / Save buttons */}
               <div className="flex items-center justify-between">
                 <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)]">
                   {SUBJECT_PAGE_LABELS[activePage]}
@@ -450,9 +437,10 @@ const AdminSubjectDetails = () => {
               {renderFormPage()}
 
             </div>
-          </>
+
+          </div>
         ) : (
-          // [EMPTY STATE]
+          // [EMPTY STATE] Subject not found
           <div className="bg-[var(--color-bg-100)] rounded-lg p-8 text-center">
             <p className="text-sm font-roboto text-[var(--color-text-600)]">Subject not found.</p>
             <button
@@ -463,8 +451,8 @@ const AdminSubjectDetails = () => {
             </button>
           </div>
         )}
-      </div>
-    </div>
+      </AdminPageLayout>
+    </>
   );
 };
 
