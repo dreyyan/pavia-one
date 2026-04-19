@@ -433,8 +433,9 @@ const AdminSections = () => {
           <Breadcrumbs items={breadcrumbs} title="Sections" />
         }
         toolbar={
-          <div className="bg-[var(--color-bg-100)] px-3 sm:px-4 py-4 rounded-lg flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">
-            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">
+          <div className="bg-[var(--color-bg-100)] px-3 sm:px-4 py-4 rounded-lg flex flex-col gap-2 md:gap-4 w-full">
+            <div className="flex flex-col xl:flex-row xl:items-center gap-2 md:gap-4 w-full">
+
               <div className="flex items-stretch gap-2 md:gap-4 w-full">
                 {/* [COMPONENT] Search Bar */}
                 <div className="w-full sm:w-64 md:w-80 lg:w-96">
@@ -447,7 +448,7 @@ const AdminSections = () => {
                 </div>
 
                 {/* [COMPONENT] Sort & Filter Dropdowns */}
-                <div className="flex gap-x-2 ml-auto">
+                <div className="flex gap-x-2 ml-auto shrink-0">
                   <Dropdown
                     icon="/sort-icon.svg"
                     label="Sort"
@@ -491,7 +492,7 @@ const AdminSections = () => {
               </div>
 
               {/* [ACTION BUTTONS] Add Section + Auto-Generate */}
-              <div className="flex flex-col md:flex-row gap-2 md:ml-auto w-full md:w-auto">
+              <div className="flex flex-col sm:flex-row gap-2 w-full xl:w-auto xl:ml-auto">
                 <PrimaryButton
                   text="Add Section"
                   iconSrc="/add-icon.svg"
@@ -508,6 +509,7 @@ const AdminSections = () => {
                   }}
                 />
               </div>
+
             </div>
           </div>
         }
