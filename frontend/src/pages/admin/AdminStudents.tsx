@@ -413,7 +413,7 @@ const AdminStudents = () => {
           <div className="bg-[var(--color-bg-100)] px-3 sm:px-4 py-4 rounded-lg flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">
             <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">
               <div className="flex items-stretch gap-2 md:gap-4 w-full">
-                {/* Search */}
+                {/* [COMPONENT] Search Bar */}
                 <div className="w-full sm:w-64 md:w-80 lg:w-96">
                   <SearchBar
                     value={search}
@@ -423,7 +423,7 @@ const AdminStudents = () => {
                   />
                 </div>
 
-                {/* Dropdowns */}
+                {/* [COMPONENT] Sort Dropdown */}
                 <div className="flex gap-x-2 ml-auto">
                   <Dropdown
                     icon="/sort-icon.svg"
@@ -445,6 +445,7 @@ const AdminStudents = () => {
                     ]}
                   />
 
+                  {/* [COMPONENT] Filter Dropdown */}
                   <Dropdown
                     icon="/filter-icon.svg"
                     label="Filter"
