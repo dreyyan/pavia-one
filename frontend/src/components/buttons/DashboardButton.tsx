@@ -9,16 +9,15 @@ interface DashboardButtonProps {
   disabled?: boolean;
 }
 
-const DashboardButton: React.FC<DashboardButtonProps> = ({ 
-  iconSrc, 
-  text, 
-  color, 
-  to, 
-  disabled 
+const DashboardButton: React.FC<DashboardButtonProps> = ({
+  iconSrc,
+  text,
+  color,
+  to,
+  disabled,
 }) => {
   const navigate = useNavigate();
 
-  // [HANDLE] Navigation
   const handleClick = () => {
     if (disabled) return;
     if (to) navigate(to);
@@ -27,24 +26,40 @@ const DashboardButton: React.FC<DashboardButtonProps> = ({
   return (
     <button
       onClick={handleClick}
-      style={{
-        backgroundColor: color,
-      }}
-      className={`flex flex-col justify-center items-center aspect-square rounded-lg shadow-md transition-all duration-200 w-full
-        ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:scale-[1.02] active:scale-[0.98]"}
+      style={{ backgroundColor: color }}
+      className={`flex flex-col justify-center items-center aspect-square rounded-lg shadow-md 
+        transition-all duration-200 w-full overflow-hidden
+        xl:flex-row xl:aspect-auto xl:justify-start xl:items-center xl:gap-6 xl:px-8 xl:py-6
+        ${disabled 
+          ? "opacity-50 cursor-not-allowed" 
+          : "cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+        }
       `}
       onMouseEnter={(e) => {
-        if (!disabled) (e.currentTarget.style.backgroundColor = darkenColor(color, 0.15));
+        if (!disabled) {
+          e.currentTarget.style.backgroundColor = darkenColor(color, 0.15);
+        }
       }}
       onMouseLeave={(e) => {
-        if (!disabled) (e.currentTarget.style.backgroundColor = color);
+        if (!disabled) {
+          e.currentTarget.style.backgroundColor = color;
+        }
       }}
     >
       {/* Icon */}
-      {iconSrc && <img src={iconSrc} className="size-16 sm:size-20 md:size-22 lg:size-24 xl:size-26 2xl:size-28" alt={text} />}
+      {iconSrc && (
+        <img
+          src={iconSrc}
+          className="size-16 sm:size-20 md:size-22 lg:size-24 
+                     xl:size-20 2xl:size-24 flex-shrink-0"
+          alt={text}
+        />
+      )}
 
       {/* Text */}
-      <p className="font-roboto font-bold text-sm sm:text-md md:text-lg lg:text-xl xl:text-2xl 2xl:text-3xl text-[var(--color-text-50)] mt-1 sm:mt-2">
+      <p className="font-roboto font-bold text-sm sm:text-md md:text-lg lg:text-xl 
+                   xl:text-2xl 2xl:text-3xl text-[var(--color-text-50)] 
+                   mt-2 xl:mt-0 text-center xl:text-left">
         {text}
       </p>
     </button>
