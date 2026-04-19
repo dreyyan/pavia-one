@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/exhaustive-deps */
 // [IMPORT] Hooks
 import { useState, useEffect } from "react";
@@ -5,37 +6,29 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
-import Skeleton from "../../components/Skeleton";
-import ProfileInfo from "../../components/ProfileInfo";
-import DeleteButton from "../../components/buttons/DeleteButton";
-import InputField from "../../components/InputField";
 import Modal from "../../components/Modal";
+import Skeleton from "../../components/Skeleton";
+import InputField from "../../components/InputField";
+import ProfileInfo from "../../components/ProfileInfo";
+import Breadcrumbs from "../../components/Breadcrumbs";
+import AdminPageLayout from "../../components/layouts/AdminPageLayout";
+import AssignedSectionsCard from "../../components/cards/AssignedSectionsCard";
+import DeleteButton from "../../components/buttons/DeleteButton";
 
 // [IMPORT] Types
 import { GeneralModalConfig, AdviserDetails } from "../../types";
 
-// *[COMPONENT] Status Badge
-const AdvisoryBadge = () => (
-  <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">
-    Advisory
-  </span>
-);
-
-// ?[TYPE] Form pages
+// ? [TYPE] Active form page index
 type FormPage = 0 | 1;
 
-const PAGE_LABELS: [string, string] = [
-  "Basic Information",
-  "Contact & Details",
-];
+const PAGE_LABELS: [string, string] = ["Basic Information", "Contact & Details"];
 
-// *[PAGE] Admin Adviser Details
 const AdminAdviserDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { setShowTokenExpiredModal } = useAuth();
 
-  // [STATES]
+  // [STATES] Entities
   const [adviser, setAdviser] = useState<AdviserDetails | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -63,7 +56,7 @@ const AdminAdviserDetails = () => {
     setGeneralModal(prev => ({ ...prev, isOpen: false }));
   };
 
-  // * [HANDLE] Fetch adviser by id
+  // * [HANDLE] Fetch Adviser by ID
   const fetchAdviser = async () => {
     setLoading(true);
     try {
@@ -71,14 +64,12 @@ const AdminAdviserDetails = () => {
       const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/advisers/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.status === 401) {
-        setShowTokenExpiredModal(true);
-        return;
-      }
+      if (res.status === 401) { setShowTokenExpiredModal(true); return; }
+
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed to fetch adviser");
 
-      // Split full name into first, middle, last
+      // [NORMALIZE] Split full name into first / middle / last
       const fullName = data.data.name || "";
       const nameParts = fullName.trim().split(" ");
       const firstName = nameParts.shift() || "";
@@ -115,84 +106,80 @@ const AdminAdviserDetails = () => {
     fetchAdviser();
   }, [id]);
 
-// [HANDLE] Delete adviser
-const handleDelete = () => {
-const onDeleteConfirm = async () => {
-  setLoading(true);
-  try {
-    const token = localStorage.getItem("token");
-    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/advisers/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    const data = await res.json();
-
-    if (!data.success) {
-      // Pick friendly message
-      const errorMessage =
-        data?.error?.userFriendlyMessage || data?.error?.message || data.message || "Failed to delete adviser";
-
-      // Directly show in modal instead of throwing
-      openGeneralModal({
-        title: "Unable to Delete Adviser",
-        message: errorMessage,
-        type: "error",
-        confirmText: "Close",
-        isCancelable: false,
-        onConfirm: () => closeGeneralModal(),
-      });
-
-      return; // stop execution
-    }
-
-    // * [SUCCESS] Adviser deleted
+  // * [HANDLE] Delete Adviser
+  const handleDelete = () => {
+    // ? [CONFIRMATION] Before deleting, ask user to confirm
     openGeneralModal({
-      title: "Adviser Deleted",
-      message: "The adviser has been deleted successfully.",
-      type: "success",
-      isCancelable: false,
-      onConfirm: () => {
-        closeGeneralModal();
-        navigate("/admin/advisers");
+      title: "Delete Adviser",
+      message: "Are you sure you want to delete this adviser? This action cannot be undone.",
+      type: "error",
+      confirmText: "Delete",
+      isCancelable: true,
+      onConfirm: async () => {
+        setLoading(true);
+        try {
+          const token = localStorage.getItem("token");
+          const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/advisers/${id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          const data = await res.json();
+
+          if (!data.success) {
+            // [HANDLE] Friendly backend error message
+            const errorMessage =
+              data?.error?.userFriendlyMessage ||
+              data?.error?.message ||
+              data.message ||
+              "Failed to delete adviser";
+            openGeneralModal({
+              title: "Unable to Delete Adviser",
+              message: errorMessage,
+              type: "error",
+              confirmText: "Close",
+              isCancelable: false,
+              onConfirm: () => closeGeneralModal(),
+            });
+            return;
+          }
+
+          // * [SUCCESS] Adviser Deleted
+          openGeneralModal({
+            title: "Adviser Deleted",
+            message: "The adviser has been deleted successfully.",
+            type: "success",
+            isCancelable: false,
+            onConfirm: () => {
+              closeGeneralModal();
+              navigate("/admin/advisers");
+            },
+          });
+        } catch (err: any) {
+          // ! [ERROR] Adviser deletion failed
+          console.error("Delete error:", err);
+          openGeneralModal({
+            title: "Unable to Delete Adviser",
+            message: err?.message || "We couldn't delete the adviser at the moment. Please try again later.",
+            type: "error",
+            confirmText: "Close",
+            isCancelable: false,
+            onConfirm: () => closeGeneralModal(),
+          });
+        } finally {
+          setLoading(false);
+        }
       },
     });
-  } catch (err: any) {
-    console.error("Delete error:", err);
-    openGeneralModal({
-      title: "Unable to Delete Adviser",
-      message: err?.message || "We couldn't delete the adviser at the moment. Please try again later.",
-      type: "error",
-      confirmText: "Close",
-      isCancelable: false,
-      onConfirm: () => closeGeneralModal(),
-    });
-  } finally {
-    setLoading(false);
-  }
-};
-
-  // ? [CONFIRM] Show confirmation modal before deleting
-  openGeneralModal({
-    title: "Delete Adviser",
-    message: "Are you sure you want to delete this adviser? This action cannot be undone.",
-    type: "error",
-    confirmText: "Delete",
-    isCancelable: true,
-    onConfirm: onDeleteConfirm,
-  });
-};
-
-  // [HANDLE] Edit toggle
-  const handleEditToggle = () => {
-    if (isEditing) {
-      // Discard changes
-      setFormData(adviser ?? {});
-    }
-    setIsEditing((prev) => !prev);
   };
 
-  // [HANDLE] Save edits
+  // [HANDLE] Edit toggle — discard changes on cancel
+  const handleEditToggle = () => {
+    if (isEditing) setFormData(adviser ?? {});
+    setIsEditing(prev => !prev);
+  };
+
+  // * [HANDLE] Save Updated Adviser Details
   const handleSave = async () => {
     setLoading(true);
     try {
@@ -207,10 +194,12 @@ const onDeleteConfirm = async () => {
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed to update adviser");
+
+      // [UPDATE] Merge saved changes into adviser state
       setAdviser({ ...adviser!, ...formData });
       setIsEditing(false);
 
-      // * [SUCCESS] Show success modal
+      // * [SUCCESS] Adviser Updated
       openGeneralModal({
         title: "Adviser Updated",
         message: `"${formData.firstName} ${formData.lastName}" has been updated successfully.`,
@@ -236,27 +225,25 @@ const onDeleteConfirm = async () => {
   };
 
   // [HANDLE] Generic form field change
-  const handleFieldChange = (field: keyof AdviserDetails) =>
+  const handleFieldChange =
+    (field: keyof AdviserDetails) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-      setFormData((prev) => ({ ...prev, [field]: e.target.value }));
+      setFormData(prev => ({ ...prev, [field]: e.target.value }));
     };
 
-  // [LOADING STATE]
-  if (loading) return <Skeleton />;
-
-  // *[BREADCRUMBS] Admin Adviser Details navigation
+  // * [BREADCRUMBS] Admin Adviser Details navigation
   const breadcrumbs = [
     { label: "Admin Dashboard", path: "/admin/dashboard" },
     { label: "Advisers", path: "/admin/advisers" },
     { label: adviser?.fullName ?? "Details", path: null },
   ];
 
-  // *[RENDER] Form fields per page
+  // * [RENDER] Form fields per active page
   const renderFormPage = () => {
     if (!adviser) return null;
 
+    // [PAGE 0] Basic Information
     if (activePage === 0) {
-      // Basic Information
       return (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div className="col-span-2 sm:col-span-3">
@@ -321,8 +308,8 @@ const onDeleteConfirm = async () => {
       );
     }
 
+    // [PAGE 1] Contact & Details
     if (activePage === 1) {
-      // Contact & Details
       return (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="col-span-1 sm:col-span-2">
@@ -350,8 +337,11 @@ const onDeleteConfirm = async () => {
     return null;
   };
 
+  // ? [LOADING STATE]
+  if (loading) return <Skeleton />;
+
   return (
-    <div>
+    <>
       {/* [MODAL] General */}
       <Modal
         isOpen={generalModal.isOpen}
@@ -364,41 +354,27 @@ const onDeleteConfirm = async () => {
         isCancelable={generalModal.isCancelable}
       />
 
-      <div className="py-10 px-4 space-y-4 relative">
-
-        {/* [SECTION] Header & Breadcrumbs */}
-        <div>
-          <h2 className="text-[var(--color-text-800)] leading-0">Adviser Details</h2>
-          <nav className="font-roboto text-sm text-[var(--color-text-700)]">
-            {breadcrumbs.map((crumb, idx) => (
-              <span key={idx}>
-                {crumb.path ? (
-                  <span className="cursor-pointer hover:underline" onClick={() => navigate(crumb.path!)}>
-                    {crumb.label}
-                  </span>
-                ) : (
-                  <span className="font-medium text-[var(--color-text-900)]">{crumb.label}</span>
-                )}
-                {idx < breadcrumbs.length - 1 && " / "}
-              </span>
-            ))}
-          </nav>
-        </div>
-
+      {/* [LAYOUT] Admin Page */}
+      <AdminPageLayout
+        header={
+          <Breadcrumbs items={breadcrumbs} title="Adviser Details" />
+        }
+      >
         {adviser ? (
-          <>
+          <div className="space-y-4">
+
             {/* [COMPONENT] Profile Info */}
             <ProfileInfo lastName={adviser.lastName} firstName={adviser.firstName} />
 
+            {/* [ACTIONS] Delete */}
             <div className="space-y-2">
-              {/* [BUTTON] Delete */}
               <DeleteButton onClick={handleDelete} text="Delete Adviser" disabled={loading} />
             </div>
 
             {/* [CARD] Adviser Identity */}
             <div className="bg-[var(--color-bg-100)] rounded-lg p-4 space-y-4">
 
-              {/* [PAGINATION] Page tabs */}
+              {/* [UI] Page tabs */}
               <div className="flex gap-1 bg-[var(--color-bg-200)] rounded-lg p-1">
                 {PAGE_LABELS.map((label, idx) => (
                   <button
@@ -415,10 +391,9 @@ const onDeleteConfirm = async () => {
                 ))}
               </div>
 
-              {/* [DIVIDER] */}
               <div className="border-t border-[var(--color-bg-200)]" />
 
-              {/* [HEADER] Section title + Edit button */}
+              {/* [HEADER] Section title + Edit / Save buttons */}
               <div className="flex items-center justify-between">
                 <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)]">
                   {PAGE_LABELS[activePage]}
@@ -452,40 +427,10 @@ const onDeleteConfirm = async () => {
 
             </div>
 
-            {/* [CARD] Sections */}
-            <div className="bg-[var(--color-bg-100)] rounded-lg p-4 space-y-3">
-              <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)]">
-                Assigned Sections
-              </p>
+            {/* [COMPONENT] Assigned Sections */}
+            <AssignedSectionsCard sections={adviser.sections} />
 
-              {adviser.sections.length === 0 ? (
-                <p className="text-sm font-roboto text-[var(--color-text-600)]">No sections assigned.</p>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {adviser.sections.map((section) => (
-                    <div
-                      key={section.id}
-                      className="bg-[var(--color-bg-50)] border border-[var(--color-bg-200)] rounded-md px-4 py-3 flex items-center justify-between gap-3"
-                    >
-                      <div className="flex flex-col gap-0.5 min-w-0">
-                        <p className="text-sm font-roboto font-semibold text-[var(--color-text-900)] truncate">
-                          {section.name}
-                        </p>
-                        <p className="text-xs font-roboto text-[var(--color-text-600)]">
-                          Grade {section.gradeLevel} · {section.curriculum} · {section.schoolYear}
-                        </p>
-                        <p className="text-xs font-roboto text-[var(--color-text-500)]">
-                          {section.classSize} students
-                        </p>
-                      </div>
-                      <AdvisoryBadge />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* [META] Created At */}
+            {/* [META] Registration date */}
             <p className="text-xs font-roboto text-[var(--color-text-500)] text-right">
               Registered{" "}
               {new Date(adviser.createdAt).toLocaleDateString("en-PH", {
@@ -494,9 +439,10 @@ const onDeleteConfirm = async () => {
                 day: "numeric",
               })}
             </p>
-          </>
+
+          </div>
         ) : (
-          // [EMPTY STATE]
+          // [EMPTY STATE] Adviser not found
           <div className="bg-[var(--color-bg-100)] rounded-lg p-8 text-center">
             <p className="text-sm font-roboto text-[var(--color-text-600)]">Adviser not found.</p>
             <button
@@ -507,8 +453,8 @@ const onDeleteConfirm = async () => {
             </button>
           </div>
         )}
-      </div>
-    </div>
+      </AdminPageLayout>
+    </>
   );
 };
 
