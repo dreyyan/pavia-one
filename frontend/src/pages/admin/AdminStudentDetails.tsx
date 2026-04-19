@@ -5,20 +5,23 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 // [IMPORT] Components
+import Modal from "../../components/Modal";
 import Skeleton from "../../components/Skeleton";
+import InputField from "../../components/InputField";
 import ProfileInfo from "../../components/ProfileInfo";
+import Breadcrumbs from "../../components/Breadcrumbs";
+import { StatusBadge } from "../../components/StatusBadge";
+import TabbedFormCard from "../../components/cards/TabbedFormCard";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
 import DeleteButton from "../../components/buttons/DeleteButton";
-import InputField from "../../components/InputField";
-import Modal from "../../components/Modal";
-import { StatusBadge } from "../../components/StatusBadge";
+import AdminPageLayout from "../../components/layouts/AdminPageLayout";
 
-// [IMPORT] Constants & Types
+// [IMPORT] Constants, Helpers & Types
 import { STUDENT_DETAILS_PAGE_LABELS } from "../../constants";
-import type { StudentDetails, GeneralModalConfig } from "../../types";
 import { normalizeSex } from "../../helpers";
+import type { StudentDetails, GeneralModalConfig } from "../../types";
 
-// ?[TYPE] Form pages
+// ? [TYPE] Active form page index
 type FormPage = 0 | 1 | 2;
 
 const AdminStudentDetails = () => {
@@ -57,7 +60,7 @@ const AdminStudentDetails = () => {
     setGeneralModal(prev => ({ ...prev, isOpen: false }));
   };
 
-  // * [HANDLE] Fetch student details by id
+  // * [HANDLE] Fetch Student Details by ID
   const fetchStudent = async () => {
     setLoading(true);
     try {
@@ -96,49 +99,8 @@ const AdminStudentDetails = () => {
     fetchStudent();
   }, [id]);
 
-  // [HANDLE] Delete student
+  // * [HANDLE] Delete Student
   const handleDelete = () => {
-    const onDeleteConfirm = async () => {
-      setLoading(true);
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/students/${id}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-
-        // ! [ERROR] Backend failure response
-        if (!data.success) throw new Error(data.message || "Failed to delete student");
-
-        // * [SUCCESS] Show success modal before navigating back to list
-        openGeneralModal({
-          title: "Delete Student",
-          message: "Student deleted successfully.",
-          type: "success",
-          confirmText: "OK",
-          isCancelable: false,
-          onConfirm: () => {
-            closeGeneralModal();
-            navigate("/admin/students");
-          },
-        });
-      } catch (err) {
-        // ! [ERROR] Student deletion failed
-        console.error("Delete error:", err);
-        openGeneralModal({
-          title: "Unable to Delete Student",
-          message: "We couldn't delete the student at the moment. Please check your internet connection and try again.",
-          type: "error",
-          confirmText: "OK",
-          isCancelable: true,
-          onConfirm: () => closeGeneralModal(),
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
     // ? [CONFIRMATION] Before deleting, ask user to confirm
     openGeneralModal({
       title: "Delete Student",
@@ -146,29 +108,64 @@ const AdminStudentDetails = () => {
       type: "error",
       confirmText: "Delete",
       isCancelable: true,
-      onConfirm: onDeleteConfirm,
+      onConfirm: async () => {
+        setLoading(true);
+        try {
+          const token = localStorage.getItem("token");
+          const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/students/${id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await res.json();
+
+          // ! [ERROR] Backend failure response
+          if (!data.success) throw new Error(data.message || "Failed to delete student");
+
+          // * [SUCCESS] Student Deleted — navigate back to list
+          openGeneralModal({
+            title: "Student Deleted",
+            message: "Student deleted successfully.",
+            type: "success",
+            confirmText: "OK",
+            isCancelable: false,
+            onConfirm: () => {
+              closeGeneralModal();
+              navigate("/admin/students");
+            },
+          });
+        } catch (err) {
+          // ! [ERROR] Student deletion failed
+          console.error("Delete error:", err);
+          openGeneralModal({
+            title: "Unable to Delete Student",
+            message: "We couldn't delete the student at the moment. Please check your internet connection and try again.",
+            type: "error",
+            confirmText: "OK",
+            isCancelable: false,
+            onConfirm: () => closeGeneralModal(),
+          });
+        } finally {
+          setLoading(false);
+        }
+      },
     });
   };
 
-  // [HANDLE] Edit toggle
+  // [HANDLE] Edit toggle — discard changes on cancel
   const handleEditToggle = () => {
-    if (isEditing) {
-      // Discard changes
-      setFormData(student ?? {});
-    }
-    setIsEditing((prev) => !prev);
+    if (isEditing) setFormData(student ?? {});
+    setIsEditing(prev => !prev);
   };
 
-  // * [HANDLE] Save updated student details
+  // * [HANDLE] Save Updated Student Details
   const handleSave = async () => {
     if (!id || !student) return;
 
     setLoading(true);
-
     try {
       const token = localStorage.getItem("token");
 
-      // Build clean payload that matches what your backend expects
+      // [PAYLOAD] Build clean payload matching backend expectations
       const payload = {
         id: Number(id),
         firstName: formData.firstName?.trim(),
@@ -182,13 +179,13 @@ const AdminStudentDetails = () => {
         ipEthnicGroup: formData.ipEthnicGroup?.trim() || null,
         religion: formData.religion?.trim() || null,
 
-        // Address fields
+        // [ADDRESS] Fields
         houseStreet: formData.houseStreet?.trim() || null,
         barangay: formData.barangay?.trim() || null,
         municipality: formData.municipalityCity?.trim() || null,
         province: formData.province?.trim() || null,
 
-        // Guardian / Parent fields (adjust field names to match backend if needed)
+        // [FAMILY] Guardian / Parent fields
         fatherFirstName: formData.fatherFirstName?.trim() || null,
         fatherLastName: formData.fatherLastName?.trim() || null,
         fatherMiddleName: formData.fatherMiddleName?.trim() || null,
@@ -213,17 +210,18 @@ const AdminStudentDetails = () => {
       const data = await res.json();
 
       if (!data.success) {
-        const errorMsg = data.message 
-          || data.data?.failed?.[0]?.message 
-          || "Failed to update student";
+        const errorMsg =
+          data.message ||
+          data.data?.failed?.[0]?.message ||
+          "Failed to update student";
         throw new Error(errorMsg);
       }
 
-      // Success - update local state
-      setStudent((prev) => prev ? { ...prev, ...formData } : null);
+      // [UPDATE] Local state with saved values
+      setStudent(prev => prev ? { ...prev, ...formData } : null);
       setIsEditing(false);
 
-      // Show success feedback
+      // * [SUCCESS] Student Updated
       openGeneralModal({
         title: "Student Updated",
         message: "Student details have been successfully updated.",
@@ -232,9 +230,8 @@ const AdminStudentDetails = () => {
         isCancelable: false,
         onConfirm: () => closeGeneralModal(),
       });
-
     } catch (err: any) {
-      // ! [ERROR] Subject update failed
+      // ! [ERROR] Student update failed
       console.error(err);
       openGeneralModal({
         title: "Unable to Update Student",
@@ -249,24 +246,25 @@ const AdminStudentDetails = () => {
   };
 
   // [HANDLE] Generic form field change
-  const handleFieldChange = (field: keyof StudentDetails) =>
+  const handleFieldChange =
+    (field: keyof StudentDetails) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-      setFormData((prev) => ({ ...prev, [field]: e.target.value }));
+      setFormData(prev => ({ ...prev, [field]: e.target.value }));
     };
 
-  // *[BREADCRUMBS] Admin Student Details navigation
+  // * [BREADCRUMBS] Admin Student Details navigation
   const breadcrumbs = [
     { label: "Admin Dashboard", path: "/admin/dashboard" },
     { label: "Students", path: "/admin/students" },
     { label: student?.fullName ?? "Details", path: null },
   ];
 
-  // *[RENDER] Form fields per page
+  // * [RENDER] Form fields per active page
   const renderFormPage = () => {
     if (!student) return null;
 
+    // [PAGE 0] Basic Information
     if (activePage === 0) {
-      // Basic Information
       return (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div className="col-span-2 sm:col-span-3">
@@ -356,8 +354,8 @@ const AdminStudentDetails = () => {
       );
     }
 
+    // [PAGE 1] Address
     if (activePage === 1) {
-      // Address
       return (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="col-span-1 sm:col-span-2">
@@ -396,11 +394,11 @@ const AdminStudentDetails = () => {
       );
     }
 
+    // [PAGE 2] Parents & Guardian
     if (activePage === 2) {
-      // Parents
       return (
         <div className="space-y-5">
-          {/* Father */}
+          {/* [SECTION] Father */}
           <div>
             <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-500)] mb-2">
               Father's Name
@@ -430,7 +428,7 @@ const AdminStudentDetails = () => {
             </div>
           </div>
 
-          {/* Mother */}
+          {/* [SECTION] Mother */}
           <div>
             <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-500)] mb-2">
               Mother's Maiden Name
@@ -460,7 +458,7 @@ const AdminStudentDetails = () => {
             </div>
           </div>
 
-          {/* Guardian */}
+          {/* [SECTION] Guardian */}
           <div>
             <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-500)] mb-2">
               Guardian's Name{" "}
@@ -493,7 +491,7 @@ const AdminStudentDetails = () => {
             </div>
           </div>
 
-          {/* Contact */}
+          {/* [FIELD] Contact Number */}
           <InputField
             label="Contact Number of Parent / Guardian"
             type="number"
@@ -510,11 +508,11 @@ const AdminStudentDetails = () => {
     return null;
   };
 
-  // [LOADING STATE]
+  // ? [LOADING STATE]
   if (loading) return <Skeleton />;
 
   return (
-    <div>
+    <>
       {/* [MODAL] General */}
       <Modal
         isOpen={generalModal.isOpen}
@@ -527,126 +525,63 @@ const AdminStudentDetails = () => {
         isCancelable={generalModal.isCancelable}
       />
 
-      <div className="py-10 px-4 space-y-4 relative">
-
-        {/* [SECTION] Header & Breadcrumbs */}
-        <div>
-          <h2 className="text-[var(--color-text-800)] leading-0">Student Details</h2>
-          <nav className="font-roboto text-sm text-[var(--color-text-700)]">
-            {breadcrumbs.map((crumb, idx) => (
-              <span key={idx}>
-                {crumb.path ? (
-                  <span
-                    className="cursor-pointer hover:underline"
-                    onClick={() => navigate(crumb.path!)}
-                  >
-                    {crumb.label}
-                  </span>
-                ) : (
-                  <span className="font-medium text-[var(--color-text-900)]">{crumb.label}</span>
-                )}
-                {idx < breadcrumbs.length - 1 && " / "}
-              </span>
-            ))}
-          </nav>
-        </div>
-
+      {/* [LAYOUT] Admin Page */}
+      <AdminPageLayout
+        header={
+          <Breadcrumbs items={breadcrumbs} title="Student Details" />
+        }
+      >
         {student ? (
-          <>
+          <div className="space-y-4">
+
             {/* [COMPONENT] Profile Info */}
             <ProfileInfo lastName={student.lastName} firstName={student.firstName} />
 
-            <div className="space-y-2">
-              {/* [PRIMARY BUTTON] Export SF9 */}
+            {/* [ACTIONS] Export + Delete */}
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-4 w-full xl:w-auto xl:ml-auto">
               <PrimaryButton
                 text="Export SF9"
                 iconSrc="/export-icon-white.svg"
                 onClick={() => console.log("Exporting SF9... (not implemented)")}
               />
-
-              {/* [BUTTON] Delete */}
               <DeleteButton onClick={handleDelete} text="Delete Student" disabled={loading} />
             </div>
 
-            {/* [CARD] Student Identity */}
-            <div className="bg-[var(--color-bg-100)] rounded-lg p-4 space-y-4">
-
-              {/* [PAGINATION] Page tabs */}
-              <div className="flex gap-1 bg-[var(--color-bg-200)] rounded-lg p-1">
-                {STUDENT_DETAILS_PAGE_LABELS.map((label, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setActivePage(idx as FormPage)}
-                    className={`flex-1 text-xs font-roboto font-medium py-1.5 px-2 rounded-md transition-all duration-150 cursor-pointer ${
-                      activePage === idx
-                        ? "bg-[var(--color-bg-50)] text-[var(--color-text-900)] shadow-sm"
-                        : "text-[var(--color-text-600)] hover:text-[var(--color-text-800)]"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-
-              {/* [DIVIDER] */}
-              <div className="border-t border-[var(--color-bg-200)]" />
-
-              {/* [HEADER] Section title + Edit button */}
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)]">
-                  {STUDENT_DETAILS_PAGE_LABELS[activePage]}
-                </p>
-                <div className="flex items-center gap-2">
-                  {isEditing && (
-                    <button
-                      onClick={handleSave}
-                      disabled={loading}
-                      className="text-xs font-roboto font-semibold text-white bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] px-3 py-1.5 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Save
-                    </button>
-                  )}
-                  <button
-                    onClick={handleEditToggle}
-                    disabled={loading}
-                    className={`bg-[var(--color-accent-600)] hover:bg-[var(--color-accent-700)] text-xs font-roboto font-medium px-3 py-1.5 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
-                      isEditing
-                        ? "text-[var(--color-text-50)] bg-[var(--color-red-700)] hover:bg-[var(--color-red-800)]"
-                        : "text-[var(--color-text-50)] hover:bg-[var(--color-accent-700)]"
-                    }`}
-                  >
-                    {isEditing ? "Cancel" : "Edit"}
-                  </button>
-                </div>
-              </div>
-
-              {/* [FORM] Dynamic fields based on active page */}
+            {/* [COMPONENT] Student Details */}
+            <TabbedFormCard
+              labels={STUDENT_DETAILS_PAGE_LABELS}
+              activePage={activePage}
+              setActivePage={(p) => setActivePage(p as FormPage)}
+              isEditing={isEditing}
+              loading={loading}
+              onSave={handleSave}
+              onToggleEdit={handleEditToggle}
+            >
               {renderFormPage()}
-
-            </div>
+            </TabbedFormCard>
 
             {/* [CARD] Adviser */}
             <div className="bg-[var(--color-bg-100)] rounded-lg p-4 space-y-4">
-              <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)]">
+              <span className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)]">
                 Adviser
-              </p>
+              </span>
               {student.adviser ? (
                 <div className="flex items-center gap-2">
                   <div className="size-8 rounded-md bg-[var(--color-bg-200)] flex items-center justify-center text-[var(--color-text-700)] font-bold text-sm flex-shrink-0">
                     {student.adviser.name
                       .split(" ")
-                      .map((n) => n[0])
+                      .map(n => n[0])
                       .join("")
                       .toUpperCase()
                       .slice(0, 2)}
                   </div>
                   <div>
-                    <p className="text-sm font-roboto font-medium text-[var(--color-text-900)]">
+                    <span className="text-sm font-roboto font-medium text-[var(--color-text-900)]">
                       {student.adviser.name}
-                    </p>
-                    <p className="text-xs font-mono text-[var(--color-text-500)]">
+                    </span>
+                    <span className="text-xs font-mono text-[var(--color-text-500)]">
                       #{student.adviser.adviserId}
-                    </p>
+                    </span>
                   </div>
                 </div>
               ) : (
@@ -654,7 +589,7 @@ const AdminStudentDetails = () => {
               )}
             </div>
 
-            {/* [CARD] Enrollments */}
+            {/* [CARD] Enrollment History */}
             <div className="bg-[var(--color-bg-100)] rounded-lg p-4 space-y-3">
               <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)]">
                 Enrollment History
@@ -664,7 +599,7 @@ const AdminStudentDetails = () => {
                 <p className="text-sm font-roboto text-[var(--color-text-600)]">No enrollment records.</p>
               ) : (
                 <div className="flex flex-col gap-2">
-                  {student.enrollments.map((enrollment) => (
+                  {student.enrollments.map(enrollment => (
                     <div
                       key={enrollment.id}
                       className="bg-[var(--color-bg-50)] border border-[var(--color-bg-200)] rounded-md px-4 py-3 flex items-center justify-between gap-3"
@@ -691,7 +626,7 @@ const AdminStudentDetails = () => {
               )}
             </div>
 
-            {/* [META] Created At */}
+            {/* [META] Registration date */}
             <p className="text-xs font-roboto text-[var(--color-text-500)] text-right">
               Registered{" "}
               {new Date(student.createdAt).toLocaleDateString("en-PH", {
@@ -700,9 +635,10 @@ const AdminStudentDetails = () => {
                 day: "numeric",
               })}
             </p>
-          </>
+
+          </div>
         ) : (
-          // [EMPTY STATE]
+          // [EMPTY STATE] Student not found
           <div className="bg-[var(--color-bg-100)] rounded-lg p-8 text-center">
             <p className="text-sm font-roboto text-[var(--color-text-600)]">Student not found.</p>
             <button
@@ -713,8 +649,8 @@ const AdminStudentDetails = () => {
             </button>
           </div>
         )}
-      </div>
-    </div>
+      </AdminPageLayout>
+    </>
   );
 };
 
