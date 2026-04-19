@@ -1,20 +1,26 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // [IMPORT] Hooks
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Components
+import Modal from "../../components/Modal";
 import Skeleton from "../../components/Skeleton";
+import EmptyState from "../../components/EmptyState";
+import Dropdown from "../../components/Dropdown";
+import SearchBar from "../../components/SearchBar";
+import Pagination from "../../components/Pagination";
+import Breadcrumbs from "../../components/Breadcrumbs";
+import StudentCard from "../../components/cards/StudentCard";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
 import StudentFormModal from "../../components/forms/StudentFormModal";
-import StudentCard from "../../components/cards/StudentCard";
-import EmptyState from "../../components/EmptyState";
-import Modal from "../../components/Modal";
+import AdminPageLayout from "../../components/layouts/AdminPageLayout";
 
-// [IMPORT] Constants & Types
-import { GeneralModalConfig, StudentFormData, Adviser, Student } from "../../types";
+// [IMPORT] Helpers, Constants & Types
+import { getVisiblePages } from "../../helpers/index";
 import { SEX_OPTIONS } from "../../constants";
+import { GeneralModalConfig, StudentFormData, Adviser, Student } from "../../types";
 
 const AdminStudents = () => {
   const navigate = useNavigate();
@@ -27,11 +33,11 @@ const AdminStudents = () => {
   // [STATES] Search, Sort, and Filter
   const [search, setSearch] = useState("");
   const [adviserSearch, setAdviserSearch] = useState("");
-  const [sortOption, setSortOption] = useState<"name-asc" | "name-desc" | "lrn-asc" | "lrn-desc">("name-asc");
   const [activeDropdown, setActiveDropdown] = useState<"sort" | "sex" | null>(null);
-  const filterRef = useRef<HTMLDivElement>(null);
-
   const [selectedSex, setSelectedSex] = useState<string | "All">("All");
+
+  type SortOption = "name-asc" | "name-desc" | "lrn-asc" | "lrn-desc";
+  const [sortOption, setSortOption] = useState<SortOption>("name-asc");
 
   // [STATES] Student Form Modal
   const [showStudentModal, setShowStudentModal] = useState(false);
@@ -79,7 +85,7 @@ const AdminStudents = () => {
   const [page, setPage] = useState(1);
   const itemsPerPage = 5;
 
-  // [STATE] Selected students for bulk actions
+  // [STATE] Selected Students (for bulk actions)
   const [selectedStudents, setSelectedStudents] = useState<number[]>([]);
 
   // * [HANDLE] Fetch Students
@@ -93,7 +99,6 @@ const AdminStudents = () => {
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed to fetch students");
 
-      // ensure students is always an array (response is data.data.data due to pagination wrapper)
       const list = data.data?.data;
       setStudents(Array.isArray(list) ? list : []);
     } catch (err) {
@@ -118,7 +123,7 @@ const AdminStudents = () => {
     fetchStudents();
   }, []);
 
-  // * [HANDLE] Fetch advisers for dropdown (with optional search) 
+  // * [HANDLE] Fetch Advisers for Dropdown (w/ optional search) 
   const fetchAdvisers = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -143,7 +148,7 @@ const AdminStudents = () => {
     }
   };
 
-  // * [HANDLE] Add student
+  // * [HANDLE] Add Student
   const handleAddStudent = async () => {
     setFormData({
       lrn: "",
@@ -166,11 +171,11 @@ const AdminStudents = () => {
     setShowStudentModal(true);
   };
 
-  // * [HANDLE] Bulk delete selected students
+  // * [HANDLE] Bulk Delete Selected Students
   const handleBulkDelete = () => {
     if (selectedStudents.length === 0) return;
 
-    // ? [CONFIRMATION] Show confirmation modal before bulk deletion
+    // ? [CONFIRMATION MODAL] Before bulk deletion
     openGeneralModal({
       title: "Delete Students",
       message: `Are you sure you want to delete ${selectedStudents.length} selected student(s)? This action cannot be undone.`,
@@ -193,11 +198,10 @@ const AdminStudents = () => {
           const data = await res.json();
           if (!data.success) throw new Error(data.message || "Bulk delete failed");
 
-          // Success
           setStudents(prev => prev.filter(s => !selectedStudents.includes(s.id)));
           setSelectedStudents([]);
 
-          // * [SUCCESS] Show success modal after deletion
+          // * [SUCCESS] Students Deleted
           openGeneralModal({
             title: "Students Deleted",
             message: `${selectedStudents.length} student(s) have been deleted successfully.`,
@@ -207,7 +211,7 @@ const AdminStudents = () => {
             onConfirm: () => closeGeneralModal(),
           });
         } catch (err) {
-          // ! [ERROR] Bulk delete failed
+          // ! [ERROR] Bulk Delete Failed
           console.error("Bulk delete error:", err);
           openGeneralModal({
             title: "Unable to Delete Students",
@@ -224,10 +228,11 @@ const AdminStudents = () => {
     });
   };
 
-  // * [HANDLE] Submit create/edit form
+  // * [HANDLE] Submit Create/Edit Form
   const handleSubmit = async () => {
     const adviserId = formData.createdByAdviserId?.trim();
 
+    // ! [ERROR] Adviser not selected
     if (!adviserId) {
       setFormError("Please select an adviser.");
       setLoading(false);
@@ -304,7 +309,7 @@ const AdminStudents = () => {
       // Close modal on success
       setShowStudentModal(false);
       
-      // Optional: Show success notification
+      // * [SUCCESS] Student Updated/Created
       openGeneralModal({
         title: isEditMode ? "Student Updated" : "Student Created",
         message: isEditMode 
@@ -317,13 +322,11 @@ const AdminStudents = () => {
       });
 
     } catch (err: any) {
+      // ! [ERROR] Update/Create Student Failed
       console.error("Submit error:", err);
-      
-      // Show the real error message from backend (e.g. "Student already exists")
       const errorMessage = err.message || "An unexpected error occurred while saving the student.";
       setFormError(errorMessage);
 
-      // Optional: Also show it in a general modal for better visibility
       openGeneralModal({
         title: "Save Failed",
         message: errorMessage,
@@ -337,7 +340,7 @@ const AdminStudents = () => {
     }
   };
 
-  // * [HANDLE] Sorting and Searching
+  // * [HANDLE] Sorting & Searching
   const filteredStudents = students
     .filter(s =>
       (
@@ -359,31 +362,6 @@ const AdminStudents = () => {
 
   const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
   const displayedStudents = filteredStudents.slice((page - 1) * itemsPerPage, page * itemsPerPage);
-  const handlePrevPage = () => setPage(prev => Math.max(prev - 1, 1));
-  const handleNextPage = () => setPage(prev => Math.min(prev + 1, totalPages));
-
-  // [HANDLE] Get visible pagination pages
-  const getVisiblePages = (current: number, total: number) => {
-    const delta = 1; // how many pages around current
-
-    const range: (number | "...")[] = [];
-    const left = Math.max(2, current - delta);
-    const right = Math.min(total - 1, current + delta);
-
-    range.push(1);
-
-    if (left > 2) range.push("...");
-
-    for (let i = left; i <= right; i++) {
-      range.push(i);
-    }
-
-    if (right < total - 1) range.push("...");
-
-    if (total > 1) range.push(total);
-
-    return range;
-  };
 
   // * [BREADCRUMBS] Admin Dashboard navigation
   const breadcrumbs = [
@@ -395,7 +373,7 @@ const AdminStudents = () => {
   if (loading) return <Skeleton />;
 
   return (
-    <div>
+    <>
       {/* [MODAL] General */}
       <Modal
         isOpen={generalModal.isOpen}
@@ -407,7 +385,8 @@ const AdminStudents = () => {
         onConfirm={generalModal.onConfirm}
         isCancelable={generalModal.isCancelable}
       />
-      {/* [STUDENT FORM MODAL] */}
+
+      {/* [MODAL] Student Form */}
       <StudentFormModal
         isOpen={showStudentModal}
         title={isEditMode ? "Edit Student" : "Create Student"}
@@ -423,339 +402,238 @@ const AdminStudents = () => {
         setFormError={setFormError}
         isEditMode={isEditMode}
       />
-      <div className="py-10 px-4 space-y-4 relative">
 
-      {/* [SECTION] Header & Breadcrumbs */}
-      <div>
-        {/* [UI] Header */}
-        <h2 className="text-[var(--color-text-800)] leading-0">Students</h2>
+      {/* [LAYOUT] Admin Page */}
+      <AdminPageLayout
+        header={
+          <Breadcrumbs items={breadcrumbs} title="Students" />
+        }
+        toolbar={
+          <div className="bg-[var(--color-bg-100)] px-3 py-4 rounded-lg flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">
+            <div className="flex flex-1 gap-2 md:gap-4 items-stretch">
+              {/* [COMPONENT] Search Bar */}
+              <SearchBar
+                value={search}
+                placeholder="Search by name, LRN, or email..."
+                onChange={setSearch}
+                onResetPage={() => setPage(1)}
+              />
 
-        {/* [UI] Breadcrumbs */}
-        <nav className="font-roboto text-sm text-[var(--color-text-700)]">
-          {breadcrumbs.map((crumb, idx) => (
-            <span key={idx}>
-              {crumb.path ? (
-                <span className="cursor-pointer hover:underline" onClick={() => navigate(crumb.path!)}>{crumb.label}</span>
-              ) : (
-                <span className="font-medium text-[var(--color-text-900)]">{crumb.label}</span>
-              )}
-              {idx < breadcrumbs.length - 1 && " / "}
+              {/* [COMPONENT] Sort Dropdown */}
+              <Dropdown
+                icon="/sort-icon.svg"
+                label="Sort"
+                isOpen={activeDropdown === "sort"}
+                onToggle={() =>
+                  setActiveDropdown(activeDropdown === "sort" ? null : "sort")
+                }
+                selected={sortOption}
+                onSelect={(value) => {
+                  setSortOption(value as SortOption);
+                  setPage(1);
+                }}
+                options={[
+                  { label: "Name ↑", value: "name-asc" },
+                  { label: "Name ↓", value: "name-desc" },
+                  { label: "LRN ↑", value: "lrn-asc" },
+                  { label: "LRN ↓", value: "lrn-desc" },
+                ]}
+              />
+
+              {/* [COMPONENT] Filter Dropdown */}
+              <Dropdown
+                icon="/filter-icon.svg"
+                label="Filter"
+                isOpen={activeDropdown === "sex"}
+                onToggle={() =>
+                  setActiveDropdown(activeDropdown === "sex" ? null : "sex")
+                }
+                selected={selectedSex}
+                onSelect={(value) => {
+                  setSelectedSex(value);
+                  setPage(1);
+                }}
+                width="w-32"
+                options={[{ label: "All", value: "All" }, ...SEX_OPTIONS]}
+              />
+            </div>
+
+            <div className="md:ml-auto mt-2 md:mt-0">
+              {/* [PRIMARY BUTTON] Add Student */}
+              <PrimaryButton
+                text="Add Student"
+                iconSrc="/add-icon.svg"
+                onClick={handleAddStudent}
+              />
+            </div>
+          </div>
+        }
+        footer={
+          // [COMPONENT] Pagination
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            getVisiblePages={getVisiblePages}
+          />
+        }
+      >
+        {/* [SECTION] Bulk Actions */}
+        {selectedStudents.length > 0 && (
+          <div className="flex items-center gap-3 px-3 py-2 bg-[var(--color-bg-50)] rounded-md border border-[var(--color-bg-200)]">
+            <span className="text-sm font-roboto text-[var(--color-text-700)]">
+              {selectedStudents.length} selected
             </span>
-          ))}
-        </nav>
-      </div>
 
-      {/* [SECTION] Search & Filters */}
-      <div className="bg-[var(--color-bg-100)] px-3 rounded-lg py-4 flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">
-        <div className="flex flex-1 gap-2 md:gap-4 items-stretch">
-          {/* [INPUT] Search */}
-          <div className="relative flex-1">
-            <input
-              type="text"
-              placeholder="Search by name, LRN, or email..."
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="font-roboto font-medium text-xs sm:text-md w-full bg-[var(--color-bg-50)] rounded-sm px-3 outline-none border border-[var(--color-text-300)] focus:ring-2 focus:ring-[var(--color-primary-600)] h-full"
+            <button
+              onClick={handleBulkDelete}
+              className="text-sm font-medium text-[var(--color-red-500)] hover:underline"
+            >
+              Delete Selected
+            </button>
+
+            <button
+              onClick={() => setSelectedStudents([])}
+              className="text-sm font-medium text-[var(--color-text-600)] hover:underline ml-auto"
+            >
+              Clear
+            </button>
+          </div>
+        )}
+
+        {/* [SECTION] Student Cards (Mobile View) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:hidden gap-4 bg-[var(--color-bg-100)] px-3 py-4 rounded-lg">
+          {!loading && displayedStudents.length === 0 && (
+            <EmptyState
+              title="No students found"
+              subtitle="No students match your current filters or search."
+              iconSrc="/no-data-icon.svg"
             />
-          </div>
+          )}
 
-          {/* [DROPDOWN] Sort Filter */}
-          <div ref={filterRef} className="relative">
-            <button
-              onClick={() => setActiveDropdown(activeDropdown === "sort" ? null : "sort")}
-              className={`flex items-center justify-center sm:justify-start gap-2 text-[var(--color-text-50)] rounded-sm px-3 h-10 transition cursor-pointer ${
-                activeDropdown === "sort"
-                  ? "bg-[var(--color-bg-50)]"
-                  : "bg-[var(--color-bg-50)] hover:opacity-80"
-              }`}
-            >
-              <img src="/sort-icon.svg" alt="Sort" className="size-4" />
-              <span className="hidden sm:inline text-xs font-roboto font-medium text-[var(--color-text-700)]">Sort</span>
-            </button>
-
-            {activeDropdown === "sort" && (
-              <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-300 rounded-md shadow-lg p-2 space-y-1 z-50">
-                <button onClick={() => { setSortOption("name-asc"); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-asc" ? "bg-blue-100" : ""}`}>Name ↑</button>
-                <button onClick={() => { setSortOption("name-desc"); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-desc" ? "bg-blue-100" : ""}`}>Name ↓</button>
-                <button onClick={() => { setSortOption("lrn-asc"); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "lrn-asc" ? "bg-blue-100" : ""}`}>LRN ↑</button>
-                <button onClick={() => { setSortOption("lrn-desc"); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "lrn-desc" ? "bg-blue-100" : ""}`}>LRN ↓</button>
-              </div>
-            )}
-          </div>
-
-          {/* [DROPDOWN] Sex Filter */}
-          <div className="relative">
-            <button
-              onClick={() => setActiveDropdown(activeDropdown === "sex" ? null : "sex")}
-              className={`flex items-center justify-center sm:justify-start gap-2 text-[var(--color-text-50)] rounded-sm px-3 h-10 transition cursor-pointer ${
-                activeDropdown === "sex"
-                  ? "bg-[var(--color-bg-50)]"
-                  : "bg-[var(--color-bg-50)] hover:opacity-80"
-              }`}
-            >
-              <img src="/filter-icon.svg" alt="Sex Filter" className="size-4" />
-              <span className="hidden sm:inline text-xs font-roboto font-medium text-[var(--color-text-700)]">Filter</span>
-            </button>
-
-            {activeDropdown === "sex" && (
-              <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-300 rounded-md shadow-lg p-2 space-y-1 z-50">
-                <button
-                  onClick={() => { setSelectedSex("All"); setPage(1); setActiveDropdown(null); }}
-                  className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedSex === "All" ? "bg-blue-100" : ""}`}
-                >
-                  All
-                </button>
-                {SEX_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => {
-                      setSelectedSex(option.value);
-                      setPage(1);
-                      setActiveDropdown(null);
-                    }}
-                    className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedSex === option.value ? "bg-blue-100" : ""}`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          {displayedStudents.map((s) => (
+            <StudentCard key={s.id} student={s} />
+          ))}
         </div>
 
-        <div className="md:ml-auto mt-2 md:mt-0">
-          <PrimaryButton text="Add Student" iconSrc="/add-icon.svg" onClick={handleAddStudent} />
-        </div>
-      </div>
+        {/* [SECTION] Students Table (Desktop View) */}
+        <div className="hidden md:block bg-[var(--color-bg-100)] px-3 py-4 rounded-lg overflow-x-auto">
+          {!loading && displayedStudents.length === 0 && (
+            <EmptyState
+              title="No students found"
+              subtitle="No students match your current filters or search."
+              iconSrc="/no-data-icon.svg"
+            />
+          )}
 
-      {/* [SECTION] Bulk Actions (Visible when student rows are selected) */}
-      {selectedStudents.length > 0 && (
-        <div className="flex items-center gap-3 px-3 py-2 bg-[var(--color-bg-50)] rounded-md border border-[var(--color-bg-200)]">
-          <span className="text-sm font-roboto text-[var(--color-text-700)]">
-            {selectedStudents.length} selected
-          </span>
-          <button
-            onClick={handleBulkDelete}
-            className="text-sm font-medium font-roboto text-[var(--color-red-500)] hover:underline cursor-pointer"
-          >
-            Delete Selected
-          </button>
-          <button
-            onClick={() => setSelectedStudents([])}
-            className="text-sm font-medium font-roboto text-[var(--color-text-600)] hover:underline cursor-pointer ml-auto"
-          >
-            Clear
-          </button>
-        </div>
-      )}
-
-      {/* [CARDS] Students (Mobile View) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:hidden gap-4 mt-2 bg-[var(--color-bg-100)] px-3 py-4 rounded-lg">
-        {!loading && (
-          <>
-            {/* Empty state for current filters first */}
-            {displayedStudents.length === 0 ? (
-              <EmptyState
-                title="No students found"
-                subtitle="No students match your current filters or search. Try adjusting your criteria."
-                iconSrc="/no-data-icon.svg"
-              />
-            ) : students.length === 0 ? (
-              // Fallback: no students at all
-              <EmptyState
-                title="No students found"
-                subtitle="You currently have no assigned students. Please contact admin if this is an error."
-                iconSrc="/no-data-icon.svg"
-              />
-            ) : null}
-          </>
-        )}
-        {displayedStudents.map((s) => (
-          <StudentCard key={s.id} student={s} />
-        ))}
-      </div>
-
-      {/* [TABLE] Students (Tablet & Desktop View) */}
-      <div className="hidden md:block mt-2 bg-[var(--color-bg-100)] px-3 py-4 rounded-lg overflow-x-auto">
-        {!loading && (
-          <>
-            {/* [EMPTY STATE] */}
-            {displayedStudents.length === 0 ? (
-              <EmptyState
-                title="No students found"
-                subtitle="No students match your current filters or search. Try adjusting your criteria."
-                iconSrc="/no-data-icon.svg"
-              />
-            ) : students.length === 0 ? (
-              <EmptyState
-                title="No students found"
-                subtitle="You currently have no assigned students. Please contact admin if this is an error."
-                iconSrc="/no-data-icon.svg"
-              />
-            ) : null}
-          </>
-        )}
-
-        {displayedStudents.length > 0 && (
-          <table className="min-w-full border-separate border-spacing-y-2">
-            
-            {/* [TABLE HEADER] */}
-            <thead>
-              <tr className="text-left">
-                {/* [HEADER] Checkbox */}
-                <th className="px-3 py-2">
-                  <input
-                    type="checkbox"
-                    checked={
-                      displayedStudents.length > 0 &&
-                      displayedStudents.every(s => selectedStudents.includes(s.id))
-                    }
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedStudents(prev => [
-                          ...new Set([...prev, ...displayedStudents.map(s => s.id)])
-                        ]);
-                      } else {
-                        setSelectedStudents(prev =>
-                          prev.filter(id => !displayedStudents.some(s => s.id === id))
-                        );
+          {displayedStudents.length > 0 && (
+            <table className="min-w-full border-separate border-spacing-y-2">
+              <thead>
+                <tr className="text-left">
+                  <th className="px-3 py-2">
+                    <input
+                      type="checkbox"
+                      checked={
+                        displayedStudents.length > 0 &&
+                        displayedStudents.every(s =>
+                          selectedStudents.includes(s.id)
+                        )
                       }
-                    }}
-                  />
-                </th>
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedStudents(prev => [
+                            ...new Set([
+                              ...prev,
+                              ...displayedStudents.map(s => s.id),
+                            ]),
+                          ]);
+                        } else {
+                          setSelectedStudents(prev =>
+                            prev.filter(
+                              id =>
+                                !displayedStudents.some(s => s.id === id)
+                            )
+                          );
+                        }
+                      }}
+                    />
+                  </th>
 
-                {/* [HEADER] Columns */}
-                <th className="px-3 py-2 font-figtree font-bold text-[16px] text-[var(--color-text-700)]">Name</th>
-                <th className="px-3 py-2 font-figtree font-bold text-[16px] text-[var(--color-text-700)]">LRN</th>
-                <th className="px-3 py-2 font-figtree font-bold text-[16px] text-[var(--color-text-700)]">Grade, Section & Curriculum</th>
-                <th className="px-3 py-2 font-figtree font-bold text-[16px] text-[var(--color-text-700)]">Email</th>
-                <th className="px-3 py-2 font-figtree font-bold text-[16px] text-[var(--color-text-700)]">Adviser</th>
-                <th className="px-3 py-2 font-figtree font-bold text-[16px] text-[var(--color-text-700)]">Enrolled</th>
-              </tr>
-            </thead>
+                  {/* [SECTION] Table Headers */}
+                  <th className="table-header">Name</th>
+                  <th className="table-header">LRN</th>
+                  <th className="table-header">Grade, Section & Curriculum</th>
+                  <th className="table-header">Email</th>
+                  <th className="table-header">Adviser</th>
+                  <th className="table-header">Enrolled</th>
+                </tr>
+              </thead>
 
-            {/* [TABLE BODY] */}
-            <tbody>
-              {displayedStudents.map((s) => {
-                const isSelected = selectedStudents.includes(s.id);
-
-                return (
+              {/* [SECTION] Table Body */}
+              <tbody>
+                {displayedStudents.map((s) => (
                   <tr
                     key={s.id}
                     className="bg-[var(--color-bg-50)] hover:bg-[var(--color-bg-200)] transition"
                   >
-                    {/* [CELL] Checkbox */}
                     <td className="px-3 py-3">
                       <input
                         type="checkbox"
-                        checked={isSelected}
+                        checked={selectedStudents.includes(s.id)}
                         onChange={(e) => {
                           if (e.target.checked) {
                             setSelectedStudents(prev => [...prev, s.id]);
                           } else {
-                            setSelectedStudents(prev => prev.filter(id => id !== s.id));
+                            setSelectedStudents(prev =>
+                              prev.filter(id => id !== s.id)
+                            );
                           }
                         }}
                       />
                     </td>
 
-                    {/* [CELL] Name (Clickable) */}
                     <td
-                      onClick={() => navigate(`/admin/students/view/${s.id}`)}
-                      className="px-3 py-3 font-roboto font-bold text-sm text-[var(--color-primary-700)] cursor-pointer hover:underline"
+                      onClick={() =>
+                        navigate(`/admin/students/view/${s.id}`)
+                      }
+                      className="table-cell table-text table-text-link cursor-pointer hover:underline"
                     >
                       {s.fullName}
                     </td>
 
-                    {/* [CELL] LRN */}
-                    <td className="px-3 py-3 font-roboto font-medium text-sm text-[var(--color-text-800)]">
+                    <td className="table-cell table-text table-text-default">
                       {s.lrn}
                     </td>
 
-                    {/* [CELL] Grade, Section & Curriculum */}
-                    <td className="px-3 py-3 font-roboto font-medium text-sm text-[var(--color-text-800)]">
+                    <td className="table-cell table-text table-text-default">
                       {s.enrollments?.[0]?.section
-                        ? `Grade ${s.enrollments[0].section.gradeLevel} - ${s.enrollments[0].section.name} (${s.enrollments[0].section.curriculum ?? "No Curriculum"})`
+                        ? `Grade ${s.enrollments[0].section.gradeLevel} - ${s.enrollments[0].section.name}`
                         : "—"}
                     </td>
 
-                    {/* [CELL] Email */}
-                    <td className="px-3 py-3 font-roboto font-medium text-sm text-[var(--color-text-800)]">
+                    <td className="table-cell table-text table-text-default">
                       {s.email ?? "—"}
                     </td>
 
-                    {/* [CELL] Adviser */}
-                    <td className="px-3 py-3 font-roboto font-medium text-sm text-[var(--color-text-800)]">
+                    <td className="table-cell table-text table-text-default">
                       {s.adviser?.name ?? "—"}
                     </td>
 
-                    <td className="px-3 py-3 font-roboto font-medium text-sm text-[var(--color-text-800)]">
+                    <td className="table-cell table-text table-text-default">
                       {s.enrollments?.[0]?.enrollmentDate
-                        ? new Date(s.enrollments[0].enrollmentDate).toLocaleDateString()
+                        ? new Date(
+                            s.enrollments[0].enrollmentDate
+                          ).toLocaleDateString()
                         : "—"}
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* [SECTION] Pagination */}
-      {displayedStudents.length !== 0 && (
-        <div className="flex justify-center items-center mt-4 gap-4">
-          {/* Previous Button */}
-          <button
-            onClick={handlePrevPage}
-            disabled={page === 1}
-            className={`w-8 h-8 flex items-center justify-center rounded-full text-[var(--color-text-50)] font-roboto font-bold transition-colors duration-150 ${
-              page === 1 ? "bg-[var(--color-bg-400)] cursor-not-allowed opacity-50" : "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)]"
-            }`}
-          >
-            &lt;
-          </button>
-
-          {/* Page Dots w/ Numbers */}
-          <div className="flex items-center gap-2">
-            {getVisiblePages(page, totalPages).map((num, idx) =>
-              num === "..." ? (
-                <span
-                  key={`dots-${idx}`}
-                  className="px-1 text-[var(--color-text-600)]"
-                >
-                  ...
-                </span>
-              ) : (
-                <button
-                  key={num}
-                  onClick={() => setPage(num as number)}
-                  className={`size-6 flex items-center justify-center rounded-full font-bold text-xs transition-all duration-150 ${
-                    num === page
-                      ? "size-7 bg-[var(--color-primary-500)] text-[var(--color-text-50)] scale-110"
-                      : "bg-[var(--color-bg-300)] text-[var(--color-text-900)] hover:bg-[var(--color-primary-400)]"
-                  }`}
-                >
-                  {num}
-                </button>
-              )
-            )}
-          </div>
-
-          {/* [BUTTON] Next */}
-          <button
-            onClick={handleNextPage}
-            disabled={page === totalPages}
-            className={`size-8 flex items-center justify-center rounded-full text-[var(--color-text-50)] font-roboto font-bold transition-colors duration-150 ${
-              page === totalPages ? "bg-[var(--color-bg-400)] cursor-not-allowed opacity-50" : "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)]"
-            }`}
-          >
-            &gt;
-          </button>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
-      )}
-      </div>
-    </div>
+      </AdminPageLayout>
+    </>
   );
 };
 
