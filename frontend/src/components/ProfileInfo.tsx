@@ -6,10 +6,10 @@ interface ProfileInfoProps {
 
 const ProfileInfo = ({ lastName, firstName, role }: ProfileInfoProps) => {
   return (
-    <div className="bg-[var(--color-bg-100)] px-4 py-3 rounded-lg">
-      <h2>{lastName ? (role ? lastName : `${lastName},`) : ""}</h2>
-      {firstName && <p className="body-large">{firstName}</p>}
-      {role && <p className="body-large">{role}</p>}
+    <div className="flex flex-col bg-[var(--color-bg-100)] px-4 py-3 rounded-lg">
+      <span className="profile-last-name">{lastName ? (role ? lastName : `${lastName},`) : ""}</span>
+      {firstName && <span className="profile-first-name">{firstName}</span>}
+      {role && <span className="profile-role">{role}</span>}
     </div>
   );
 };
