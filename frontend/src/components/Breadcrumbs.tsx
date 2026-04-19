@@ -31,7 +31,7 @@ const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items, title }) => {
                 {crumb.label}
               </span>
             ) : (
-              <span className="font-semibold text-[var(--color-text-900)]">
+              <span className="font-semibold text-[var(--color-text-800)]">
                 {crumb.label}
               </span>
             )}

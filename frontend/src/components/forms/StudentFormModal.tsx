@@ -1,27 +1,15 @@
 // [IMPORT] Hooks
 import { useState, useEffect, useRef } from "react";
-import { LEARNING_MODALITY_OPTIONS, SEX_OPTIONS } from "../../constants";
 
-const inputCls = "bg-[var(--color-bg-50)] font-roboto rounded-md py-2 px-3 border border-[var(--color-text-300)] outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm";
+// [IMPORT] Constants & Types
+import { LEARNING_MODALITY_OPTIONS, SEX_OPTIONS } from "../../constants";
+import { Adviser as BaseAdviser, AdviserSection } from "../../types";
 
 const TOTAL_CREATE_STEPS = 3;
 const TOTAL_EDIT_STEPS = 2;
 
-// ? [INTERFACES]
-interface AdviserSection {
-  id: number;
-  name: string;
-  gradeLevel: number;
-  schoolYear: string;
-  curriculum: string;
-  classSize: number;
-}
-
-interface Adviser {
-  id: number;
-  adviserId: string;
-  name: string;
-  sections: AdviserSection[];
+// ? [INTERFACE] Adviser w/ Advisory Section
+interface Adviser extends BaseAdviser {
   advisorySection?: AdviserSection | null;
 }
 
@@ -141,7 +129,7 @@ const StudentFormModal = ({
       <div className="bg-[var(--color-bg-100)] rounded-lg p-6 w-full max-w-md shadow-lg">
         {/* [HEADER] Title + step counter */}
         <div className="flex items-center justify-between mb-1">
-          <h2 className="text-lg font-bold text-[var(--color-text-900)]">{title}</h2>
+          <span className="form-title">{title}</span>
           <span className="text-xs font-roboto text-[var(--color-text-600)]">
             Step {step} of {totalSteps}
           </span>
@@ -166,27 +154,27 @@ const StudentFormModal = ({
             <div className="flex flex-col">
               <label className="font-roboto text-sm mb-1">LRN <span className="text-[var(--color-red-500)]">*</span></label>
               <input type="text" maxLength={12} value={formData.lrn} placeholder="12-digit Learner Reference Number"
-                onChange={(e) => setFormData(prev => ({ ...prev, lrn: e.target.value }))} className={inputCls} />
+                onChange={(e) => setFormData(prev => ({ ...prev, lrn: e.target.value }))} className="input-base" />
             </div>
             <div className="flex flex-col">
               <label className="font-roboto text-sm mb-1">First Name <span className="text-[var(--color-red-500)]">*</span></label>
               <input type="text" value={formData.firstName}
-                onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))} className={inputCls} />
+                onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))} className="input-base" />
             </div>
             <div className="flex flex-col">
               <label className="font-roboto text-sm mb-1">Middle Name <span className="text-[var(--color-text-500)] text-xs">(optional)</span></label>
               <input type="text" value={formData.middleName}
-                onChange={(e) => setFormData(prev => ({ ...prev, middleName: e.target.value }))} className={inputCls} />
+                onChange={(e) => setFormData(prev => ({ ...prev, middleName: e.target.value }))} className="input-base" />
             </div>
             <div className="flex flex-col">
               <label className="font-roboto text-sm mb-1">Last Name <span className="text-[var(--color-red-500)]">*</span></label>
               <input type="text" value={formData.lastName}
-                onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))} className={inputCls} />
+                onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))} className="input-base" />
             </div>
             <div className="flex flex-col">
               <label className="font-roboto text-sm mb-1">Name Extension <span className="text-[var(--color-text-500)] text-xs">(e.g. Jr., Sr., III)</span></label>
               <input type="text" value={formData.nameExtension}
-                onChange={(e) => setFormData(prev => ({ ...prev, nameExtension: e.target.value }))} className={inputCls} />
+                onChange={(e) => setFormData(prev => ({ ...prev, nameExtension: e.target.value }))} className="input-base" />
             </div>
           </div>
         )}
@@ -197,7 +185,7 @@ const StudentFormModal = ({
             <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)] mb-1">Personal Details</p>
             <div className="flex flex-col">
               <label className="font-roboto text-sm mb-1">Sex <span className="text-[var(--color-red-500)]">*</span></label>
-              <select value={formData.sex} onChange={(e) => setFormData(prev => ({ ...prev, sex: e.target.value }))} className={inputCls}>
+              <select value={formData.sex} onChange={(e) => setFormData(prev => ({ ...prev, sex: e.target.value }))} className="input-base">
               {SEX_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
@@ -212,13 +200,13 @@ const StudentFormModal = ({
                 type="date"
                 value={formData.birthDate}
                 onChange={(e) => setFormData(prev => ({ ...prev, birthDate: e.target.value }))}
-                className={inputCls}
+                className="input-base"
               />
             </div>
             <div className="flex flex-col">
               <label className="font-roboto text-sm mb-1">Email <span className="text-[var(--color-text-500)] text-xs">(optional)</span></label>
               <input type="email" value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))} className={inputCls} />
+                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))} className="input-base" />
             </div>
           </div>
         )}
@@ -242,7 +230,7 @@ const StudentFormModal = ({
                     setFormData(prev => ({ ...prev, createdByAdviserId: "", adviserName: "", advisorySection: null }));
                     setShowAdviserDropdown(true);
                   }}
-                  className={inputCls + " w-full"}
+                  className="input-base w-full"
                 />
                 {showAdviserDropdown && (
                   <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-44 overflow-y-auto">
@@ -303,7 +291,7 @@ const StudentFormModal = ({
             <div className="flex flex-col">
               <label className="font-roboto text-sm mb-1">Learning Modality</label>
               <select value={formData.learningModality}
-                onChange={(e) => setFormData(prev => ({ ...prev, learningModality: e.target.value }))} className={inputCls}>
+                onChange={(e) => setFormData(prev => ({ ...prev, learningModality: e.target.value }))} className="input-base">
                 {LEARNING_MODALITY_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
