@@ -446,79 +446,86 @@ const AdminStudents = () => {
       </div>
 
       {/* [SECTION] Search & Filters */}
-      <div className="bg-[var(--color-bg-100)] px-3 rounded-lg py-4 flex md:flex-row gap-2 md:gap-4 items-stretch w-full">
-        {/* [INPUT] Search */}
-        <div className="relative flex-1">
-          <input
-            type="text"
-            placeholder="Search by name, LRN, or email..."
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="w-full bg-[var(--color-bg-50)] body-default rounded-sm px-3 outline-none border border-[var(--color-text-300)] focus:ring-2 focus:ring-[var(--color-primary-600)] h-full"
-          />
-        </div>
-        
-        {/* [DROPDOWN] Sort Filter */}
-        <div ref={filterRef} className="relative">
-          <button
-            onClick={() => setActiveDropdown(activeDropdown === "sort" ? null : "sort")}
-            className={`flex items-center justify-center text-[var(--color-text-50)] rounded-sm px-3 h-10 transition cursor-pointer ${
-              activeDropdown === "sort" ? "bg-[var(--color-bg-50)]" : "bg-[var(--color-bg-50)] hover:opacity-80"
-            }`}
-          >
-            <img src="/sort-icon.svg" alt="Sort" className="size-4" />
-          </button>
+      <div className="bg-[var(--color-bg-100)] px-3 rounded-lg py-4 flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">
+        <div className="flex flex-1 gap-2 md:gap-4 items-stretch">
+          {/* [INPUT] Search */}
+          <div className="relative flex-1">
+            <input
+              type="text"
+              placeholder="Search by name, LRN, or email..."
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              className="font-roboto font-medium text-xs sm:text-md w-full bg-[var(--color-bg-50)] rounded-sm px-3 outline-none border border-[var(--color-text-300)] focus:ring-2 focus:ring-[var(--color-primary-600)] h-full"
+            />
+          </div>
 
-          {activeDropdown === "sort" && (
-            <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-300 rounded-md shadow-lg p-2 space-y-1 z-50">
-              <button onClick={() => { setSortOption("name-asc"); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-asc" ? "bg-blue-100" : ""}`}>Name ↑</button>
-              <button onClick={() => { setSortOption("name-desc"); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-desc" ? "bg-blue-100" : ""}`}>Name ↓</button>
-              <button onClick={() => { setSortOption("lrn-asc"); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "lrn-asc" ? "bg-blue-100" : ""}`}>LRN ↑</button>
-              <button onClick={() => { setSortOption("lrn-desc"); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "lrn-desc" ? "bg-blue-100" : ""}`}>LRN ↓</button>
-            </div>
-          )}
-        </div>
+          {/* [DROPDOWN] Sort Filter */}
+          <div ref={filterRef} className="relative">
+            <button
+              onClick={() => setActiveDropdown(activeDropdown === "sort" ? null : "sort")}
+              className={`flex items-center justify-center sm:justify-start gap-2 text-[var(--color-text-50)] rounded-sm px-3 h-10 transition cursor-pointer ${
+                activeDropdown === "sort"
+                  ? "bg-[var(--color-bg-50)]"
+                  : "bg-[var(--color-bg-50)] hover:opacity-80"
+              }`}
+            >
+              <img src="/sort-icon.svg" alt="Sort" className="size-4" />
+              <span className="hidden sm:inline text-xs font-roboto font-medium text-[var(--color-text-700)]">Sort</span>
+            </button>
 
-        {/* [DROPDOWN] Sex Filter */}
-        <div className="relative">
-          <button
-            onClick={() => setActiveDropdown(activeDropdown === "sex" ? null : "sex")}
-            className={`flex items-center justify-center text-[var(--color-text-50)] rounded-sm px-3 h-10 transition cursor-pointer ${
-              activeDropdown === "sex" ? "bg-[var(--color-bg-50)]" : "bg-[var(--color-bg-50)] hover:opacity-80"
-            }`}
-          >
-            <img src="/filter-icon.svg" alt="Sex Filter" className="size-4" />
-          </button>
+            {activeDropdown === "sort" && (
+              <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-300 rounded-md shadow-lg p-2 space-y-1 z-50">
+                <button onClick={() => { setSortOption("name-asc"); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-asc" ? "bg-blue-100" : ""}`}>Name ↑</button>
+                <button onClick={() => { setSortOption("name-desc"); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "name-desc" ? "bg-blue-100" : ""}`}>Name ↓</button>
+                <button onClick={() => { setSortOption("lrn-asc"); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "lrn-asc" ? "bg-blue-100" : ""}`}>LRN ↑</button>
+                <button onClick={() => { setSortOption("lrn-desc"); setActiveDropdown(null); }} className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${sortOption === "lrn-desc" ? "bg-blue-100" : ""}`}>LRN ↓</button>
+              </div>
+            )}
+          </div>
 
-          {activeDropdown === "sex" && (
-            <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-300 rounded-md shadow-lg p-2 space-y-1 z-50">
-              <button
-                onClick={() => { setSelectedSex("All"); setPage(1); setActiveDropdown(null); }}
-                className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedSex === "All" ? "bg-blue-100" : ""}`}
-              >
-                All
-              </button>
+          {/* [DROPDOWN] Sex Filter */}
+          <div className="relative">
+            <button
+              onClick={() => setActiveDropdown(activeDropdown === "sex" ? null : "sex")}
+              className={`flex items-center justify-center sm:justify-start gap-2 text-[var(--color-text-50)] rounded-sm px-3 h-10 transition cursor-pointer ${
+                activeDropdown === "sex"
+                  ? "bg-[var(--color-bg-50)]"
+                  : "bg-[var(--color-bg-50)] hover:opacity-80"
+              }`}
+            >
+              <img src="/filter-icon.svg" alt="Sex Filter" className="size-4" />
+              <span className="hidden sm:inline text-xs font-roboto font-medium text-[var(--color-text-700)]">Filter</span>
+            </button>
+
+            {activeDropdown === "sex" && (
+              <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-300 rounded-md shadow-lg p-2 space-y-1 z-50">
+                <button
+                  onClick={() => { setSelectedSex("All"); setPage(1); setActiveDropdown(null); }}
+                  className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedSex === "All" ? "bg-blue-100" : ""}`}
+                >
+                  All
+                </button>
                 {SEX_OPTIONS.map((option) => (
                   <button
                     key={option.value}
-                    onClick={() => { 
-                      setSelectedSex(option.value); 
-                      setPage(1); 
-                      setActiveDropdown(null); 
+                    onClick={() => {
+                      setSelectedSex(option.value);
+                      setPage(1);
+                      setActiveDropdown(null);
                     }}
                     className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 ${selectedSex === option.value ? "bg-blue-100" : ""}`}
                   >
                     {option.label}
                   </button>
                 ))}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* [SECTION] Add Student */}
-      <div className="mt-2 space-y-2">
-        <PrimaryButton text="Add Student" iconSrc="/add-icon.svg" onClick={handleAddStudent} />
+        <div className="md:ml-auto mt-2 md:mt-0">
+          <PrimaryButton text="Add Student" iconSrc="/add-icon.svg" onClick={handleAddStudent} />
+        </div>
       </div>
 
       {/* [SECTION] Bulk Actions (Visible when student rows are selected) */}
@@ -543,7 +550,7 @@ const AdminStudents = () => {
       )}
 
       {/* [CARDS] Students (Mobile View) */}
-      <div className="flex flex-col gap-4 sm:hidden mt-2 bg-[var(--color-bg-100)] px-3 py-4 rounded-lg">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:hidden gap-4 mt-2 bg-[var(--color-bg-100)] px-3 py-4 rounded-lg">
         {!loading && (
           <>
             {/* Empty state for current filters first */}
@@ -569,7 +576,7 @@ const AdminStudents = () => {
       </div>
 
       {/* [TABLE] Students (Tablet & Desktop View) */}
-      <div className="hidden sm:block mt-2 bg-[var(--color-bg-100)] px-3 py-4 rounded-lg overflow-x-auto">
+      <div className="hidden md:block mt-2 bg-[var(--color-bg-100)] px-3 py-4 rounded-lg overflow-x-auto">
         {!loading && (
           <>
             {/* [EMPTY STATE] */}
@@ -618,10 +625,12 @@ const AdminStudents = () => {
                 </th>
 
                 {/* [HEADER] Columns */}
-                <th className="px-3 py-2 font-figtree font-semibold text-[16px] text-[var(--color-text-700)]">Name</th>
-                <th className="px-3 py-2 font-figtree font-semibold text-[16px] text-[var(--color-text-700)]">LRN</th>
-                <th className="px-3 py-2 font-figtree font-semibold text-[16px] text-[var(--color-text-700)]">Grade, Section & Curriculum</th>
-                <th className="px-3 py-2 font-figtree font-semibold text-[16px] text-[var(--color-text-700)]">Adviser</th>
+                <th className="px-3 py-2 font-figtree font-bold text-[16px] text-[var(--color-text-700)]">Name</th>
+                <th className="px-3 py-2 font-figtree font-bold text-[16px] text-[var(--color-text-700)]">LRN</th>
+                <th className="px-3 py-2 font-figtree font-bold text-[16px] text-[var(--color-text-700)]">Grade, Section & Curriculum</th>
+                <th className="px-3 py-2 font-figtree font-bold text-[16px] text-[var(--color-text-700)]">Email</th>
+                <th className="px-3 py-2 font-figtree font-bold text-[16px] text-[var(--color-text-700)]">Adviser</th>
+                <th className="px-3 py-2 font-figtree font-bold text-[16px] text-[var(--color-text-700)]">Enrolled</th>
               </tr>
             </thead>
 
@@ -653,7 +662,7 @@ const AdminStudents = () => {
                     {/* [CELL] Name (Clickable) */}
                     <td
                       onClick={() => navigate(`/admin/students/view/${s.id}`)}
-                      className="px-3 py-3 font-roboto font-semibold text-sm text-[var(--color-primary-700)] cursor-pointer hover:underline"
+                      className="px-3 py-3 font-roboto font-bold text-sm text-[var(--color-primary-700)] cursor-pointer hover:underline"
                     >
                       {s.fullName}
                     </td>
@@ -670,9 +679,20 @@ const AdminStudents = () => {
                         : "—"}
                     </td>
 
-                    {/* [CELL] Adviser (FIXED) */}
+                    {/* [CELL] Email */}
+                    <td className="px-3 py-3 font-roboto font-medium text-sm text-[var(--color-text-800)]">
+                      {s.email ?? "—"}
+                    </td>
+
+                    {/* [CELL] Adviser */}
                     <td className="px-3 py-3 font-roboto font-medium text-sm text-[var(--color-text-800)]">
                       {s.adviser?.name ?? "—"}
+                    </td>
+
+                    <td className="px-3 py-3 font-roboto font-medium text-sm text-[var(--color-text-800)]">
+                      {s.enrollments?.[0]?.enrollmentDate
+                        ? new Date(s.enrollments[0].enrollmentDate).toLocaleDateString()
+                        : "—"}
                     </td>
                   </tr>
                 );
