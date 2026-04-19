@@ -7,6 +7,7 @@ import { useNavigate, useParams } from "react-router-dom";
 // [IMPORT] Components
 import Modal from "../../components/Modal";
 import Skeleton from "../../components/Skeleton";
+import EmptyState from "../../components/EmptyState";
 import InputField from "../../components/InputField";
 import ProfileInfo from "../../components/ProfileInfo";
 import Breadcrumbs from "../../components/Breadcrumbs";
@@ -152,7 +153,7 @@ const AdminStudentDetails = () => {
     });
   };
 
-  // [HANDLE] Edit toggle — discard changes on cancel
+  // [HANDLE] Edit Toggle (discard changes on cancel)
   const handleEditToggle = () => {
     if (isEditing) setFormData(student ?? {});
     setIsEditing(prev => !prev);
@@ -580,15 +581,20 @@ const AdminStudentDetails = () => {
           </div>
         ) : (
           // [EMPTY STATE] Student not found
-          <div className="bg-[var(--color-bg-100)] rounded-lg p-8 text-center">
-            <p className="text-sm font-roboto text-[var(--color-text-600)]">Student not found.</p>
+          <>
+            <EmptyState
+              title="Student not found"
+              subtitle="The student you're looking for doesn't exist or may have been removed."
+              iconSrc="/no-data-icon.svg"
+            />
+
             <button
               onClick={() => navigate("/admin/students")}
-              className="mt-3 text-sm font-roboto text-[var(--color-primary-600)] hover:underline cursor-pointer"
+              className="mt-4 text-sm font-roboto text-[var(--color-primary-600)] hover:underline cursor-pointer"
             >
               ← Back to Students
             </button>
-          </div>
+          </>
         )}
       </AdminPageLayout>
     </>
