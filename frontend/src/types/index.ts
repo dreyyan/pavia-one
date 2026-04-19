@@ -80,7 +80,7 @@ export interface SectionForm {
 export interface Section {
   id: number;
   name: string;
-  gradeLevel: number;
+  gradeLevel: string;
   schoolYear: string;
   curriculum: string;
   learningModality: string;
@@ -95,7 +95,7 @@ export interface Adviser {
   id: number;
   adviserId: string;
   name: string;
-  sections: AdviserSection[];
+  sections?: AdviserSection[];
   
   firstName?: string;
   middleName?: string | null;
@@ -155,7 +155,7 @@ export interface Enrollment {
   section?: {
     id: number;
     name: string;
-    gradeLevel: number;
+    gradeLevel: string;
     curriculum: string;
   };
 }

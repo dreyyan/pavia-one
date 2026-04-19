@@ -30,7 +30,7 @@ const TabbedFormCard: React.FC<TabbedFormCardProps> = ({
           <button
             key={idx}
             onClick={() => setActivePage(idx)}
-            className={`flex-1 text-xs font-roboto font-medium py-1.5 px-2 rounded-md transition-all duration-150 cursor-pointer ${
+            className={`flex-1 text-xs sm:text-sm font-roboto font-medium sm:font-semibold py-1 sm:py-3 px-2 rounded-md transition-all duration-150 cursor-pointer ${
               activePage === idx
                 ? "bg-[var(--color-bg-50)] text-[var(--color-text-900)] shadow-sm"
                 : "text-[var(--color-text-600)] hover:text-[var(--color-text-800)]"
@@ -45,28 +45,28 @@ const TabbedFormCard: React.FC<TabbedFormCardProps> = ({
 
       {/* [HEADER] Section title + Edit / Save buttons */}
       <div className="flex items-center justify-between">
-        <span className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)]">
+        <span className="form-section-title">
           {labels[activePage]}
         </span>
 
         <div className="flex items-center gap-2">
           {isEditing && (
-            <button
-              onClick={onSave}
-              disabled={loading}
-              className="text-xs font-roboto font-semibold text-white bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] px-3 py-1.5 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Save
-            </button>
+          <button
+            onClick={onSave}
+            disabled={loading}
+            className="btn-action font-bold text-[var(--color-text-50)] bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)]"
+          >
+            Save
+          </button>
           )}
 
           <button
             onClick={onToggleEdit}
             disabled={loading}
-            className={`text-xs font-roboto font-medium px-3 py-1.5 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+            className={`btn-action ${
               isEditing
                 ? "text-[var(--color-text-50)] bg-[var(--color-red-700)] hover:bg-[var(--color-red-800)]"
-                : "text-[var(--color-text-50)] bg-[var(--color-accent-600)] hover:bg-[var(--color-accent-700)]"
+                : "font-semibold text-[var(--color-text-50)] bg-[var(--color-accent-600)] hover:bg-[var(--color-accent-700)]"
             }`}
           >
             {isEditing ? "Cancel" : "Edit"}
