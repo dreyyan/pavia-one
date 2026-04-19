@@ -75,6 +75,7 @@ router.get("/", verifyAdmin, async (req, res) => {
               schoolYear: true,
               status: true,
               learningModality: true,
+              enrollmentDate: true,
               section: {
                 select: {
                   id: true,

@@ -130,6 +130,7 @@ export interface Student {
     schoolYear: string;
     status: string;
     learningModality: string;
+    enrollmentDate: Date;
 
     section?: {
       id: number;
