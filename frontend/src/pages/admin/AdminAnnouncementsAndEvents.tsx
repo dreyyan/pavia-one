@@ -1,6 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
 // [IMPORT] Hooks
 import { useState, useEffect } from "react";
 
@@ -8,11 +7,22 @@ import { useState, useEffect } from "react";
 import Modal from "../../components/Modal";
 import Skeleton from "../../components/Skeleton";
 import EmptyState from "../../components/EmptyState";
+import Breadcrumbs from "../../components/Breadcrumbs";
+import AdminPageLayout from "../../components/layouts/AdminPageLayout";
+import AnnouncementCard from "../../components/cards/AnnouncementCard";
+import EventCard from "../../components/cards/EventCard";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
 import SecondaryButton from "../../components/buttons/SecondaryButton";
 import DeleteButton from "../../components/buttons/DeleteButton";
 
-// [IMPORT] Constants & Types
+// [IMPORT] Helpers, Constants & Types
+import {
+  formatDate,
+  formatDateInput,
+  safeJson,
+  toISOStringOrNull,
+  getEventDateDisplay,
+} from "../../helpers";
 import { EVENT_TYPE_LABELS, EVENT_TYPE_OPTIONS, ANNOUNCEMENT_INITIAL, EVENT_INITIAL } from "../../constants";
 import { GeneralModalConfig, Announcement, SchoolEvent, EventType, AnnouncementFormData, EventFormData } from "../../types";
 
@@ -22,7 +32,7 @@ const AdminAnnouncementsAndEvents = () => {
   const [events, setEvents] = useState<SchoolEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // [STATE] Submitting (separate from loading to avoid Skeleton flash on form submit)
+  // [STATE] Submitting — separate from loading to avoid Skeleton flash on form submit
   const [submitting, setSubmitting] = useState(false);
 
   // [STATES] Announcement Form Modal
@@ -37,7 +47,7 @@ const AdminAnnouncementsAndEvents = () => {
   const [eventFormError, setEventFormError] = useState("");
   const [editingEventId, setEditingEventId] = useState<number | null>(null);
 
-  // [STATES] Detail Modal
+  // [STATES] Detail Modals
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<SchoolEvent | null>(null);
   const [showAnnouncementDetailModal, setShowAnnouncementDetailModal] = useState(false);
@@ -54,53 +64,15 @@ const AdminAnnouncementsAndEvents = () => {
     onConfirm: () => {},
   });
 
-  // [STATES] Visible events (paginate-style)
+  // [STATE] Visible events count (load-more style)
   const [visibleEvents, setVisibleEvents] = useState(3);
 
-  // [HELPERS]
   const openGeneralModal = (config: Partial<Omit<GeneralModalConfig, "isOpen">>) => {
-    setGeneralModal((prev) => ({ ...prev, isOpen: true, ...config }));
+    setGeneralModal(prev => ({ ...prev, isOpen: true, ...config }));
   };
 
   const closeGeneralModal = () => {
-    setGeneralModal((prev) => ({ ...prev, isOpen: false }));
-  };
-
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return "—";
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-  };
-
-  const formatDateInput = (dateStr?: string) => {
-    if (!dateStr) return "";
-    return new Date(dateStr).toISOString().slice(0, 16);
-  };
-
-  // [HELPER] Safely parse response JSON — avoids crash on non-JSON 500 bodies
-  const safeJson = async (res: Response) => {
-    const text = await res.text();
-    try {
-      return JSON.parse(text);
-    } catch {
-      return { success: false, message: `Server error (${res.status})` };
-    }
-  };
-
-  // [HELPER] Convert datetime-local string (e.g. "2026-04-02T10:00") to full ISO 8601
-  // that Prisma/PostgreSQL accepts. Returns null for empty/invalid values.
-  const toISOStringOrNull = (value: string): string | null => {
-    if (!value) return null;
-    const d = new Date(value);
-    return isNaN(d.getTime()) ? null : d.toISOString();
-  };
-
-  const getEventDateDisplay = (event: SchoolEvent) => {
-    const start = new Date(event.startDate);
-    return {
-      month: start.toLocaleString("en-US", { month: "short" }).toUpperCase(),
-      day: String(start.getDate()).padStart(2, "0"),
-    };
+    setGeneralModal(prev => ({ ...prev, isOpen: false }));
   };
 
   // * [HANDLE] Fetch Announcements
@@ -164,8 +136,6 @@ const AdminAnnouncementsAndEvents = () => {
     fetchAll();
   }, []);
 
-  // ─── ANNOUNCEMENTS ────────────────────────────────────────────────────────
-
   // * [HANDLE] Open Add Announcement Modal
   const handleAddAnnouncement = () => {
     setAnnouncementFormData(ANNOUNCEMENT_INITIAL);
@@ -226,7 +196,7 @@ const AdminAnnouncementsAndEvents = () => {
       const data = await safeJson(res);
       if (!data.success) throw new Error(data.message || "Request failed");
 
-      // * [SUCCESS] Announcement saved
+      // * [SUCCESS] Announcement Saved
       setShowAnnouncementModal(false);
       await fetchAnnouncements();
       openGeneralModal({
@@ -249,45 +219,6 @@ const AdminAnnouncementsAndEvents = () => {
 
   // * [HANDLE] Delete Announcement
   const handleDeleteAnnouncement = (id: number) => {
-    const onDeleteConfirm = async () => {
-      setSubmitting(true);
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/announcements/${id}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const data = await safeJson(res);
-        if (!data.success) throw new Error(data.message || "Failed to delete announcement");
-
-        setAnnouncements((prev) => prev.filter((a) => a.id !== id));
-        setShowAnnouncementDetailModal(false);
-
-        // * [SUCCESS] Announcement deleted
-        openGeneralModal({
-          title: "Announcement Deleted",
-          message: "The announcement has been deleted successfully.",
-          type: "success",
-          confirmText: "OK",
-          isCancelable: false,
-          onConfirm: () => closeGeneralModal(),
-        });
-      } catch (err) {
-        // ! [ERROR] Announcement deletion failed
-        console.error("Delete error:", err);
-        openGeneralModal({
-          title: "Unable to Delete Announcement",
-          message: "We couldn't delete the announcement at the moment. Please try again.",
-          type: "error",
-          isCancelable: true,
-          onConfirm: () => closeGeneralModal(),
-        });
-      } finally {
-        setSubmitting(false);
-      }
-    };
-
     // ? [CONFIRMATION] Before deleting, ask user to confirm
     openGeneralModal({
       title: "Delete Announcement",
@@ -295,11 +226,46 @@ const AdminAnnouncementsAndEvents = () => {
       type: "error",
       confirmText: "Delete",
       isCancelable: true,
-      onConfirm: onDeleteConfirm,
+      onConfirm: async () => {
+        setSubmitting(true);
+        try {
+          const token = localStorage.getItem("token");
+          const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/announcements/${id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          const data = await safeJson(res);
+          if (!data.success) throw new Error(data.message || "Failed to delete announcement");
+
+          setAnnouncements(prev => prev.filter(a => a.id !== id));
+          setShowAnnouncementDetailModal(false);
+
+          // * [SUCCESS] Announcement Deleted
+          openGeneralModal({
+            title: "Announcement Deleted",
+            message: "The announcement has been deleted successfully.",
+            type: "success",
+            confirmText: "OK",
+            isCancelable: false,
+            onConfirm: () => closeGeneralModal(),
+          });
+        } catch (err) {
+          // ! [ERROR] Announcement deletion failed
+          console.error("Delete error:", err);
+          openGeneralModal({
+            title: "Unable to Delete Announcement",
+            message: "We couldn't delete the announcement at the moment. Please try again.",
+            type: "error",
+            isCancelable: false,
+            onConfirm: () => closeGeneralModal(),
+          });
+        } finally {
+          setSubmitting(false);
+        }
+      },
     });
   };
-
-  // ─── EVENTS ───────────────────────────────────────────────────────────────
 
   // * [HANDLE] Open Add Event Modal
   const handleAddEvent = () => {
@@ -367,7 +333,7 @@ const AdminAnnouncementsAndEvents = () => {
       const data = await safeJson(res);
       if (!data.success) throw new Error(data.message || "Request failed");
 
-      // * [SUCCESS] Event saved
+      // * [SUCCESS] Event Saved
       setShowEventModal(false);
       await fetchEvents();
       openGeneralModal({
@@ -390,45 +356,6 @@ const AdminAnnouncementsAndEvents = () => {
 
   // * [HANDLE] Delete Event
   const handleDeleteEvent = (id: number) => {
-    const onDeleteConfirm = async () => {
-      setSubmitting(true);
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/events/${id}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const data = await safeJson(res);
-        if (!data.success) throw new Error(data.message || "Failed to delete event");
-
-        setEvents((prev) => prev.filter((e) => e.id !== id));
-        setShowEventDetailModal(false);
-
-        // * [SUCCESS] Event deleted
-        openGeneralModal({
-          title: "Event Deleted",
-          message: "The event has been deleted successfully.",
-          type: "success",
-          confirmText: "OK",
-          isCancelable: false,
-          onConfirm: () => closeGeneralModal(),
-        });
-      } catch (err) {
-        // ! [ERROR] Event deletion failed
-        console.error("Delete error:", err);
-        openGeneralModal({
-          title: "Unable to Delete Event",
-          message: "We couldn't delete the event at the moment. Please try again.",
-          type: "error",
-          isCancelable: true,
-          onConfirm: () => closeGeneralModal(),
-        });
-      } finally {
-        setSubmitting(false);
-      }
-    };
-
     // ? [CONFIRMATION] Before deleting, ask user to confirm
     openGeneralModal({
       title: "Delete Event",
@@ -436,15 +363,70 @@ const AdminAnnouncementsAndEvents = () => {
       type: "error",
       confirmText: "Delete",
       isCancelable: true,
-      onConfirm: onDeleteConfirm,
+      onConfirm: async () => {
+        setSubmitting(true);
+        try {
+          const token = localStorage.getItem("token");
+          const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/events/${id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          const data = await safeJson(res);
+          if (!data.success) throw new Error(data.message || "Failed to delete event");
+
+          setEvents(prev => prev.filter(e => e.id !== id));
+          setShowEventDetailModal(false);
+
+          // * [SUCCESS] Event Deleted
+          openGeneralModal({
+            title: "Event Deleted",
+            message: "The event has been deleted successfully.",
+            type: "success",
+            confirmText: "OK",
+            isCancelable: false,
+            onConfirm: () => closeGeneralModal(),
+          });
+        } catch (err) {
+          // ! [ERROR] Event deletion failed
+          console.error("Delete error:", err);
+          openGeneralModal({
+            title: "Unable to Delete Event",
+            message: "We couldn't delete the event at the moment. Please try again.",
+            type: "error",
+            isCancelable: false,
+            onConfirm: () => closeGeneralModal(),
+          });
+        } finally {
+          setSubmitting(false);
+        }
+      },
     });
   };
 
-  // ? [LOADING STATE] Show skeleton while loading
+  // * [BREADCRUMBS] Admin Announcements & Events navigation
+  const breadcrumbs = [
+    { label: "Admin Dashboard", path: "/admin/dashboard" },
+    { label: "Announcements & Events", path: null },
+  ];
+
+  // ? [LOADING STATE]
   if (loading) return <Skeleton />;
 
   return (
-    <div className="flex-1 p-4 space-y-8 pb-10 bg-[var(--color-bg-200)]">
+    <>
+      {/* [MODAL] General */}
+      <Modal
+        isOpen={generalModal.isOpen}
+        onClose={closeGeneralModal}
+        title={generalModal.title}
+        message={generalModal.message}
+        type={generalModal.type}
+        confirmText={generalModal.confirmText}
+        onConfirm={generalModal.onConfirm}
+        isCancelable={generalModal.isCancelable}
+      />
+
       {/* [MODAL] Announcement Detail */}
       <Modal
         isOpen={showAnnouncementDetailModal}
@@ -452,19 +434,15 @@ const AdminAnnouncementsAndEvents = () => {
         title="Announcement Details"
         type="info"
         confirmText="Edit"
-        onConfirm={() =>
-          selectedAnnouncement &&
-          handleEditAnnouncement(selectedAnnouncement)
-        }
-        isCancelable={true}
+        onConfirm={() => selectedAnnouncement && handleEditAnnouncement(selectedAnnouncement)}
+        isCancelable
       >
         <div className="space-y-4 p-1">
-          {/* Metadata */}
+          {/* [SECTION] Metadata */}
           <div className="space-y-1">
             <p className="text-[var(--color-text-500)] text-xs">
               Published {formatDate(selectedAnnouncement?.publishedAt)}
             </p>
-
             <h3 className="text-lg font-bold text-[var(--color-text-900)] leading-snug">
               {selectedAnnouncement?.title}
             </h3>
@@ -477,7 +455,7 @@ const AdminAnnouncementsAndEvents = () => {
             </p>
           </div>
 
-          {/* [SECTION] Footer Metadata */}
+          {/* [SECTION] Expiry */}
           {selectedAnnouncement?.expiresAt && (
             <div className="flex justify-between items-center text-xs text-[var(--color-text-500)]">
               <span>Expiry Date</span>
@@ -487,17 +465,12 @@ const AdminAnnouncementsAndEvents = () => {
             </div>
           )}
 
-          {/* [SECTION] Delete Button */}
-          <div className="border-t border-[var(--color-bg-200)] pt-3">
-            <div className="flex justify-end">
-              <DeleteButton
-                text="Delete Announcement"
-                onClick={() =>
-                  selectedAnnouncement &&
-                  handleDeleteAnnouncement(selectedAnnouncement.id)
-                }
-              />
-            </div>
+          {/* [SECTION] Delete */}
+          <div className="border-t border-[var(--color-bg-200)] pt-3 flex justify-end">
+            <DeleteButton
+              text="Delete Announcement"
+              onClick={() => selectedAnnouncement && handleDeleteAnnouncement(selectedAnnouncement.id)}
+            />
           </div>
         </div>
       </Modal>
@@ -510,10 +483,9 @@ const AdminAnnouncementsAndEvents = () => {
         type="info"
         confirmText="Edit"
         onConfirm={() => selectedEvent && handleEditEvent(selectedEvent)}
-        isCancelable={true}
+        isCancelable
       >
         <div className="space-y-4 p-1">
-
           {/* [SECTION] Metadata */}
           <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
@@ -521,18 +493,15 @@ const AdminAnnouncementsAndEvents = () => {
                 {selectedEvent && getEventDateDisplay(selectedEvent).month}{" "}
                 {selectedEvent && getEventDateDisplay(selectedEvent).day}
               </span>
-
               <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--color-bg-200)] text-[var(--color-text-600)]">
                 {selectedEvent && EVENT_TYPE_LABELS[selectedEvent.type]}
               </span>
-
               {selectedEvent?.isOnline && (
                 <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--color-secondary-100)] text-[var(--color-secondary-700)]">
                   Online
                 </span>
               )}
             </div>
-
             <h3 className="text-lg font-bold text-[var(--color-text-900)] leading-snug">
               {selectedEvent?.title}
             </h3>
@@ -547,23 +516,17 @@ const AdminAnnouncementsAndEvents = () => {
 
           {/* [SECTION] Details */}
           <div className="space-y-2 text-sm">
-
             {selectedEvent?.location && (
               <div className="flex justify-between items-center">
-                <span className="text-[var(--color-text-700)] font-figree font-semibold">
-                  Location
-                </span>
+                <span className="text-[var(--color-text-700)] font-figree font-semibold">Location</span>
                 <span className="text-[var(--color-text-900)] truncate text-right max-w-[220px]">
                   📍 {selectedEvent.location}
                 </span>
               </div>
             )}
-
             {selectedEvent?.endDate && (
               <div className="flex justify-between items-center">
-                <span className="text-[var(--color-text-700)] font-figree font-semibold">
-                  Ends
-                </span>
+                <span className="text-[var(--color-text-700)] font-figree font-semibold">Ends</span>
                 <span className="text-[var(--color-text-900)]">
                   {formatDate(selectedEvent.endDate)}
                 </span>
@@ -571,19 +534,13 @@ const AdminAnnouncementsAndEvents = () => {
             )}
           </div>
 
-          {/* [SECTION] Footer Actions */}
-          <div className="border-t border-[var(--color-bg-200)] pt-3">
-            <div className="flex justify-end">
-              <DeleteButton
-                text="Delete Event"
-                onClick={() =>
-                  selectedEvent &&
-                  handleDeleteEvent(selectedEvent.id)
-                }
-              />
-            </div>
+          {/* [SECTION] Delete */}
+          <div className="border-t border-[var(--color-bg-200)] pt-3 flex justify-end">
+            <DeleteButton
+              text="Delete Event"
+              onClick={() => selectedEvent && handleDeleteEvent(selectedEvent.id)}
+            />
           </div>
-
         </div>
       </Modal>
 
@@ -598,37 +555,48 @@ const AdminAnnouncementsAndEvents = () => {
         isCancelable={!submitting}
       >
         <div className="p-1 space-y-3">
+          {/* [ERROR] Form error */}
           {announcementFormError && (
             <p className="text-[var(--color-red-500)] text-xs">{announcementFormError}</p>
           )}
+
+          {/* [FIELD] Title */}
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-[var(--color-text-700)]">Title <span className="text-[var(--color-red-500)]">*</span></label>
+            <label className="text-xs font-semibold text-[var(--color-text-700)]">
+              Title <span className="text-[var(--color-red-500)]">*</span>
+            </label>
             <input
               type="text"
               value={announcementFormData.title}
-              onChange={(e) => setAnnouncementFormData((prev) => ({ ...prev, title: e.target.value }))}
+              onChange={(e) => setAnnouncementFormData(prev => ({ ...prev, title: e.target.value }))}
               placeholder="e.g. Midterm Exams Schedule"
-              className="w-full bg-[var(--color-bg-50)] body-default rounded-sm px-3 py-2 outline-none border border-[var(--color-text-300)] focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm"
+              className="input-base w-full"
             />
           </div>
+
+          {/* [FIELD] Content */}
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-[var(--color-text-700)]">Content <span className="text-[var(--color-red-500)]">*</span></label>
+            <label className="text-xs font-semibold text-[var(--color-text-700)]">
+              Content <span className="text-[var(--color-red-500)]">*</span>
+            </label>
             <textarea
               value={announcementFormData.content}
-              onChange={(e) => setAnnouncementFormData((prev) => ({ ...prev, content: e.target.value }))}
+              onChange={(e) => setAnnouncementFormData(prev => ({ ...prev, content: e.target.value }))}
               placeholder="Write the announcement content here..."
               rows={4}
-              className="w-full bg-[var(--color-bg-50)] body-default rounded-sm px-3 py-2 outline-none border border-[var(--color-text-300)] focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm resize-none"
+              className="input-base w-full resize-none"
             />
           </div>
+
+          {/* [FIELDS] Dates */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-xs font-semibold text-[var(--color-text-700)]">Publish Date</label>
               <input
                 type="datetime-local"
                 value={announcementFormData.publishedAt}
-                onChange={(e) => setAnnouncementFormData((prev) => ({ ...prev, publishedAt: e.target.value }))}
-                className="w-full bg-[var(--color-bg-50)] rounded-sm px-3 py-2 outline-none border border-[var(--color-text-300)] focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm"
+                onChange={(e) => setAnnouncementFormData(prev => ({ ...prev, publishedAt: e.target.value }))}
+                className="input-base w-full"
               />
             </div>
             <div className="space-y-1">
@@ -636,8 +604,8 @@ const AdminAnnouncementsAndEvents = () => {
               <input
                 type="datetime-local"
                 value={announcementFormData.expiresAt}
-                onChange={(e) => setAnnouncementFormData((prev) => ({ ...prev, expiresAt: e.target.value }))}
-                className="w-full bg-[var(--color-bg-50)] rounded-sm px-3 py-2 outline-none border border-[var(--color-text-300)] focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm"
+                onChange={(e) => setAnnouncementFormData(prev => ({ ...prev, expiresAt: e.target.value }))}
+                className="input-base w-full"
               />
             </div>
           </div>
@@ -655,38 +623,47 @@ const AdminAnnouncementsAndEvents = () => {
         isCancelable={!submitting}
       >
         <div className="p-1 space-y-3">
+          {/* [ERROR] Form error */}
           {eventFormError && (
             <p className="text-[var(--color-red-500)] text-xs">{eventFormError}</p>
           )}
+
+          {/* [FIELD] Title */}
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-[var(--color-text-700)]">Title <span className="text-[var(--color-red-500)]">*</span></label>
+            <label className="text-xs font-semibold text-[var(--color-text-700)]">
+              Title <span className="text-[var(--color-red-500)]">*</span>
+            </label>
             <input
               type="text"
               value={eventFormData.title}
-              onChange={(e) => setEventFormData((prev) => ({ ...prev, title: e.target.value }))}
+              onChange={(e) => setEventFormData(prev => ({ ...prev, title: e.target.value }))}
               placeholder="e.g. Science Fair"
-              className="w-full bg-[var(--color-bg-50)] body-default rounded-sm px-3 py-2 outline-none border border-[var(--color-text-300)] focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm"
+              className="input-base w-full"
             />
           </div>
+
+          {/* [FIELD] Description */}
           <div className="space-y-1">
             <label className="text-xs font-semibold text-[var(--color-text-700)]">Description</label>
             <textarea
               value={eventFormData.description}
-              onChange={(e) => setEventFormData((prev) => ({ ...prev, description: e.target.value }))}
+              onChange={(e) => setEventFormData(prev => ({ ...prev, description: e.target.value }))}
               placeholder="Describe the event..."
               rows={3}
-              className="w-full bg-[var(--color-bg-50)] body-default rounded-sm px-3 py-2 outline-none border border-[var(--color-text-300)] focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm resize-none"
+              className="input-base w-full resize-none"
             />
           </div>
+
+          {/* [FIELDS] Type & Location */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-xs font-semibold text-[var(--color-text-700)]">Type</label>
               <select
                 value={eventFormData.type}
-                onChange={(e) => setEventFormData((prev) => ({ ...prev, type: e.target.value as EventType }))}
-                className="w-full bg-[var(--color-bg-50)] rounded-sm px-3 py-2 outline-none border border-[var(--color-text-300)] focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm"
+                onChange={(e) => setEventFormData(prev => ({ ...prev, type: e.target.value as EventType }))}
+                className="input-base w-full"
               >
-                {EVENT_TYPE_OPTIONS.map((t) => (
+                {EVENT_TYPE_OPTIONS.map(t => (
                   <option key={t} value={t}>{EVENT_TYPE_LABELS[t]}</option>
                 ))}
               </select>
@@ -696,20 +673,24 @@ const AdminAnnouncementsAndEvents = () => {
               <input
                 type="text"
                 value={eventFormData.location}
-                onChange={(e) => setEventFormData((prev) => ({ ...prev, location: e.target.value }))}
+                onChange={(e) => setEventFormData(prev => ({ ...prev, location: e.target.value }))}
                 placeholder="e.g. Gymnasium"
-                className="w-full bg-[var(--color-bg-50)] rounded-sm px-3 py-2 outline-none border border-[var(--color-text-300)] focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm"
+                className="input-base w-full"
               />
             </div>
           </div>
+
+          {/* [FIELDS] Start & End Date */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-[var(--color-text-700)]">Start Date <span className="text-[var(--color-red-500)]">*</span></label>
+              <label className="text-xs font-semibold text-[var(--color-text-700)]">
+                Start Date <span className="text-[var(--color-red-500)]">*</span>
+              </label>
               <input
                 type="datetime-local"
                 value={eventFormData.startDate}
-                onChange={(e) => setEventFormData((prev) => ({ ...prev, startDate: e.target.value }))}
-                className="w-full bg-[var(--color-bg-50)] rounded-sm px-3 py-2 outline-none border border-[var(--color-text-300)] focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm"
+                onChange={(e) => setEventFormData(prev => ({ ...prev, startDate: e.target.value }))}
+                className="input-base w-full"
               />
             </div>
             <div className="space-y-1">
@@ -717,143 +698,125 @@ const AdminAnnouncementsAndEvents = () => {
               <input
                 type="datetime-local"
                 value={eventFormData.endDate}
-                onChange={(e) => setEventFormData((prev) => ({ ...prev, endDate: e.target.value }))}
-                className="w-full bg-[var(--color-bg-50)] rounded-sm px-3 py-2 outline-none border border-[var(--color-text-300)] focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm"
+                onChange={(e) => setEventFormData(prev => ({ ...prev, endDate: e.target.value }))}
+                className="input-base w-full"
               />
             </div>
           </div>
+
+          {/* [FIELD] Online toggle */}
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
               id="isOnline"
               checked={eventFormData.isOnline}
-              onChange={(e) => setEventFormData((prev) => ({ ...prev, isOnline: e.target.checked }))}
+              onChange={(e) => setEventFormData(prev => ({ ...prev, isOnline: e.target.checked }))}
               className="accent-[var(--color-primary-600)] size-4"
             />
-            <label htmlFor="isOnline" className="text-sm text-[var(--color-text-700)] cursor-pointer select-none">This is an online event</label>
+            <label htmlFor="isOnline" className="text-sm text-[var(--color-text-700)] cursor-pointer select-none">
+              This is an online event
+            </label>
           </div>
         </div>
       </Modal>
 
-      {/* ─── SECTION: Announcements ─────────────────────────────────────── */}
-      <section>
-        <div className="bg-[var(--color-primary-700)] text-[var(--color-text-50)] p-4 rounded-md mb-4 shadow-md flex items-center justify-between">
-          <h2 className="text-xl font-bold uppercase tracking-wide">Announcements</h2>
-        </div>
+      {/* [LAYOUT] Admin Page */}
+      <AdminPageLayout
+        header={
+          <Breadcrumbs items={breadcrumbs} title="Announcements & Events" />
+        }
+      >
+        <div className="space-y-8">
 
-        {/* [BUTTON] Add Announcement */}
-        <div className="mb-3">
-          <PrimaryButton text="Add Announcement" iconSrc="/add-icon.svg" onClick={handleAddAnnouncement} />
-        </div>
-
-        {announcements.length > 0 ? (
-          <div className="space-y-3">
-            {announcements.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => { setSelectedAnnouncement(item); setShowAnnouncementDetailModal(true); }}
-                className="bg-[var(--color-bg-50)] border border-[var(--color-text-300)] p-4 rounded-lg shadow-lg cursor-pointer hover:bg-[var(--color-bg-100)] transition-colors duration-150"
-              >
-                <p className="body-small text-[var(--color-text-600)] mb-1">{formatDate(item.publishedAt)}</p>
-                <p className="font-figtree font-bold text-[var(--color-text-800)] leading-tight">{item.title}</p>
-                {item.content && (
-                  <p className="text-[var(--color-text-600)] text-sm mt-1 line-clamp-2">{item.content}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="py-12 text-center border-2 border-dashed border-[var(--color-text-200)] rounded-xl bg-[var(--color-bg-50)]">
-            <EmptyState
-              title="No announcements yet"
-              subtitle="Create the first announcement to notify advisers and visitors."
-              iconSrc="/no-data-icon.svg"
-            />
-          </div>
-        )}
-      </section>
-
-      {/* ─── SECTION: Upcoming Events ───────────────────────────────────── */}
-      <section>
-        <div className="bg-[var(--color-secondary-600)] text-[var(--color-text-50)] p-4 rounded-md mb-4 shadow-md flex items-center justify-between">
-          <h2 className="text-xl font-bold uppercase tracking-wide">Upcoming Events</h2>
-        </div>
-
-        {/* [BUTTON] Add Event */}
-        <div className="mb-3">
-          <SecondaryButton text="Add Event" iconSrc="/add-icon.svg" onClick={handleAddEvent} />
-        </div>
-
-        {events.length > 0 ? (
-          <>
-            <div className="space-y-3">
-              {events.slice(0, visibleEvents).map((event) => {
-                const { month, day } = getEventDateDisplay(event);
-                return (
-                  <div
-                    key={event.id}
-                    onClick={() => { setSelectedEvent(event); setShowEventDetailModal(true); }}
-                    className="flex bg-[var(--color-bg-100)] border border-[var(--color-text-200)] rounded-lg overflow-hidden transition-all duration-150 ease-in-out hover:bg-[var(--color-bg-50)] cursor-pointer"
-                  >
-                    {/* [DATE BADGE] */}
-                    <div className="flex flex-col items-center justify-center px-4 py-2 border-r border-[var(--color-text-200)] min-w-[80px] bg-[var(--color-bg-50)]">
-                      <span className="text-xs text-[var(--color-text-500)] font-bold uppercase">{month}</span>
-                      <span className="text-2xl font-black text-[var(--color-text-800)]">{day}</span>
-                    </div>
-
-                    {/* [EVENT INFO] */}
-                    <div className="p-4 flex flex-col justify-center gap-1 flex-1">
-                      <p className="font-bold text-[var(--color-text-800)] text-sm leading-snug">{event.title}</p>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--color-bg-200)] text-[var(--color-text-600)]">
-                          {EVENT_TYPE_LABELS[event.type]}
-                        </span>
-                        {event.isOnline && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--color-secondary-100)] text-[var(--color-secondary-700)]">
-                            Online
-                          </span>
-                        )}
-                        {event.location && (
-                          <span className="text-xs text-[var(--color-text-500)]">📍 {event.location}</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+          {/* [SECTION] Announcements */}
+          <section className="space-y-3">
+            {/* [HEADER] Section banner */}
+            <div className="bg-[var(--color-primary-700)] text-[var(--color-text-50)] px-4 py-3 rounded-md shadow-md">
+              <h2 className="text-xl font-bold uppercase tracking-wide">Announcements</h2>
             </div>
 
-            {visibleEvents < events.length && (
-              <button
-                onClick={() => setVisibleEvents((prev) => prev + 3)}
-                className="w-full text-center text-[var(--color-text-600)] underline text-sm mt-6 font-medium hover:text-[var(--color-text-800)] cursor-pointer"
-              >
-                See More Events
-              </button>
-            )}
-          </>
-        ) : (
-          <div className="py-12 text-center border-2 border-dashed border-[var(--color-text-200)] rounded-xl bg-[var(--color-bg-50)]">
-            <EmptyState
-              title="No upcoming events"
-              subtitle="Add events to keep everyone informed about school activities."
-              iconSrc="/no-data-icon.svg"
+            {/* [BUTTON] Add Announcement */}
+            <PrimaryButton
+              text="Add Announcement"
+              iconSrc="/add-icon.svg"
+              onClick={handleAddAnnouncement}
             />
-          </div>
-        )}
-      {/* [MODAL] General */}
-      <Modal
-        isOpen={generalModal.isOpen}
-        onClose={closeGeneralModal}
-        title={generalModal.title}
-        message={generalModal.message}
-        type={generalModal.type}
-        confirmText={generalModal.confirmText}
-        onConfirm={generalModal.onConfirm}
-        isCancelable={generalModal.isCancelable}
-      />
-      </section>
-    </div>
+
+            {/* [GRID] Announcement cards */}
+            {announcements.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
+                {announcements.map(item => (
+                  <AnnouncementCard
+                    key={item.id}
+                    announcement={item}
+                    formatDate={formatDate}
+                    onClick={(a) => { setSelectedAnnouncement(a); setShowAnnouncementDetailModal(true); }}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="py-12 text-center border-2 border-dashed border-[var(--color-text-200)] rounded-xl bg-[var(--color-bg-50)]">
+                <EmptyState
+                  title="No announcements yet"
+                  subtitle="Create the first announcement to notify advisers and visitors."
+                  iconSrc="/no-data-icon.svg"
+                />
+              </div>
+            )}
+          </section>
+
+          {/* [SECTION] Upcoming Events */}
+          <section className="space-y-3">
+            {/* [HEADER] Section banner */}
+            <div className="bg-[var(--color-secondary-600)] text-[var(--color-text-50)] px-4 py-3 rounded-md shadow-md">
+              <h2 className="text-xl font-bold uppercase tracking-wide">Upcoming Events</h2>
+            </div>
+
+            {/* [BUTTON] Add Event */}
+            <SecondaryButton
+              text="Add Event"
+              iconSrc="/add-icon.svg"
+              onClick={handleAddEvent}
+            />
+
+            {/* [GRID] Event cards */}
+            {events.length > 0 ? (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
+                  {events.slice(0, visibleEvents).map(event => (
+                    <EventCard
+                      key={event.id}
+                      event={event}
+                      getEventDateDisplay={getEventDateDisplay}
+                      onClick={(e) => { setSelectedEvent(e); setShowEventDetailModal(true); }}
+                    />
+                  ))}
+                </div>
+
+                {/* [UI] Load more */}
+                {visibleEvents < events.length && (
+                  <button
+                    onClick={() => setVisibleEvents(prev => prev + 3)}
+                    className="w-full text-center text-[var(--color-text-600)] underline text-sm mt-4 font-medium hover:text-[var(--color-text-800)] cursor-pointer"
+                  >
+                    See More Events
+                  </button>
+                )}
+              </>
+            ) : (
+              <div className="py-12 text-center border-2 border-dashed border-[var(--color-text-200)] rounded-xl bg-[var(--color-bg-50)]">
+                <EmptyState
+                  title="No upcoming events"
+                  subtitle="Add events to keep everyone informed about school activities."
+                  iconSrc="/no-data-icon.svg"
+                />
+              </div>
+            )}
+          </section>
+
+        </div>
+      </AdminPageLayout>
+    </>
   );
 };
 

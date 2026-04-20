@@ -108,3 +108,36 @@ export const getVisiblePages = (current: number, total: number) => {
 
   return range;
 };
+
+// [HELPER] Format a date string for display (e.g. "April 2, 2026")
+export const formatDate = (dateStr?: string): string => {
+  if (!dateStr) return "—";
+  return new Date(dateStr).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+};
+
+// [HELPER] Format a date string for datetime-local input value
+export const formatDateInput = (dateStr?: string): string => {
+  if (!dateStr) return "";
+  return new Date(dateStr).toISOString().slice(0, 16);
+};
+
+// [HELPER] Convert datetime-local string (e.g. "2026-04-02T10:00") to full
+// ISO 8601 that Prisma/PostgreSQL accepts. Returns null for empty/invalid values.
+export const toISOStringOrNull = (value: string): string | null => {
+  if (!value) return null;
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+};
+
+// [HELPER] Extract abbreviated month and zero-padded day from a SchoolEvent's startDate
+export const getEventDateDisplay = (event: { startDate: string }): { month: string; day: string } => {
+  const start = new Date(event.startDate);
+  return {
+    month: start.toLocaleString("en-US", { month: "short" }).toUpperCase(),
+    day: String(start.getDate()).padStart(2, "0"),
+  };
+};
