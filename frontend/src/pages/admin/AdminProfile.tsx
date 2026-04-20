@@ -5,15 +5,16 @@ import { useAuth } from "../../context/useAuth";
 import { usePageTitle } from "../../hooks/usePageTitle";
 
 // [IMPORT] Components
-import Skeleton from "../../components/Skeleton";
-import ProfileInfo from "../../components/ProfileInfo";
-import InputField from "../../components/InputField";
 import Modal from "../../components/Modal";
+import Skeleton from "../../components/Skeleton";
+import InputField from "../../components/InputField";
+import ProfileInfo from "../../components/ProfileInfo";
+import AdminPageLayout from "../../components/layouts/AdminPageLayout";
 
 // [IMPORT] Types
 import { GeneralModalConfig } from "../../types";
 
-// ?[INTERFACE] Admin profile shape
+// ? [INTERFACE] Admin profile shape
 interface AdminProfileData {
   id: number;
   name: string;
@@ -23,19 +24,18 @@ interface AdminProfileData {
   updatedAt: string;
 }
 
-// ?[INTERFACE] Editable form fields
+// ? [INTERFACE] Editable form fields
 interface AdminProfileForm {
   name: string;
   email: string;
 }
 
-// *[PAGE] Admin Profile
 const AdminProfile = () => {
   usePageTitle("My Profile");
 
   const { setShowTokenExpiredModal } = useAuth();
 
-  // [STATES]
+  // [STATES] Entities
   const [profile, setProfile] = useState<AdminProfileData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -58,14 +58,14 @@ const AdminProfile = () => {
   });
 
   const openGeneralModal = (config: Partial<Omit<GeneralModalConfig, "isOpen">>) => {
-    setGeneralModal((prev) => ({ ...prev, isOpen: true, ...config }));
+    setGeneralModal(prev => ({ ...prev, isOpen: true, ...config }));
   };
 
   const closeGeneralModal = () => {
-    setGeneralModal((prev) => ({ ...prev, isOpen: false }));
+    setGeneralModal(prev => ({ ...prev, isOpen: false }));
   };
 
-  // *[HANDLE] Fetch own admin profile
+  // * [HANDLE] Fetch Own Admin Profile
   const fetchProfile = async () => {
     setLoading(true);
     try {
@@ -74,19 +74,13 @@ const AdminProfile = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (res.status === 401) {
-        setShowTokenExpiredModal(true);
-        return;
-      }
+      if (res.status === 401) { setShowTokenExpiredModal(true); return; }
 
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed to fetch profile");
 
       setProfile(data.data);
-      setFormData({
-        name: data.data.name,
-        email: data.data.email,
-      });
+      setFormData({ name: data.data.name, email: data.data.email });
     } catch (err) {
       // ! [ERROR] Fetching profile failed
       console.error(err);
@@ -110,22 +104,19 @@ const AdminProfile = () => {
   // [HANDLE] Edit toggle — discard changes on cancel
   const handleEditToggle = () => {
     if (isEditing && profile) {
-      setFormData({
-        name: profile.name,
-        email: profile.email,
-      });
+      setFormData({ name: profile.name, email: profile.email });
     }
-    setIsEditing((prev) => !prev);
+    setIsEditing(prev => !prev);
   };
 
   // [HANDLE] Generic text field change
   const handleFieldChange =
     (field: keyof AdminProfileForm) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-      setFormData((prev) => ({ ...prev, [field]: e.target.value }));
+      setFormData(prev => ({ ...prev, [field]: e.target.value }));
     };
 
-  // *[HANDLE] Save profile edits
+  // * [HANDLE] Save Profile Edits
   const handleSave = async () => {
     // ! [VALIDATION] Name and email are required
     if (!formData.name.trim() || !formData.email.trim()) {
@@ -166,18 +157,16 @@ const AdminProfile = () => {
         body: JSON.stringify(formData),
       });
 
-      if (res.status === 401) {
-        setShowTokenExpiredModal(true);
-        return;
-      }
+      if (res.status === 401) { setShowTokenExpiredModal(true); return; }
 
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed to update profile");
 
-      // * [SUCCESS] Sync local state with saved data
-      setProfile((prev) => ({ ...prev!, ...data.data }));
+      // [UPDATE] Sync local state with saved data
+      setProfile(prev => ({ ...prev!, ...data.data }));
       setIsEditing(false);
 
+      // * [SUCCESS] Profile Updated
       openGeneralModal({
         title: "Profile Updated",
         message: "Your profile has been updated successfully.",
@@ -202,45 +191,16 @@ const AdminProfile = () => {
     }
   };
 
-  // [LOADING STATE]
+  // ? [LOADING STATE]
   if (loading) return <Skeleton />;
 
-  // *[RENDER] Personal Information fields
-  const renderFormPage = () => {
-    if (!profile) return null;
-
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="col-span-1 sm:col-span-2">
-          <InputField
-            label="Display Name"
-            value={formData.name}
-            onChange={handleFieldChange("name")}
-            placeholder="e.g. Juan Dela Cruz"
-            disabled={!isEditing}
-            required
-          />
-        </div>
-        <InputField
-          label="Username"
-          value={profile.username}
-          onChange={() => {}}
-          disabled
-        />
-        <InputField
-          label="Email"
-          value={formData.email}
-          onChange={handleFieldChange("email")}
-          placeholder="Email address"
-          disabled={!isEditing}
-          required
-        />
-      </div>
-    );
-  };
+  // [COMPUTE] Split name for ProfileInfo banner
+  const [firstName, ...lastParts] = (profile?.name ?? "").split(" ");
+  const lastName = lastParts.length > 0 ? lastParts.join(" ") : firstName;
+  const displayFirstName = lastParts.length > 0 ? firstName : "";
 
   return (
-    <div>
+    <>
       {/* [MODAL] General */}
       <Modal
         isOpen={generalModal.isOpen}
@@ -253,32 +213,21 @@ const AdminProfile = () => {
         isCancelable={generalModal.isCancelable}
       />
 
-      <div className="py-10 px-4 space-y-4 relative">
-
-        {/* [SECTION] Header */}
-        <div>
-          <h2 className="text-[var(--color-text-800)] leading-0">My Profile</h2>
-          <p className="font-roboto text-sm text-[var(--color-text-700)]">
-            Manage your account details.
-          </p>
-        </div>
-
+      {/* [LAYOUT] Admin Page */}
+      <AdminPageLayout
+        header={
+          <span className="page-title">My Profile</span>
+        }
+      >
         {profile ? (
-          <>
-            {/* [COMPONENT] Profile Info banner */}
-            {profile && (() => {
-              const [firstName, ...lastParts] = profile.name.split(" ");
-              const lastName = lastParts.length > 0 ? lastParts.join(" ") : firstName;
-              const displayFirstName = lastParts.length > 0 ? firstName : "";
+          <div className="space-y-4">
 
-              // Pass role here
-              return <ProfileInfo lastName={lastName} firstName={displayFirstName} role="Admin" />
-            })()}
+            {/* [COMPONENT] Profile Info banner */}
+            <ProfileInfo lastName={lastName} firstName={displayFirstName} role="Admin" />
 
             {/* [CARD] Personal Information */}
             <div className="bg-[var(--color-bg-100)] rounded-lg p-4 space-y-4">
 
-              {/* [DIVIDER] */}
               <div className="border-t border-[var(--color-bg-200)]" />
 
               {/* [HEADER] Section title + Edit / Save buttons */}
@@ -311,11 +260,36 @@ const AdminProfile = () => {
               </div>
 
               {/* [FORM] Personal Information fields */}
-              {renderFormPage()}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="col-span-1 sm:col-span-2">
+                  <InputField
+                    label="Display Name"
+                    value={formData.name}
+                    onChange={handleFieldChange("name")}
+                    placeholder="e.g. Juan Dela Cruz"
+                    disabled={!isEditing}
+                    required
+                  />
+                </div>
+                <InputField
+                  label="Username"
+                  value={profile.username}
+                  onChange={() => {}}
+                  disabled
+                />
+                <InputField
+                  label="Email"
+                  value={formData.email}
+                  onChange={handleFieldChange("email")}
+                  placeholder="Email address"
+                  disabled={!isEditing}
+                  required
+                />
+              </div>
 
             </div>
 
-            {/* [META] Timestamps */}
+            {/* [META] Account creation date */}
             <p className="text-xs font-roboto text-[var(--color-text-500)] text-right">
               Account created{" "}
               {new Date(profile.createdAt).toLocaleDateString("en-PH", {
@@ -324,9 +298,10 @@ const AdminProfile = () => {
                 day: "numeric",
               })}
             </p>
-          </>
+
+          </div>
         ) : (
-          // [EMPTY STATE]
+          // [EMPTY STATE] Profile could not be loaded
           <div className="bg-[var(--color-bg-100)] rounded-lg p-8 text-center">
             <p className="text-sm font-roboto text-[var(--color-text-600)]">
               Profile could not be loaded.
@@ -339,8 +314,8 @@ const AdminProfile = () => {
             </button>
           </div>
         )}
-      </div>
-    </div>
+      </AdminPageLayout>
+    </>
   );
 };
 
