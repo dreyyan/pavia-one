@@ -1,7 +1,6 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react-hooks/set-state-in-effect */
 // [IMPORT] Hooks
-import React from "react";
 import { useState, useEffect } from "react";
 import { usePageTitle } from "../../hooks/usePageTitle";
 
@@ -9,11 +8,13 @@ import { usePageTitle } from "../../hooks/usePageTitle";
 import Modal from "../../components/Modal";
 import Skeleton from "../../components/Skeleton";
 import InputField from "../../components/InputField";
+import Breadcrumbs from "../../components/Breadcrumbs";
+import AdminPageLayout from "../../components/layouts/AdminPageLayout";
 
 // [IMPORT] Types
 import { GeneralModalConfig } from "../../types";
 
-// ? [INTERFACES]
+// ? [INTERFACE] Settings form fields
 interface SettingsForm {
   currentPassword: string;
   newPassword: string;
@@ -27,6 +28,13 @@ const AdminSettings = () => {
 
   // [STATES]
   const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState<SettingsForm>({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+    emailNotifications: false,
+    darkMode: false,
+  });
 
   // [STATE] General Modal
   const [generalModal, setGeneralModal] = useState<GeneralModalConfig>({
@@ -47,27 +55,19 @@ const AdminSettings = () => {
     setGeneralModal(prev => ({ ...prev, isOpen: false }));
   };
 
-  const [form, setForm] = useState<SettingsForm>({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-    emailNotifications: false,
-    darkMode: false,
-  });
-
-  // * [EFFECT] Reset loading
+  // * [EFFECT] Reset loading state on mount
   useEffect(() => setLoading(false), []);
 
-  // [HANDLE] Form change
+  // [HANDLE] Generic form field change
   const handleChange = (field: keyof SettingsForm, value: string | boolean) => {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
-  // [HANDLE] Save password
+  // * [HANDLE] Save Password
   const handleSavePassword = async () => {
     const { currentPassword, newPassword, confirmPassword } = form;
 
-    // Check for empty input fields
+    // ! [VALIDATION] All fields required
     if (!currentPassword || !newPassword || !confirmPassword) {
       openGeneralModal({
         title: "Incomplete Fields",
@@ -80,7 +80,7 @@ const AdminSettings = () => {
       return;
     }
 
-    // Check for password mismatch
+    // ! [VALIDATION] Passwords must match
     if (newPassword !== confirmPassword) {
       openGeneralModal({
         title: "Passwords Do Not Match",
@@ -109,11 +109,10 @@ const AdminSettings = () => {
 
       const data = await res.json();
 
-      // Handle backend response errors
+      // ! [ERROR] Handle backend status-code errors
       if (!res.ok) {
         let title = "Unable to Change Password";
         const message = data.message || "Failed to change password";
-
         if (res.status === 400) title = "Invalid Input";
         else if (res.status === 401) title = "Incorrect Password";
         else if (res.status === 404) title = "Admin Not Found";
@@ -129,7 +128,7 @@ const AdminSettings = () => {
         return;
       }
 
-      // Success
+      // * [SUCCESS] Password Updated
       openGeneralModal({
         title: "Password Updated",
         message: "Your password has been updated successfully.",
@@ -139,7 +138,7 @@ const AdminSettings = () => {
         onConfirm: () => closeGeneralModal(),
       });
 
-      // Reset password fields only
+      // [RESET] Clear password fields only
       setForm(prev => ({
         ...prev,
         currentPassword: "",
@@ -147,11 +146,10 @@ const AdminSettings = () => {
         confirmPassword: "",
       }));
     } catch (err) {
-      // Handle network or server issue
+      // ! [ERROR] Network or server issue
       openGeneralModal({
         title: "Unable to Update Password",
-        message:
-          "We couldn't update the password at the moment. Please try again later.",
+        message: "We couldn't update the password at the moment. Please try again later.",
         type: "error",
         confirmText: "Close",
         isCancelable: false,
@@ -160,28 +158,24 @@ const AdminSettings = () => {
     }
   };
 
-  // [HANDLE] Save preferences (email notifications / dark mode)
+  // * [HANDLE] Save Preferences
   const handleSavePreferences = async () => {
     const { emailNotifications, darkMode } = form;
     const token = localStorage.getItem("token");
 
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/admin/profile`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ emailNotifications, darkMode }),
-        }
-      );
-
-      const data = await res.json();
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/profile`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ emailNotifications, darkMode }),
+      });
 
       if (!res.ok) {
-        return openGeneralModal({
+        // ! [ERROR] Preferences save failed
+        openGeneralModal({
           title: "Unable to Save Preferences",
           message: "We couldn't save preferences at the moment. Please try again later.",
           type: "error",
@@ -189,8 +183,10 @@ const AdminSettings = () => {
           isCancelable: false,
           onConfirm: () => closeGeneralModal(),
         });
+        return;
       }
 
+      // * [SUCCESS] Preferences Saved
       openGeneralModal({
         title: "Preferences Saved",
         message: "Your preferences have been updated successfully.",
@@ -200,10 +196,10 @@ const AdminSettings = () => {
         onConfirm: () => closeGeneralModal(),
       });
     } catch (err) {
+      // ! [ERROR] Network or server issue
       openGeneralModal({
         title: "Unable to Save Preferences",
-        message:
-          "We couldn't save preferences at the moment. Please try again later.",
+        message: "We couldn't save preferences at the moment. Please try again later.",
         type: "error",
         confirmText: "Close",
         isCancelable: false,
@@ -216,7 +212,7 @@ const AdminSettings = () => {
   if (loading) return <Skeleton />;
 
   return (
-    <div className="py-6 px-4 flex flex-col gap-y-4">
+    <>
       {/* [MODAL] General */}
       <Modal
         isOpen={generalModal.isOpen}
@@ -229,94 +225,89 @@ const AdminSettings = () => {
         isCancelable={generalModal.isCancelable}
       />
 
-      {/* [SECTION] Header */}
-      <div>
-        <h2 className="text-[var(--color-text-800)] leading-0">Settings</h2>
-        <p className="font-roboto text-sm text-[var(--color-text-700)]">
-          Manage your password and notification preferences.
-        </p>
-      </div>
+      {/* [LAYOUT] Admin Page */}
+      <AdminPageLayout
+        header={
+          <span className="page-title">Settings</span>
+        }
+      >
+        <div className="flex flex-col gap-4 max-w-lg">
 
-      {/* [SECTION] Security */}
-      <div className="w-full max-w-md bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-lg shadow-sm p-5 space-y-4">
-        <div className="space-y-3">
-          <h3 className="text-[var(--color-text-700)]">Security</h3>
+          {/* [CARD] Security */}
+          <div className="bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-lg shadow-sm p-5 space-y-4">
+            <h3 className="text-[var(--color-text-700)]">Security</h3>
 
-          {/* [SECTION] Input Fields */}
-          <div className="space-y-3">
-            <InputField
-              label="Current Password"
-              type="password"
-              value={form.currentPassword}
-              onChange={(e) => handleChange("currentPassword", e.target.value)}
-            />
-            <InputField
-              label="New Password"
-              type="password"
-              value={form.newPassword}
-              onChange={(e) => handleChange("newPassword", e.target.value)}
-            />
-            <InputField
-              label="Confirm Password"
-              type="password"
-              value={form.confirmPassword}
-              onChange={(e) => handleChange("confirmPassword", e.target.value)}
-            />
-          </div>
+            {/* [FIELDS] Password inputs */}
+            <div className="space-y-3">
+              <InputField
+                label="Current Password"
+                type="password"
+                value={form.currentPassword}
+                onChange={(e) => handleChange("currentPassword", e.target.value)}
+              />
+              <InputField
+                label="New Password"
+                type="password"
+                value={form.newPassword}
+                onChange={(e) => handleChange("newPassword", e.target.value)}
+              />
+              <InputField
+                label="Confirm Password"
+                type="password"
+                value={form.confirmPassword}
+                onChange={(e) => handleChange("confirmPassword", e.target.value)}
+              />
+            </div>
 
-          {/* [PRIMARY BUTTON] Update Password */}
-          <div className="pt-2">
+            {/* [BUTTON] Change Password */}
             <button
               onClick={handleSavePassword}
-              className="flex justify-center items-center gap-x-2 w-full py-3 rounded-md cursor-pointer text-button font-bold text-[var(--color-text-50)] bg-green-600 transition-all duration-200 hover:bg-green-700 disabled:opacity-50"
-            >   
-              <p className="button text-text-on-primary">Change Password</p>
+              className="w-full py-3 rounded-md cursor-pointer font-bold text-sm text-[var(--color-text-50)] bg-green-600 hover:bg-green-700 transition-colors disabled:opacity-50"
+            >
+              Change Password
             </button>
           </div>
-        </div>
-      </div>
 
-      {/* [SECTION] Preferences */}
-      <div className="w-full max-w-md bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-lg shadow-sm p-5 space-y-4">
-        <div className="space-y-3">
-          <h3 className="text-[var(--color-text-700)]">Preferences</h3>
+          {/* [CARD] Preferences */}
+          <div className="bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-lg shadow-sm p-5 space-y-4">
+            <h3 className="text-[var(--color-text-700)]">Preferences</h3>
 
-          {/* [SECTION] Input Fields */}
-          <div className="space-y-3">
-            <InputField
-              label="Email Notifications"
-              type="checkbox"
-              value={form.emailNotifications}
-              onChange={(e) => {
-                if (e.target instanceof HTMLInputElement) {
-                  handleChange("emailNotifications", e.target.checked);
-                }
-              }}
-            />
-            <InputField
-              label="Dark Mode"
-              type="checkbox"
-              value={form.darkMode}
-              onChange={(e) => {
-                if (e.target instanceof HTMLInputElement) {
-                  handleChange("darkMode", e.target.checked);
-                }
-              }}
-            />
-          </div>
+            {/* [FIELDS] Toggle inputs */}
+            <div className="space-y-3">
+              <InputField
+                label="Email Notifications"
+                type="checkbox"
+                value={form.emailNotifications}
+                onChange={(e) => {
+                  if (e.target instanceof HTMLInputElement) {
+                    handleChange("emailNotifications", e.target.checked);
+                  }
+                }}
+              />
+              <InputField
+                label="Dark Mode"
+                type="checkbox"
+                value={form.darkMode}
+                onChange={(e) => {
+                  if (e.target instanceof HTMLInputElement) {
+                    handleChange("darkMode", e.target.checked);
+                  }
+                }}
+              />
+            </div>
 
-          {/* [PRIMARY BUTTON] Save Preferences */}
-          <div className="pt-2">
+            {/* [BUTTON] Save Preferences */}
             <button
               onClick={handleSavePreferences}
-              className="flex justify-center items-center gap-x-2 w-full py-3 rounded-md cursor-pointer text-button font-bold text-[var(--color-text-50)] bg-[var(--color-primary-600)] transition-all duration-200 hover:bg-[var(--color-primary-700)] disabled:opacity-50"
-            >   
-              <p className="button text-text-on-primary">Save Preferences</p>
+              className="w-full py-3 rounded-md cursor-pointer font-bold text-sm text-[var(--color-text-50)] bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] transition-colors disabled:opacity-50"
+            >
+              Save Preferences
             </button>
           </div>
+
         </div>
-      </div>
-    </div>
+      </AdminPageLayout>
+    </>
   );
 };
 
