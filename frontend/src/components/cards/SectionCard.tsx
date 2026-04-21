@@ -51,7 +51,7 @@ const SectionCard: React.FC<SectionCardProps> = ({ section, onClick }) => {
         {/* [BADGE] No Adviser warning */}
         {!section.adviser && (
           <span
-            className={`ml-2 flex-shrink-0 text-xs px-2 py-0.5 rounded-full border font-semibold ${colors.badge}`}
+            className={`ml-2 flex-shrink-0 text-xs px-2 py-0.5 rounded-full border font-semibold text-[var(--color-red-600)] bg-[var(--color-red-50)] border-[var(--color-red-300)] italic`}
           >
             No Adviser
           </span>
