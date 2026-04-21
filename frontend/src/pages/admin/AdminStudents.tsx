@@ -438,8 +438,8 @@ const AdminStudents = () => {
                       setPage(1);
                     }}
                     options={[
-                      { label: "Name ↑", value: "name-asc" },
-                      { label: "Name ↓", value: "name-desc" },
+                      { label: "Name (A → Z)", value: "name-asc" },
+                      { label: "Name (Z → A)", value: "name-desc" },
                       { label: "LRN ↑", value: "lrn-asc" },
                       { label: "LRN ↓", value: "lrn-desc" },
                     ]}
