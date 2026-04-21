@@ -27,17 +27,14 @@ const SectionCard: React.FC<SectionCardProps> = ({ section, onClick }) => {
       className="w-full min-w-0 bg-[var(--color-bg-100)] rounded-md border border-[var(--color-bg-300)] overflow-hidden hover:translate-y-[-1px] hover:shadow-md active:shadow-md transition-all duration-200 cursor-pointer"
       onClick={handleClick}
     >
-      {/* [HEADER] Grade Badge, Name & School Year */}
       <div className="px-3 pr-4 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
         <div className="flex items-center w-full gap-3 min-w-0">
-          {/* [UI] Grade Level Badge */}
           <div
             className={`size-10 rounded-md flex items-center justify-center font-bold text-xl border flex-shrink-0 ${colors.badge}`}
           >
             {section.gradeLevel}
           </div>
 
-          {/* [TEXT] Name + School Year */}
           <div className="flex-1 min-w-0">
             <p className="font-roboto font-bold text-[var(--color-text-900)] text-lg leading-tight truncate">
               {section.name}
@@ -48,7 +45,6 @@ const SectionCard: React.FC<SectionCardProps> = ({ section, onClick }) => {
           </div>
         </div>
 
-        {/* [BADGE] No Adviser warning */}
         {!section.adviser && (
           <span
             className={`ml-2 flex-shrink-0 text-xs px-2 py-0.5 rounded-full border font-semibold text-[var(--color-red-600)] bg-[var(--color-red-50)] border-[var(--color-red-300)] italic`}
@@ -58,14 +54,13 @@ const SectionCard: React.FC<SectionCardProps> = ({ section, onClick }) => {
         )}
       </div>
 
-      {/* [DETAILS] Curriculum & Adviser */}
       <div className="px-4 py-3 space-y-2 text-sm bg-[var(--color-bg-50)]">
         <div className="flex justify-between items-center min-w-0">
           <span className="text-[var(--color-text-700)] font-figree font-semibold">
-            Curriculum
+            Students
           </span>
-          <span className="text-[var(--color-text-900)] truncate text-right min-w-0">
-            {section.curriculum}
+          <span className="text-[var(--color-text-900)] font-semibold">
+            {section.classSize}
           </span>
         </div>
 
@@ -81,6 +76,15 @@ const SectionCard: React.FC<SectionCardProps> = ({ section, onClick }) => {
             }`}
           >
             {section.adviser?.name ?? "Unassigned"}
+          </span>
+        </div>
+
+        <div className="flex justify-between items-center min-w-0">
+          <span className="text-[var(--color-text-700)] font-figree font-semibold">
+            Curriculum
+          </span>
+          <span className="text-[var(--color-text-900)] truncate text-right min-w-0">
+            {section.curriculum}
           </span>
         </div>
       </div>
