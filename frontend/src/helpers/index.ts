@@ -158,3 +158,9 @@ export const formatName = (fullName: string) => {
 
   return `${lastName.toUpperCase()}, ${firstName} ${middleInitial}`.trim();
 };
+
+// [HELPER] Get last name in lowercase for sorting purposes
+export const getLastName = (fullName: string) => {
+  const parts = fullName.trim().split(" ").filter(Boolean);
+  return parts.length > 0 ? parts[parts.length - 1].toLowerCase() : "";
+};
