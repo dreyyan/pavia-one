@@ -18,7 +18,7 @@ import AdviserFormModal from "../../components/forms/AdviserFormModal";
 import AdminPageLayout from "../../components/layouts/AdminPageLayout";
 
 // [IMPORT] Helpers & Types
-import { getVisiblePages } from "../../helpers/index";
+import { getVisiblePages, getLastName } from "../../helpers/index";
 import { Adviser, AdviserFormData, GeneralModalConfig } from "../../types";
 
 // [CONSTANT] Empty form state
@@ -202,8 +202,14 @@ const AdminAdvisers = () => {
     })
     .sort((a, b) => {
       switch (sortOption) {
-        case "name-asc": return a.name.localeCompare(b.name);
-        case "name-desc": return b.name.localeCompare(a.name);
+        case "name-asc": {
+          const last = getLastName(a.name || "").localeCompare(getLastName(b.name || ""));
+          return last !== 0 ? last : (a.name || "").localeCompare(b.name || "");
+        }
+        case "name-desc": {
+          const last = getLastName(b.name || "").localeCompare(getLastName(a.name || ""));
+          return last !== 0 ? last : (b.name || "").localeCompare(a.name || "");
+        }
         default: return 0;
       }
     });
