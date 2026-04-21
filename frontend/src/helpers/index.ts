@@ -141,3 +141,20 @@ export const getEventDateDisplay = (event: { startDate: string }): { month: stri
     day: String(start.getDate()).padStart(2, "0"),
   };
 };
+
+// [HELPER] Format full name as "LASTNAME, First M." (e.g. "DOE, John A.")
+export const formatName = (fullName: string) => {
+  const parts = fullName.trim().split(" ");
+
+  if (parts.length === 0) return fullName;
+
+  const firstName = parts[0];
+  const lastName = parts[parts.length - 1];
+  const middleNames = parts.slice(1, -1);
+
+  const middleInitial = middleNames.length > 0
+    ? middleNames[0][0].toUpperCase() + "."
+    : "";
+
+  return `${lastName.toUpperCase()}, ${firstName} ${middleInitial}`.trim();
+};
