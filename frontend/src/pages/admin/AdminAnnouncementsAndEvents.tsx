@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // [IMPORT] Hooks
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 // [IMPORT] Components
 import Modal from "../../components/Modal";
@@ -9,6 +9,7 @@ import Skeleton from "../../components/Skeleton";
 import EmptyState from "../../components/EmptyState";
 import SearchBar from "../../components/SearchBar";
 import Dropdown from "../../components/Dropdown";
+import Pagination from "../../components/Pagination";
 import AdminPageLayout from "../../components/layouts/AdminPageLayout";
 import AnnouncementCard from "../../components/cards/AnnouncementCard";
 import EventCard from "../../components/cards/EventCard";
@@ -23,6 +24,7 @@ import {
   safeJson,
   toISOStringOrNull,
   getEventDateDisplay,
+  getVisiblePages,
 } from "../../helpers";
 import { EVENT_TYPE_LABELS, EVENT_TYPE_OPTIONS, ANNOUNCEMENT_INITIAL, EVENT_INITIAL } from "../../constants";
 import { GeneralModalConfig, Announcement, SchoolEvent, EventType, AnnouncementFormData, EventFormData } from "../../types";
@@ -57,6 +59,33 @@ const DATE_RANGE_OPTIONS = [
   { label: "This Month", value: "this-month" },
   { label: "This Year", value: "this-year" },
 ];
+
+
+// [HOOK] Returns a responsive items-per-page value based on viewport width.
+// Breakpoints mirror the Tailwind grid columns used in the card grids:
+//   < 640px  (sm)  → 1 col  → 5  cards
+//   < 768px  (md)  → 2 cols → 8  cards  (2 cols × 4 rows)
+//   < 1024px (lg)  → 3 cols → 9  cards  (3 cols × 3 rows)
+//   ≥ 1024px       → 4 cols → 12 cards  (4 cols × 3 rows)
+const useItemsPerPage = () => {
+  const getItems = useCallback(() => {
+    const w = window.innerWidth;
+    if (w < 640)  return 5;
+    if (w < 768)  return 8;
+    if (w < 1024) return 9;
+    return 12;
+  }, []);
+
+  const [itemsPerPage, setItemsPerPage] = useState(getItems);
+
+  useEffect(() => {
+    const onResize = () => setItemsPerPage(getItems());
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [getItems]);
+
+  return itemsPerPage;
+};
 
 const AdminAnnouncementsAndEvents = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -105,7 +134,10 @@ const AdminAnnouncementsAndEvents = () => {
     onConfirm: () => {},
   });
 
-  const [visibleEvents, setVisibleEvents] = useState(8);
+  // [STATES] Pagination
+  const [announcementPage, setAnnouncementPage] = useState(1);
+  const [eventPage, setEventPage] = useState(1);
+  const itemsPerPage = useItemsPerPage();
 
   const openGeneralModal = (config: Partial<Omit<GeneralModalConfig, "isOpen">>) => {
     setGeneralModal(prev => ({ ...prev, isOpen: true, ...config }));
@@ -476,6 +508,13 @@ const AdminAnnouncementsAndEvents = () => {
       }
     });
 
+  // * [COMPUTE] Pagination slices
+  const announcementTotalPages = Math.ceil(filteredAnnouncements.length / itemsPerPage);
+  const displayedAnnouncements = filteredAnnouncements.slice((announcementPage - 1) * itemsPerPage, announcementPage * itemsPerPage);
+
+  const eventTotalPages = Math.ceil(filteredEvents.length / itemsPerPage);
+  const displayedEvents = filteredEvents.slice((eventPage - 1) * itemsPerPage, eventPage * itemsPerPage);
+
   // ? [LOADING STATE]
   if (loading) return <Skeleton />;
 
@@ -770,7 +809,7 @@ const AdminAnnouncementsAndEvents = () => {
                     value={announcementSearch}
                     placeholder="Search announcements..."
                     onChange={setAnnouncementSearch}
-                    onResetPage={() => {}}
+                    onResetPage={() => setAnnouncementPage(1)}
                   />
                 </div>
                 <div className="flex gap-x-2 ml-auto shrink-0">
@@ -780,7 +819,7 @@ const AdminAnnouncementsAndEvents = () => {
                     isOpen={announcementActiveDropdown === "sort"}
                     onToggle={() => setAnnouncementActiveDropdown(announcementActiveDropdown === "sort" ? null : "sort")}
                     selected={announcementSort}
-                    onSelect={(v) => setAnnouncementSort(v as AnnouncementSort)}
+                    onSelect={(v) => { setAnnouncementSort(v as AnnouncementSort); setAnnouncementPage(1); }}
                     options={[
                       { label: "Title ↑", value: "title-asc" },
                       { label: "Title ↓", value: "title-desc" },
@@ -797,7 +836,7 @@ const AdminAnnouncementsAndEvents = () => {
                     isOpen={announcementActiveDropdown === "filter"}
                     onToggle={() => setAnnouncementActiveDropdown(announcementActiveDropdown === "filter" ? null : "filter")}
                     selected={announcementDateFilter}
-                    onSelect={(v) => setAnnouncementDateFilter(v as DateRangeFilter)}
+                    onSelect={(v) => { setAnnouncementDateFilter(v as DateRangeFilter); setAnnouncementPage(1); }}
                     options={DATE_RANGE_OPTIONS}
                     width="w-36"
                   />
@@ -814,16 +853,24 @@ const AdminAnnouncementsAndEvents = () => {
             </div>
 
             {filteredAnnouncements.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
-                {filteredAnnouncements.map(item => (
-                  <AnnouncementCard
-                    key={item.id}
-                    announcement={item}
-                    formatDate={formatDate}
-                    onClick={(a) => { setSelectedAnnouncement(a); setShowAnnouncementDetailModal(true); }}
-                  />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
+                  {displayedAnnouncements.map(item => (
+                    <AnnouncementCard
+                      key={item.id}
+                      announcement={item}
+                      formatDate={formatDate}
+                      onClick={(a) => { setSelectedAnnouncement(a); setShowAnnouncementDetailModal(true); }}
+                    />
+                  ))}
+                </div>
+                <Pagination
+                  page={announcementPage}
+                  totalPages={announcementTotalPages}
+                  onPageChange={setAnnouncementPage}
+                  getVisiblePages={getVisiblePages}
+                />
+              </>
             ) : (
               <div className="py-12 text-center border-2 border-dashed border-[var(--color-text-200)] rounded-xl bg-[var(--color-bg-50)]">
                 <EmptyState
@@ -853,7 +900,7 @@ const AdminAnnouncementsAndEvents = () => {
                     value={eventSearch}
                     placeholder="Search events..."
                     onChange={setEventSearch}
-                    onResetPage={() => {}}
+                    onResetPage={() => setEventPage(1)}
                   />
                 </div>
                 <div className="flex gap-x-2 ml-auto shrink-0">
@@ -863,7 +910,7 @@ const AdminAnnouncementsAndEvents = () => {
                     isOpen={eventActiveDropdown === "sort"}
                     onToggle={() => setEventActiveDropdown(eventActiveDropdown === "sort" ? null : "sort")}
                     selected={eventSort}
-                    onSelect={(v) => setEventSort(v as EventSort)}
+                    onSelect={(v) => { setEventSort(v as EventSort); setEventPage(1); }}
                     options={[
                       { label: "Title ↑", value: "title-asc" },
                       { label: "Title ↓", value: "title-desc" },
@@ -877,7 +924,7 @@ const AdminAnnouncementsAndEvents = () => {
                     isOpen={eventActiveDropdown === "filter"}
                     onToggle={() => setEventActiveDropdown(eventActiveDropdown === "filter" ? null : "filter")}
                     selected={eventDateFilter}
-                    onSelect={(v) => setEventDateFilter(v as DateRangeFilter)}
+                    onSelect={(v) => { setEventDateFilter(v as DateRangeFilter); setEventPage(1); }}
                     options={DATE_RANGE_OPTIONS}
                     width="w-36"
                   />
@@ -896,7 +943,7 @@ const AdminAnnouncementsAndEvents = () => {
             {filteredEvents.length > 0 ? (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
-                  {filteredEvents.slice(0, visibleEvents).map(event => (
+                  {displayedEvents.map(event => (
                     <EventCard
                       key={event.id}
                       event={event}
@@ -905,14 +952,12 @@ const AdminAnnouncementsAndEvents = () => {
                     />
                   ))}
                 </div>
-                {visibleEvents < filteredEvents.length && (
-                  <button
-                    onClick={() => setVisibleEvents(prev => prev + 8)}
-                    className="w-full text-center text-[var(--color-text-600)] underline text-sm mt-4 font-medium hover:text-[var(--color-text-800)] cursor-pointer"
-                  >
-                    See More Events
-                  </button>
-                )}
+                <Pagination
+                  page={eventPage}
+                  totalPages={eventTotalPages}
+                  onPageChange={setEventPage}
+                  getVisiblePages={getVisiblePages}
+                />
               </>
             ) : (
               <div className="py-12 text-center border-2 border-dashed border-[var(--color-text-200)] rounded-xl bg-[var(--color-bg-50)]">
