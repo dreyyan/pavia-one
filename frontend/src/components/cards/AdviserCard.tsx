@@ -2,8 +2,9 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
-// [IMPORT] Types
+// [IMPORT] Helpers & Types
 import type { Adviser } from "../../types";
+import { formatName } from "../../helpers";
 
 interface AdviserCardProps {
   adviser: Adviser;
@@ -42,7 +43,7 @@ const AdviserCard: React.FC<AdviserCardProps> = ({ adviser: a, onClick }) => {
           {/* [TEXT] Name + Adviser ID */}
           <div className="flex-1 min-w-0">
             <p className="font-roboto font-bold text-[var(--color-text-900)] text-lg leading-tight truncate">
-              {a.name}
+              {formatName(a.name)}
             </p>
             <p className="text-xs font-mono text-[var(--color-text-600)] mt-0.5 tracking-wider truncate">
               #{a.adviserId}
