@@ -19,7 +19,7 @@ import StudentFormModal from "../../components/forms/StudentFormModal";
 import AdminPageLayout from "../../components/layouts/AdminPageLayout";
 
 // [IMPORT] Helpers, Constants & Types
-import { getVisiblePages } from "../../helpers/index";
+import { getVisiblePages, getLastName } from "../../helpers/index";
 import { SEX_OPTIONS } from "../../constants";
 import { GeneralModalConfig, StudentFormData, Adviser, Student } from "../../types";
 
@@ -353,11 +353,16 @@ const AdminStudents = () => {
     )
     .sort((a, b) => {
       switch (sortOption) {
-        case "name-asc": return (a.fullName || "").localeCompare(b.fullName || "");
-        case "name-desc": return (b.fullName || "").localeCompare(a.fullName || "");
-        case "lrn-asc": return a.lrn.localeCompare(b.lrn);
-        case "lrn-desc": return b.lrn.localeCompare(a.lrn);
-        default: return 0;
+        case "name-asc":
+          return getLastName(a.fullName || "").localeCompare(getLastName(b.fullName || ""));
+        case "name-desc":
+          return getLastName(b.fullName || "").localeCompare(getLastName(a.fullName || ""));
+        case "lrn-asc":
+          return a.lrn.localeCompare(b.lrn);
+        case "lrn-desc":
+          return b.lrn.localeCompare(a.lrn);
+        default:
+          return 0;
       }
     });
 
