@@ -310,7 +310,7 @@ const AdminSubjects = () => {
                 </div>
 
                 {/* [COMPONENT] Sort & Filter Dropdowns */}
-                <div className="flex gap-x-2 ml-auto">
+                <div className="flex gap-x-2 ml-auto shrink-0">
                   <Dropdown
                     icon="/sort-icon.svg"
                     label="Sort"
@@ -344,7 +344,6 @@ const AdminSubjects = () => {
                       setSelectedGrade(value);
                       setPage(1);
                     }}
-                    width="w-36"
                     options={[
                       { label: "All", value: "All" },
                       ...GRADE_LEVEL_OPTIONS.map(g => ({ label: `Grade ${g}`, value: g })),

@@ -424,7 +424,7 @@ const AdminStudents = () => {
                 </div>
 
                 {/* [COMPONENT] Sort Dropdown */}
-                <div className="flex gap-x-2 ml-auto">
+                <div className="flex gap-x-2 ml-auto shrink-0">
                   <Dropdown
                     icon="/sort-icon.svg"
                     label="Sort"
