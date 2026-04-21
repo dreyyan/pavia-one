@@ -7,7 +7,8 @@ import { useState, useEffect } from "react";
 import Modal from "../../components/Modal";
 import Skeleton from "../../components/Skeleton";
 import EmptyState from "../../components/EmptyState";
-import Breadcrumbs from "../../components/Breadcrumbs";
+import SearchBar from "../../components/SearchBar";
+import Dropdown from "../../components/Dropdown";
 import AdminPageLayout from "../../components/layouts/AdminPageLayout";
 import AnnouncementCard from "../../components/cards/AnnouncementCard";
 import EventCard from "../../components/cards/EventCard";
@@ -26,14 +27,54 @@ import {
 import { EVENT_TYPE_LABELS, EVENT_TYPE_OPTIONS, ANNOUNCEMENT_INITIAL, EVENT_INITIAL } from "../../constants";
 import { GeneralModalConfig, Announcement, SchoolEvent, EventType, AnnouncementFormData, EventFormData } from "../../types";
 
+type AnnouncementSort = "title-asc" | "title-desc" | "published-asc" | "published-desc" | "expiry-asc" | "expiry-desc";
+type EventSort = "title-asc" | "title-desc" | "date-asc" | "date-desc";
+type DateRangeFilter = "all" | "this-week" | "this-month" | "this-year";
+
+const matchesDateRange = (dateStr: string | undefined | null, range: DateRangeFilter): boolean => {
+  if (range === "all") return true;
+  if (!dateStr) return false;
+  const date = new Date(dateStr);
+  const now = new Date();
+  if (range === "this-week") {
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    return date >= startOfWeek;
+  }
+  if (range === "this-month") {
+    return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+  }
+  if (range === "this-year") {
+    return date.getFullYear() === now.getFullYear();
+  }
+  return true;
+};
+
+const DATE_RANGE_OPTIONS = [
+  { label: "All Time", value: "all" },
+  { label: "This Week", value: "this-week" },
+  { label: "This Month", value: "this-month" },
+  { label: "This Year", value: "this-year" },
+];
+
 const AdminAnnouncementsAndEvents = () => {
-  // [STATES] Entities
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [events, setEvents] = useState<SchoolEvent[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // [STATE] Submitting — separate from loading to avoid Skeleton flash on form submit
   const [submitting, setSubmitting] = useState(false);
+
+  // [STATES] Announcement Search, Sort & Filter
+  const [announcementSearch, setAnnouncementSearch] = useState("");
+  const [announcementSort, setAnnouncementSort] = useState<AnnouncementSort>("published-desc");
+  const [announcementDateFilter, setAnnouncementDateFilter] = useState<DateRangeFilter>("all");
+  const [announcementActiveDropdown, setAnnouncementActiveDropdown] = useState<"sort" | "filter" | null>(null);
+
+  // [STATES] Event Search, Sort & Filter
+  const [eventSearch, setEventSearch] = useState("");
+  const [eventSort, setEventSort] = useState<EventSort>("date-asc");
+  const [eventDateFilter, setEventDateFilter] = useState<DateRangeFilter>("all");
+  const [eventActiveDropdown, setEventActiveDropdown] = useState<"sort" | "filter" | null>(null);
 
   // [STATES] Announcement Form Modal
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
@@ -64,8 +105,7 @@ const AdminAnnouncementsAndEvents = () => {
     onConfirm: () => {},
   });
 
-  // [STATE] Visible events count (load-more style)
-  const [visibleEvents, setVisibleEvents] = useState(3);
+  const [visibleEvents, setVisibleEvents] = useState(8);
 
   const openGeneralModal = (config: Partial<Omit<GeneralModalConfig, "isOpen">>) => {
     setGeneralModal(prev => ({ ...prev, isOpen: true, ...config }));
@@ -181,10 +221,7 @@ const AdminAnnouncementsAndEvents = () => {
       const token = localStorage.getItem("token");
       const res = await fetch(url, {
         method: isEditing ? "PUT" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           title: announcementFormData.title.trim(),
           content: announcementFormData.content.trim(),
@@ -234,7 +271,6 @@ const AdminAnnouncementsAndEvents = () => {
             method: "DELETE",
             headers: { Authorization: `Bearer ${token}` },
           });
-
           const data = await safeJson(res);
           if (!data.success) throw new Error(data.message || "Failed to delete announcement");
 
@@ -315,10 +351,7 @@ const AdminAnnouncementsAndEvents = () => {
       const token = localStorage.getItem("token");
       const res = await fetch(url, {
         method: isEditing ? "PUT" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           title: eventFormData.title.trim(),
           description: eventFormData.description.trim(),
@@ -371,7 +404,6 @@ const AdminAnnouncementsAndEvents = () => {
             method: "DELETE",
             headers: { Authorization: `Bearer ${token}` },
           });
-
           const data = await safeJson(res);
           if (!data.success) throw new Error(data.message || "Failed to delete event");
 
@@ -404,11 +436,45 @@ const AdminAnnouncementsAndEvents = () => {
     });
   };
 
-  // * [BREADCRUMBS] Admin Announcements & Events navigation
-  const breadcrumbs = [
-    { label: "Admin Dashboard", path: "/admin/dashboard" },
-    { label: "Announcements & Events", path: null },
-  ];
+  // * [COMPUTE] Filtered & sorted announcements
+  const filteredAnnouncements = announcements
+    .filter(a => {
+      const matchesSearch =
+        a.title.toLowerCase().includes(announcementSearch.toLowerCase()) ||
+        (a.content && a.content.toLowerCase().includes(announcementSearch.toLowerCase()));
+      const matchesDate = matchesDateRange(a.publishedAt, announcementDateFilter);
+      return matchesSearch && matchesDate;
+    })
+    .sort((a, b) => {
+      switch (announcementSort) {
+        case "title-asc":      return a.title.localeCompare(b.title);
+        case "title-desc":     return b.title.localeCompare(a.title);
+        case "published-asc":  return new Date(a.publishedAt ?? 0).getTime() - new Date(b.publishedAt ?? 0).getTime();
+        case "published-desc": return new Date(b.publishedAt ?? 0).getTime() - new Date(a.publishedAt ?? 0).getTime();
+        case "expiry-asc":     return new Date(a.expiresAt ?? 0).getTime() - new Date(b.expiresAt ?? 0).getTime();
+        case "expiry-desc":    return new Date(b.expiresAt ?? 0).getTime() - new Date(a.expiresAt ?? 0).getTime();
+        default: return 0;
+      }
+    });
+
+  // * [COMPUTE] Filtered & sorted events
+  const filteredEvents = events
+    .filter(e => {
+      const matchesSearch =
+        e.title.toLowerCase().includes(eventSearch.toLowerCase()) ||
+        (e.location && e.location.toLowerCase().includes(eventSearch.toLowerCase()));
+      const matchesDate = matchesDateRange(e.startDate, eventDateFilter);
+      return matchesSearch && matchesDate;
+    })
+    .sort((a, b) => {
+      switch (eventSort) {
+        case "title-asc":  return a.title.localeCompare(b.title);
+        case "title-desc": return b.title.localeCompare(a.title);
+        case "date-asc":   return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+        case "date-desc":  return new Date(b.startDate).getTime() - new Date(a.startDate).getTime();
+        default: return 0;
+      }
+    });
 
   // ? [LOADING STATE]
   if (loading) return <Skeleton />;
@@ -438,7 +504,6 @@ const AdminAnnouncementsAndEvents = () => {
         isCancelable
       >
         <div className="space-y-4 p-1">
-          {/* [SECTION] Metadata */}
           <div className="space-y-1">
             <p className="text-[var(--color-text-500)] text-xs">
               Published {formatDate(selectedAnnouncement?.publishedAt)}
@@ -447,15 +512,11 @@ const AdminAnnouncementsAndEvents = () => {
               {selectedAnnouncement?.title}
             </h3>
           </div>
-
-          {/* [SECTION] Content */}
           <div className="bg-[var(--color-bg-50)] border border-[var(--color-bg-200)] rounded-md p-3">
             <p className="text-[var(--color-text-700)] text-sm leading-relaxed whitespace-pre-wrap">
               {selectedAnnouncement?.content}
             </p>
           </div>
-
-          {/* [SECTION] Expiry */}
           {selectedAnnouncement?.expiresAt && (
             <div className="flex justify-between items-center text-xs text-[var(--color-text-500)]">
               <span>Expiry Date</span>
@@ -464,8 +525,6 @@ const AdminAnnouncementsAndEvents = () => {
               </span>
             </div>
           )}
-
-          {/* [SECTION] Delete */}
           <div className="border-t border-[var(--color-bg-200)] pt-3 flex justify-end">
             <DeleteButton
               text="Delete Announcement"
@@ -486,7 +545,6 @@ const AdminAnnouncementsAndEvents = () => {
         isCancelable
       >
         <div className="space-y-4 p-1">
-          {/* [SECTION] Metadata */}
           <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs font-bold uppercase text-[var(--color-primary-600)]">
@@ -506,15 +564,11 @@ const AdminAnnouncementsAndEvents = () => {
               {selectedEvent?.title}
             </h3>
           </div>
-
-          {/* [SECTION] Description */}
           <div className="bg-[var(--color-bg-50)] border border-[var(--color-bg-200)] rounded-md p-3">
             <p className="text-[var(--color-text-700)] text-sm leading-relaxed whitespace-pre-wrap">
               {selectedEvent?.description || "No description available."}
             </p>
           </div>
-
-          {/* [SECTION] Details */}
           <div className="space-y-2 text-sm">
             {selectedEvent?.location && (
               <div className="flex justify-between items-center">
@@ -527,14 +581,10 @@ const AdminAnnouncementsAndEvents = () => {
             {selectedEvent?.endDate && (
               <div className="flex justify-between items-center">
                 <span className="text-[var(--color-text-700)] font-figree font-semibold">Ends</span>
-                <span className="text-[var(--color-text-900)]">
-                  {formatDate(selectedEvent.endDate)}
-                </span>
+                <span className="text-[var(--color-text-900)]">{formatDate(selectedEvent.endDate)}</span>
               </div>
             )}
           </div>
-
-          {/* [SECTION] Delete */}
           <div className="border-t border-[var(--color-bg-200)] pt-3 flex justify-end">
             <DeleteButton
               text="Delete Event"
@@ -555,12 +605,9 @@ const AdminAnnouncementsAndEvents = () => {
         isCancelable={!submitting}
       >
         <div className="p-1 space-y-3">
-          {/* [ERROR] Form error */}
           {announcementFormError && (
             <p className="text-[var(--color-red-500)] text-xs">{announcementFormError}</p>
           )}
-
-          {/* [FIELD] Title */}
           <div className="space-y-1">
             <label className="text-xs font-semibold text-[var(--color-text-700)]">
               Title <span className="text-[var(--color-red-500)]">*</span>
@@ -573,8 +620,6 @@ const AdminAnnouncementsAndEvents = () => {
               className="input-base w-full"
             />
           </div>
-
-          {/* [FIELD] Content */}
           <div className="space-y-1">
             <label className="text-xs font-semibold text-[var(--color-text-700)]">
               Content <span className="text-[var(--color-red-500)]">*</span>
@@ -587,8 +632,6 @@ const AdminAnnouncementsAndEvents = () => {
               className="input-base w-full resize-none"
             />
           </div>
-
-          {/* [FIELDS] Dates */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-xs font-semibold text-[var(--color-text-700)]">Publish Date</label>
@@ -623,12 +666,9 @@ const AdminAnnouncementsAndEvents = () => {
         isCancelable={!submitting}
       >
         <div className="p-1 space-y-3">
-          {/* [ERROR] Form error */}
           {eventFormError && (
             <p className="text-[var(--color-red-500)] text-xs">{eventFormError}</p>
           )}
-
-          {/* [FIELD] Title */}
           <div className="space-y-1">
             <label className="text-xs font-semibold text-[var(--color-text-700)]">
               Title <span className="text-[var(--color-red-500)]">*</span>
@@ -641,8 +681,6 @@ const AdminAnnouncementsAndEvents = () => {
               className="input-base w-full"
             />
           </div>
-
-          {/* [FIELD] Description */}
           <div className="space-y-1">
             <label className="text-xs font-semibold text-[var(--color-text-700)]">Description</label>
             <textarea
@@ -653,8 +691,6 @@ const AdminAnnouncementsAndEvents = () => {
               className="input-base w-full resize-none"
             />
           </div>
-
-          {/* [FIELDS] Type & Location */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-xs font-semibold text-[var(--color-text-700)]">Type</label>
@@ -679,8 +715,6 @@ const AdminAnnouncementsAndEvents = () => {
               />
             </div>
           </div>
-
-          {/* [FIELDS] Start & End Date */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-xs font-semibold text-[var(--color-text-700)]">
@@ -703,8 +737,6 @@ const AdminAnnouncementsAndEvents = () => {
               />
             </div>
           </div>
-
-          {/* [FIELD] Online toggle */}
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -721,31 +753,69 @@ const AdminAnnouncementsAndEvents = () => {
       </Modal>
 
       {/* [LAYOUT] Admin Page */}
-      <AdminPageLayout
-        header={
-          <Breadcrumbs items={breadcrumbs} title="Announcements & Events" />
-        }
-      >
+      <AdminPageLayout header={<span className="page-title">Announcements & Events</span>}>
         <div className="space-y-8">
 
           {/* [SECTION] Announcements */}
           <section className="space-y-3">
-            {/* [HEADER] Section banner */}
             <div className="bg-[var(--color-primary-700)] text-[var(--color-text-50)] px-4 py-3 rounded-md shadow-md">
               <h2 className="text-xl font-bold uppercase tracking-wide">Announcements</h2>
             </div>
 
-            {/* [BUTTON] Add Announcement */}
-            <PrimaryButton
-              text="Add Announcement"
-              iconSrc="/add-icon.svg"
-              onClick={handleAddAnnouncement}
-            />
+            {/* [TOOLBAR] Search + Sort + Filter + Add */}
+            <div className="bg-[var(--color-bg-100)] px-3 sm:px-4 py-4 rounded-lg flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">
+              <div className="flex items-stretch gap-2 w-full">
+                <div className="w-full sm:w-64 md:w-80 lg:w-96">
+                  <SearchBar
+                    value={announcementSearch}
+                    placeholder="Search announcements..."
+                    onChange={setAnnouncementSearch}
+                    onResetPage={() => {}}
+                  />
+                </div>
+                <div className="flex gap-x-2 ml-auto shrink-0">
+                  <Dropdown
+                    icon="/sort-icon.svg"
+                    label="Sort"
+                    isOpen={announcementActiveDropdown === "sort"}
+                    onToggle={() => setAnnouncementActiveDropdown(announcementActiveDropdown === "sort" ? null : "sort")}
+                    selected={announcementSort}
+                    onSelect={(v) => setAnnouncementSort(v as AnnouncementSort)}
+                    options={[
+                      { label: "Title ↑", value: "title-asc" },
+                      { label: "Title ↓", value: "title-desc" },
+                      { label: "Published (Newest)", value: "published-desc" },
+                      { label: "Published (Oldest)", value: "published-asc" },
+                      { label: "Expiry (Soonest)", value: "expiry-asc" },
+                      { label: "Expiry (Latest)", value: "expiry-desc" },
+                    ]}
+                    width="w-48"
+                  />
+                  <Dropdown
+                    icon="/filter-icon.svg"
+                    label="Filter"
+                    isOpen={announcementActiveDropdown === "filter"}
+                    onToggle={() => setAnnouncementActiveDropdown(announcementActiveDropdown === "filter" ? null : "filter")}
+                    selected={announcementDateFilter}
+                    onSelect={(v) => setAnnouncementDateFilter(v as DateRangeFilter)}
+                    options={DATE_RANGE_OPTIONS}
+                    width="w-36"
+                  />
+                </div>
+              </div>
+              <div className="w-full md:w-auto md:ml-auto">
+                <PrimaryButton
+                  text="Add Announcement"
+                  iconSrc="/add-icon.svg"
+                  onClick={handleAddAnnouncement}
+                  className="w-full md:w-auto"
+                />
+              </div>
+            </div>
 
-            {/* [GRID] Announcement cards */}
-            {announcements.length > 0 ? (
+            {filteredAnnouncements.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
-                {announcements.map(item => (
+                {filteredAnnouncements.map(item => (
                   <AnnouncementCard
                     key={item.id}
                     announcement={item}
@@ -757,8 +827,12 @@ const AdminAnnouncementsAndEvents = () => {
             ) : (
               <div className="py-12 text-center border-2 border-dashed border-[var(--color-text-200)] rounded-xl bg-[var(--color-bg-50)]">
                 <EmptyState
-                  title="No announcements yet"
-                  subtitle="Create the first announcement to notify advisers and visitors."
+                  title={announcements.length === 0 ? "No announcements yet" : "No announcements found"}
+                  subtitle={
+                    announcements.length === 0
+                      ? "Create the first announcement to notify advisers and visitors."
+                      : "No announcements match your current search or filters."
+                  }
                   iconSrc="/no-data-icon.svg"
                 />
               </div>
@@ -767,23 +841,62 @@ const AdminAnnouncementsAndEvents = () => {
 
           {/* [SECTION] Upcoming Events */}
           <section className="space-y-3">
-            {/* [HEADER] Section banner */}
             <div className="bg-[var(--color-secondary-600)] text-[var(--color-text-50)] px-4 py-3 rounded-md shadow-md">
               <h2 className="text-xl font-bold uppercase tracking-wide">Upcoming Events</h2>
             </div>
 
-            {/* [BUTTON] Add Event */}
-            <SecondaryButton
-              text="Add Event"
-              iconSrc="/add-icon.svg"
-              onClick={handleAddEvent}
-            />
+            {/* [TOOLBAR] Search + Sort + Filter + Add */}
+            <div className="bg-[var(--color-bg-100)] px-3 sm:px-4 py-4 rounded-lg flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">
+              <div className="flex items-stretch gap-2 w-full">
+                <div className="w-full sm:w-64 md:w-80 lg:w-96">
+                  <SearchBar
+                    value={eventSearch}
+                    placeholder="Search events..."
+                    onChange={setEventSearch}
+                    onResetPage={() => {}}
+                  />
+                </div>
+                <div className="flex gap-x-2 ml-auto shrink-0">
+                  <Dropdown
+                    icon="/sort-icon.svg"
+                    label="Sort"
+                    isOpen={eventActiveDropdown === "sort"}
+                    onToggle={() => setEventActiveDropdown(eventActiveDropdown === "sort" ? null : "sort")}
+                    selected={eventSort}
+                    onSelect={(v) => setEventSort(v as EventSort)}
+                    options={[
+                      { label: "Title ↑", value: "title-asc" },
+                      { label: "Title ↓", value: "title-desc" },
+                      { label: "Date (Soonest)", value: "date-asc" },
+                      { label: "Date (Latest)", value: "date-desc" },
+                    ]}
+                  />
+                  <Dropdown
+                    icon="/filter-icon.svg"
+                    label="Filter"
+                    isOpen={eventActiveDropdown === "filter"}
+                    onToggle={() => setEventActiveDropdown(eventActiveDropdown === "filter" ? null : "filter")}
+                    selected={eventDateFilter}
+                    onSelect={(v) => setEventDateFilter(v as DateRangeFilter)}
+                    options={DATE_RANGE_OPTIONS}
+                    width="w-36"
+                  />
+                </div>
+              </div>
+              <div className="w-full md:w-auto md:ml-auto">
+                <SecondaryButton
+                  text="Add Event"
+                  iconSrc="/add-icon.svg"
+                  onClick={handleAddEvent}
+                  className="w-full md:w-auto"
+                />
+              </div>
+            </div>
 
-            {/* [GRID] Event cards */}
-            {events.length > 0 ? (
+            {filteredEvents.length > 0 ? (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
-                  {events.slice(0, visibleEvents).map(event => (
+                  {filteredEvents.slice(0, visibleEvents).map(event => (
                     <EventCard
                       key={event.id}
                       event={event}
@@ -792,11 +905,9 @@ const AdminAnnouncementsAndEvents = () => {
                     />
                   ))}
                 </div>
-
-                {/* [UI] Load more */}
-                {visibleEvents < events.length && (
+                {visibleEvents < filteredEvents.length && (
                   <button
-                    onClick={() => setVisibleEvents(prev => prev + 3)}
+                    onClick={() => setVisibleEvents(prev => prev + 8)}
                     className="w-full text-center text-[var(--color-text-600)] underline text-sm mt-4 font-medium hover:text-[var(--color-text-800)] cursor-pointer"
                   >
                     See More Events
@@ -806,8 +917,12 @@ const AdminAnnouncementsAndEvents = () => {
             ) : (
               <div className="py-12 text-center border-2 border-dashed border-[var(--color-text-200)] rounded-xl bg-[var(--color-bg-50)]">
                 <EmptyState
-                  title="No upcoming events"
-                  subtitle="Add events to keep everyone informed about school activities."
+                  title={events.length === 0 ? "No upcoming events" : "No events found"}
+                  subtitle={
+                    events.length === 0
+                      ? "Add events to keep everyone informed about school activities."
+                      : "No events match your current search or filters."
+                  }
                   iconSrc="/no-data-icon.svg"
                 />
               </div>
