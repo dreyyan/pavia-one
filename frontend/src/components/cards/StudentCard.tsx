@@ -5,16 +5,7 @@ import { useNavigate } from "react-router-dom";
 // [IMPORT] Helpers
 import { formatName } from "../../helpers";
 
-interface Student {
-  id: number;
-  fullName: string;
-  lrn: string;
-  email?: string | null;
-  sex?: "MALE" | "FEMALE" | string | null;
-  adviser?: {
-    name?: string | null;
-  } | null;
-}
+import { Student } from "../../types";
 
 interface StudentCardProps {
   student: Student;
@@ -22,6 +13,15 @@ interface StudentCardProps {
 
 const StudentCard: React.FC<StudentCardProps> = ({ student: s }) => {
   const navigate = useNavigate();
+
+  const enrollment = s.enrollments?.[0];
+  const section = enrollment?.section;
+
+  const gradeSection = section
+    ? `Grade ${section.gradeLevel} - ${section.name}`
+    : "—";
+
+  const curriculum = section?.curriculum ?? "—";
 
   const initials = s.fullName
     .split(" ")
@@ -85,10 +85,10 @@ const StudentCard: React.FC<StudentCardProps> = ({ student: s }) => {
       <div className="px-4 py-3 space-y-2 text-sm">
         <div className="flex justify-between items-center min-w-0">
           <span className="text-[var(--color-text-700)] font-figree font-semibold">
-            Email
+            Grade & Section
           </span>
           <span className="text-[var(--color-text-900)] truncate text-right min-w-0">
-            {s.email ?? "—"}
+            {gradeSection}
           </span>
         </div>
 
@@ -98,6 +98,15 @@ const StudentCard: React.FC<StudentCardProps> = ({ student: s }) => {
           </span>
           <span className="text-[var(--color-text-900)] font-semibold truncate text-right min-w-0">
             {s.adviser?.name ?? "—"}
+          </span>
+        </div>
+
+        <div className="flex justify-between items-center min-w-0">
+          <span className="text-[var(--color-text-700)] font-figree font-semibold">
+            Curriculum
+          </span>
+          <span className="text-[var(--color-text-900)] truncate text-right min-w-0">
+            {curriculum}
           </span>
         </div>
       </div>
