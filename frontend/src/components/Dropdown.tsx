@@ -47,7 +47,7 @@ const Dropdown: React.FC<DropdownProps> = ({
           isOpen ? "bg-[var(--color-bg-50)]" : "bg-[var(--color-bg-50)] hover:opacity-80"
         }`}
       >
-        <img src={icon} alt={label} className="size-8 sm:size-4" />
+        <img src={icon} alt={label} className="size-4 sm:size-5" />
         <span className="hidden sm:inline text-xs font-roboto font-medium text-[var(--color-text-700)]">
           {label}
         </span>
