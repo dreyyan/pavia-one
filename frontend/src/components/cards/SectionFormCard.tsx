@@ -19,7 +19,7 @@ const SectionFormCard = ({ section, onClick }: SectionFormCardProps) => {
   const sf5 = section.schoolForms.find((f) => f.type === "SF5");
   const missing = getMissingInfo(section);
 
-  // [DERIVED] Grade color system (NOW CONSISTENT)
+  // [DERIVED] Grade color system
   const colors = getGradeColor(section.gradeLevel);
 
   return (
@@ -48,7 +48,7 @@ const SectionFormCard = ({ section, onClick }: SectionFormCardProps) => {
           <div
             className={`size-10 rounded-md flex items-center justify-center font-bold text-sm border flex-shrink-0 ${colors.badge}`}
           >
-            G{section.gradeLevel}
+            {section.gradeLevel}
           </div>
 
           {/* [UI] Section name + school year */}
