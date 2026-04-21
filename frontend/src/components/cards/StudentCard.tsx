@@ -1,5 +1,9 @@
+// [IMPORT] React
 import React from "react";
 import { useNavigate } from "react-router-dom";
+
+// [IMPORT] Helpers
+import { formatName } from "../../helpers";
 
 interface Student {
   id: number;
@@ -54,7 +58,7 @@ const StudentCard: React.FC<StudentCardProps> = ({ student: s }) => {
 
           <div className="flex-1 min-w-0">
             <p className="font-roboto font-bold text-[var(--color-text-900)] text-lg leading-tight truncate">
-              {s.fullName}
+              {formatName(s.fullName)}
             </p>
             <p className="text-xs font-mono text-[var(--color-text-600)] mt-0.5 tracking-wider truncate">
               LRN{" "}
