@@ -20,7 +20,7 @@ import AdminPageLayout from "../../components/layouts/AdminPageLayout";
 
 // [IMPORT] Helpers, Constants & Types
 import { getVisiblePages, getLastName } from "../../helpers/index";
-import { SEX_OPTIONS } from "../../constants";
+import { GRADE_LEVEL_OPTIONS, CURRICULUM_OPTIONS } from "../../constants";
 import { GeneralModalConfig, StudentFormData, Adviser, Student } from "../../types";
 
 const AdminStudents = () => {
@@ -34,8 +34,10 @@ const AdminStudents = () => {
   // [STATES] Search, Sort, and Filter
   const [search, setSearch] = useState("");
   const [adviserSearch, setAdviserSearch] = useState("");
-  const [activeDropdown, setActiveDropdown] = useState<"sort" | "sex" | null>(null);
-  const [selectedSex, setSelectedSex] = useState<string | "All">("All");
+  const [activeDropdown, setActiveDropdown] = useState<"sort" | "filter" | null>(null);
+  const [selectedGrades, setSelectedGrades] = useState<string[]>([]);
+  const [selectedCurricula, setSelectedCurricula] = useState<string[]>([]);
+  const [selectedSections, setSelectedSections] = useState<string[]>([]);
 
   type SortOption = "name-asc" | "name-desc" | "lrn-asc" | "lrn-desc";
   const [sortOption, setSortOption] = useState<SortOption>("name-asc");
@@ -349,7 +351,9 @@ const AdminStudents = () => {
         (s.lrn && s.lrn.includes(search)) ||
         (s.email && s.email.toLowerCase().includes(search.toLowerCase()))
       ) &&
-      (selectedSex === "All" || s.sex === selectedSex)
+      (selectedGrades.length === 0 || (s.enrollments?.[0]?.section?.gradeLevel != null && selectedGrades.includes(String(s.enrollments[0].section.gradeLevel)))) &&
+      (selectedCurricula.length === 0 || (s.enrollments?.[0]?.section?.curriculum != null && selectedCurricula.includes(s.enrollments[0].section.curriculum))) &&
+      (selectedSections.length === 0 || (s.enrollments?.[0]?.section?.name != null && selectedSections.includes(s.enrollments[0].section.name)))
     )
     .sort((a, b) => {
       switch (sortOption) {
@@ -454,17 +458,36 @@ const AdminStudents = () => {
                   <Dropdown
                     icon="/filter-icon.svg"
                     label="Filter"
-                    isOpen={activeDropdown === "sex"}
+                    isOpen={activeDropdown === "filter"}
                     onToggle={() =>
-                      setActiveDropdown(activeDropdown === "sex" ? null : "sex")
+                      setActiveDropdown(activeDropdown === "filter" ? null : "filter")
                     }
-                    selected={selectedSex}
-                    onSelect={(value) => {
-                      setSelectedSex(value);
-                      setPage(1);
-                    }}
-                    width="w-32"
-                    options={[{ label: "All", value: "All" }, ...SEX_OPTIONS]}
+                    width="w-56"
+                    groups={[
+                      {
+                        label: "Grade",
+                        options: GRADE_LEVEL_OPTIONS.map(g => ({ label: `Grade ${g}`, value: String(g) })),
+                        selectedValues: selectedGrades,
+                        onSelectMultiple: (v) => { setSelectedGrades(v); setPage(1); },
+                      },
+                      {
+                        label: "Curriculum",
+                        options: CURRICULUM_OPTIONS.map(c => ({ label: c.label, value: c.value })),
+                        selectedValues: selectedCurricula,
+                        onSelectMultiple: (v) => { setSelectedCurricula(v); setPage(1); },
+                      },
+                      {
+                        label: "Section",
+                        options: [...new Map(
+                          students
+                            .flatMap(s => s.enrollments ?? [])
+                            .filter(e => e.section?.name)
+                            .map(e => [e.section!.name, { label: e.section!.name, value: e.section!.name }])
+                        ).values()].sort((a, b) => a.label.localeCompare(b.label)),
+                        selectedValues: selectedSections,
+                        onSelectMultiple: (v) => { setSelectedSections(v); setPage(1); },
+                      },
+                    ]}
                   />
                 </div>
               </div>
