@@ -592,7 +592,7 @@ const AdminSections = () => {
                       <td className="table-cell table-text">
                         {s.adviser
                           ? <span className="table-text-default">{s.adviser.name}</span>
-                          : <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200 font-semibold">Unassigned</span>
+                          : <span className="text-xs px-2 py-0.5 rounded-full text-[var(--color-red-600)] bg-[var(--color-red-50)] border-[var(--color-red-300)] font-semibold">Unassigned</span>
                         }
                       </td>
 
