@@ -6,8 +6,9 @@ import Modal from "./components/Modal";
 
 export default function Layout() {
   const location = useLocation();
+
   const hideHeader =
-  location.pathname === "/" ||
+    location.pathname === "/" ||
     location.pathname === "/login/admin" ||
     location.pathname === "/login/adviser" ||
     location.pathname === "/forgot-password";
@@ -27,14 +28,14 @@ export default function Layout() {
       </main>
       {!hideFooter && <Footer />}
 
-      {/* Token Expired Modal using custom Modal */}
+      {/* [MODAL] Token Expired */}
       {showTokenExpiredModal && (
         <Modal
           isOpen={showTokenExpiredModal}
           onClose={() => setShowTokenExpiredModal(false)}
           onConfirm={() => {
             setShowTokenExpiredModal(false);
-            logout(); // log out and redirect to login
+            logout();
           }}
           title="Session Expired"
           message="Your session has expired. Please log in again."
