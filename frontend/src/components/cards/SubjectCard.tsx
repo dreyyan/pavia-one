@@ -31,14 +31,12 @@ const SubjectCard: React.FC<SubjectCardProps> = ({ subject, onClick }) => {
       {/* [HEADER] Grade Badge, Name & Code */}
       <div className="bg-[var(--color-bg-50)] px-3 pr-4 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
         <div className="flex items-center w-full gap-3 min-w-0">
-          {/* [UI] Grade Level Badge */}
           <div
             className={`size-10 rounded-md flex items-center justify-center font-bold text-sm border flex-shrink-0 px-1 ${colors.badge}`}
           >
             {subject.gradeLevel}
           </div>
 
-          {/* [TEXT] Name + Subject Code */}
           <div className="flex-1 min-w-0">
             <p className="font-roboto font-bold text-[var(--color-text-900)] text-lg leading-tight truncate">
               {subject.name}
@@ -48,16 +46,38 @@ const SubjectCard: React.FC<SubjectCardProps> = ({ subject, onClick }) => {
             </p>
           </div>
         </div>
+
+        {!subject.assignedAdviser && (
+          <span className="ml-2 flex-shrink-0 text-xs px-2 py-0.5 rounded-full border font-semibold text-[var(--color-red-600)] bg-[var(--color-red-50)] border-[var(--color-red-300)] italic">
+            No Adviser
+          </span>
+        )}
       </div>
 
-      {/* [DETAILS] Curriculum */}
+      {/* [DETAILS] Fields */}
       <div className="px-4 py-3 space-y-2 text-sm">
+
         <div className="flex justify-between items-center min-w-0">
           <span className="text-[var(--color-text-700)] font-figree font-semibold">
             Curriculum
           </span>
           <span className="text-[var(--color-text-900)] truncate text-right min-w-0">
             {subject.curriculum ?? "—"}
+          </span>
+        </div>
+
+        <div className="flex justify-between items-center min-w-0">
+          <span className="text-[var(--color-text-700)] font-figree font-semibold">
+            Assigned Adviser
+          </span>
+          <span
+            className={`truncate text-right max-w-[180px] min-w-0 ${
+              !subject.assignedAdviser
+                ? "text-[var(--color-red-600)] italic"
+                : "text-[var(--color-text-900)] font-semibold"
+            }`}
+          >
+            {subject.assignedAdviser?.name ?? "—"}
           </span>
         </div>
       </div>

@@ -172,6 +172,11 @@ export interface Subject {
   performanceTaskWeight?: number;
   quarterlyAssessmentWeight?: number;
   createdAt: string;
+
+  assignedAdviser?: {
+    id: number;
+    name: string;
+  };
 }
 
 // ? [TYPES] Specific Fields
