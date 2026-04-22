@@ -25,7 +25,7 @@ const SectionFormCard = ({ section, onClick }: SectionFormCardProps) => {
   return (
     <div
       onClick={() => onClick(section.id)}
-      className={`bg-white rounded-md border overflow-hidden hover:translate-y-[-1px] hover:shadow-md active:shadow-md transition-all duration-200 cursor-pointer ${
+      className={`bg-white rounded-md border-2 overflow-hidden hover:translate-y-[-1px] hover:shadow-md active:shadow-md transition-all duration-200 cursor-pointer ${
         missing.length > 0
           ? "border-[var(--color-secondary-200)]"
           : "border-[var(--color-bg-200)]"
@@ -124,7 +124,7 @@ const SectionFormCard = ({ section, onClick }: SectionFormCardProps) => {
               SF1: {FORM_STATUS_LABELS[sf1.status]}
             </span>
           ) : (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200 font-semibold">
+            <span className="text-xs px-2 py-0.5 rounded-full text-[var(--color-secondary-600)] border border-[var(--color-secondary-200)] font-semibold">
               SF1: Missing
             </span>
           )}
