@@ -20,7 +20,7 @@ const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items, title }) => {
         <span className="breadcrumb-header leading-0">{title}</span>
       )}
 
-      <nav className="font-roboto text-sm text-[var(--color-text-700)] flex flex-wrap items-center gap-1">
+      <nav className="font-roboto text-xs sm:text-sm md:text-base lg:text-lg text-[var(--color-text-700)] flex flex-wrap items-center gap-1">
         {items.map((crumb, idx) => (
           <span key={idx} className="flex items-center gap-1">
             {crumb.path ? (
