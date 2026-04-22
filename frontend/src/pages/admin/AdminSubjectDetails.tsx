@@ -227,7 +227,12 @@ const AdminSubjectDetails = () => {
   const breadcrumbs = [
     { label: "Admin Dashboard", path: "/admin/dashboard" },
     { label: "Subjects", path: "/admin/subjects" },
-    { label: subject?.name ?? "Details", path: null },
+    {
+      label: subject
+        ? `${subject.name} (Grade ${subject.gradeLevel})`
+        : "Details",
+      path: null,
+    },
   ];
 
   // [COMPUTE] Live weight sum for validation and display

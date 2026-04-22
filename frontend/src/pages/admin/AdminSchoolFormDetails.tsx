@@ -368,12 +368,12 @@ const AdminSchoolFormDetails = () => {
 
                           {/* [BANNER] Status hints */}
                           {notGenerated && (
-                            <div className="text-xs bg-amber-50 border border-amber-200 rounded px-2 py-1 text-amber-700 font-roboto">
+                            <div className="text-xs bg-[var(--color-secondary-50)] border border-[var(--color-secondary-200)] rounded px-2 py-1 text-[var(--color-secondary-600)] font-roboto">
                               ⚠ Not yet generated
                             </div>
                           )}
                           {awaitingSubmit && (
-                            <div className="text-xs bg-blue-50 border border-blue-200 rounded px-2 py-1 text-blue-700 font-roboto">
+                            <div className="text-xs bg-[var(--color-primary-50)] border border-[var(--color-primary-200)] rounded px-2 py-1 text-[var(--color-primary-600)] font-roboto">
                               Awaiting submission
                             </div>
                           )}
@@ -536,13 +536,13 @@ const AdminSchoolFormDetails = () => {
                         <div className="px-4 py-3 space-y-2 text-sm">
                           <div className="flex justify-between items-center">
                             <span className="text-[var(--color-text-700)] font-semibold">Gen. Average</span>
-                            <span className={student.generalAverage == null ? "text-amber-600 font-semibold" : "text-[var(--color-text-900)]"}>
+                            <span className={student.generalAverage == null ? "text-[var(--color-text-500)] font-semibold" : "text-[var(--color-text-900)]"}>
                               {student.generalAverage ?? "—"}
                             </span>
                           </div>
                           <div className="flex justify-between items-center">
                             <span className="text-[var(--color-text-700)] font-semibold">Action Taken</span>
-                            <span className={!student.actionTaken ? "text-amber-600 font-semibold italic" : "text-[var(--color-text-900)]"}>
+                            <span className={!student.actionTaken ? "text-[var(--color-text-500)] font-semibold italic" : "text-[var(--color-text-900)]"}>
                               {student.actionTaken ?? "—"}
                             </span>
                           </div>
