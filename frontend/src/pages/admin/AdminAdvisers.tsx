@@ -40,13 +40,12 @@ const AdminAdvisers = () => {
 
   // [STATES] Search, Sort, and Filter
   const [search, setSearch] = useState("");
-  const [activeDropdown, setActiveDropdown] = useState<"sort" | "sections" | null>(null);
+  const [activeDropdown, setActiveDropdown] = useState<"sort" | "filter" | null>(null);
 
   type SortOption = "name-asc" | "name-desc";
   const [sortOption, setSortOption] = useState<SortOption>("name-asc");
 
-  type SectionsFilter = "All" | "with-sections" | "no-sections";
-  const [sectionsFilter, setSectionsFilter] = useState<SectionsFilter>("All");
+  const [sectionsFilter, setSectionsFilter] = useState<string[]>([]);
 
   // [STATES] Adviser Form Modal
   const [showAdviserModal, setShowAdviserModal] = useState(false);
@@ -194,9 +193,9 @@ const AdminAdvisers = () => {
 
       const sectionCount = a.sectionCount ?? 0;
       const matchesSections =
-        sectionsFilter === "All" ||
-        (sectionsFilter === "with-sections" && sectionCount > 0) ||
-        (sectionsFilter === "no-sections" && sectionCount === 0);
+        sectionsFilter.length === 0 ||
+        (sectionsFilter.includes("with-sections") && sectionCount > 0) ||
+        (sectionsFilter.includes("no-sections") && sectionCount === 0);
 
       return matchesSearch && matchesSections;
     })
@@ -296,18 +295,14 @@ const AdminAdvisers = () => {
                   <Dropdown
                     icon="/filter-icon.svg"
                     label="Filter"
-                    isOpen={activeDropdown === "sections"}
+                    isOpen={activeDropdown === "filter"}
                     onToggle={() =>
-                      setActiveDropdown(activeDropdown === "sections" ? null : "sections")
+                      setActiveDropdown(activeDropdown === "filter" ? null : "filter")
                     }
-                    selected={sectionsFilter}
-                    onSelect={(value) => {
-                      setSectionsFilter(value as SectionsFilter);
-                      setPage(1);
-                    }}
-                    width="w-40"
+                    width="w-44"
+                    selectedValues={sectionsFilter}
+                    onSelectMultiple={(v) => { setSectionsFilter(v); setPage(1); }}
                     options={[
-                      { label: "All", value: "All" },
                       { label: "With Sections", value: "with-sections" },
                       { label: "No Sections", value: "no-sections" },
                     ]}
