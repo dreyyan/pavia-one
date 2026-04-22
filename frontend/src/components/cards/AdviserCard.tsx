@@ -52,7 +52,7 @@ const AdviserCard: React.FC<AdviserCardProps> = ({ adviser: a, onClick }) => {
         </div>
       </div>
 
-      {/* [DETAILS] Email & Sections */}
+      {/* [DETAILS] Fields */}
       <div className="px-4 py-3 space-y-2 text-sm">
         <div className="flex justify-between items-center min-w-0">
           <span className="text-[var(--color-text-700)] font-figree font-semibold">
@@ -65,7 +65,7 @@ const AdviserCard: React.FC<AdviserCardProps> = ({ adviser: a, onClick }) => {
 
         <div className="flex justify-between items-center min-w-0">
           <span className="text-[var(--color-text-700)] font-figree font-semibold">
-            Section
+            Assigned Section
           </span>
           <span className="text-[var(--color-text-900)] truncate text-right min-w-0">
             {a.sections?.length
@@ -73,7 +73,7 @@ const AdviserCard: React.FC<AdviserCardProps> = ({ adviser: a, onClick }) => {
               : "None"}
           </span>
         </div>
-        
+
         <div className="flex justify-between items-center min-w-0">
           <span className="text-[var(--color-text-700)] font-figree font-semibold">
             Sections
