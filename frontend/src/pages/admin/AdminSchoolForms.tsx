@@ -242,7 +242,7 @@ const filteredSections = sections
         </div>
 
         {/* [SECTION] Overview */}
-        <div className="bg-[var(--color-bg-100)] border-2 border-[var(--color-bg-300)]/60 rounded-xl px-5 py-6 gap-x-3 shadow-md">
+        <div className="bg-[var(--color-bg-100)] rounded-xl px-5 py-6 gap-x-3 shadow-md">
           <h2 className="mb-3">Overview</h2>
           <div className="space-y-2">
             <DashboardItem iconSrc="/total-sections-icon.svg" text="Total Sections" value={totalSections} />
@@ -338,7 +338,7 @@ const filteredSections = sections
         </div>
 
         {/* ── MOBILE: Cards ── */}
-        <div className="flex flex-col gap-3 sm:hidden">
+        <div className="flex flex-col gap-3 sm:hidden bg-[var(--color-bg-100)] px-3 sm:px-4 py-4 rounded-lg md:flex-row md:items-center md:gap-4 w-full">
           {displayedSections.length === 0 ? (
             <EmptyState
               title="No sections found"
