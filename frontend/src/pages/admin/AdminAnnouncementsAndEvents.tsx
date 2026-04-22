@@ -96,13 +96,13 @@ const AdminAnnouncementsAndEvents = () => {
   // [STATES] Announcement Search, Sort & Filter
   const [announcementSearch, setAnnouncementSearch] = useState("");
   const [announcementSort, setAnnouncementSort] = useState<AnnouncementSort>("published-desc");
-  const [announcementDateFilter, setAnnouncementDateFilter] = useState<DateRangeFilter>("all");
+  const [announcementDateFilters, setAnnouncementDateFilters] = useState<string[]>([]);
   const [announcementActiveDropdown, setAnnouncementActiveDropdown] = useState<"sort" | "filter" | null>(null);
 
   // [STATES] Event Search, Sort & Filter
   const [eventSearch, setEventSearch] = useState("");
   const [eventSort, setEventSort] = useState<EventSort>("date-asc");
-  const [eventDateFilter, setEventDateFilter] = useState<DateRangeFilter>("all");
+  const [eventDateFilters, setEventDateFilters] = useState<string[]>([]);
   const [eventActiveDropdown, setEventActiveDropdown] = useState<"sort" | "filter" | null>(null);
 
   // [STATES] Announcement Form Modal
@@ -474,7 +474,7 @@ const AdminAnnouncementsAndEvents = () => {
       const matchesSearch =
         a.title.toLowerCase().includes(announcementSearch.toLowerCase()) ||
         (a.content && a.content.toLowerCase().includes(announcementSearch.toLowerCase()));
-      const matchesDate = matchesDateRange(a.publishedAt, announcementDateFilter);
+      const matchesDate = announcementDateFilters.length === 0 || announcementDateFilters.some(r => matchesDateRange(a.publishedAt, r as DateRangeFilter));
       return matchesSearch && matchesDate;
     })
     .sort((a, b) => {
@@ -495,7 +495,7 @@ const AdminAnnouncementsAndEvents = () => {
       const matchesSearch =
         e.title.toLowerCase().includes(eventSearch.toLowerCase()) ||
         (e.location && e.location.toLowerCase().includes(eventSearch.toLowerCase()));
-      const matchesDate = matchesDateRange(e.startDate, eventDateFilter);
+      const matchesDate = eventDateFilters.length === 0 || eventDateFilters.some(r => matchesDateRange(e.startDate, r as DateRangeFilter));
       return matchesSearch && matchesDate;
     })
     .sort((a, b) => {
@@ -835,8 +835,8 @@ const AdminAnnouncementsAndEvents = () => {
                     label="Filter"
                     isOpen={announcementActiveDropdown === "filter"}
                     onToggle={() => setAnnouncementActiveDropdown(announcementActiveDropdown === "filter" ? null : "filter")}
-                    selected={announcementDateFilter}
-                    onSelect={(v) => { setAnnouncementDateFilter(v as DateRangeFilter); setAnnouncementPage(1); }}
+                    selectedValues={announcementDateFilters}
+                    onSelectMultiple={(v) => { setAnnouncementDateFilters(v); setAnnouncementPage(1); }}
                     options={DATE_RANGE_OPTIONS}
                     width="w-36"
                   />
@@ -923,8 +923,8 @@ const AdminAnnouncementsAndEvents = () => {
                     label="Filter"
                     isOpen={eventActiveDropdown === "filter"}
                     onToggle={() => setEventActiveDropdown(eventActiveDropdown === "filter" ? null : "filter")}
-                    selected={eventDateFilter}
-                    onSelect={(v) => { setEventDateFilter(v as DateRangeFilter); setEventPage(1); }}
+                    selectedValues={eventDateFilters}
+                    onSelectMultiple={(v) => { setEventDateFilters(v); setEventPage(1); }}
                     options={DATE_RANGE_OPTIONS}
                     width="w-36"
                   />
