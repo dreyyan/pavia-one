@@ -77,7 +77,25 @@ const AdminAdvisers = () => {
 
   // [STATES] Pagination
   const [page, setPage] = useState(1);
-  const itemsPerPage = 5;
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+
+  // [EFFECT] Update items per page based on screen width (responsive design)
+  useEffect(() => {
+    const updateItemsPerPage = () => {
+      const width = window.innerWidth;
+
+      if (width < 768) setItemsPerPage(5);        // xs (cards)
+      else if (width < 1024) setItemsPerPage(6);  // md (cards)
+      else if (width < 1280) setItemsPerPage(8);  // lg (table)
+      else if (width < 1536) setItemsPerPage(10); // xl (table)
+      else setItemsPerPage(12);                   // 2xl (table)
+    };
+
+    updateItemsPerPage();
+    window.addEventListener("resize", updateItemsPerPage);
+
+    return () => window.removeEventListener("resize", updateItemsPerPage);
+  }, []);
 
   // * [HANDLE] Fetch Advisers
   const fetchAdvisers = async () => {
