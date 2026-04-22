@@ -15,6 +15,12 @@ const SearchBar: React.FC<SearchBarProps> = ({
 }) => {
   return (
     <div className="relative flex-1">
+      <img
+        src="/search-icon.svg"
+        alt="Search"
+        className="absolute left-3 top-1/2 -translate-y-1/2 size-4 pointer-events-none"
+      />
+
       <input
         type="text"
         value={value}
@@ -23,7 +29,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
           onChange(e.target.value);
           onResetPage?.();
         }}
-        className="font-roboto font-medium text-xs sm:text-md w-full bg-[var(--color-bg-50)] rounded-sm px-3 outline-none border border-[var(--color-text-300)] focus:ring-2 focus:ring-[var(--color-primary-600)] h-10"
+        className="font-roboto font-medium text-xs sm:text-md w-full text-[var(--color-text-400)] bg-[var(--color-bg-50)] rounded-sm pl-10 pr-3 outline-none border border-[var(--color-text-300)] focus:ring-2 focus:ring-[var(--color-primary-600)] h-10"
       />
     </div>
   );
