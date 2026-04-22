@@ -19,7 +19,7 @@ import AdminPageLayout from "../../components/layouts/AdminPageLayout";
 
 // [IMPORT] Helpers, Constants & Types
 import { getVisiblePages } from "../../helpers/index";
-import { GRADE_LEVEL_OPTIONS } from "../../constants";
+import { GRADE_LEVEL_OPTIONS, CURRICULUM_OPTIONS } from "../../constants";
 import { LearningAreaFormData, GeneralModalConfig } from "../../types";
 
 // ? [INTERFACE] Subject entity
@@ -56,11 +56,12 @@ const AdminSubjects = () => {
 
   // [STATES] Search, Sort, and Filter
   const [search, setSearch] = useState("");
-  const [activeDropdown, setActiveDropdown] = useState<"sort" | "grade" | null>(null);
+  const [activeDropdown, setActiveDropdown] = useState<"sort" | "filter" | null>(null);
 
   type SortOption = "name-asc" | "name-desc" | "grade-asc" | "grade-desc";
   const [sortOption, setSortOption] = useState<SortOption>("name-asc");
-  const [selectedGrade, setSelectedGrade] = useState<string | "All">("All");
+  const [selectedGrades, setSelectedGrades] = useState<string[]>([]);
+  const [selectedCurricula, setSelectedCurricula] = useState<string[]>([]);
 
   // [STATES] Subject Form Modal
   const [showSubjectModal, setShowSubjectModal] = useState(false);
@@ -239,7 +240,8 @@ const AdminSubjects = () => {
         (s.code && s.code.toLowerCase().includes(search.toLowerCase())) ||
         (s.description && s.description.toLowerCase().includes(search.toLowerCase()))
       ) &&
-      (selectedGrade === "All" || String(s.gradeLevel) === selectedGrade)
+      (selectedGrades.length === 0 || selectedGrades.includes(String(s.gradeLevel))) &&
+      (selectedCurricula.length === 0 || (s.curriculum != null && selectedCurricula.includes(s.curriculum)))
     )
     .sort((a, b) => {
       switch (sortOption) {
@@ -335,18 +337,24 @@ const AdminSubjects = () => {
                   <Dropdown
                     icon="/filter-icon.svg"
                     label="Filter"
-                    isOpen={activeDropdown === "grade"}
+                    isOpen={activeDropdown === "filter"}
                     onToggle={() =>
-                      setActiveDropdown(activeDropdown === "grade" ? null : "grade")
+                      setActiveDropdown(activeDropdown === "filter" ? null : "filter")
                     }
-                    selected={selectedGrade}
-                    onSelect={(value) => {
-                      setSelectedGrade(value);
-                      setPage(1);
-                    }}
-                    options={[
-                      { label: "All", value: "All" },
-                      ...GRADE_LEVEL_OPTIONS.map(g => ({ label: `Grade ${g}`, value: g })),
+                    width="w-52"
+                    groups={[
+                      {
+                        label: "Grade",
+                        options: GRADE_LEVEL_OPTIONS.map(g => ({ label: `Grade ${g}`, value: String(g) })),
+                        selectedValues: selectedGrades,
+                        onSelectMultiple: (v) => { setSelectedGrades(v); setPage(1); },
+                      },
+                      {
+                        label: "Curriculum",
+                        options: CURRICULUM_OPTIONS.map(c => ({ label: c.label, value: c.value })),
+                        selectedValues: selectedCurricula,
+                        onSelectMultiple: (v) => { setSelectedCurricula(v); setPage(1); },
+                      },
                     ]}
                   />
                 </div>
