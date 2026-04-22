@@ -75,7 +75,7 @@ const SectionCard: React.FC<SectionCardProps> = ({ section, onClick }) => {
                 : "text-[var(--color-text-900)] font-semibold"
             }`}
           >
-            {section.adviser?.name ?? "Unassigned"}
+            {section.adviser?.name ?? "—"}
           </span>
         </div>
 
