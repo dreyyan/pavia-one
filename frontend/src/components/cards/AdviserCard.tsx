@@ -65,6 +65,17 @@ const AdviserCard: React.FC<AdviserCardProps> = ({ adviser: a, onClick }) => {
 
         <div className="flex justify-between items-center min-w-0">
           <span className="text-[var(--color-text-700)] font-figree font-semibold">
+            Section
+          </span>
+          <span className="text-[var(--color-text-900)] truncate text-right min-w-0">
+            {a.sections?.length
+              ? `Grade ${a.sections[0].gradeLevel} – ${a.sections[0].name}`
+              : "None"}
+          </span>
+        </div>
+        
+        <div className="flex justify-between items-center min-w-0">
+          <span className="text-[var(--color-text-700)] font-figree font-semibold">
             Sections
           </span>
           <span className="text-[var(--color-text-900)] font-semibold">
