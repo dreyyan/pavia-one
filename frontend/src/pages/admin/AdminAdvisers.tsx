@@ -364,15 +364,15 @@ const AdminAdvisers = () => {
               <table className="min-w-full border-separate border-spacing-y-2">
                 <thead>
                   <tr className="text-left">
-                    {/* [SECTION] Table Headers */}
                     <th className="table-header">Adviser</th>
                     <th className="table-header">ID</th>
                     <th className="table-header">Email</th>
+                    <th className="table-header">Curriculum</th>
+                    <th className="table-header">Assigned Section</th>
                     <th className="table-header">Sections</th>
                   </tr>
                 </thead>
 
-                {/* [SECTION] Table Body */}
                 <tbody>
                   {displayedAdvisers.map((a) => (
                     <tr
@@ -390,7 +390,9 @@ const AdminAdvisers = () => {
                               .toUpperCase()
                               .slice(0, 2)}
                           </div>
-                          <span className="table-text-link hover:underline">{a.name}</span>
+                          <span className="table-text-link hover:underline">
+                            {a.name}
+                          </span>
                         </div>
                       </td>
 
@@ -403,7 +405,17 @@ const AdminAdvisers = () => {
                       </td>
 
                       <td className="table-cell table-text table-text-default">
-                        {a.sectionCount ?? 0}
+                        {a.sections?.[0]?.curriculum ?? "—"}
+                      </td>
+
+                      <td className="table-cell table-text table-text-default">
+                        {a.sections?.length
+                          ? `Grade ${a.sections[0].gradeLevel} – ${a.sections[0].name}`
+                          : "Unassigned"}
+                      </td>
+
+                      <td className="table-cell table-text table-text-default">
+                        {a.sectionCount ?? a.sections?.length ?? 0}
                       </td>
                     </tr>
                   ))}
@@ -411,7 +423,6 @@ const AdminAdvisers = () => {
               </table>
             )}
           </div>
-
         </div>
       </AdminPageLayout>
     </>
