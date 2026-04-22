@@ -87,7 +87,7 @@ export interface Section {
   classSize: number;
   room?: string;
   createdAt: string;
-  adviser?: { id: number; name: string; adviserId: string };
+  adviser?: { id: number; name: string; adviserId: string; email?: string };
   color?: string;
 }
 

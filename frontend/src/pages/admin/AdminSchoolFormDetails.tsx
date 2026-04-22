@@ -15,14 +15,18 @@ import DashboardItem from "../../components/DashboardItem";
 import { GeneralModalConfig, SchoolFormType, SchoolFormStatus, SectionForm, StudentFormStatus } from "../../types";
 import { FORM_STATUS_BADGE, FORM_STATUS_LABELS } from "../../constants/index";
 import { safeJson } from "../../helpers/index";
+import SectionInfoCard from "../../components/cards/SectionInfoCard";
 
 // ? [INTERFACES]
 interface SectionDetail {
   id: number;
   name: string;
-  gradeLevel: number;
+  gradeLevel: string;
   schoolYear: string;
   curriculum: string;
+  learningModality: string;
+  classSize: number;
+  createdAt: string;
   adviser: { id: number; adviserId: string; name: string; email: string };
   schoolForms: SectionForm[];
 }
@@ -292,51 +296,7 @@ const AdminSchoolFormDetails = () => {
           <div className="space-y-4">
 
             {/* [CARD] Section Info */}
-            <div className="bg-[var(--color-bg-100)] rounded-lg border border-[var(--color-bg-200)] overflow-hidden">
-
-              {/* [CARD] Header */}
-              <div className="bg-[var(--color-bg-50)] border-b border-[var(--color-bg-200)] px-4 py-3 flex items-center justify-between gap-4 flex-wrap">
-                <div className="flex items-center gap-3">
-                  {/* [UI] Grade level avatar */}
-                  <div className="size-10 rounded-md bg-[var(--color-primary-100)] flex items-center justify-center text-[var(--color-primary-700)] font-bold text-sm border border-[var(--color-primary-200)] flex-shrink-0">
-                    G{section.gradeLevel}
-                  </div>
-                  <div>
-                    <h3 className="font-roboto font-bold text-[var(--color-text-900)] text-base leading-tight">
-                      Grade {section.gradeLevel} — {section.name}
-                    </h3>
-                    <p className="text-xs text-[var(--color-text-500)] mt-0.5 font-roboto">
-                      {section.schoolYear} · {section.curriculum} Curriculum
-                    </p>
-                  </div>
-                </div>
-
-                {/* [BUTTON] Back */}
-                <button
-                  onClick={() => navigate("/admin/school-forms")}
-                  className="text-sm font-roboto text-[var(--color-primary-600)] hover:underline cursor-pointer flex items-center gap-1"
-                >
-                  ← Back to Sections
-                </button>
-              </div>
-
-              {/* [CARD] Body — Adviser, School Year, Students */}
-              <div className="px-4 py-3 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm font-roboto">
-                <div>
-                  <p className="text-xs text-[var(--color-text-500)] uppercase tracking-wide mb-0.5">Adviser</p>
-                  <p className="font-semibold text-[var(--color-text-800)]">{section.adviser?.name}</p>
-                  <p className="text-xs text-[var(--color-text-400)]">{section.adviser?.email}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-[var(--color-text-500)] uppercase tracking-wide mb-0.5">School Year</p>
-                  <p className="font-semibold text-[var(--color-text-800)] font-mono">{section.schoolYear}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-[var(--color-text-500)] uppercase tracking-wide mb-0.5">Total Students</p>
-                  <p className="font-semibold text-[var(--color-text-800)]">{totalStudents}</p>
-                </div>
-              </div>
-            </div>
+            <SectionInfoCard section={section} totalStudents={totalStudents} />
 
             {/* [SECTION] Student Completion Overview */}
             {totalStudents > 0 && (
@@ -344,9 +304,9 @@ const AdminSchoolFormDetails = () => {
                 <h2 className="mb-3">Student Overview</h2>
                 <div className="space-y-2">
                   <DashboardItem iconSrc="/total-students-icon.svg" text="Total Students"    value={totalStudents} />
-                  <DashboardItem iconSrc="/check-icon.svg"          text="Complete"          value={completeStudents} color="#0066CC" />
-                  <DashboardItem iconSrc="/sort-icon.svg"           text="Partial"           value={partialStudents}  color="#B45309" />
-                  <DashboardItem iconSrc="/error-icon-white.svg"    text="Pending"           value={pendingStudents}  color="#6B7280" />
+                  <DashboardItem iconSrc="/check-icon.svg"          text="Complete"          value={completeStudents} color="#28A428" />
+                  <DashboardItem iconSrc="/sort-icon-white.svg"           text="Partial"           value={partialStudents} color="#FCB103" />
+                  <DashboardItem iconSrc="/error-icon-white.svg"    text="Pending"           value={pendingStudents}  color="#808080" />
                 </div>
               </div>
             )}
