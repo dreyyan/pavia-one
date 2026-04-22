@@ -49,12 +49,11 @@ const AdminSections = () => {
   // [STATES] Search, Sort, and Filter
   const [search, setSearch] = useState("");
   const [adviserSearch, setAdviserSearch] = useState("");
-  const [activeDropdown, setActiveDropdown] = useState<"sort" | "filter" | null>(null);
+  const [activeDropdown, setActiveDropdown] = useState<"sort" | "grade" | null>(null);
 
   type SortOption = "name-asc" | "name-desc" | "grade-asc" | "grade-desc";
   const [sortOption, setSortOption] = useState<SortOption>("name-asc");
-  const [selectedGrades, setSelectedGrades] = useState<string[]>([]);
-  const [selectedCurricula, setSelectedCurricula] = useState<string[]>([]);
+  const [selectedGrade, setSelectedGrade] = useState<string | "All">("All");
 
   // [STATES] Section Form Modal
   const [showSectionModal, setShowSectionModal] = useState(false);
@@ -319,8 +318,7 @@ const AdminSections = () => {
         (s.curriculum && s.curriculum.toLowerCase().includes(search.toLowerCase())) ||
         (s.schoolYear && s.schoolYear.includes(search))
       ) &&
-      (selectedGrades.length === 0 || selectedGrades.includes(String(s.gradeLevel))) &&
-      (selectedCurricula.length === 0 || (s.curriculum != null && selectedCurricula.includes(s.curriculum)))
+      (selectedGrade === "All" || String(s.gradeLevel) === selectedGrade)
     )
     .sort((a, b) => {
       switch (sortOption) {
@@ -475,24 +473,19 @@ const AdminSections = () => {
                   <Dropdown
                     icon="/filter-icon.svg"
                     label="Filter"
-                    isOpen={activeDropdown === "filter"}
+                    isOpen={activeDropdown === "grade"}
                     onToggle={() =>
-                      setActiveDropdown(activeDropdown === "filter" ? null : "filter")
+                      setActiveDropdown(activeDropdown === "grade" ? null : "grade")
                     }
-                    width="w-52"
-                    groups={[
-                      {
-                        label: "Grade",
-                        options: GRADE_LEVEL_OPTIONS.map(g => ({ label: `Grade ${g}`, value: String(g) })),
-                        selectedValues: selectedGrades,
-                        onSelectMultiple: (v) => { setSelectedGrades(v); setPage(1); },
-                      },
-                      {
-                        label: "Curriculum",
-                        options: CURRICULUM_OPTIONS.map(c => ({ label: c.label, value: c.value })),
-                        selectedValues: selectedCurricula,
-                        onSelectMultiple: (v) => { setSelectedCurricula(v); setPage(1); },
-                      },
+                    selected={selectedGrade}
+                    onSelect={(value) => {
+                      setSelectedGrade(value);
+                      setPage(1);
+                    }}
+                    width="w-36"
+                    options={[
+                      { label: "All", value: "All" },
+                      ...GRADE_LEVEL_OPTIONS.map(g => ({ label: `Grade ${g}`, value: g })),
                     ]}
                   />
                 </div>
