@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 // [IMPORT] Hooks
 import { useState, useEffect } from "react";
@@ -7,101 +6,26 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
-import Skeleton from "../../components/Skeleton";
-import DeleteButton from "../../components/buttons/DeleteButton";
-import InputField from "../../components/InputField";
 import Modal from "../../components/Modal";
+import Skeleton from "../../components/Skeleton";
+import InputField from "../../components/InputField";
+import Breadcrumbs from "../../components/Breadcrumbs";
+import AdminPageLayout from "../../components/layouts/AdminPageLayout";
+import PersonInfoCard from "../../components/cards/PersonInfoCard";
+import StudentsListCard from "../../components/cards/StudentsListCard";
+import PrimaryButton from "../../components/buttons/PrimaryButton";
+import DeleteButton from "../../components/buttons/DeleteButton";
+import { AssignAdviserFormModal } from "../../components/forms/AssignAdviserFormModal";
 
 // [IMPORT] Constants & Types
 import { GRADE_LEVEL_OPTIONS, CURRICULUM_OPTIONS, LEARNING_MODALITY_OPTIONS } from "../../constants";
 import { GeneralModalConfig, SectionDetails } from "../../types";
-import PrimaryButton from "../../components/buttons/PrimaryButton";
-import { AssignAdviserFormModal } from "../../components/forms/AssignAdviserFormModal";
 
-// [COMPONENT] Student Pagination
-const StudentPagination = ({ students }: { students: SectionDetails["students"] }) => {
-  const [currentPage, setCurrentPage] = useState(1);
-  const studentsPerPage = 5;
-
-  const totalPages = Math.ceil(students.length / studentsPerPage);
-  const startIdx = (currentPage - 1) * studentsPerPage;
-  const currentStudents = students.slice(startIdx, startIdx + studentsPerPage);
-
-  const handlePrev = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
-  const handleNext = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages));
-
-  return (
-    <>
-      <div className="flex flex-col gap-2">
-        {currentStudents.map((student) => (
-          <div
-            key={student.id}
-            className="bg-[var(--color-bg-50)] border border-[var(--color-bg-200)] rounded-md px-4 py-3 flex items-center justify-between gap-3"
-          >
-            <div className="flex flex-col gap-0.5 min-w-0">
-              <p className="text-sm font-roboto font-semibold text-[var(--color-text-900)] truncate">
-                {student.fullName}
-              </p>
-              <p className="text-xs font-mono text-[var(--color-text-500)]">
-                LRN {student.lrn}
-              </p>
-              <p className="text-xs font-roboto text-[var(--color-text-500)]">
-                {student.learningModality || "—"}
-              </p>
-            </div>
-            <StatusBadge status={student.status} />
-          </div>
-        ))}
-      </div>
-
-      {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="flex justify-end gap-2 mt-2">
-          <button
-            onClick={handlePrev}
-            disabled={currentPage === 1}
-            className="px-3 py-1 text-xs font-roboto font-medium rounded-md border border-[var(--color-bg-300)] hover:bg-[var(--color-bg-200)] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Previous
-          </button>
-          <span className="text-xs font-roboto text-[var(--color-text-600)] flex items-center">
-            Page {currentPage} / {totalPages}
-          </span>
-          <button
-            onClick={handleNext}
-            disabled={currentPage === totalPages}
-            className="px-3 py-1 text-xs font-roboto font-medium rounded-md border border-[var(--color-bg-300)] hover:bg-[var(--color-bg-200)] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Next
-          </button>
-        </div>
-      )}
-    </>
-  );
-};
-
-// *[COMPONENT] Status Badge
-const StatusBadge = ({ status }: { status: string }) => {
-  const color =
-    status === "ENROLLED"
-      ? "bg-green-100 text-green-700"
-      : status === "DROPPED"
-      ? "bg-red-100 text-red-700"
-      : "bg-gray-100 text-gray-600";
-
-  return (
-    <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${color}`}>
-      {status}
-    </span>
-  );
-};
-
-// ?[TYPE] Form pages
+// ? [TYPE] Active form page index
 type FormPage = 0 | 1;
 
 const PAGE_LABELS: [string, string] = ["Section Info", "Configuration"];
 
-// *[PAGE] Admin Section Details
 const AdminSectionDetails = () => {
   const { id } = useParams<{ id: string }>();
   const { setShowTokenExpiredModal } = useAuth();
@@ -117,9 +41,9 @@ const AdminSectionDetails = () => {
   const [formData, setFormData] = useState<Partial<SectionDetails>>({});
 
   // [STATES] Assign Adviser Modal
-  const [showAssignModal, setShowAssignModal]   = useState(false);
-  const [advisers, setAdvisers]                 = useState<any[]>([]);
-  const [assignLoading, setAssignLoading]       = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [advisers, setAdvisers] = useState<any[]>([]);
+  const [assignLoading, setAssignLoading] = useState(false);
 
   // [STATE] General Modal
   const [generalModal, setGeneralModal] = useState<GeneralModalConfig>({
@@ -133,11 +57,11 @@ const AdminSectionDetails = () => {
   });
 
   const openGeneralModal = (config: Partial<Omit<GeneralModalConfig, "isOpen">>) => {
-    setGeneralModal((prev) => ({ ...prev, isOpen: true, ...config }));
+    setGeneralModal(prev => ({ ...prev, isOpen: true, ...config }));
   };
 
   const closeGeneralModal = () => {
-    setGeneralModal((prev) => ({ ...prev, isOpen: false }));
+    setGeneralModal(prev => ({ ...prev, isOpen: false }));
   };
 
   // * [HANDLE] Fetch Section by ID
@@ -149,20 +73,15 @@ const AdminSectionDetails = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (res.status === 401) {
-        setShowTokenExpiredModal(true);
-        return;
-      }
+      if (res.status === 401) { setShowTokenExpiredModal(true); return; }
 
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed to fetch section");
 
-      const sectionData = data.data;
-
-      // Backend now already returns `students` with fullName
-      setSection(sectionData);
-      setFormData(sectionData);
+      setSection(data.data);
+      setFormData(data.data);
     } catch (err) {
+      // ! [ERROR] Fetching section failed
       console.error("Failed to fetch section:", err);
       openGeneralModal({
         title: "Unable to Load Section",
@@ -182,63 +101,62 @@ const AdminSectionDetails = () => {
   }, [id]);
 
   // * [HANDLE] Delete Section
-  const handleDelete = (id: number) => {
-    const onDeleteConfirm = async () => {
-      setLoading(true);
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/sections/${id}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const data = await res.json();
-        if (!data.success) throw new Error(data.message || "Failed to delete section");
-
-        openGeneralModal({
-          title: "Section Deleted",
-          message: "The section has been deleted successfully.",
-          type: "success",
-          isCancelable: false,
-          onConfirm: () => {
-            closeGeneralModal();
-            navigate("/admin/sections");
-          },
-        });
-      } catch (err: any) {
-        console.error("Delete error:", err);
-        openGeneralModal({
-          title: "Unable to Delete Section",
-          message: err?.message || "We couldn't delete the section at the moment. Please check your internet connection and try again.",
-          type: "error",
-          confirmText: "Close",
-          isCancelable: false,
-          onConfirm: () => closeGeneralModal(),
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
+  const handleDelete = (sectionId: number) => {
+    // ? [CONFIRMATION] Before deleting, ask user to confirm
     openGeneralModal({
       title: "Delete Section",
       message: "Are you sure you want to delete this section? This action cannot be undone.",
       type: "error",
       confirmText: "Delete",
       isCancelable: true,
-      onConfirm: onDeleteConfirm,
+      onConfirm: async () => {
+        setLoading(true);
+        try {
+          const token = localStorage.getItem("token");
+          const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/sections/${sectionId}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          const data = await res.json();
+          if (!data.success) throw new Error(data.message || "Failed to delete section");
+
+          // * [SUCCESS] Section Deleted
+          openGeneralModal({
+            title: "Section Deleted",
+            message: "The section has been deleted successfully.",
+            type: "success",
+            isCancelable: false,
+            onConfirm: () => {
+              closeGeneralModal();
+              navigate("/admin/sections");
+            },
+          });
+        } catch (err: any) {
+          // ! [ERROR] Section deletion failed
+          console.error("Delete error:", err);
+          openGeneralModal({
+            title: "Unable to Delete Section",
+            message: err?.message || "We couldn't delete the section at the moment. Please check your internet connection and try again.",
+            type: "error",
+            confirmText: "Close",
+            isCancelable: false,
+            onConfirm: () => closeGeneralModal(),
+          });
+        } finally {
+          setLoading(false);
+        }
+      },
     });
   };
 
-  // [HANDLE] Edit toggle
+  // [HANDLE] Edit toggle — discard changes on cancel
   const handleEditToggle = () => {
-    if (isEditing) {
-      setFormData(section ?? {});
-    }
-    setIsEditing((prev) => !prev);
+    if (isEditing) setFormData(section ?? {});
+    setIsEditing(prev => !prev);
   };
 
-  // [HANDLE] Save edits
+  // * [HANDLE] Save Updated Section Details
   const handleSave = async () => {
     const rawYear = (formData.schoolYear || "").trim();
     const yearMatch = rawYear.match(/^(\d{4})\s*[-–—]\s*(\d{4})$/);
@@ -279,9 +197,11 @@ const AdminSectionDetails = () => {
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed to update section");
 
-      setSection((prev) => (prev ? { ...prev, ...payload, schoolYear: normalizedSchoolYear } : prev));
+      // [UPDATE] Merge saved changes into section state
+      setSection(prev => prev ? { ...prev, ...payload, schoolYear: normalizedSchoolYear } : prev);
       setIsEditing(false);
 
+      // * [SUCCESS] Section Updated
       openGeneralModal({
         title: "Section Updated",
         message: `"${formData.name}" has been updated successfully.`,
@@ -291,6 +211,7 @@ const AdminSectionDetails = () => {
         onConfirm: () => closeGeneralModal(),
       });
     } catch (err) {
+      // ! [ERROR] Section update failed
       console.error("Update error:", err);
       openGeneralModal({
         title: "Unable to Update Section",
@@ -305,12 +226,14 @@ const AdminSectionDetails = () => {
     }
   };
 
-  const handleFieldChange = (field: keyof SectionDetails) =>
+  // [HANDLE] Generic form field change
+  const handleFieldChange =
+    (field: keyof SectionDetails) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-      setFormData((prev) => ({ ...prev, [field]: e.target.value }));
+      setFormData(prev => ({ ...prev, [field]: e.target.value }));
     };
 
-  // * [FETCH] Advisers (lazy — only when the assign modal is first opened)
+  // * [FETCH] Advisers — lazy, only when the assign modal is first opened
   const fetchAdvisers = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -323,6 +246,7 @@ const AdminSectionDetails = () => {
       const list = data.data?.data;
       setAdvisers(Array.isArray(list) ? list : []);
     } catch (err) {
+      // ! [ERROR] Fetching advisers failed
       console.error("Fetch advisers error:", err);
       openGeneralModal({
         title: "Unable to Load Advisers",
@@ -337,12 +261,11 @@ const AdminSectionDetails = () => {
 
   // [HANDLE] Open assign adviser modal
   const handleAssignAdviser = async () => {
-    // Fetch advisers if we haven't loaded them yet
     if (advisers.length === 0) await fetchAdvisers();
     setShowAssignModal(true);
   };
 
-  // [HANDLE] Submit adviser assignment — PUT /api/admin/sections/:id
+  // [HANDLE] Submit adviser assignment
   const handleAssignSubmit = async (adviserId: string, adviserName: string) => {
     setAssignLoading(true);
     try {
@@ -359,8 +282,8 @@ const AdminSectionDetails = () => {
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed to assign adviser");
 
-      // Optimistically update the adviser card without a full re-fetch
-      setSection((prev) =>
+      // [UPDATE] Optimistically update adviser card without a full re-fetch
+      setSection(prev =>
         prev
           ? {
               ...prev,
@@ -374,6 +297,8 @@ const AdminSectionDetails = () => {
       );
 
       setShowAssignModal(false);
+
+      // * [SUCCESS] Adviser Assigned
       openGeneralModal({
         title: "Adviser Assigned",
         message: `"${adviserName}" has been assigned to ${section?.name} successfully.`,
@@ -383,6 +308,7 @@ const AdminSectionDetails = () => {
         onConfirm: () => closeGeneralModal(),
       });
     } catch (err: any) {
+      // ! [ERROR] Adviser assignment failed
       console.error("Assign adviser error:", err);
       openGeneralModal({
         title: "Assignment Failed",
@@ -397,20 +323,23 @@ const AdminSectionDetails = () => {
     }
   };
 
-  // [LOADING STATE]
-  if (loading) return <Skeleton />;
-
-  // *[BREADCRUMBS]
+  // * [BREADCRUMBS] Admin Section Details navigation
   const breadcrumbs = [
     { label: "Admin Dashboard", path: "/admin/dashboard" },
     { label: "Sections", path: "/admin/sections" },
-    { label: section?.name ?? "Details", path: null },
+    {
+      label: section
+        ? `${section.name} (Grade ${section.gradeLevel})`
+        : "Details",
+      path: null,
+    },
   ];
 
-  // *[RENDER] Form fields per page
+  // * [RENDER] Form fields per active page
   const renderFormPage = () => {
     if (!section) return null;
 
+    // [PAGE 0] Section Info
     if (activePage === 0) {
       return (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -430,7 +359,7 @@ const AdminSectionDetails = () => {
             value={formData.gradeLevel ? String(formData.gradeLevel) : ""}
             onChange={handleFieldChange("gradeLevel")}
             placeholder="Select grade level"
-            options={GRADE_LEVEL_OPTIONS.map((g) => String(g))}
+            options={GRADE_LEVEL_OPTIONS.map(g => String(g))}
             disabled={!isEditing}
             required
           />
@@ -453,6 +382,7 @@ const AdminSectionDetails = () => {
       );
     }
 
+    // [PAGE 1] Configuration
     if (activePage === 1) {
       return (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -462,7 +392,7 @@ const AdminSectionDetails = () => {
             value={formData.curriculum ?? ""}
             onChange={handleFieldChange("curriculum")}
             placeholder="Select curriculum"
-            options={CURRICULUM_OPTIONS.map((o) => o.value)}
+            options={CURRICULUM_OPTIONS.map(o => o.value)}
             disabled={!isEditing}
             required
           />
@@ -472,17 +402,21 @@ const AdminSectionDetails = () => {
             value={formData.learningModality ?? ""}
             onChange={handleFieldChange("learningModality")}
             placeholder="Select modality"
-            options={LEARNING_MODALITY_OPTIONS.map((o) => o.value)}
+            options={LEARNING_MODALITY_OPTIONS.map(o => o.value)}
             disabled={!isEditing}
           />
         </div>
       );
     }
+
     return null;
   };
 
+  // ? [LOADING STATE]
+  if (loading) return <Skeleton />;
+
   return (
-    <div>
+    <>
       {/* [MODAL] General */}
       <Modal
         isOpen={generalModal.isOpen}
@@ -506,48 +440,48 @@ const AdminSectionDetails = () => {
         onSubmit={handleAssignSubmit}
       />
 
-      <div className="py-10 px-4 space-y-4 relative">
-        {/* [SECTION] Header & Breadcrumbs */}
-        <div>
-          <h2 className="text-[var(--color-text-800)] leading-0">Section Details</h2>
-          <nav className="font-roboto text-sm text-[var(--color-text-700)]">
-            {breadcrumbs.map((crumb, idx) => (
-              <span key={idx}>
-                {crumb.path ? (
-                  <span className="cursor-pointer hover:underline" onClick={() => navigate(crumb.path!)}>
-                    {crumb.label}
-                  </span>
-                ) : (
-                  <span className="font-medium text-[var(--color-text-900)]">{crumb.label}</span>
-                )}
-                {idx < breadcrumbs.length - 1 && " / "}
-              </span>
-            ))}
-          </nav>
-        </div>
-
+      {/* [LAYOUT] Admin Page */}
+      <AdminPageLayout
+        header={
+          <Breadcrumbs items={breadcrumbs} title="Section Details" />
+        }
+      >
         {section ? (
-          <>
-            {/* [SECTION HEADER] Name + grade badge */}
+          <div className="space-y-4">
+
+            {/* [HEADER] Section name + grade badge */}
             <div className="bg-[var(--color-bg-100)] rounded-lg px-4 py-4 flex items-center gap-4">
               <div className="size-14 rounded-lg bg-[var(--color-primary-100)] flex items-center justify-center text-[var(--color-primary-700)] font-bold text-2xl border border-[var(--color-primary-200)] flex-shrink-0">
                 {section.gradeLevel}
               </div>
               <div>
-                <p className="text-xl font-bold font-roboto text-[var(--color-text-900)]">{section.name}</p>
+                <p className="text-xl font-bold font-roboto text-[var(--color-text-900)]">
+                  {section.name}
+                </p>
                 <p className="text-sm font-roboto text-[var(--color-text-600)]">
                   Grade {section.gradeLevel} · {section.curriculum} · {section.schoolYear}
                 </p>
               </div>
             </div>
 
+            {/* [ACTIONS] Assign Adviser + Delete */}
             <div className="space-y-2">
-              <PrimaryButton text="Assign Adviser" iconSrc="/advisers-icon-white.svg" onClick={handleAssignAdviser} />
-              <DeleteButton onClick={() => handleDelete(section.id)} text="Delete Section" disabled={loading} />
+              <PrimaryButton
+                text="Assign Adviser"
+                iconSrc="/advisers-icon-white.svg"
+                onClick={handleAssignAdviser}
+              />
+              <DeleteButton
+                onClick={() => handleDelete(section.id)}
+                text="Delete Section"
+                disabled={loading}
+              />
             </div>
 
             {/* [CARD] Section Identity */}
             <div className="bg-[var(--color-bg-100)] rounded-lg p-4 space-y-4">
+
+              {/* [UI] Page tabs */}
               <div className="flex gap-1 bg-[var(--color-bg-200)] rounded-lg p-1">
                 {PAGE_LABELS.map((label, idx) => (
                   <button
@@ -566,6 +500,7 @@ const AdminSectionDetails = () => {
 
               <div className="border-t border-[var(--color-bg-200)]" />
 
+              {/* [HEADER] Section title + Edit / Save buttons */}
               <div className="flex items-center justify-between">
                 <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)]">
                   {PAGE_LABELS[activePage]}
@@ -594,43 +529,21 @@ const AdminSectionDetails = () => {
                 </div>
               </div>
 
+              {/* [FORM] Dynamic fields based on active page */}
               {renderFormPage()}
+
             </div>
 
-            {/* [CARD] Adviser */}
-            <div className="bg-[var(--color-bg-100)] rounded-lg p-4 space-y-4">
-              <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)]">
-                Adviser
-              </p>
-              {section.adviser ? (
-                <div className="flex items-center gap-2">
-                  <div className="size-8 rounded-md bg-[var(--color-bg-200)] flex items-center justify-center text-[var(--color-text-700)] font-bold text-sm flex-shrink-0">
-                    {section.adviser.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)}
-                  </div>
-                  <div>
-                    <p className="text-sm font-roboto font-medium text-[var(--color-text-900)]">{section.adviser.name}</p>
-                    <p className="text-xs font-mono text-[var(--color-text-500)]">#{section.adviser.adviserId}</p>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm font-roboto text-[var(--color-text-600)]">No adviser assigned</p>
-              )}
-            </div>
+            {/* [COMPONENT] Adviser */}
+            <PersonInfoCard title="Adviser" person={section.adviser ?? null} />
 
-            {/* [CARD] Students - Now properly displays */}
-            <div className="bg-[var(--color-bg-100)] rounded-lg p-4 space-y-3">
-              <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)]">
-                Students ({section.classSize})
-              </p>
+            {/* [COMPONENT] Students List */}
+            <StudentsListCard
+              students={section.students ?? []}
+              classSize={section.classSize}
+            />
 
-              {(section.students ?? []).length === 0 ? (
-                <p className="text-sm font-roboto text-[var(--color-text-600)]">No students enrolled.</p>
-              ) : (
-                <StudentPagination students={section.students} />
-              )}
-            </div>
-
-            {/* [META] Created At */}
+            {/* [META] Creation date */}
             <p className="text-xs font-roboto text-[var(--color-text-500)] text-right">
               Created{" "}
               {new Date(section.createdAt).toLocaleDateString("en-PH", {
@@ -639,8 +552,10 @@ const AdminSectionDetails = () => {
                 day: "numeric",
               })}
             </p>
-          </>
+
+          </div>
         ) : (
+          // [EMPTY STATE] Section not found
           <div className="bg-[var(--color-bg-100)] rounded-lg p-8 text-center">
             <p className="text-sm font-roboto text-[var(--color-text-600)]">Section not found.</p>
             <button
@@ -651,8 +566,8 @@ const AdminSectionDetails = () => {
             </button>
           </div>
         )}
-      </div>
-    </div>
+      </AdminPageLayout>
+    </>
   );
 };
 
