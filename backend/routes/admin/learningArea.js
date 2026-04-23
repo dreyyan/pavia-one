@@ -52,12 +52,19 @@ router.get("/:id", verifyAdmin, async (req, res) => {
   }
 });
 
-// ?[POST] Auto-create all learning areas for all grades and curriculums
+// ?[POST] Auto-create all learning areas for valid section curriculums only
 // /api/admin/learning-area/auto-create-all
 router.post("/auto-create-all", verifyAdmin, async (req, res) => {
   try {
-    const gradeLevels = [7, 8, 9, 10];
-    const curriculums = ["Regular", "STE", "SPS", "SPA", "SPJ"];
+    const {
+      SECTION_MASTERLIST,
+      SPECIAL_SECTIONS,
+    } = require("../../utils/constants");
+
+    const hasCurriculum = (gradeLevel, curriculum) => {
+      if (curriculum === "Regular") return true;
+      return SPECIAL_SECTIONS?.[gradeLevel]?.[curriculum]?.length > 0;
+    };
 
     const coreSubjects = [
       { name: "Filipino", ww: 0.3, pt: 0.5, qa: 0.2 },
@@ -103,76 +110,92 @@ router.post("/auto-create-all", verifyAdmin, async (req, res) => {
       SPA: [{ name: "Visual Arts", ww: 0.2, pt: 0.6, qa: 0.2 }],
     };
 
+    const sections = await prisma.section.findMany({
+      select: {
+        id: true,
+        name: true,
+        gradeLevel: true,
+        curriculum: true,
+      },
+    });
+
     const createdSummary = [];
 
-    for (const gradeLevel of gradeLevels) {
-      for (const curriculum of curriculums) {
-        let subjects = [];
+    for (const section of sections) {
+      const { gradeLevel, curriculum } = section;
 
-        if (curriculum === "Regular") {
-          subjects = [...coreSubjects]; // Regular = core only
-        } else if (curriculum === "STE") {
-          // Specialized curriculum = core + specialized
-          subjects = [...coreSubjects, ...steSpecializedSubjects[gradeLevel]];
-        } else {
-          // SPJ, SPS, SPA = core + their specialized
-          subjects = [...coreSubjects, ...(curriculumAddons[curriculum] ?? [])];
-        }
+      if (!hasCurriculum(gradeLevel, curriculum)) continue;
 
-        if (subjects.length === 0) continue;
+      let subjects = [];
 
-        const existing = await prisma.learningArea.findMany({
-          where: {
-            gradeLevel,
-            curriculum,
-            name: { in: subjects.map((s) => s.name) },
-          },
-        });
+      if (curriculum === "Regular") {
+        subjects = coreSubjects;
+      } else if (curriculum === "STE") {
+        subjects = [
+          ...coreSubjects,
+          ...(steSpecializedSubjects?.[gradeLevel] || []),
+        ];
+      } else {
+        subjects = [...coreSubjects, ...(curriculumAddons?.[curriculum] || [])];
+      }
 
-        const existingNames = new Set(existing.map((la) => la.name));
-        const toCreate = subjects.filter((s) => !existingNames.has(s.name));
+      if (subjects.length === 0) continue;
 
-        if (toCreate.length === 0) continue;
-
-        const created = await prisma.learningArea.createMany({
-          data: toCreate.map((s) => ({
-            name: s.name,
-            gradeLevel,
-            curriculum,
-            writtenWorkWeight: s.ww,
-            performanceTaskWeight: s.pt,
-            quarterlyAssessmentWeight: s.qa,
-          })),
-          skipDuplicates: true,
-        });
-
-        createdSummary.push({
+      const existing = await prisma.learningArea.findMany({
+        where: {
           gradeLevel,
           curriculum,
-          createdCount: created.count,
-          createdAreas: toCreate.map((s) => s.name),
-        });
-      }
+          name: { in: subjects.map((s) => s.name) },
+        },
+        select: { name: true },
+      });
+
+      const existingNames = new Set(existing.map((la) => la.name));
+
+      const toCreate = subjects.filter((s) => !existingNames.has(s.name));
+
+      if (toCreate.length === 0) continue;
+
+      const created = await prisma.learningArea.createMany({
+        data: toCreate.map((s) => ({
+          name: s.name,
+          gradeLevel,
+          curriculum,
+          writtenWorkWeight: s.ww,
+          performanceTaskWeight: s.pt,
+          quarterlyAssessmentWeight: s.qa,
+        })),
+        skipDuplicates: true,
+      });
+
+      createdSummary.push({
+        section: section.name,
+        gradeLevel,
+        curriculum,
+        createdCount: created.count,
+      });
     }
 
     if (createdSummary.length === 0) {
       return res
-        .status(400)
+        .status(200)
         .json(
-          errorResponse(
-            "All learning areas already exist for all grades and curriculums",
+          successResponse(
+            "All learning areas already exist for all sections",
+            [],
           ),
         );
     }
 
-    res.json(
+    return res.json(
       successResponse(
-        "Learning areas auto-created for all grades and curriculums",
+        "Learning areas successfully generated for all sections",
         createdSummary,
       ),
     );
   } catch (err) {
-    res
+    console.error(err);
+    return res
       .status(500)
       .json(errorResponse("Failed to auto-create learning areas", err.message));
   }

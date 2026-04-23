@@ -14,6 +14,7 @@ import Pagination from "../../components/Pagination";
 import Breadcrumbs from "../../components/Breadcrumbs";
 import SubjectCard from "../../components/cards/SubjectCard";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
+import SecondaryButton from "../../components/buttons/SecondaryButton";
 import SubjectFormModal from "../../components/forms/SubjectFormModal";
 import AdminPageLayout from "../../components/layouts/AdminPageLayout";
 
@@ -67,6 +68,11 @@ const AdminSubjects = () => {
   const [showSubjectModal, setShowSubjectModal] = useState(false);
   const [formError, setFormError] = useState("");
   const [formData, setFormData] = useState<LearningAreaFormData>(EMPTY_FORM);
+
+  // [STATES] Auto-Create Modal
+  const [showAutoCreateModal, setShowAutoCreateModal] = useState(false);
+  const [autoCreating, setAutoCreating] = useState(false);
+  const [autoCreateError, setAutoCreateError] = useState("");
 
   // [STATES] Pagination
   const [page, setPage] = useState(1);
@@ -202,6 +208,41 @@ const AdminSubjects = () => {
     }
   };
 
+  // * [HANDLE] Auto-Create All Subjects
+  const handleAutoCreate = async () => {
+    setAutoCreating(true);
+    setAutoCreateError("");
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area/auto-create-all`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message || "Auto-create failed");
+
+      const summary: { gradeLevel: number; curriculum: string; createdCount: number }[] = data.data;
+      const totalCreated = summary.reduce((sum, s) => sum + s.createdCount, 0);
+      setShowAutoCreateModal(false);
+      await fetchSubjects();
+
+      // * [SUCCESS] Subjects Auto-Created
+      openGeneralModal({
+        title: "Subjects Created",
+        message: `${totalCreated} subject(s) created across ${CURRICULUM_OPTIONS.length} curricula × 4 grade levels. Existing subjects were skipped.`,
+        type: "success",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
+    } catch (err: any) {
+      // ! [ERROR] Auto-Create Failed
+      console.error(err);
+      setAutoCreateError(err.message || "Something went wrong. Please try again.");
+    } finally {
+      setAutoCreating(false);
+    }
+  };
+
   // * [HANDLE] Sorting, Searching & Filtering
   const filteredSubjects = subjects
     .filter(s =>
@@ -248,6 +289,43 @@ const AdminSubjects = () => {
         onConfirm={generalModal.onConfirm}
         isCancelable={generalModal.isCancelable}
       />
+
+      {/* [MODAL] Auto-Create Subjects */}
+      <Modal
+        isOpen={showAutoCreateModal}
+        onClose={() => { setShowAutoCreateModal(false); setAutoCreateError(""); }}
+        title="Auto-Create All Subjects"
+        type="default"
+        confirmText={autoCreating ? "Creating..." : "Create"}
+        onConfirm={handleAutoCreate}
+        isCancelable={!autoCreating}
+      >
+        <div className="p-1 space-y-4">
+          <div className="bg-[var(--color-bg-50)] border border-[var(--color-bg-200)] rounded-lg p-3 space-y-2">
+            <p className="text-sm text-[var(--color-text-700)]">
+              This will create <strong>all standard subjects per grade level × curriculum</strong> combination
+              — up to <strong>50 subjects</strong> in total depending on the curriculum.
+              Subjects that already exist will be skipped.
+            </p>
+            <div className="grid grid-cols-2 gap-1 text-xs text-[var(--color-text-500)]">
+              <div>
+                <p className="font-semibold text-[var(--color-text-700)] mb-0.5">Grade Levels</p>
+                {["7", "8", "9", "10"].map(g => <p key={g}>Grade {g}</p>)}
+              </div>
+              <div>
+                <p className="font-semibold text-[var(--color-text-700)] mb-0.5">Curricula</p>
+                {CURRICULUM_OPTIONS.map(c => <p key={c.value}>{c.label}</p>)}
+              </div>
+            </div>
+            <p className="text-xs text-[var(--color-text-400)] italic">
+              Each curriculum includes core subjects. STE, SPJ, SPS, and SPA also include their specialized subjects.
+            </p>
+          </div>
+          {autoCreateError && (
+            <p className="text-xs text-red-600 font-medium">{autoCreateError}</p>
+          )}
+        </div>
+      </Modal>
 
       {/* [MODAL] Subject Form */}
       <SubjectFormModal
@@ -330,13 +408,17 @@ const AdminSubjects = () => {
                 </div>
               </div>
 
-              {/* [PRIMARY BUTTON] Add Subject */}
-              <div className="w-full md:w-auto md:ml-auto">
+              {/* [ACTION BUTTONS] Add Subject + Auto-Create */}
+              <div className="flex flex-col sm:flex-row gap-2 w-full xl:w-auto xl:ml-auto">
                 <PrimaryButton
                   text="Add Subject"
                   iconSrc="/add-icon.svg"
                   onClick={handleAddSubject}
-                  className="w-full md:w-auto"
+                />
+                <SecondaryButton
+                  text="Auto-Create Subjects"
+                  iconSrc="/auto-generate-icon.svg"
+                  onClick={() => { setAutoCreateError(""); setShowAutoCreateModal(true); }}
                 />
               </div>
             </div>
