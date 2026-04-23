@@ -542,7 +542,7 @@ const AdminStudentDetails = () => {
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-4 w-full xl:w-auto xl:ml-auto">
               <PrimaryButton
                 text="Export SF9"
-                iconSrc="/export-white.svg"
+                iconSrc="/export.svg"
                 onClick={() => console.log("Exporting SF9... (not implemented)")}
               />
               <DeleteButton onClick={handleDelete} text="Delete Student" disabled={loading} />

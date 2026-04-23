@@ -367,7 +367,7 @@ const AdminAdviserDetails = () => {
             <ProfileInfo lastName={adviser.lastName} firstName={adviser.firstName} />
 
             {/* [ACTIONS] Delete */}
-            <div className="space-y-2">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-4 w-full xl:w-auto xl:ml-auto">
               <DeleteButton onClick={handleDelete} text="Delete Adviser" disabled={loading} />
             </div>
 
