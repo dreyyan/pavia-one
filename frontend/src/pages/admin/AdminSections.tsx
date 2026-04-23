@@ -326,6 +326,13 @@ const AdminSections = () => {
       // ! [ERROR] Generate Failed
       console.error(err);
       setGenerateError(err.message || "Something went wrong. Please try again.");
+      openGeneralModal({
+        title: "Unable to Generate Sections",
+        message: "Something went wrong while generating sections. Please check your internet connection and try again.",
+        type: "error",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
     } finally {
       setGenerating(false);
     }
