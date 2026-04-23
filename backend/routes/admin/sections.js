@@ -5,7 +5,7 @@ const prisma = require("../../lib/prisma");
 
 // [IMPORT] Utilities & Middleware
 const { successResponse, errorResponse } = require("../../utils/response");
-const { getFullName } = require("../../utils/helpers");
+const { getFullName, normalizeSchoolYear } = require("../../utils/helpers");
 const verifyAdmin = require("../../middleware/authMiddleware").verifyAdmin;
 
 // [IMPORT] Constants, Helpers
@@ -13,11 +13,14 @@ const {
   GRADE_LEVELS,
   CURRICULA,
   VALID_CURRICULA,
+  SECTION_MASTERLIST,
+  SPECIAL_SECTIONS,
 } = require("../../utils/constants");
 const {
   buildSectionName,
   isValidSchoolYear,
   generateUniqueColors,
+  generateSectionColor,
   hslToHex,
 } = require("../../utils/helpers");
 
@@ -360,89 +363,60 @@ router.post("/generate", verifyAdmin, async (req, res) => {
   try {
     const { schoolYear, learningModality } = req.body;
 
-    // [VALIDATION] School year required + format check
     if (!schoolYear) {
       return res.status(400).json(errorResponse("schoolYear is required"));
     }
-    if (!isValidSchoolYear(schoolYear)) {
-      return res
-        .status(400)
-        .json(
-          errorResponse(
-            'schoolYear must follow "YYYY - YYYY" and increment by 1',
-          ),
-        );
-    }
 
-    // [VALIDATION] learningModality (optional, default FACE_TO_FACE)
-    const validModalities = [
-      "FACE_TO_FACE",
-      "DISTANCE_LEARNING",
-      "BLENDED",
-      "ONLINE",
-      "HOMESCHOOL",
-      "OTHER",
-    ];
-    const modality = learningModality || "FACE_TO_FACE";
-    if (!validModalities.includes(modality)) {
-      return res
-        .status(400)
-        .json(
-          errorResponse(
-            `Invalid learningModality. Must be one of: ${validModalities.join(", ")}`,
-          ),
-        );
-    }
-
-    // [FETCH] Existing sections for this school year to detect duplicates
-    const existingSections = await prisma.section.findMany({
-      where: { schoolYear },
-      select: { gradeLevel: true, curriculum: true },
-    });
-
-    // Build a fast lookup set: "gradeLevel|curriculum"
-    const existingSet = new Set(
-      existingSections.map((s) => `${s.gradeLevel}|${s.curriculum}`),
-    );
+    const normalizedYear = normalizeSchoolYear(schoolYear);
 
     const created = [];
     const skipped = [];
 
-    // [CALCULATE] Total sections to create and generate unique colors
-    const totalSectionsToCreate =
-      GRADE_LEVELS.length * CURRICULA.length - existingSet.size;
+    const existingSections = await prisma.section.findMany({
+      where: { schoolYear: normalizedYear },
+      select: { name: true, gradeLevel: true, curriculum: true },
+    });
 
-    // [GENERATE] Light background-safe colors
-    const uniqueColors = generateUniqueColors(totalSectionsToCreate);
-    let colorIndex = 0;
+    const existingSet = new Set(
+      existingSections.map((s) => `${s.gradeLevel}|${s.curriculum}|${s.name}`),
+    );
 
-    // [LOOP] Create sections per grade level × curriculum
-    for (const gradeLevel of GRADE_LEVELS) {
-      for (const curriculum of CURRICULA) {
-        const key = `${gradeLevel}|${curriculum}`;
+    const getCurriculumOfSection = (grade, sectionName) => {
+      const map = SPECIAL_SECTIONS[grade];
+      if (!map) return "Regular";
+
+      for (const [curriculum, sections] of Object.entries(map)) {
+        if (sections.includes(sectionName)) return curriculum;
+      }
+
+      return "Regular";
+    };
+
+    for (const gradeLevel of Object.keys(SECTION_MASTERLIST)) {
+      const sections = SECTION_MASTERLIST[gradeLevel];
+
+      for (const sectionName of sections) {
+        const curriculum = getCurriculumOfSection(
+          Number(gradeLevel),
+          sectionName,
+        );
+
+        const key = `${gradeLevel}|${curriculum}|${sectionName}`;
+
         if (existingSet.has(key)) {
-          skipped.push({ gradeLevel, curriculum, reason: "Already exists" });
+          skipped.push({ gradeLevel, sectionName, reason: "Already exists" });
           continue;
         }
 
-        const name = buildSectionName(curriculum);
+        const color = generateSectionColor(Number(gradeLevel), curriculum);
 
         const newSection = await prisma.section.create({
           data: {
-            name,
-            gradeLevel,
-            schoolYear,
+            name: sectionName,
+            gradeLevel: Number(gradeLevel),
+            schoolYear: normalizedYear,
             curriculum,
-            color: uniqueColors[colorIndex++],
-          },
-          select: {
-            id: true,
-            name: true,
-            gradeLevel: true,
-            schoolYear: true,
-            curriculum: true,
-            color: true,
-            adviser: { select: { id: true, name: true } },
+            color,
           },
         });
 
@@ -450,19 +424,22 @@ router.post("/generate", verifyAdmin, async (req, res) => {
       }
     }
 
-    return res
-      .status(201)
-      .json(
-        successResponse(
-          `Generated ${created.length} section(s). ${skipped.length} skipped.`,
-          { created, skipped },
-        ),
-      );
+    return res.status(201).json(
+      successResponse("Sections generated successfully", {
+        created,
+        skipped,
+      }),
+    );
   } catch (err) {
-    console.error("Generate sections error:", err);
-    res
-      .status(500)
-      .json(errorResponse("Failed to generate sections", err.message));
+    console.error(`Failed to generate sections:`, err);
+
+    return res.status(500).json(
+      errorResponse("Failed to generate sections", {
+        message: err.message,
+        code: err.code,
+        meta: err.meta,
+      }),
+    );
   }
 });
 

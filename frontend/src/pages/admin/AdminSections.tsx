@@ -20,7 +20,7 @@ import SectionFormModal from "../../components/forms/SectionFormModal";
 import AdminPageLayout from "../../components/layouts/AdminPageLayout";
 
 // [IMPORT] Helpers, Constants & Types
-import { getVisiblePages } from "../../helpers/index";
+import { getVisiblePages, normalizeSchoolYear } from "../../helpers/index";
 import { GRADE_LEVEL_OPTIONS, CURRICULUM_OPTIONS } from "../../constants";
 import { GeneralModalConfig, Section, SectionFormData } from "../../types";
 
@@ -292,7 +292,7 @@ const AdminSections = () => {
       setGenerateError('School year must be in "YYYY - YYYY" format (e.g. 2025 - 2026)');
       return;
     }
-    const normalizedYear = `${yearMatch[1]} - ${yearMatch[2]}`;
+    const normalizedYear = normalizeSchoolYear(`${yearMatch[1]} - ${yearMatch[2]}`);
 
     setGenerating(true);
     setGenerateError("");
@@ -301,7 +301,10 @@ const AdminSections = () => {
       const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/sections/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ schoolYear: normalizedYear }),
+        body: JSON.stringify({
+          schoolYear: normalizedYear,
+          learningModality: "FACE_TO_FACE",
+        })
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Generation failed");
