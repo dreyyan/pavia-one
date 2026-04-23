@@ -1,5 +1,10 @@
 const bcrypt = require("bcrypt");
 const prisma = require("../lib/prisma");
+const {
+  SECTION_COLOR_MAP,
+  CURRICULUM_TONE_MAP,
+  FALLBACK_TONE,
+} = require("./constants");
 
 // [HELPER] Hash password
 const hashPassword = async (password) => {
@@ -181,6 +186,14 @@ function normalizeSchoolYear(input) {
   return `${parts[0]} - ${parts[1]}`;
 }
 
+// [HELPER] Generate section color based on grade level + curriculum
+function generateSectionColor(gradeLevel, curriculum) {
+  const hue = SECTION_COLOR_MAP[gradeLevel] || "gray";
+  const tone = CURRICULUM_TONE_MAP[curriculum] || FALLBACK_TONE;
+
+  return `var(--color-${hue}-${tone})`;
+}
+
 module.exports = {
   hashPassword,
   getFullName,
@@ -194,4 +207,5 @@ module.exports = {
   generateUniqueColors,
   hslToHex,
   normalizeSchoolYear,
+  generateSectionColor,
 };
