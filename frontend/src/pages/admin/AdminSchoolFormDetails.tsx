@@ -300,7 +300,7 @@ const AdminSchoolFormDetails = () => {
 
             {/* [SECTION] Student Completion Overview */}
             {totalStudents > 0 && (
-              <div className="bg-[var(--color-bg-100)] border-2 border-[var(--color-bg-300)]/60 rounded-xl px-5 py-6 shadow-md">
+              <div className="bg-[var(--color-bg-100)] rounded-xl px-5 py-6 shadow-md">
                 <h2 className="mb-3">Student Overview</h2>
                 <div className="space-y-2">
                   <DashboardItem iconSrc="/total-students-icon.svg" text="Total Students"    value={totalStudents} />
