@@ -3,7 +3,7 @@ import { useState, type CSSProperties } from "react";
 interface InputFieldProps {
   label?: string;
   sublabel?: string;
-  type?: string; // "text", "number", "password", "date", "select", or "checkbox"
+  type?: string;
   value: string | number | boolean;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
   placeholder?: string;
@@ -14,7 +14,7 @@ interface InputFieldProps {
   showClear?: boolean;
   disabled?: boolean;
   options?: string[];
-  max?: number; // maximum value for number input
+  max?: number;
   required?: boolean;
   readOnly?: boolean;
 }
@@ -37,38 +37,36 @@ const InputField = ({
   required = false,
   readOnly = false,
 }: InputFieldProps) => {
-  // [STATES]
   const [showPassword, setShowPassword] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
-  // [HANDLE] Clear input field
   const handleClear = () => {
-    if (disabled) return;
+    if (disabled || readOnly) return;
     const event = { target: { value: "" } } as unknown as React.ChangeEvent<HTMLInputElement>;
     onChange(event);
   };
 
-  // [HANDLE] Toggle password visibility
   const togglePasswordVisibility = () => {
     if (disabled) return;
     setShowPassword((prev) => !prev);
   };
 
-  // [LOGIC] Determine password icon path
   let passwordIcon = "";
   if (showPassword) {
-    passwordIcon = isHovered ? "/visibility-off-hovered-icon.svg" : "/visibility-off-icon.svg";
+    passwordIcon = isHovered
+      ? "/visibility-off-hovered-icon.svg"
+      : "/visibility-off-icon.svg";
   } else {
-    passwordIcon = isHovered ? "/visibility-hovered-icon.svg" : "/visibility-icon.svg";
+    passwordIcon = isHovered
+      ? "/visibility-hovered-icon.svg"
+      : "/visibility-icon.svg";
   }
 
-  // [STYLE] Remove number input arrows
   const numberInputStyle: CSSProperties = {
     MozAppearance: "textfield",
     WebkitAppearance: "none",
   };
 
-  // [STYLE] Base classes for input fields
   const baseClasses = `w-full rounded-lg border py-2 focus:outline-none font-roboto transition-colors duration-150 ${
     iconSrc ? "pl-10" : "px-3"
   } ${
@@ -79,27 +77,23 @@ const InputField = ({
       : "bg-white border-[var(--color-text-300)] text-[var(--color-text-900)] focus:border-[var(--color-primary-500)] focus:ring-2 focus:ring-[var(--color-primary-200)]"
   }`;
 
-    // [CHECKBOX] Special layout: label left, checkbox right
   if (type === "checkbox") {
     return (
       <div className="flex justify-between items-center gap-2">
-        {/* [UI] Label */}
         {label && (
           <label className="text-[var(--color-text-900)]">
             {label} {required && <span className="text-[var(--color-red-700)]">*</span>}
           </label>
         )}
 
-        {/* [UI] Checkbox */}
         <input
           type="checkbox"
           checked={value as boolean}
           onChange={onChange as React.ChangeEventHandler<HTMLInputElement>}
-          disabled={disabled}
-          className={`h-5 w-5 ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}
+          disabled={disabled || readOnly}
+          className={`h-5 w-5 ${disabled || readOnly ? "cursor-not-allowed" : "cursor-pointer"}`}
         />
 
-        {/* [UI] Error */}
         {error && <span className="text-red-500 text-xs">{error}</span>}
       </div>
     );
@@ -107,14 +101,12 @@ const InputField = ({
 
   return (
     <div className="flex flex-col gap-1">
-      {/* [UI] Label */}
       {label && (
         <label className="input-field-label text-[var(--color-text-900)] truncate whitespace-nowrap overflow-hidden">
           {label} {required && <span className="text-[var(--color-red-700)]">*</span>}
         </label>
       )}
 
-      {/* [UI] Sublabel */}
       {sublabel && (
         <label className="text-xs font-roboto text-[var(--color-text-600)]">
           {sublabel}
@@ -122,7 +114,6 @@ const InputField = ({
       )}
 
       <div className="relative">
-        {/* [UI] Left Icon */}
         {iconSrc && (
           <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
             <img
@@ -134,12 +125,11 @@ const InputField = ({
           </div>
         )}
 
-        {/* [UI] Dropdown or Input */}
         {type === "select" ? (
           <select
             value={value as string}
             onChange={onChange}
-            disabled={disabled}
+            disabled={disabled || readOnly}
             className={`${baseClasses} appearance-none font-roboto`}
           >
             <option value="" disabled>
@@ -178,8 +168,9 @@ const InputField = ({
 
               onChange(e);
             }}
-            placeholder={placeholder}
+            placeholder={disabled || readOnly ? "" : placeholder}
             disabled={disabled}
+            readOnly={readOnly}
             style={numberInputStyle}
             className={`${baseClasses} ${
               type === "number"
@@ -190,7 +181,6 @@ const InputField = ({
           />
         )}
 
-        {/* [RIGHT BUTTON] password toggle or clear */}
         {type === "password" && value ? (
           <button
             type="button"
@@ -208,7 +198,13 @@ const InputField = ({
               className="size-6 pt-1 object-contain"
             />
           </button>
-        ) : showClear && value && !disabled && type !== "date" && type !== "select" && type !== "number" ? (
+        ) : showClear &&
+          value &&
+          !disabled &&
+          !readOnly &&
+          type !== "date" &&
+          type !== "select" &&
+          type !== "number" ? (
           <button
             type="button"
             onClick={handleClear}
@@ -219,7 +215,6 @@ const InputField = ({
         ) : null}
       </div>
 
-      {/* [UI] Error */}
       {error && <span className="text-red-500 text-xs">{error}</span>}
     </div>
   );
