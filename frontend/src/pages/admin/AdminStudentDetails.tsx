@@ -275,17 +275,17 @@ const AdminStudentDetails = () => {
               type="number"
               value={formData.lrn ?? ""}
               onChange={handleFieldChange("lrn")}
-              placeholder="Learner Reference Number"
+              placeholder="12-digit LRN"
               maxLength={12}
               disabled={!isEditing}
-              required
+              readOnly={true}
             />
           </div>
           <InputField
             label="Last Name"
             value={formData.lastName ?? ""}
             onChange={handleFieldChange("lastName")}
-            placeholder="Last Name"
+            placeholder="e.g. Dela Cruz"
             disabled={!isEditing}
             required
           />
@@ -293,7 +293,7 @@ const AdminStudentDetails = () => {
             label="First Name"
             value={formData.firstName ?? ""}
             onChange={handleFieldChange("firstName")}
-            placeholder="First Name"
+            placeholder="e.g. Juan"
             disabled={!isEditing}
             required
           />
@@ -301,7 +301,7 @@ const AdminStudentDetails = () => {
             label="Middle Name"
             value={formData.middleName ?? ""}
             onChange={handleFieldChange("middleName")}
-            placeholder="Middle Name"
+            placeholder="e.g. Santos"
             disabled={!isEditing}
           />
           <InputField
@@ -318,7 +318,6 @@ const AdminStudentDetails = () => {
             type="select"
             value={formData.sex ?? ""}
             onChange={handleFieldChange("sex")}
-            placeholder="Select sex"
             options={["Male", "Female"]}
             disabled={!isEditing}
             required
@@ -335,21 +334,21 @@ const AdminStudentDetails = () => {
             label="Mother Tongue (Grade 1–3)"
             value={formData.motherTongue ?? ""}
             onChange={handleFieldChange("motherTongue")}
-            placeholder="Mother Tongue"
+            placeholder="e.g. Hiligaynon"
             disabled={!isEditing}
           />
           <InputField
             label="IP (Ethnic Group)"
             value={formData.ipEthnicGroup ?? ""}
             onChange={handleFieldChange("ipEthnicGroup")}
-            placeholder="Ethnic Group"
+            placeholder="e.g. Aeta, Igorot, Mangyan, etc."
             disabled={!isEditing}
           />
           <InputField
             label="Religion"
             value={formData.religion ?? ""}
             onChange={handleFieldChange("religion")}
-            placeholder="Religion"
+            placeholder="e.g. Roman Catholic, Christianity, etc."
             disabled={!isEditing}
           />
         </div>
@@ -365,7 +364,7 @@ const AdminStudentDetails = () => {
               label="House # / Street / Sitio / Purok"
               value={formData.houseStreet ?? ""}
               onChange={handleFieldChange("houseStreet")}
-              placeholder="House #, Street, Sitio or Purok"
+              placeholder="e.g. Purok 3, Brgy. San Jose"
               disabled={!isEditing}
             />
           </div>
@@ -373,14 +372,14 @@ const AdminStudentDetails = () => {
             label="Barangay"
             value={formData.barangay ?? ""}
             onChange={handleFieldChange("barangay")}
-            placeholder="Barangay"
+            placeholder="e.g. Poblacion"
             disabled={!isEditing}
           />
           <InputField
             label="Municipality / City"
             value={formData.municipalityCity ?? ""}
             onChange={handleFieldChange("municipalityCity")}
-            placeholder="Municipality or City"
+            placeholder="e.g. Pavia"
             disabled={!isEditing}
           />
           <div className="col-span-1 sm:col-span-2">
@@ -388,7 +387,7 @@ const AdminStudentDetails = () => {
               label="Province"
               value={formData.province ?? ""}
               onChange={handleFieldChange("province")}
-              placeholder="Province"
+              placeholder="e.g. Iloilo"
               disabled={!isEditing}
             />
           </div>
@@ -410,21 +409,21 @@ const AdminStudentDetails = () => {
                 label="Last Name"
                 value={formData.fatherLastName ?? ""}
                 onChange={handleFieldChange("fatherLastName")}
-                placeholder="Last Name"
+                placeholder="e.g. Dela Cruz"
                 disabled={!isEditing}
               />
               <InputField
                 label="First Name"
                 value={formData.fatherFirstName ?? ""}
                 onChange={handleFieldChange("fatherFirstName")}
-                placeholder="First Name"
+                placeholder="e.g. Juan"
                 disabled={!isEditing}
               />
               <InputField
                 label="Middle Name"
                 value={formData.fatherMiddleName ?? ""}
                 onChange={handleFieldChange("fatherMiddleName")}
-                placeholder="Middle Name"
+                placeholder="e.g. Santos"
                 disabled={!isEditing}
               />
             </div>
@@ -440,21 +439,21 @@ const AdminStudentDetails = () => {
                 label="Last Name"
                 value={formData.motherLastName ?? ""}
                 onChange={handleFieldChange("motherLastName")}
-                placeholder="Last Name"
+                placeholder="e.g. Dela Cruz"
                 disabled={!isEditing}
               />
               <InputField
                 label="First Name"
                 value={formData.motherFirstName ?? ""}
                 onChange={handleFieldChange("motherFirstName")}
-                placeholder="First Name"
+                placeholder="e.g. Maria"
                 disabled={!isEditing}
               />
               <InputField
                 label="Middle Name"
                 value={formData.motherMiddleName ?? ""}
                 onChange={handleFieldChange("motherMiddleName")}
-                placeholder="Middle Name"
+                placeholder="e.g. Santos"
                 disabled={!isEditing}
               />
             </div>
@@ -473,21 +472,21 @@ const AdminStudentDetails = () => {
                 label="Last Name"
                 value={formData.guardianLastName ?? ""}
                 onChange={handleFieldChange("guardianLastName")}
-                placeholder="Last Name"
+                placeholder="e.g. Dela Cruz"
                 disabled={!isEditing}
               />
               <InputField
                 label="First Name"
                 value={formData.guardianFirstName ?? ""}
                 onChange={handleFieldChange("guardianFirstName")}
-                placeholder="First Name"
+                placeholder="e.g. Juan"
                 disabled={!isEditing}
               />
               <InputField
                 label="Middle Name"
                 value={formData.guardianMiddleName ?? ""}
                 onChange={handleFieldChange("guardianMiddleName")}
-                placeholder="Middle Name"
+                placeholder="e.g. Santos"
                 disabled={!isEditing}
               />
             </div>
