@@ -6,7 +6,7 @@ const ImageHeader = () => {
 
     // [HOOK] Preload images
     useEffect(() => {
-        const images = ["/pavia-one-icon.svg", "/pavia-one-text-white.svg", "/school.png"];
+        const images = ["/pavia-one.svg", "/pavia-one-text.svg", "/school.png"];
         images.forEach((src) => {
             const img = new Image();
             img.src = src;
@@ -23,13 +23,13 @@ const ImageHeader = () => {
                 
                 {/* [IMAGE] Logo Icon */}
                 <img
-                    src="/pavia-one-icon.svg"
+                    src="/pavia-one.svg"
                     className="size-24 sm:size-28 md:size-32 lg:size-36"
                 />
 
                 {/* [IMAGE] Logo Text */}
                 <img
-                    src="/pavia-one-text-white.svg"
+                    src="/pavia-one-text.svg"
                     className="w-40 sm:w-48 md:w-56 lg:w-64 mt-1 sm:mt-2"
                 />
 

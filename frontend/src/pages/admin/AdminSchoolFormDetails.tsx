@@ -303,10 +303,10 @@ const AdminSchoolFormDetails = () => {
               <div className="bg-[var(--color-bg-100)] rounded-xl px-5 py-6 shadow-md">
                 <h2 className="mb-3">Student Overview</h2>
                 <div className="space-y-2">
-                  <DashboardItem iconSrc="/total-students-icon.svg" text="Total Students"    value={totalStudents} />
-                  <DashboardItem iconSrc="/check-icon.svg"          text="Complete"          value={completeStudents} color="#28A428" />
-                  <DashboardItem iconSrc="/sort-icon-white.svg"           text="Partial"           value={partialStudents} color="#FCB103" />
-                  <DashboardItem iconSrc="/error-icon-white.svg"    text="Pending"           value={pendingStudents}  color="#808080" />
+                  <DashboardItem iconSrc="/student.svg" text="Total Students"    value={totalStudents} />
+                  <DashboardItem iconSrc="/check.svg"          text="Complete"          value={completeStudents} color="#28A428" />
+                  <DashboardItem iconSrc="/partial.svg"           text="Partial"           value={partialStudents} color="#FCB103" />
+                  <DashboardItem iconSrc="/status-pending.svg"    text="Pending"           value={pendingStudents}  color="#808080" />
                 </div>
               </div>
             )}
@@ -414,7 +414,6 @@ const AdminSchoolFormDetails = () => {
                           <EmptyState
                             title="No forms generated"
                             subtitle="Go back and generate forms for this section."
-                            iconSrc="/no-data-icon.svg"
                           />
                         </td>
                       </tr>
@@ -486,8 +485,6 @@ const AdminSchoolFormDetails = () => {
                 {filteredStudents.length === 0 ? (
                   <EmptyState
                     title="No students found"
-                    subtitle="No students match your search."
-                    iconSrc="/no-data-icon.svg"
                   />
                 ) : (
                   displayedStudents.map((student) => {
@@ -503,7 +500,7 @@ const AdminSchoolFormDetails = () => {
                         {/* [BANNER] Missing info warning */}
                         {missing.length > 0 && (
                           <div className="bg-amber-50 border-b border-amber-200 px-3 py-1.5 flex items-center gap-1.5">
-                            <img src="/error-icon.svg" className="size-6" />
+                            <img src="/error.svg" className="size-6" />
                             <p className="text-xs text-amber-700 font-medium">Missing: {missing.join(" · ")}</p>
                           </div>
                         )}
@@ -589,7 +586,6 @@ const AdminSchoolFormDetails = () => {
                           <EmptyState
                             title="No students found"
                             subtitle="No students match your current search."
-                            iconSrc="/no-data-icon.svg"
                           />
                         </td>
                       </tr>

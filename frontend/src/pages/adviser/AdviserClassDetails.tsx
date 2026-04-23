@@ -147,19 +147,19 @@ const AdviserClassDetails = () => {
       {/* [SECTION] Dashboard Buttons */}
       <div className="grid grid-cols-2 gap-6 px-4">
         <DashboardButton
-          iconSrc="/view-students-dashboard.svg"
+          iconSrc="/dashboard-students.svg"
           text="View Students"
           color="#0066CC"
           to={`/adviser/classes/${sectionId}/students`}
         />
         <DashboardButton
-          iconSrc="/grades-dashboard.svg"
+          iconSrc="/dashboard-grades.svg"
           text="Grades"
           color="#CA8E02"
           to={`/adviser/classes/${sectionId}/grades`}
         />
         {/* <DashboardButton
-          iconSrc="/reports-dashboard.svg"
+          iconSrc="/dashboard-reports.svg"
           text="Reports"
           color="#8F28A4"
         /> */}

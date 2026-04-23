@@ -166,7 +166,7 @@ const SchoolFormCard: React.FC<SchoolFormCardProps> = ({
               className="flex items-center gap-x-1 font-figtree bg-[var(--color-bg-100)] hover:bg-[var(--color-bg-200)] text-[var(--color-text-900)] leading-5 py-1 px-4 rounded font-medium text-xs transition disabled:opacity-50"
             >
               {importing ? "Importing..." : "Import"}
-              <img src="/import-icon.svg" className="size-4" alt="import" />
+              <img src="/import.svg" className="size-4" alt="import" />
             </button>
             <input
               type="file"
@@ -185,7 +185,7 @@ const SchoolFormCard: React.FC<SchoolFormCardProps> = ({
           className="flex items-center gap-x-1 font-figtree bg-[var(--color-bg-100)] hover:bg-[var(--color-bg-200)] text-[var(--color-text-900)] leading-5 py-1 px-4 rounded font-medium text-xs transition disabled:opacity-50"
         >
           {exporting ? "Exporting..." : "Export"}
-          <img src="/export-icon.svg" className="size-4" alt="export" />
+          <img src="/export.svg" className="size-4" alt="export" />
         </button>
       </div>
     </div>

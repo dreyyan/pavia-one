@@ -471,7 +471,7 @@ const AdminSections = () => {
                 {/* [COMPONENT] Sort & Filter Dropdowns */}
                 <div className="flex gap-x-2 ml-auto shrink-0">
                   <Dropdown
-                    icon="/sort-icon.svg"
+                    icon="/sort.svg"
                     label="Sort"
                     isOpen={activeDropdown === "sort"}
                     onToggle={() =>
@@ -492,7 +492,7 @@ const AdminSections = () => {
 
                   {/* [COMPONENT] Filter Dropdown */}
                   <Dropdown
-                    icon="/filter-icon.svg"
+                    icon="/filter.svg"
                     label="Filter"
                     isOpen={activeDropdown === "grade"}
                     onToggle={() =>
@@ -516,13 +516,13 @@ const AdminSections = () => {
               <div className="flex flex-col sm:flex-row gap-2 w-full xl:w-auto xl:ml-auto">
                 <PrimaryButton
                   text="Add Section"
-                  iconSrc="/add-icon.svg"
+                  iconSrc="/add.svg"
                   onClick={handleAddSection}
                 />
 
                 <SecondaryButton
                   text="Auto-Generate Sections"
-                  iconSrc="/auto-generate-icon.svg"
+                  iconSrc="/auto-generate.svg"
                   onClick={() => {
                     setGenerateYear("");
                     setGenerateError("");
@@ -552,7 +552,6 @@ const AdminSections = () => {
                 <EmptyState
                   title="No sections found"
                   subtitle="No sections match your current filters or search."
-                  iconSrc="/no-data-icon.svg"
                 />
               </div>
             )}
@@ -568,7 +567,6 @@ const AdminSections = () => {
               <EmptyState
                 title="No sections found"
                 subtitle="No sections match your current filters or search."
-                iconSrc="/no-data-icon.svg"
               />
             )}
 

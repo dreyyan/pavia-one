@@ -292,7 +292,7 @@ const AdminAdvisers = () => {
                 {/* [COMPONENT] Sort & Filter Dropdowns */}
                 <div className="flex gap-x-2 ml-auto shrink-0">
                   <Dropdown
-                    icon="/sort-icon.svg"
+                    icon="/sort.svg"
                     label="Sort"
                     isOpen={activeDropdown === "sort"}
                     onToggle={() =>
@@ -311,7 +311,7 @@ const AdminAdvisers = () => {
 
                   {/* [COMPONENT] Filter Dropdown */}
                   <Dropdown
-                    icon="/filter-icon.svg"
+                    icon="/filter.svg"
                     label="Filter"
                     isOpen={activeDropdown === "filter"}
                     onToggle={() =>
@@ -332,7 +332,7 @@ const AdminAdvisers = () => {
               <div className="w-full md:w-auto md:ml-auto">
                 <PrimaryButton
                   text="Add Adviser"
-                  iconSrc="/add-icon.svg"
+                  iconSrc="/add.svg"
                   onClick={handleAddAdviser}
                   className="w-full md:w-auto"
                 />
@@ -358,7 +358,6 @@ const AdminAdvisers = () => {
                 <EmptyState
                   title="No advisers found"
                   subtitle="No advisers match your current filters or search."
-                  iconSrc="/no-data-icon.svg"
                 />
               </div>
             )}
@@ -374,7 +373,6 @@ const AdminAdvisers = () => {
               <EmptyState
                 title="No advisers found"
                 subtitle="No advisers match your current filters or search."
-                iconSrc="/no-data-icon.svg"
               />
             )}
 

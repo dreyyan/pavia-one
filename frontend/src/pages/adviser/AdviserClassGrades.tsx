@@ -203,7 +203,7 @@ const AdviserClassGrades = () => {
       <div className="overflow-x-auto bg-[var(--color-bg-50)] shadow-md rounded-lg">
         {grades.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-6 space-y-2 text-center text-[var(--color-text-800)]">
-            <img src="/no-data-icon.svg" alt="No grades" className="size-16" />
+            <img src="/no-data.svg" alt="No grades" className="size-16" />
             <p className="font-roboto font-semibold text-lg">No grades available</p>
             <p className="font-roboto text-sm text-[var(--color-text-700)]">
               Grades will appear here once uploaded.

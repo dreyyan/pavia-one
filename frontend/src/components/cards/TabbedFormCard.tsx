@@ -52,7 +52,7 @@ const TabbedFormCard: React.FC<TabbedFormCardProps> = ({
               className="flex items-center gap-1 btn-action font-bold text-[var(--color-text-50)] bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)]"
             >
               <img
-                src="/save-icon.svg"
+                src="/save.svg"
                 alt="Save"
                 className="size-3.5 md:size-4 xl:size-4.5"
               />
@@ -74,7 +74,7 @@ const TabbedFormCard: React.FC<TabbedFormCardProps> = ({
             ) : (
               <>
                 <img
-                  src="/edit-icon.svg"
+                  src="/edit.svg"
                   alt="Edit"
                   className="size-3.5 md:size-4 xl:size-4.5"
                 />

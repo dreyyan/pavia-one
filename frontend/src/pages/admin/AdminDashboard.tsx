@@ -134,7 +134,7 @@ const AdminDashboard = () => {
 
             {/* [BUTTON] Admin Profile */}
             <DashboardIconButton
-              iconSrc="/profile-icon-white.svg"
+              iconSrc="/profile.svg"
               alt="Admin Profile"
               label="Profile"
               onClick={() => navigate("/admin/profile")}
@@ -143,7 +143,7 @@ const AdminDashboard = () => {
 
             {/* [BUTTON] Admin Settings */}
             <DashboardIconButton
-              iconSrc="/settings-icon-white.svg"
+              iconSrc="/settings.svg"
               alt="Admin Settings"
               label="Settings"
               onClick={() => navigate("/admin/settings")}
@@ -152,7 +152,7 @@ const AdminDashboard = () => {
 
             {/* [BUTTON] Admin Logout */}
             <DashboardIconButton
-              iconSrc="/logout-icon-white.svg"
+              iconSrc="/logout.svg"
               alt="Admin Logout"
               label="Logout"
               onClick={handleLogout}
@@ -185,23 +185,23 @@ const AdminDashboard = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 md:gap-6">
             <DashboardItem
-              iconSrc="/total-students-icon.svg"
+              iconSrc="/student.svg"
               text="Total Students"
               value={totalStudents}
             />
             <DashboardItem
-              iconSrc="/total-advisers-icon.svg"
+              iconSrc="/adviser.svg"
               text="Total Advisers"
               value={totalAdvisers}
               color="#0066CC"
             />
             <DashboardItem
-              iconSrc="/total-sections-icon.svg"
+              iconSrc="/sections.svg"
               text="Total Sections"
               value={totalSections}
             />
             <DashboardItem
-              iconSrc="/total-admin-icon.svg"
+              iconSrc="/admin.svg"
               text="Total Admins"
               value={totalAdmins}
               color="#0066CC"
@@ -213,25 +213,25 @@ const AdminDashboard = () => {
       {/* [SECTION] Dashboard Buttons */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 2xl:px-14">
         <DashboardButton
-          iconSrc="/students-dashboard-icon.svg"
+          iconSrc="/dashboard-students.svg"
           text="Students"
           color="#0066CC"
           to={"/admin/students"}
         />
         <DashboardButton
-          iconSrc="/advisers-dashboard-icon.svg"
+          iconSrc="/dashboard-adviser.svg"
           text="Advisers"
           color="#CA8E02"
           to={"/admin/advisers"}
         />
         <DashboardButton
-          iconSrc="/sections-dashboard-icon.svg"
+          iconSrc="/dashboard-sections.svg"
           text="Sections"
           color="#8F28A4"
           to={"/admin/sections"}
         />
         <DashboardButton
-          iconSrc="/subjects-dashboard-icon.svg"
+          iconSrc="/dashboard-subjects.svg"
           text="Subjects"
           color="#28A428"
           to={"/admin/subjects"}

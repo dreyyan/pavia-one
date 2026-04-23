@@ -139,11 +139,11 @@ const AdminReportsAndStatistics = () => {
         <div className="bg-[var(--color-bg-100)] border-2 border-[var(--color-bg-300)]/60 rounded-xl px-5 py-6 shadow-md space-y-3">
           <h2 className="mb-1">Overview</h2>
           <div className="space-y-2">
-            <DashboardItem iconSrc="/total-sections-icon.svg" text="Total Students" value={reports.totalStudents} />
-            <DashboardItem iconSrc="/total-advisers-icon.svg" text="Total Advisers" value={reports.totalAdvisers} color="#0066CC" />
-            <DashboardItem iconSrc="/total-sections-icon.svg" text="Total Sections" value={reports.totalSections} />
-            <DashboardItem iconSrc="/school-forms-dashboard.svg" text="Pending Forms" value={reports.totalFormsPending} color="#0066CC" />
-            <DashboardItem iconSrc="/students-dashboard-icon.svg" text="Failing Students" value={reports.failingStudentsCount} color="#E60000" />
+            <DashboardItem iconSrc="/sections.svg" text="Total Students" value={reports.totalStudents} />
+            <DashboardItem iconSrc="/adviser.svg" text="Total Advisers" value={reports.totalAdvisers} color="#0066CC" />
+            <DashboardItem iconSrc="/sections.svg" text="Total Sections" value={reports.totalSections} />
+            <DashboardItem iconSrc="/dashboard-school-forms.svg" text="Pending Forms" value={reports.totalFormsPending} color="#0066CC" />
+            <DashboardItem iconSrc="/dashboard-students.svg" text="Failing Students" value={reports.failingStudentsCount} color="#E60000" />
           </div>
         </div>
 

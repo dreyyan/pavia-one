@@ -542,7 +542,7 @@ const AdminStudentDetails = () => {
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-4 w-full xl:w-auto xl:ml-auto">
               <PrimaryButton
                 text="Export SF9"
-                iconSrc="/export-icon-white.svg"
+                iconSrc="/export-white.svg"
                 onClick={() => console.log("Exporting SF9... (not implemented)")}
               />
               <DeleteButton onClick={handleDelete} text="Delete Student" disabled={loading} />
@@ -584,7 +584,7 @@ const AdminStudentDetails = () => {
             <EmptyState
               title="Student not found"
               subtitle="The student you're looking for doesn't exist or may have been removed."
-              iconSrc="/no-data-icon.svg"
+              iconSrc="/no-data.svg"
             />
 
             <button

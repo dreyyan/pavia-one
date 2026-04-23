@@ -164,17 +164,17 @@ const AdviserDashboard = () => {
         <div className="absolute top-3 right-3 space-x-1">
           {/* [BUTTON] Profile */}
           <button onClick={() => {navigate("/adviser/profile")}} className="p-2 rounded-sm bg-[var(--color-secondary-500)] hover:bg-[var(--color-secondary-600)] transition-colors duration-200 ease-in-out cursor-pointer">
-            <img src="/profile-icon-white.svg" alt="Adviser Profile" className="w-4 h-4" />
+            <img src="/profile.svg" alt="Adviser Profile" className="w-4 h-4" />
           </button>
 
           {/* [BUTTON] Settings */}
           <button onClick={() => {navigate("/adviser/settings")}} className="p-2 rounded-sm bg-[var(--color-bg-500)] hover:bg-[var(--color-bg-600)] transition-colors duration-200 ease-in-out cursor-pointer">
-            <img src="/settings-icon-white.svg" alt="Adviser Profile" className="w-4 h-4" />
+            <img src="/settings.svg" alt="Adviser Profile" className="w-4 h-4" />
           </button>
 
           {/* [BUTTON] Logout */}
           <button onClick={handleLogout} className="p-2 rounded-sm bg-[var(--color-red-700)] hover:bg-[var(--color-red-800)] transition-colors duration-200 ease-in-out cursor-pointer">
-            <img src="/logout-icon-white.svg" alt="Adviser Profile" className="w-4 h-4" />
+            <img src="/logout.svg" alt="Adviser Profile" className="w-4 h-4" />
           </button>
         </div>
 
@@ -206,18 +206,18 @@ const AdviserDashboard = () => {
         <h2 className="mb-3">Overview</h2>
         <div className="space-y-2">
           <DashboardItem
-            iconSrc="/class-size-icon.svg"
+            iconSrc="/class-size.svg"
             text="Class Size"
             value={classSize}
           />
           <DashboardItem
-            iconSrc="/present-today-icon.svg"
+            iconSrc="/present-today.svg"
             text="Present Today"
             value={profile?.presentToday || 0}
             color="#0066CC"
           />
           <DashboardItem
-            iconSrc="/pending-tasks-icon.svg"
+            iconSrc="/pending-tasks.svg"
             text="Pending Tasks"
             value={profile?.pendingTasks || 0}
           />
@@ -227,27 +227,27 @@ const AdviserDashboard = () => {
       {/* [SECTION] Dashboard Buttons */}
       <div className="grid grid-cols-2 gap-6 px-6">
         <DashboardButton
-          iconSrc="/view-students-dashboard.svg"
+          iconSrc="/dashboard-students.svg"
           text="View Students"
           color="#0066CC"
           to={advisorySection ? `/adviser/classes/${advisorySection.id}/students` : "#"}
           disabled={!advisorySection}
         />
         <DashboardButton
-          iconSrc="/grades-dashboard.svg"
+          iconSrc="/dashboard-grades.svg"
           text="Grades"
           color="#CA8E02"
           to={advisorySection ? `/adviser/classes/${advisorySection.id}/grades` : "#"}
           disabled={!advisorySection}
         />
         <DashboardButton
-          iconSrc="/reports-dashboard.svg"
+          iconSrc="/dashboard-reports.svg"
           text="Reports"
           color="#8F28A4"
           disabled={!advisorySection}
         />
         <DashboardButton
-          iconSrc="/school-forms-dashboard.svg"
+          iconSrc="/dashboard-school-forms.svg"
           text="School Forms"
           color="#28A428"
           to={advisorySection ? `/adviser/school-forms/${advisorySection.id}` : "#"}

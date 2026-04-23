@@ -453,7 +453,7 @@ const AdminStudents = () => {
                 {/* [COMPONENT] Sort Dropdown */}
                 <div className="flex gap-x-2 ml-auto shrink-0">
                   <Dropdown
-                    icon="/sort-icon.svg"
+                    icon="/sort.svg"
                     label="Sort"
                     isOpen={activeDropdown === "sort"}
                     onToggle={() =>
@@ -474,7 +474,7 @@ const AdminStudents = () => {
 
                   {/* [COMPONENT] Filter Dropdown */}
                   <Dropdown
-                    icon="/filter-icon.svg"
+                    icon="/filter.svg"
                     label="Filter"
                     isOpen={activeDropdown === "filter"}
                     onToggle={() =>
@@ -514,7 +514,7 @@ const AdminStudents = () => {
               <div className="w-full md:w-auto md:ml-auto">
                 <PrimaryButton
                   text="Add Student"
-                  iconSrc="/add-icon.svg"
+                  iconSrc="/add.svg"
                   onClick={handleAddStudent}
                   className="w-full md:w-auto"
                 />
@@ -546,7 +546,6 @@ const AdminStudents = () => {
                 <EmptyState
                   title="No students found"
                   subtitle="No students match your current filters or search."
-                  iconSrc="/no-data-icon.svg"
                 />
               </div>
             )}
@@ -562,7 +561,6 @@ const AdminStudents = () => {
               <EmptyState
                 title="No students found"
                 subtitle="No students match your current filters or search."
-                iconSrc="/no-data-icon.svg"
               />
             )}
 

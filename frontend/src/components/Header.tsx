@@ -100,11 +100,11 @@ const Header = () => {
       <header className="flex items-center px-4 sm:px-6 py-4 gap-4 bg-[var(--color-primary-700)]">
         {isLoggedIn && (
           <button onClick={toggleSidebar} className="w-8 h-8 flex-shrink-0 cursor-pointer">
-            <img src="/burger-menu-icon.svg" alt="Toggle sidebar" />
+            <img src="/burger-menu.svg" alt="Toggle sidebar" />
           </button>
         )}
         <button onClick={() => navigate("/admin/dashboard")} className="cursor-pointer">
-          <img src="/pavia-one-banner-white.svg" className="h-7" alt="Logo" />
+          <img src="/pavia-one-banner.svg" className="h-7" alt="Logo" />
         </button>
       </header>
 
@@ -146,8 +146,8 @@ const Header = () => {
           {role && menuItems[role].map(item => (
             <SidebarLink
               key={item.text}
-              icon={`/${item.iconBase}-black.svg`}
-              hoverIcon={`/${item.iconBase}-hover.svg`}
+              icon={`/${item.iconBase}-inactive.svg`}
+              hoverIcon={`/${item.iconBase}-active.svg`}
               text={item.text}
               to={item.to}
               onClick={() => {

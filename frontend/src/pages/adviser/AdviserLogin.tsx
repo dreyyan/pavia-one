@@ -135,7 +135,7 @@ const AdviserLogin = () => {
                         onChange={(e) => setAdviserId(e.target.value)}
                         maxLength={8}
                         placeholder="12345678"
-                        iconSrc="adviser-id-number-icon.svg"
+                        iconSrc="adviser-id.svg"
                     />
 
                     <InputField
@@ -144,7 +144,7 @@ const AdviserLogin = () => {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="********"
-                        iconSrc="password-icon.svg"
+                        iconSrc="password.svg"
                     />
                 </div>
 

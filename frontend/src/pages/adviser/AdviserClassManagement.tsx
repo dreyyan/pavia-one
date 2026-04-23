@@ -149,7 +149,7 @@ const AdviserClassManagement = () => {
             onClick={() => setShowGradeFilters(!showGradeFilters)}
             className="flex items-center justify-center text-[var(--color-text-50)] rounded-sm px-3 h-10 transition cursor-pointer bg-[var(--color-bg-50)] hover:opacity-80"
           >
-            <img src="/filter-icon.svg" alt="Filter" className="size-4" />
+            <img src="/filter.svg" alt="Filter" className="size-4" />
           </button>
 
           {showGradeFilters && (
@@ -186,7 +186,7 @@ const AdviserClassManagement = () => {
           <EmptyState
             title="No sections found"
             subtitle="You currently have no assigned sections. Please contact admin if this is an error."
-            iconSrc="/no-data-icon.svg"
+            iconSrc="/no-data.svg"
           />
         )}
 
@@ -194,7 +194,7 @@ const AdviserClassManagement = () => {
           <EmptyState
             title="Unable to Load Sections"
             subtitle="You don't have any assigned sections yet. If you think this is a mistake, please contact the administrator."
-            iconSrc="/error-icon.svg"
+            iconSrc="/error.svg"
           />
         )}
 
@@ -202,7 +202,7 @@ const AdviserClassManagement = () => {
           <EmptyState
             title="No classes match your filter"
             subtitle="Try adjusting the search term or grade filter."
-            iconSrc="/no-data-icon.svg"
+            iconSrc="/no-data.svg"
           />
         )}
 

@@ -5,7 +5,7 @@ const Footer = () => {
       {/* Banner */}
       <div className="flex-shrink-0 mb-2 sm:mb-0">
         <img
-          src="/pavia-one-footer-banner.svg"
+          src="/pavia-one-footer.svg"
           alt="PaviaOne Banner"
           className="h-8 sm:h-10 w-auto"
         />

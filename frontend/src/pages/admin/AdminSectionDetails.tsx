@@ -468,7 +468,7 @@ const AdminSectionDetails = () => {
             <div className="space-y-2">
               <PrimaryButton
                 text="Assign Adviser"
-                iconSrc="/advisers-icon-white.svg"
+                iconSrc="/assign-adviser.svg"
                 onClick={handleAssignAdviser}
               />
               <DeleteButton

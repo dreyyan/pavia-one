@@ -166,7 +166,7 @@ const AdviserSchoolForms = () => {
             onClick={() => setShowSortFilters(!showSortFilters)}
             className="flex items-center justify-center rounded-sm px-3 h-10 bg-[var(--color-bg-50)] hover:opacity-80"
           >
-            <img src="/sort-icon.svg" alt="Sort" className="size-4" />
+            <img src="/sort.svg" alt="Sort" className="size-4" />
           </button>
 
           {showSortFilters && (
@@ -185,7 +185,7 @@ const AdviserSchoolForms = () => {
             onClick={() => setShowGradeFilters(!showGradeFilters)}
             className="flex items-center justify-center rounded-sm px-3 h-10 bg-[var(--color-bg-50)] hover:opacity-80"
           >
-            <img src="/filter-icon.svg" alt="Filter" className="size-4" />
+            <img src="/filter.svg" alt="Filter" className="size-4" />
           </button>
 
           {showGradeFilters && (
@@ -218,7 +218,6 @@ const AdviserSchoolForms = () => {
         <EmptyState
           title="Unable to Load Sections"
           subtitle="Could not fetch your sections. Please check your connection and try again."
-          iconSrc="/error-icon.svg"
         />
       )}
 
@@ -226,7 +225,6 @@ const AdviserSchoolForms = () => {
         <EmptyState
           title="No Sections Assigned"
           subtitle="You have no advisory sections. Contact the administrator if this is an error."
-          iconSrc="/no-data-icon.svg"
         />
       )}
 
@@ -234,7 +232,6 @@ const AdviserSchoolForms = () => {
         <EmptyState
           title="No Sections Match"
           subtitle="Try a different search term or clear the grade filter."
-          iconSrc="/no-data-icon.svg"
         />
       )}
 

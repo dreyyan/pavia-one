@@ -478,7 +478,7 @@ const AdviserStudentDetails = () => {
 
             {!isEditing && (
               <img
-                src="/edit-icon.svg"
+                src="/edit.svg"
                 className="w-4 h-4 object-contain"
                 alt="edit icon"
               />

@@ -814,7 +814,7 @@ const AdminAnnouncementsAndEvents = () => {
                 </div>
                 <div className="flex gap-x-2 ml-auto shrink-0">
                   <Dropdown
-                    icon="/sort-icon.svg"
+                    icon="/sort.svg"
                     label="Sort"
                     isOpen={announcementActiveDropdown === "sort"}
                     onToggle={() => setAnnouncementActiveDropdown(announcementActiveDropdown === "sort" ? null : "sort")}
@@ -831,7 +831,7 @@ const AdminAnnouncementsAndEvents = () => {
                     width="w-48"
                   />
                   <Dropdown
-                    icon="/filter-icon.svg"
+                    icon="/filter.svg"
                     label="Filter"
                     isOpen={announcementActiveDropdown === "filter"}
                     onToggle={() => setAnnouncementActiveDropdown(announcementActiveDropdown === "filter" ? null : "filter")}
@@ -845,7 +845,7 @@ const AdminAnnouncementsAndEvents = () => {
               <div className="w-full md:w-auto md:ml-auto">
                 <PrimaryButton
                   text="Add Announcement"
-                  iconSrc="/add-icon.svg"
+                  iconSrc="/add.svg"
                   onClick={handleAddAnnouncement}
                   className="w-full md:w-auto"
                 />
@@ -880,7 +880,6 @@ const AdminAnnouncementsAndEvents = () => {
                       ? "Create the first announcement to notify advisers and visitors."
                       : "No announcements match your current search or filters."
                   }
-                  iconSrc="/no-data-icon.svg"
                 />
               </div>
             )}
@@ -905,7 +904,7 @@ const AdminAnnouncementsAndEvents = () => {
                 </div>
                 <div className="flex gap-x-2 ml-auto shrink-0">
                   <Dropdown
-                    icon="/sort-icon.svg"
+                    icon="/sort.svg"
                     label="Sort"
                     isOpen={eventActiveDropdown === "sort"}
                     onToggle={() => setEventActiveDropdown(eventActiveDropdown === "sort" ? null : "sort")}
@@ -919,7 +918,7 @@ const AdminAnnouncementsAndEvents = () => {
                     ]}
                   />
                   <Dropdown
-                    icon="/filter-icon.svg"
+                    icon="/filter.svg"
                     label="Filter"
                     isOpen={eventActiveDropdown === "filter"}
                     onToggle={() => setEventActiveDropdown(eventActiveDropdown === "filter" ? null : "filter")}
@@ -933,7 +932,7 @@ const AdminAnnouncementsAndEvents = () => {
               <div className="w-full md:w-auto md:ml-auto">
                 <SecondaryButton
                   text="Add Event"
-                  iconSrc="/add-icon.svg"
+                  iconSrc="/add.svg"
                   onClick={handleAddEvent}
                   className="w-full md:w-auto"
                 />
@@ -968,7 +967,6 @@ const AdminAnnouncementsAndEvents = () => {
                       ? "Add events to keep everyone informed about school activities."
                       : "No events match your current search or filters."
                   }
-                  iconSrc="/no-data-icon.svg"
                 />
               </div>
             )}

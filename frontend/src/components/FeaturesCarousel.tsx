@@ -3,9 +3,9 @@ import { useState, useEffect } from "react";
 import PrimaryButton from "./buttons/PrimaryButton";
 
 const images = [
-  "/carousel-1.png",
-  "/carousel-2.png",
-  "/carousel-3.png"
+  "/hero-01.png",
+  "/hero-02.png",
+  "/hero-03.png"
 ];
 
 const content = [

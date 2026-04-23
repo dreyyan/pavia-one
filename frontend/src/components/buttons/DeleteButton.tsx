@@ -20,7 +20,7 @@ const DeleteButton: React.FC<DeleteButtonProps> = ({
         transition-all duration-200 disabled:opacity-50 whitespace-nowrap ${className}`}
     >
       <img 
-        src="/delete-icon-white.svg" 
+        src="/delete.svg" 
         className="size-4 sm:size-5" 
         alt="Delete icon" 
       />

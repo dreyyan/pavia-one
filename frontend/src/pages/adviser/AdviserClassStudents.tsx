@@ -231,7 +231,7 @@ const AdviserClassStudents = () => {
               showSortFilters ? "bg-[var(--color-bg-50)]" : "bg-[var(--color-bg-50)] hover:opacity-80"
             }`}
           >
-            <img src="/sort-icon.svg" alt="Sort" className="size-4" />
+            <img src="/sort.svg" alt="Sort" className="size-4" />
           </button>
 
           {showSortFilters && (
@@ -271,7 +271,6 @@ const AdviserClassStudents = () => {
           <EmptyState
             title="No students found"
             subtitle="No students match your current search. Try adjusting your criteria."
-            iconSrc="/no-data-icon.svg"
           />
         ) : (
           displayedStudents.map((s) => (
@@ -337,7 +336,6 @@ const AdviserClassStudents = () => {
             <EmptyState
               title="No students found"
               subtitle="No students match your current search. Try adjusting your criteria."
-              iconSrc="/no-data-icon.svg"
             />
           </div>
         ) : (

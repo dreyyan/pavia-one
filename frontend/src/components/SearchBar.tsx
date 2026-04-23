@@ -16,7 +16,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   return (
     <div className="relative flex-1">
       <img
-        src="/search-icon.svg"
+        src="/search.svg"
         alt="Search"
         className="absolute left-3 top-1/2 -translate-y-1/2 size-4 pointer-events-none"
       />

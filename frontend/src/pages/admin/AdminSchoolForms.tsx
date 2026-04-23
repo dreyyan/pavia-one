@@ -238,16 +238,16 @@ const filteredSections = sections
               Manage and track SF1 and SF5 forms across all sections.
             </p>
           </div>
-          <PrimaryButton text="Auto-Generate School Forms" iconSrc="/auto-generate-icon.svg" onClick={() => { setGenerateYear(""); setShowGenerateModal(true); }} />
+          <PrimaryButton text="Auto-Generate School Forms" iconSrc="/auto-generate.svg" onClick={() => { setGenerateYear(""); setShowGenerateModal(true); }} />
         </div>
 
         {/* [SECTION] Overview */}
         <div className="bg-[var(--color-bg-100)] rounded-xl px-5 py-6 gap-x-3 shadow-md">
           <h2 className="mb-3">Overview</h2>
           <div className="space-y-2">
-            <DashboardItem iconSrc="/total-sections-icon.svg" text="Total Sections" value={totalSections} />
-            <DashboardItem iconSrc="/check-icon.svg" text="Approved / Locked" value={approvedSections} color="#0066CC" />
-            <DashboardItem iconSrc="/error-icon-white.svg" text="Needs Attention" value={incompleteSections} color="#E60000" />
+            <DashboardItem iconSrc="/sections.svg" text="Total Sections" value={totalSections} />
+            <DashboardItem iconSrc="/check.svg" text="Approved / Locked" value={approvedSections} color="#0066CC" />
+            <DashboardItem iconSrc="/status-pending.svg" text="Needs Attention" value={incompleteSections} color="#E60000" />
           </div>
         </div>
 
@@ -319,7 +319,7 @@ const filteredSections = sections
               onClick={() => setShowSortFilters(!showSortFilters)}
               className="flex items-center justify-center rounded-sm px-3 h-10 transition cursor-pointer bg-[var(--color-bg-50)] hover:bg-[var(--color-bg-200)]"
             >
-              <img src="/sort-icon.svg" alt="Sort" className="size-4" />
+              <img src="/sort.svg" alt="Sort" className="size-4" />
             </button>
             {showSortFilters && (
               <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-300 rounded-md shadow-lg p-2 space-y-1 z-50">
@@ -343,7 +343,6 @@ const filteredSections = sections
             <EmptyState
               title="No sections found"
               subtitle={sections.length === 0 ? "No sections have been created yet." : "No sections match your current search or filters."}
-              iconSrc="/no-data-icon.svg"
             />
           ) : (
             displayedSections.map((section) => (
@@ -379,7 +378,6 @@ const filteredSections = sections
                     <EmptyState
                       title="No sections found"
                       subtitle={sections.length === 0 ? "No sections have been created yet." : "No sections match your current search or filters."}
-                      iconSrc="/no-data-icon.svg"
                     />
                   </td>
                 </tr>

@@ -140,7 +140,7 @@ const AdminLogin = () => {
                         onChange={(e) => setUsername(e.target.value)}
                         maxLength={7}
                         placeholder="Enter your username"
-                        iconSrc="username-icon.svg"
+                        iconSrc="username.svg"
                     />
 
                     <InputField
@@ -149,7 +149,7 @@ const AdminLogin = () => {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="********"
-                        iconSrc="password-icon.svg"
+                        iconSrc="password.svg"
                     />
                 </div>
 

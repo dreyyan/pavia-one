@@ -471,7 +471,7 @@ const AdviserClassStudentDetails = () => {
       </div>
 
       {/* [PRIMARY BUTTON] Generate SF9 */}
-      <PrimaryButton text="Generate SF9" onClick={handleGenerateSF9} iconSrc="/generate-file-icon-white.svg" />
+      <PrimaryButton text="Generate SF9" onClick={handleGenerateSF9} iconSrc="/generate-file.svg" />
 
       {/* [SECTION] Multi-page Student Information */}
       <div className="shadow-lg rounded-xl p-6 bg-[var(--color-bg-100)] space-y-2">
@@ -522,7 +522,7 @@ const AdviserClassStudentDetails = () => {
 
             {!isEditing && (
               <img
-                src="/edit-icon.svg"
+                src="/edit.svg"
                 className="size-4 object-contain"
                 alt="edit icon"
               />

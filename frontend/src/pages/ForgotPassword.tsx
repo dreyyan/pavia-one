@@ -124,7 +124,7 @@ const ForgotPassword = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="example@email.com"
-                iconSrc="email-icon.svg"
+                iconSrc="email.svg"
               />
             </div>
 

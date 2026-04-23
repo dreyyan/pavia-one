@@ -362,7 +362,7 @@ const AdminSubjects = () => {
                 {/* [COMPONENT] Sort & Filter Dropdowns */}
                 <div className="flex gap-x-2 ml-auto shrink-0">
                   <Dropdown
-                    icon="/sort-icon.svg"
+                    icon="/sort.svg"
                     label="Sort"
                     isOpen={activeDropdown === "sort"}
                     onToggle={() =>
@@ -383,7 +383,7 @@ const AdminSubjects = () => {
 
                   {/* [COMPONENT] Filter Dropdown */}
                   <Dropdown
-                    icon="/filter-icon.svg"
+                    icon="/filter.svg"
                     label="Filter"
                     isOpen={activeDropdown === "filter"}
                     onToggle={() =>
@@ -412,12 +412,12 @@ const AdminSubjects = () => {
               <div className="flex flex-col sm:flex-row gap-2 w-full xl:w-auto xl:ml-auto">
                 <PrimaryButton
                   text="Add Subject"
-                  iconSrc="/add-icon.svg"
+                  iconSrc="/add.svg"
                   onClick={handleAddSubject}
                 />
                 <SecondaryButton
                   text="Auto-Create Subjects"
-                  iconSrc="/auto-generate-icon.svg"
+                  iconSrc="/auto-generate.svg"
                   onClick={() => { setAutoCreateError(""); setShowAutoCreateModal(true); }}
                 />
               </div>
@@ -442,7 +442,6 @@ const AdminSubjects = () => {
                 <EmptyState
                   title="No subjects found"
                   subtitle="No subjects match your current filters or search."
-                  iconSrc="/no-data-icon.svg"
                 />
               </div>
             )}
@@ -458,7 +457,6 @@ const AdminSubjects = () => {
               <EmptyState
                 title="No subjects found"
                 subtitle="No subjects match your current filters or search."
-                iconSrc="/no-data-icon.svg"
               />
             )}
 
