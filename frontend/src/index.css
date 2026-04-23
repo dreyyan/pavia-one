@@ -230,9 +230,9 @@ h4 {
 
 .input-field-label {
   font-family: var(--font-roboto);
-  font-weight: 500; /* medium */
-  font-size: clamp(13px, 2vw, 16px);
-  line-height: clamp(18px, 2.3vw, 22px);
+  font-weight: 500;
+  font-size: clamp(12px, 1.2vw, 14px);
+  line-height: clamp(16px, 1.6vw, 18px);
 }
 
 /* [TYPOGRAPHY] Custom Classes */
