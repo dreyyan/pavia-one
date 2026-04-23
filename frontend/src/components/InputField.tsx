@@ -16,6 +16,7 @@ interface InputFieldProps {
   options?: string[];
   max?: number; // maximum value for number input
   required?: boolean;
+  readOnly?: boolean;
 }
 
 const InputField = ({
@@ -34,6 +35,7 @@ const InputField = ({
   options = [],
   max,
   required = false,
+  readOnly = false,
 }: InputFieldProps) => {
   // [STATES]
   const [showPassword, setShowPassword] = useState(false);
@@ -67,15 +69,17 @@ const InputField = ({
   };
 
   // [STYLE] Base classes for input fields
-  const baseClasses = `w-full rounded-lg border-1 py-2 focus:outline-none focus:ring-0 font-roboto ${
+  const baseClasses = `w-full rounded-lg border py-2 focus:outline-none font-roboto transition-colors duration-150 ${
     iconSrc ? "pl-10" : "px-3"
   } ${
     disabled
-      ? "bg-[var(--color-bg-50)] border-[var(--color-text-50)] text-[var(--color-text-700)] cursor-not-allowed"
-      : "bg-[var(--color-bg-50)] border-[var(--color-text-300)] text-[var(--color-text-950)]"
+      ? "bg-[var(--color-text-50)] border-[var(--color-text-200)] text-[var(--color-text-400)] cursor-not-allowed"
+      : readOnly
+      ? "bg-[var(--color-text-50)] border-[var(--color-text-50)] text-[var(--color-text-600)] cursor-default focus:ring-0"
+      : "bg-white border-[var(--color-text-300)] text-[var(--color-text-900)] focus:border-[var(--color-primary-500)] focus:ring-2 focus:ring-[var(--color-primary-200)]"
   }`;
 
-  // [CHECKBOX] Special layout: label left, checkbox right
+    // [CHECKBOX] Special layout: label left, checkbox right
   if (type === "checkbox") {
     return (
       <div className="flex justify-between items-center gap-2">
@@ -152,31 +156,26 @@ const InputField = ({
             type={type === "password" ? (showPassword ? "text" : "password") : type}
             value={value as string | number}
             onChange={(e) => {
+              if (disabled || readOnly) return;
+
               let val = e.target.value;
 
               if (type === "number") {
-                // Remove leading "-" to prevent negative values
                 if (val.startsWith("-")) val = val.slice(1);
-
-                // Remove non-digit characters
                 val = val.replace(/[^\d]/g, "");
 
-                // Enforce maxLength if provided
                 if (maxLength && val.length > maxLength) val = val.slice(0, maxLength);
-
-                // Enforce max if provided
                 if (max !== undefined && Number(val) > max) val = String(max);
 
-                // Trigger onChange with sanitized number
                 const event = {
                   ...e,
                   target: { ...e.target, value: val },
                 } as React.ChangeEvent<HTMLInputElement>;
+
                 onChange(event);
                 return;
               }
 
-              // Forward event for other input types
               onChange(e);
             }}
             placeholder={placeholder}
