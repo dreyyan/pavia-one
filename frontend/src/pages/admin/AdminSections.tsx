@@ -462,7 +462,7 @@ const AdminSections = () => {
         }
         toolbar={
           <div className="bg-[var(--color-bg-100)] px-3 sm:px-4 py-4 rounded-lg flex flex-col gap-2 md:gap-4 w-full">
-            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">
+            <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4 w-full">
 
               <div className="flex items-stretch gap-2 md:gap-4 w-full">
                 {/* [COMPONENT] Search Bar */}
