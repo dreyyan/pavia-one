@@ -1,3 +1,4 @@
+import { SPECIAL_SECTIONS } from "../constants/index";
 import { SectionOverview, SectionForm, SchoolFormStatus } from "../types/index";
 
 // [HELPER] Safe JSON parse
@@ -163,4 +164,24 @@ export const formatName = (fullName: string) => {
 export const getLastName = (fullName: string) => {
   const parts = fullName.trim().split(" ").filter(Boolean);
   return parts.length > 0 ? parts[parts.length - 1].toLowerCase() : "";
+};
+
+// [HELPER] Get curriculum of a section based on its grade and name
+export const getSectionCurriculum = (
+  grade: string,
+  sectionName: string
+): string => {
+  const map = SPECIAL_SECTIONS[grade];
+  if (!map) return "Regular";
+
+  for (const [curriculum, sections] of Object.entries(map)) {
+    if (sections.includes(sectionName)) return curriculum;
+  }
+
+  return "Regular";
+};
+
+// [HELPER] Normalize school year string by replacing various dash types with a standard hyphen
+export const normalizeSchoolYear = (year: string) => {
+  return year.replace(/\s*[-–—]\s*/, "-");
 };

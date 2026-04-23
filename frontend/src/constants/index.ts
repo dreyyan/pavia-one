@@ -17,14 +17,21 @@ export const CURRICULUM_OPTIONS = [
 ] as const;
 
 export type Curriculum = typeof CURRICULUM_OPTIONS[number]["value"];
+export type GradeLevel = typeof GRADE_LEVEL_OPTIONS[number];
+export type SpecialCurriculum = "STE" | "SPJ" | "SPS" | "SPA";
+export type SpecialSections = Record<
+  GradeLevel,
+  Partial<Record<SpecialCurriculum, string[]>>
+>;
+export type SectionMasterlist = Record<GradeLevel, string[]>;
 
 export const LEARNING_MODALITY_OPTIONS = [
-  { value: "Face to Face", label: "Face to Face" },
-  { value: "Distance Learning", label: "Distance Learning" },
-  { value: "Blended", label: "Blended" },
-  { value: "Online", label: "Online" },
-  { value: "Homeschool", label: "Homeschool" },
-  { value: "Other", label: "Other" }
+  { value: "FACE_TO_FACE", label: "Face to Face" },
+  { value: "DISTANCE_LEARNING", label: "Distance Learning" },
+  { value: "BLENDED", label: "Blended" },
+  { value: "ONLINE", label: "Online" },
+  { value: "HOMESCHOOL", label: "Homeschool" },
+  { value: "OTHER", label: "Other" },
 ];
 
 export const WEIGHT_PRESETS: { label: string; ww: number; pt: number; qa: number }[] = [
@@ -123,4 +130,129 @@ export const EVENT_INITIAL: EventFormData = {
   startDate: "",
   endDate: "",
   isOnline: false,
+};
+
+export const SECTION_MASTERLIST: SectionMasterlist = {
+  7: [
+    "Archernar",
+    "Adhara",
+    "Alkaid",
+    "Altair",
+    "Arcturus",
+    "Ascella",
+    "Capella",
+    "Deneb",
+    "Draco",
+    "Lyra",
+    "Mira",
+    "Orion",
+    "Perseus",
+    "Phoenix",
+    "Polaris",
+    "Regulus",
+    "Rigel",
+    "Saiph",
+    "Sirius",
+    "Spica",
+    "Vega",
+    "Zania",
+  ],
+  8: [
+    "Anthurium",
+    "Asphodel",
+    "Aster",
+    "Begonia",
+    "Bluebell",
+    "Camellia",
+    "Carnation",
+    "Daffodil",
+    "Edelweiss",
+    "Hyacinth",
+    "Iris",
+    "Ixora",
+    "Jasmine",
+    "Lavender",
+    "Lily",
+    "Mallow",
+    "Peony",
+    "Rose",
+    "Sampaguita",
+    "Stargazer",
+    "Trillium",
+    "Zinnia",
+  ],
+  9: [
+    "Benevolence",
+    "Charity",
+    "Chastity",
+    "Compassion",
+    "Courage",
+    "Creativity",
+    "Faith",
+    "Fortitude",
+    "Friendship",
+    "Harmony",
+    "Honesty",
+    "Humility",
+    "Integrity",
+    "Justice",
+    "Love",
+    "Loyalty",
+    "Obedience",
+    "Patience",
+    "Peace",
+    "Prudence",
+    "Sincerity",
+  ],
+  10: [
+    "Alexandrite",
+    "Amber",
+    "Amethyst",
+    "Aquamarine",
+    "Beryl",
+    "Carnelian",
+    "Citrine",
+    "Diamond",
+    "Emerald",
+    "Garnet",
+    "Jade",
+    "Olivine",
+    "Onyx",
+    "Opal",
+    "Peridot",
+    "Ruby",
+    "Sapphire",
+    "Sardonyx",
+    "Sphene",
+    "Spinel",
+    "Topaz",
+    "Zircon",
+  ],
+};
+
+export const SPECIAL_SECTIONS: SpecialSections = {
+  7: {
+    STE: ["Orion", "Lyra"],
+    SPJ: ["Polaris"],
+    SPS: ["Perseus"],
+    SPA: ["Draco"],
+  },
+  8: {
+    STE: ["Camellia", "Aster"],
+    SPJ: ["Peony"],
+    SPS: ["Trillium"],
+    SPA: ["Mallow"],
+  },
+  9: {
+    STE: ["Humility", "Fortitude"],
+    SPJ: ["Creativity"],
+    SPS: ["Courage"],
+    SPA: ["Prudence"],
+  },
+  10: {
+    STE: ["Emerald", "Onyx"],
+    SPJ: ["Citrine"],
+    SPS: ["Sphene"],
+    SPA: ["Amber"],
+  },
 };
