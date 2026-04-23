@@ -91,6 +91,55 @@
   --color-bg-900: #1A1A1A;
   --color-bg-950: #0D0D0D;
 
+  /* Section Colors (Semantic) */
+  --color-blue-50: #E6F0FF;
+  --color-blue-100: #BFDAFF;
+  --color-blue-200: #99C4FF;
+  --color-blue-300: #73ADFF;
+  --color-blue-400: #4D97FF;
+  --color-blue-500: #2680FF;
+  --color-blue-600: #0066E6;
+  --color-blue-700: #0052B3;
+  --color-blue-800: #003D80;
+  --color-blue-900: #00264D;
+  --color-blue-950: #001326;
+
+  --color-orange-50: #FFF1E6;
+  --color-orange-100: #FFD9BF;
+  --color-orange-200: #FFC199;
+  --color-orange-300: #FFA973;
+  --color-orange-400: #FF914D;
+  --color-orange-500: #FF7A26;
+  --color-orange-600: #E66000;
+  --color-orange-700: #B34D00;
+  --color-orange-800: #803700;
+  --color-orange-900: #4D2100;
+  --color-orange-950: #261100;
+
+  --color-green-50: #EAF7EA;
+  --color-green-100: #CFF0CF;
+  --color-green-200: #AEE6AE;
+  --color-green-300: #8BDC8B;
+  --color-green-400: #63D163;
+  --color-green-500: #3BBF3B;
+  --color-green-600: #2E992E;
+  --color-green-700: #237523;
+  --color-green-800: #194F19;
+  --color-green-900: #0F2A0F;
+  --color-green-950: #081508;
+
+  --color-violet-50: #F3E8FF;
+  --color-violet-100: #E3C9FF;
+  --color-violet-200: #D1A6FF;
+  --color-violet-300: #BE82FF;
+  --color-violet-400: #A95CFF;
+  --color-violet-500: #8A2BE2;
+  --color-violet-600: #7323BF;
+  --color-violet-700: #5A1B99;
+  --color-violet-800: #421473;
+  --color-violet-900: #2A0D4D;
+  --color-violet-950: #150726;
+
   /* Fonts */
   --font-figtree: 'Figtree', sans-serif;
   --font-roboto: 'Roboto', sans-serif;
