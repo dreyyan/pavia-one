@@ -109,7 +109,7 @@ const InputField = ({
     <div className="flex flex-col gap-1">
       {/* [UI] Label */}
       {label && (
-        <label className="input-field-label text-[var(--color-text-900)]">
+        <label className="input-field-label text-[var(--color-text-900)] truncate whitespace-nowrap overflow-hidden">
           {label} {required && <span className="text-[var(--color-red-700)]">*</span>}
         </label>
       )}
