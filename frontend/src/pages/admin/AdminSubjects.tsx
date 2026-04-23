@@ -202,54 +202,6 @@ const AdminSubjects = () => {
     }
   };
 
-  // * [HANDLE] Delete Subject
-  const handleDelete = (id: number) => {
-    // ? [CONFIRMATION] Before deleting, ask user to confirm
-    openGeneralModal({
-      title: "Delete Subject",
-      message: "Are you sure you want to delete this subject? This action cannot be undone.",
-      type: "error",
-      confirmText: "Delete",
-      isCancelable: true,
-      onConfirm: async () => {
-        setLoading(true);
-        try {
-          const token = localStorage.getItem("token");
-          const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area/${id}`, {
-            method: "DELETE",
-            headers: { Authorization: `Bearer ${token}` },
-          });
-
-          const data = await res.json();
-          if (!data.success) throw new Error(data.message || "Failed to delete subject");
-
-          setSubjects(prev => prev.filter(s => s.id !== id));
-
-          // * [SUCCESS] Subject Deleted
-          openGeneralModal({
-            title: "Subject Deleted",
-            message: "The subject has been deleted successfully.",
-            type: "success",
-            isCancelable: false,
-            onConfirm: () => closeGeneralModal(),
-          });
-        } catch (err) {
-          // ! [ERROR] Subject deletion failed
-          console.error("Delete error:", err);
-          openGeneralModal({
-            title: "Unable to Delete Subject",
-            message: "We couldn't delete the subject at the moment. Please check your internet connection and try again.",
-            type: "error",
-            isCancelable: false,
-            onConfirm: () => closeGeneralModal(),
-          });
-        } finally {
-          setLoading(false);
-        }
-      },
-    });
-  };
-
   // * [HANDLE] Sorting, Searching & Filtering
   const filteredSubjects = subjects
     .filter(s =>
