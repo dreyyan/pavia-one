@@ -238,6 +238,13 @@ const AdminSubjects = () => {
       // ! [ERROR] Auto-Create Failed
       console.error(err);
       setAutoCreateError(err.message || "Something went wrong. Please try again.");
+      openGeneralModal({
+        title: "Unable to Create Subjects",
+        message: "Something went wrong while creating subjects. Please check your internet connection and try again.",
+        type: "error",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
     } finally {
       setAutoCreating(false);
     }
