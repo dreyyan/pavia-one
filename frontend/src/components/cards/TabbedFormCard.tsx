@@ -54,7 +54,7 @@ const TabbedFormCard: React.FC<TabbedFormCardProps> = ({
               <img
                 src="/save-icon.svg"
                 alt="Save"
-                className="w-3.5 h-3.5"
+                className="size-3.5 md:size-4 xl:size-4.5"
               />
               Save
             </button>
@@ -76,7 +76,7 @@ const TabbedFormCard: React.FC<TabbedFormCardProps> = ({
                 <img
                   src="/edit-icon.svg"
                   alt="Edit"
-                  className="w-3.5 h-3.5"
+                  className="size-3.5 md:size-4 xl:size-4.5"
                 />
                 Edit
               </>
