@@ -4,6 +4,9 @@ import React from "react";
 // [IMPORT] Types
 import type { Section } from "../../types";
 
+// [IMPORT] Helpers
+import { getGradeColor } from "../../helpers/index";
+
 interface SectionInfoCardProps {
   section: Section;
   totalStudents: number;
@@ -13,53 +16,84 @@ const SectionInfoCard: React.FC<SectionInfoCardProps> = ({
   section,
   totalStudents,
 }) => {
+  // [DERIVED] Grade styling (consistent with SectionFormCard)
+  const colors = getGradeColor(Number(section.gradeLevel));
+
   return (
-    <div className="bg-[var(--color-bg-100)] rounded-lg border border-[var(--color-bg-200)] overflow-hidden">
-      <div className="bg-[var(--color-bg-50)] border-b border-[var(--color-bg-200)] px-4 py-3 flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-3">
-          <div className="size-10 rounded-md bg-[var(--color-primary-100)] flex items-center justify-center text-[var(--color-primary-700)] font-bold text-sm border border-[var(--color-primary-200)] flex-shrink-0">
+    <div className="bg-white rounded-xl border-2 border-[var(--color-bg-200)] overflow-hidden transition-all duration-200">
+      {/* [CARD] Header */}
+      <div className="bg-[var(--color-bg-50)] px-3 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
+        <div className="flex items-center w-full gap-3 min-w-0">
+          {/* [UI] Grade badge (consistent style) */}
+          <div
+            className={`size-10 rounded-md flex items-center justify-center font-bold text-sm border flex-shrink-0 ${colors.badge}`}
+          >
             {section.gradeLevel}
           </div>
-          <div>
-            <h3 className="font-roboto font-bold text-[var(--color-text-900)] text-base leading-tight">
+
+          {/* [UI] Title block */}
+          <div className="flex-1 min-w-0">
+            <p className="font-roboto font-bold text-[var(--color-text-900)] text-base leading-tight truncate">
               Grade {section.gradeLevel} — {section.name}
-            </h3>
-            <p className="text-xs text-[var(--color-text-500)] mt-0.5 font-roboto">
+            </p>
+            <p className="text-xs text-[var(--color-text-500)] mt-0.5">
               {section.schoolYear} · {section.curriculum} Curriculum
             </p>
           </div>
         </div>
       </div>
 
-      <div className="px-4 py-3 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm font-roboto">
-        <div>
-          <p className="text-xs text-[var(--color-text-500)] uppercase tracking-wide mb-0.5">
+      {/* [CARD] Body */}
+      <div className="px-4 py-3 space-y-3 text-sm font-roboto">
+        {/* Adviser */}
+        <div className="flex justify-between items-center">
+          <span className="text-[var(--color-text-700)] font-semibold">
             Adviser
-          </p>
-          <p className="font-semibold text-[var(--color-text-800)]">
-            {section.adviser?.name ?? "—"}
-          </p>
-          <p className="text-xs text-[var(--color-text-400)]">
-            {section.adviser?.email ?? "—"}
-          </p>
+          </span>
+          <div className="text-right">
+            <p
+              className={`${
+                !section?.adviser?.name
+                  ? "text-[var(--color-secondary-500)] italic"
+                  : "text-[var(--color-text-900)] font-semibold"
+              }`}
+            >
+              {section?.adviser?.name ?? "Unassigned"}
+            </p>
+            <p className="text-xs text-[var(--color-text-500)]">
+              {section?.adviser?.email ?? "—"}
+            </p>
+          </div>
         </div>
 
-        <div>
-          <p className="text-xs text-[var(--color-text-500)] uppercase tracking-wide mb-0.5">
+        {/* School Year */}
+        <div className="flex justify-between items-center">
+          <span className="text-[var(--color-text-700)] font-semibold">
             School Year
-          </p>
-          <p className="font-semibold text-[var(--color-text-800)] font-mono">
+          </span>
+          <span className="font-semibold text-[var(--color-text-900)] font-mono">
             {section.schoolYear}
-          </p>
+          </span>
         </div>
 
-        <div>
-          <p className="text-xs text-[var(--color-text-500)] uppercase tracking-wide mb-0.5">
+        {/* Curriculum */}
+        <div className="flex justify-between items-center">
+          <span className="text-[var(--color-text-700)] font-semibold">
+            Curriculum
+          </span>
+          <span className="text-[var(--color-text-900)]">
+            {section.curriculum}
+          </span>
+        </div>
+
+        {/* Students */}
+        <div className="flex justify-between items-center">
+          <span className="text-[var(--color-text-700)] font-semibold">
             Total Students
-          </p>
-          <p className="font-semibold text-[var(--color-text-800)]">
+          </span>
+          <span className="font-semibold text-[var(--color-text-900)]">
             {totalStudents}
-          </p>
+          </span>
         </div>
       </div>
     </div>
