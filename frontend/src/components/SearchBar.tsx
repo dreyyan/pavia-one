@@ -29,7 +29,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
           onChange(e.target.value);
           onResetPage?.();
         }}
-        className="font-roboto font-medium text-xs sm:text-md w-full text-[var(--color-text-400)] bg-[var(--color-bg-50)] rounded-sm pl-10 pr-3 outline-none border border-[var(--color-text-300)] focus:ring-2 focus:ring-[var(--color-primary-600)] h-10"
+        className="font-roboto font-medium text-xs sm:text-md w-full text-[var(--color-text-300)] bg-[var(--color-bg-50)] rounded-sm pl-10 pr-3 outline-none border border-[var(--color-text-300)] focus:ring-2 focus:ring-[var(--color-primary-600)] h-10"
       />
     </div>
   );
