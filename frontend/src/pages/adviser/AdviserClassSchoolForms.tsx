@@ -273,7 +273,6 @@ const AdviserClassSchoolForms = () => {
         <EmptyState
           title="Unable to Load"
           subtitle={error || "Section not found."}
-          iconSrc="/error.svg"
         />
       </div>
     );
@@ -354,7 +353,6 @@ const AdviserClassSchoolForms = () => {
               error ||
               "This section may no longer exist or you may not have access to it."
             }
-            iconSrc="/error.svg"
           />
         )}
 
@@ -362,7 +360,6 @@ const AdviserClassSchoolForms = () => {
           <EmptyState
             title="Missing School Forms"
             subtitle="There are no school forms available for this section right now."
-            iconSrc="/no-data.svg"
           />
         )}
         {sf1 && (

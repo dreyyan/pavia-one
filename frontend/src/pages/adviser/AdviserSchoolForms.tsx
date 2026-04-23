@@ -228,6 +228,7 @@ const AdviserSchoolForms = () => {
         />
       )}
 
+
       {!loading && !error && sections.length > 0 && filtered.length === 0 && (
         <EmptyState
           title="No Sections Match"

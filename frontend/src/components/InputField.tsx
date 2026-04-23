@@ -54,12 +54,12 @@ const InputField = ({
   let passwordIcon = "";
   if (showPassword) {
     passwordIcon = isHovered
-      ? "/visibility-off-hovered-icon.svg"
-      : "/visibility-off-icon.svg";
+      ? "/visibility-off-hovered.svg"
+      : "/visibility-off.svg";
   } else {
     passwordIcon = isHovered
-      ? "/visibility-hovered-icon.svg"
-      : "/visibility-icon.svg";
+      ? "/visibility-hovered.svg"
+      : "/visibility.svg";
   }
 
   const numberInputStyle: CSSProperties = {

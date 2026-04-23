@@ -186,7 +186,6 @@ const AdviserClassManagement = () => {
           <EmptyState
             title="No sections found"
             subtitle="You currently have no assigned sections. Please contact admin if this is an error."
-            iconSrc="/no-data.svg"
           />
         )}
 
@@ -194,7 +193,6 @@ const AdviserClassManagement = () => {
           <EmptyState
             title="Unable to Load Sections"
             subtitle="You don't have any assigned sections yet. If you think this is a mistake, please contact the administrator."
-            iconSrc="/error.svg"
           />
         )}
 
@@ -202,7 +200,6 @@ const AdviserClassManagement = () => {
           <EmptyState
             title="No classes match your filter"
             subtitle="Try adjusting the search term or grade filter."
-            iconSrc="/no-data.svg"
           />
         )}
 

@@ -34,7 +34,7 @@ const SectionFormCard = ({ section, onClick }: SectionFormCardProps) => {
       {/* [BANNER] Missing info warning */}
       {missing.length > 0 && (
         <div className="bg-[var(--color-secondary-50)] border-b border-[var(--color-secondary-200)] px-3 py-1.5 flex items-center gap-1.5">
-          <img src="/warning-icon.svg" className="size-6" />
+          <img src="/warning.svg" className="size-6" />
           <p className="text-xs text-[var(--color-secondary-600)] font-medium">
             {missing.join(" · ")}
           </p>

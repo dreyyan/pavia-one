@@ -194,7 +194,6 @@ const AdviserAnnouncementsAndEvents = () => {
             <EmptyState
               title="No announcements yet"
               subtitle="Create the first announcement to notify advisers and visitors."
-              iconSrc="/no-data.svg"
             />
           </div>
         )}
@@ -258,7 +257,6 @@ const AdviserAnnouncementsAndEvents = () => {
             <EmptyState
               title="No upcoming events"
               subtitle="Add events to keep everyone informed about school activities."
-              iconSrc="/no-data.svg"
             />
           </div>
         )}

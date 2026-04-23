@@ -584,7 +584,6 @@ const AdminStudentDetails = () => {
             <EmptyState
               title="Student not found"
               subtitle="The student you're looking for doesn't exist or may have been removed."
-              iconSrc="/no-data.svg"
             />
 
             <button
