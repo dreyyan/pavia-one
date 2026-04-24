@@ -8,7 +8,7 @@ import Modal from "../../components/Modal";
 import Skeleton from "../../components/Skeleton";
 import InputField from "../../components/InputField";
 import Breadcrumbs from "../../components/Breadcrumbs";
-import AdminPageLayout from "../../components/layouts/AdminPageLayout";
+import PageLayout from "../../components/layouts/PageLayout";
 import { WeightRow } from "../../components/WeightRow";
 import DeleteButton from "../../components/buttons/DeleteButton";
 
@@ -353,7 +353,7 @@ const AdminSubjectDetails = () => {
       />
 
       {/* [LAYOUT] Admin Page */}
-      <AdminPageLayout
+      <PageLayout
         header={
           <Breadcrumbs items={breadcrumbs} title="Subject Details" />
         }
@@ -456,7 +456,7 @@ const AdminSubjectDetails = () => {
             </button>
           </div>
         )}
-      </AdminPageLayout>
+      </PageLayout>
     </>
   );
 };

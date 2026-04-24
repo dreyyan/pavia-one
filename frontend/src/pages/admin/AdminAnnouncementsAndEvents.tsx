@@ -10,7 +10,7 @@ import EmptyState from "../../components/EmptyState";
 import SearchBar from "../../components/SearchBar";
 import Dropdown from "../../components/Dropdown";
 import Pagination from "../../components/Pagination";
-import AdminPageLayout from "../../components/layouts/AdminPageLayout";
+import PageLayout from "../../components/layouts/PageLayout";
 import AnnouncementCard from "../../components/cards/AnnouncementCard";
 import EventCard from "../../components/cards/EventCard";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
@@ -792,7 +792,7 @@ const AdminAnnouncementsAndEvents = () => {
       </Modal>
 
       {/* [LAYOUT] Admin Page */}
-      <AdminPageLayout header={<span className="page-title">Announcements & Events</span>}>
+      <PageLayout header={<span className="page-title">Announcements & Events</span>}>
         <div className="space-y-8">
 
           {/* [SECTION] Announcements */}
@@ -973,7 +973,7 @@ const AdminAnnouncementsAndEvents = () => {
           </section>
 
         </div>
-      </AdminPageLayout>
+      </PageLayout>
     </>
   );
 };

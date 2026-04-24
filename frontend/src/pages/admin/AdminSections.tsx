@@ -17,7 +17,7 @@ import SectionCard from "../../components/cards/SectionCard";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
 import SecondaryButton from "../../components/buttons/SecondaryButton";
 import SectionFormModal from "../../components/forms/SectionFormModal";
-import AdminPageLayout from "../../components/layouts/AdminPageLayout";
+import PageLayout from "../../components/layouts/PageLayout";
 
 // [IMPORT] Helpers, Constants & Types
 import { getVisiblePages, normalizeSchoolYear } from "../../helpers/index";
@@ -456,7 +456,7 @@ const AdminSections = () => {
       </Modal>
 
       {/* [LAYOUT] Admin Page */}
-      <AdminPageLayout
+      <PageLayout
         header={
           <Breadcrumbs items={breadcrumbs} title="Sections" />
         }
@@ -633,7 +633,7 @@ const AdminSections = () => {
           </div>
 
         </div>
-      </AdminPageLayout>
+      </PageLayout>
     </>
   );
 };

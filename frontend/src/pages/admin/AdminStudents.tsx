@@ -16,7 +16,7 @@ import BulkActionsBar from "../../components/BulkActionsBar";
 import StudentCard from "../../components/cards/StudentCard";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
 import StudentFormModal from "../../components/forms/StudentFormModal";
-import AdminPageLayout from "../../components/layouts/AdminPageLayout";
+import PageLayout from "../../components/layouts/PageLayout";
 
 // [IMPORT] Helpers, Constants & Types
 import { getVisiblePages, getLastName } from "../../helpers/index";
@@ -432,7 +432,7 @@ const AdminStudents = () => {
       />
 
       {/* [LAYOUT] Admin Page */}
-      <AdminPageLayout
+      <PageLayout
         header={
           <Breadcrumbs items={breadcrumbs} title="Students" />
         }
@@ -662,7 +662,7 @@ const AdminStudents = () => {
             )}
           </div>
         </div>
-      </AdminPageLayout>
+      </PageLayout>
     </>
   );
 };

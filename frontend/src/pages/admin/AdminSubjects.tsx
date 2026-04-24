@@ -16,7 +16,7 @@ import SubjectCard from "../../components/cards/SubjectCard";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
 import SecondaryButton from "../../components/buttons/SecondaryButton";
 import SubjectFormModal from "../../components/forms/SubjectFormModal";
-import AdminPageLayout from "../../components/layouts/AdminPageLayout";
+import PageLayout from "../../components/layouts/PageLayout";
 
 // [IMPORT] Helpers, Constants & Types
 import { getVisiblePages } from "../../helpers/index";
@@ -348,7 +348,7 @@ const AdminSubjects = () => {
       />
 
       {/* [LAYOUT] Admin Page */}
-      <AdminPageLayout
+      <PageLayout
         header={
           <Breadcrumbs items={breadcrumbs} title="Subjects" />
         }
@@ -515,7 +515,7 @@ const AdminSubjects = () => {
           </div>
 
         </div>
-      </AdminPageLayout>
+      </PageLayout>
     </>
   );
 };

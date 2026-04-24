@@ -9,7 +9,7 @@ import Modal from "../../components/Modal";
 import Skeleton from "../../components/Skeleton";
 import InputField from "../../components/InputField";
 import ProfileInfo from "../../components/ProfileInfo";
-import AdminPageLayout from "../../components/layouts/AdminPageLayout";
+import PageLayout from "../../components/layouts/PageLayout";
 
 // [IMPORT] Types
 import { GeneralModalConfig } from "../../types";
@@ -214,7 +214,7 @@ const AdminProfile = () => {
       />
 
       {/* [LAYOUT] Admin Page */}
-      <AdminPageLayout
+      <PageLayout
         header={
           <span className="page-title">My Profile</span>
         }
@@ -314,7 +314,7 @@ const AdminProfile = () => {
             </button>
           </div>
         )}
-      </AdminPageLayout>
+      </PageLayout>
     </>
   );
 };

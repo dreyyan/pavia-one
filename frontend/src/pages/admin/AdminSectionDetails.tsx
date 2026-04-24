@@ -10,7 +10,7 @@ import Modal from "../../components/Modal";
 import Skeleton from "../../components/Skeleton";
 import InputField from "../../components/InputField";
 import Breadcrumbs from "../../components/Breadcrumbs";
-import AdminPageLayout from "../../components/layouts/AdminPageLayout";
+import PageLayout from "../../components/layouts/PageLayout";
 import PersonInfoCard from "../../components/cards/PersonInfoCard";
 import StudentsListCard from "../../components/cards/StudentsListCard";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
@@ -441,7 +441,7 @@ const AdminSectionDetails = () => {
       />
 
       {/* [LAYOUT] Admin Page */}
-      <AdminPageLayout
+      <PageLayout
         header={
           <Breadcrumbs items={breadcrumbs} title="Section Details" />
         }
@@ -566,7 +566,7 @@ const AdminSectionDetails = () => {
             </button>
           </div>
         )}
-      </AdminPageLayout>
+      </PageLayout>
     </>
   );
 };

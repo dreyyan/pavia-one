@@ -11,7 +11,7 @@ import Skeleton from "../../components/Skeleton";
 import InputField from "../../components/InputField";
 import ProfileInfo from "../../components/ProfileInfo";
 import Breadcrumbs from "../../components/Breadcrumbs";
-import AdminPageLayout from "../../components/layouts/AdminPageLayout";
+import PageLayout from "../../components/layouts/PageLayout";
 import AssignedSectionsCard from "../../components/cards/AssignedSectionsCard";
 import DeleteButton from "../../components/buttons/DeleteButton";
 
@@ -355,7 +355,7 @@ const AdminAdviserDetails = () => {
       />
 
       {/* [LAYOUT] Admin Page */}
-      <AdminPageLayout
+      <PageLayout
         header={
           <Breadcrumbs items={breadcrumbs} title="Adviser Details" />
         }
@@ -453,7 +453,7 @@ const AdminAdviserDetails = () => {
             </button>
           </div>
         )}
-      </AdminPageLayout>
+      </PageLayout>
     </>
   );
 };

@@ -14,7 +14,7 @@ import Breadcrumbs from "../../components/Breadcrumbs";
 import TabbedFormCard from "../../components/cards/TabbedFormCard";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
 import DeleteButton from "../../components/buttons/DeleteButton";
-import AdminPageLayout from "../../components/layouts/AdminPageLayout";
+import PageLayout from "../../components/layouts/PageLayout";
 
 // [IMPORT] Constants, Helpers & Types
 import { STUDENT_DETAILS_PAGE_LABELS } from "../../constants";
@@ -527,7 +527,7 @@ const AdminStudentDetails = () => {
       />
 
       {/* [LAYOUT] Admin Page */}
-      <AdminPageLayout
+      <PageLayout
         header={
           <Breadcrumbs items={breadcrumbs} title="Student Details" />
         }
@@ -594,7 +594,7 @@ const AdminStudentDetails = () => {
             </button>
           </>
         )}
-      </AdminPageLayout>
+      </PageLayout>
     </>
   );
 };

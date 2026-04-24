@@ -9,7 +9,7 @@ import { usePageTitle } from "../../hooks/usePageTitle";
 // [IMPORT] Components
 import Skeleton from "../../components/Skeleton";
 import DashboardItem from "../../components/DashboardItem";
-import AdminPageLayout from "../../components/layouts/AdminPageLayout";
+import PageLayout from "../../components/layouts/PageLayout";
 import {
   BarChart,
   Bar,
@@ -111,7 +111,7 @@ const AdminReportsAndStatistics = () => {
   // ? [ERROR STATE]
   if (error || !reports) {
     return (
-      <AdminPageLayout
+      <PageLayout
         header={
           <span className="page-title">Reports & Statistics</span>
         }>
@@ -124,12 +124,12 @@ const AdminReportsAndStatistics = () => {
             Retry Loading
           </button>
         </div>
-      </AdminPageLayout>
+      </PageLayout>
     );
   }
 
   return (
-    <AdminPageLayout
+    <PageLayout
       header={
         <span className="page-title">Reports & Statistics</span>
       }>
@@ -222,7 +222,7 @@ const AdminReportsAndStatistics = () => {
         )}
 
       </div>
-    </AdminPageLayout>
+    </PageLayout>
   );
 };
 

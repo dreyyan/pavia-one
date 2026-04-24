@@ -15,7 +15,7 @@ import Breadcrumbs from "../../components/Breadcrumbs";
 import AdviserCard from "../../components/cards/AdviserCard";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
 import AdviserFormModal from "../../components/forms/AdviserFormModal";
-import AdminPageLayout from "../../components/layouts/AdminPageLayout";
+import PageLayout from "../../components/layouts/PageLayout";
 
 // [IMPORT] Helpers & Types
 import { getVisiblePages, getLastName } from "../../helpers/index";
@@ -271,7 +271,7 @@ const AdminAdvisers = () => {
       />
 
       {/* [LAYOUT] Admin Page */}
-      <AdminPageLayout
+      <PageLayout
         header={
           <Breadcrumbs items={breadcrumbs} title="Advisers" />
         }
@@ -440,7 +440,7 @@ const AdminAdvisers = () => {
             )}
           </div>
         </div>
-      </AdminPageLayout>
+      </PageLayout>
     </>
   );
 };
