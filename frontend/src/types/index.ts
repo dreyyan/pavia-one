@@ -392,3 +392,8 @@ export interface EventFormData {
   endDate: string;
   isOnline: boolean;
 }
+
+export interface ScheduleItem {
+  day: string;
+  time: string;
+}
