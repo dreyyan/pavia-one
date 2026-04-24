@@ -2,9 +2,8 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
-// [IMPORT] Helpers
+// [IMPORT] Helpers & Types
 import { getGradeColor } from "../../helpers";
-
 import type { Section } from "../../types";
 
 interface SectionCardProps {
@@ -12,7 +11,6 @@ interface SectionCardProps {
   onClick?: (sectionId: number) => void;
 }
 
-// [COMPONENT]
 const SectionCard: React.FC<SectionCardProps> = ({ section, onClick }) => {
   const navigate = useNavigate();
   const colors = getGradeColor(Number(section.gradeLevel));
