@@ -135,11 +135,11 @@ const SECTION_COLOR_MAP = {
 };
 
 const CURRICULUM_TONE_MAP = {
-  Regular: 500,
-  STE: 400,
-  SPS: 600,
-  SPA: 300,
-  SPJ: 700,
+  Regular: 100, // soft / neutral
+  STE: 200, // slightly stronger
+  SPS: 300, // medium soft accent
+  SPA: 100, // keep calm / arts feel
+  SPJ: 200, // structured but not loud
 };
 
 const FALLBACK_TONE = 500;
