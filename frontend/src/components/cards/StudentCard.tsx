@@ -1,19 +1,16 @@
 // [IMPORT] React
 import React from "react";
-import { useNavigate } from "react-router-dom";
 
-// [IMPORT] Helpers
+// [IMPORT] Helpers & Types
 import { formatName } from "../../helpers";
-
 import { Student } from "../../types";
 
 interface StudentCardProps {
   student: Student;
+  onClick?: () => void;
 }
 
-const StudentCard: React.FC<StudentCardProps> = ({ student: s }) => {
-  const navigate = useNavigate();
-
+const StudentCard: React.FC<StudentCardProps> = ({ student: s, onClick }) => {
   const enrollment = s.enrollments?.[0];
   const section = enrollment?.section;
 
@@ -46,7 +43,7 @@ const StudentCard: React.FC<StudentCardProps> = ({ student: s }) => {
   return (
     <div
       className="w-full min-w-0 bg-white rounded-md border border-[var(--color-bg-300)] overflow-hidden hover:translate-y-[-1px] hover:shadow-md active:shadow-md transition-all duration-200 cursor-pointer"
-      onClick={() => navigate(`/admin/students/view/${s.id}`)}
+      onClick={onClick}
     >
       <div className="bg-[var(--color-bg-50)] px-3 pr-4 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
         <div className="flex items-center w-full gap-3 min-w-0">
