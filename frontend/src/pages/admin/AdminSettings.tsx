@@ -8,7 +8,6 @@ import { usePageTitle } from "../../hooks/usePageTitle";
 import Modal from "../../components/Modal";
 import Skeleton from "../../components/Skeleton";
 import InputField from "../../components/InputField";
-import Breadcrumbs from "../../components/Breadcrumbs";
 import PageLayout from "../../components/layouts/PageLayout";
 
 // [IMPORT] Types
