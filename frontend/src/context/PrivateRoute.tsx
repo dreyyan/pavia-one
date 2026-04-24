@@ -12,7 +12,10 @@ const PrivateRoute = ({ role }: PrivateRouteProps) => {
 
   useEffect(() => {
     if (!loading) {
-      if (!user) navigate("/login/admin", { replace: true });
+      if (!user) {
+        if (role === "adviser") navigate("/login/adviser", { replace: true });
+        else navigate("/login/admin", { replace: true });
+      }
       else if (role && user.role !== role) navigate("/", { replace: true });
     }
   }, [loading, user, role, navigate]);
