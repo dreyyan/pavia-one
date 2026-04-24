@@ -1,13 +1,13 @@
 interface DashboardProps {
     iconSrc?: string;
     text: string;
-    value: number;
+    value: number | string;
     color?: string;
 };
 
 const DashboardItem: React.FC<DashboardProps> = ({iconSrc, text, value, color}) => {
     return (
-        <div className="flex lg:flex-col items-center justify-between lg:items-start gap-x-2 lg:gap-4 bg-[var(--color-bg-50)] pr-4 lg:p-6 rounded-sm shadow-sm/10">
+        <div className="flex lg:flex-col items-center justify-between lg:items-start gap-x-2 lg:gap-4 bg-[var(--color-bg-50)] pr-3 sm:pr-4 lg:p-6 rounded-sm shadow-sm/10">
             <div className="flex items-center gap-x-2 sm:gap-x-3 md:gap-x-4 lg:gap-x-5 xl:gap-x-6">
                 {/* Icon */}
                 <div
@@ -31,7 +31,9 @@ const DashboardItem: React.FC<DashboardProps> = ({iconSrc, text, value, color}) 
             </div>
 
             {/* Value */}
-            <p className="text-[var(--color-text-900)] font-bold lg:font-extrabold text-2xl sm:text-3xl md:text-4xl lg:text-5xl">{value}</p>
+            <span className="mb-1 text-[var(--color-text-900)] font-bold lg:font-extrabold text-xl sm:text-2xl md:text-3xl lg:text-4xl text-right lg:text-left break-words">
+                {value}
+            </span>
         </div>
     );
 };
