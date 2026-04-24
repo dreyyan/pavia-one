@@ -80,15 +80,26 @@ export interface SectionForm {
 export interface Section {
   id: number;
   name: string;
-  gradeLevel: string;
-  schoolYear: string;
-  curriculum: string;
-  learningModality: string;
+  gradeLevel: string | number;
+
+  schoolYear?: string;
+  curriculum?: string;
+  learningModality?: string;
+
   classSize: number;
   room?: string;
-  createdAt: string;
-  adviser?: { id: number; name: string; adviserId: string; email?: string };
+  createdAt?: string;
+
+  adviser?: {
+    id: number;
+    name: string;
+    adviserId: string;
+    email?: string;
+  };
+
   color?: string;
+  maleCount?: number;
+  femaleCount?: number;
 }
 
 export interface Adviser {
