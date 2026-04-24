@@ -551,7 +551,11 @@ const AdminStudents = () => {
             )}
 
             {displayedStudents.map((s) => (
-              <StudentCard key={s.id} student={s} />
+              <StudentCard
+                key={s.id}
+                student={s}
+                onClick={() => navigate(`/admin/students/view/${s.id}`)}
+              />
             ))}
           </div>
 
