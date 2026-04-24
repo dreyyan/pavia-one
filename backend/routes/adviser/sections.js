@@ -178,7 +178,13 @@ router.get("/:id/students", verifyAdviser, async (req, res) => {
     // [2] Verify section belongs to adviser
     const section = await prisma.section.findFirst({
       where: { id: sectionId, adviserId: adviser.id },
-      select: { id: true, name: true, gradeLevel: true, color: true },
+      select: {
+        id: true,
+        name: true,
+        gradeLevel: true,
+        color: true,
+        curriculum: true,
+      },
     });
 
     if (!section) {
@@ -312,6 +318,7 @@ router.get("/:id/students", verifyAdviser, async (req, res) => {
           name: section.name,
           gradeLevel: section.gradeLevel,
           sectionColor: section.color,
+          curriculum: section.curriculum,
           maleCount,
           femaleCount,
         },
