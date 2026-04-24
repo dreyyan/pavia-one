@@ -33,18 +33,14 @@ router.get("/", verifyAdviser, async (req, res) => {
     // [2] Fetch sections with enrollment count
     const sections = await prisma.section.findMany({
       where: { adviserId: adviser.id },
-      select: {
-        id: true,
-        name: true,
-        gradeLevel: true,
-        schoolYear: true,
-        curriculum: true,
-        color: true,
-        schedule: true,
-
-        _count: {
-          select: {
-            enrollments: true,
+      include: {
+        enrollments: {
+          include: {
+            student: {
+              select: {
+                sex: true,
+              },
+            },
           },
         },
       },
@@ -57,16 +53,28 @@ router.get("/", verifyAdviser, async (req, res) => {
         .json(errorResponse("No sections found for this adviser"));
     }
 
-    const formattedSections = sections.map((section) => ({
-      id: section.id,
-      name: section.name,
-      gradeLevel: section.gradeLevel,
-      schoolYear: section.schoolYear,
-      curriculum: section.curriculum,
-      color: section.color,
-      classSize: section._count.enrollments,
-      schedule: section.schedule,
-    }));
+    const formattedSections = sections.map((section) => {
+      const maleCount = section.enrollments.filter(
+        (e) => e.student.sex === "MALE",
+      ).length;
+
+      const femaleCount = section.enrollments.filter(
+        (e) => e.student.sex === "FEMALE",
+      ).length;
+
+      return {
+        id: section.id,
+        name: section.name,
+        gradeLevel: section.gradeLevel,
+        schoolYear: section.schoolYear,
+        curriculum: section.curriculum,
+        color: section.color,
+        classSize: section.enrollments.length,
+        maleCount,
+        femaleCount,
+        schedule: section.schedule,
+      };
+    });
 
     res.json(successResponse("Adviser sections retrieved", formattedSections));
   } catch (err) {
