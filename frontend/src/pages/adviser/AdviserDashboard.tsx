@@ -12,26 +12,7 @@ import Skeleton from "../../components/Skeleton";
 import Modal from "../../components/Modal";
 
 // [IMPORT] Types
-import { GeneralModalConfig } from "../../types";
-
-// ? [INTERFACE] Section shape
-interface Section {
-  id: number;
-  name: string;
-  gradeLevel: number;
-  classSize: number;
-  color: string;
-}
-
-// ? [INTERFACE] Adviser profile shape
-interface AdviserProfile {
-  name: string;
-  email?: string;
-  sections: Section[];
-  advisorySection?: Section | null;
-  presentToday?: number;
-  pendingTasks?: number;
-}
+import { GeneralModalConfig, AdviserProfile } from "../../types";
 
 const AdviserDashboard = () => {
   const { setShowTokenExpiredModal } = useAuth();

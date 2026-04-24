@@ -341,6 +341,15 @@ export interface Profile {
   updatedAt: string;
 }
 
+export interface AdviserProfile {
+  name: string;
+  email?: string;
+  sections: Section[];
+  advisorySection?: Section | null;
+  presentToday?: number;
+  pendingTasks?: number;
+}
+
 export interface DashboardSummary {
   adminProfile: Profile;
   totalStudents: number;
