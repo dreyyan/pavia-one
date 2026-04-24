@@ -58,7 +58,6 @@ const ClassCard: React.FC<ClassCardProps> = ({
     return "bg-slate-50 text-slate-600 border-slate-200";
   };
 
-  // ✅ FIX: determine if bottom section should render
   const hasBottomData =
     (maleCount ?? 0) > 0 ||
     (femaleCount ?? 0) > 0 ||
@@ -101,7 +100,7 @@ const ClassCard: React.FC<ClassCardProps> = ({
         )}
       </div>
 
-      {/* [SECTION] Body (ONLY RENDERS IF DATA EXISTS) */}
+      {/* [SECTION] Body */}
       {hasBottomData && (
         <div className="px-4 py-3 space-y-2 text-sm bg-[var(--color-bg-50)]">
           <div className="flex justify-between items-center min-w-0">
