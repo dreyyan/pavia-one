@@ -1,19 +1,18 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable react-hooks/exhaustive-deps */
 // [IMPORT] Hooks
 import { useState, useEffect } from "react";
 import { usePageTitle } from "../../hooks/usePageTitle";
 
 // [IMPORT] Components
-import Skeleton from "../../components/Skeleton";
-import ProfileInfo from "../../components/ProfileInfo";
-import InputField from "../../components/InputField";
 import Modal from "../../components/Modal";
+import Skeleton from "../../components/Skeleton";
+import InputField from "../../components/InputField";
+import ProfileInfo from "../../components/ProfileInfo";
+import PageLayout from "../../components/layouts/PageLayout";
 
-// [IMPORT] Types (if you have a shared types file, import from there)
+// [IMPORT] Types
 import { GeneralModalConfig } from "../../types";
 
-// ?[INTERFACES]
+// ? [INTERFACES]
 interface Section {
   id: number;
   name: string;
@@ -31,24 +30,24 @@ interface AdviserProfileData {
   signatureUrl?: string;
   createdAt: string;
   updatedAt: string;
-  sections?: Section[];
-  advisorySection?: Section | null;
 
   sex?: string;
   dateOfBirth?: string;
   nationality?: string;
   contactNumber?: string;
   role?: string;
+
+  advisorySection?: Section | null;
 }
 
 interface AdviserProfileForm {
   name: string;
   email: string;
-  sex?: string;
-  dateOfBirth?: string;
-  nationality?: string;
-  contactNumber?: string;
-  role?: string;
+  sex: string;
+  dateOfBirth: string;
+  nationality: string;
+  contactNumber: string;
+  role: string;
 }
 
 const AdviserProfile = () => {
@@ -57,6 +56,7 @@ const AdviserProfile = () => {
   // [STATES]
   const [profile, setProfile] = useState<AdviserProfileData | null>(null);
   const [loading, setLoading] = useState(true);
+
   const [isEditing, setIsEditing] = useState(false);
 
   const [formData, setFormData] = useState<AdviserProfileForm>({
@@ -80,7 +80,9 @@ const AdviserProfile = () => {
     onConfirm: () => {},
   });
 
-  const openGeneralModal = (config: Partial<Omit<GeneralModalConfig, "isOpen">>) => {
+  const openGeneralModal = (
+    config: Partial<Omit<GeneralModalConfig, "isOpen">>
+  ) => {
     setGeneralModal((prev) => ({ ...prev, isOpen: true, ...config }));
   };
 
@@ -88,33 +90,24 @@ const AdviserProfile = () => {
     setGeneralModal((prev) => ({ ...prev, isOpen: false }));
   };
 
-  // [SEX OPTIONS]
-  const SEX_OPTIONS = [
-    { label: "Male", value: "MALE" },
-    { label: "Female", value: "FEMALE" },
-  ];
-
-  // *[EFFECT] Fetch profile
+  // * [EFFECT] Fetch adviser profile
   useEffect(() => {
     const fetchProfile = async () => {
       setLoading(true);
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        openGeneralModal({
-          title: "Authentication Error",
-          message: "You are not logged in. Please log in again.",
-          type: "error",
-          isCancelable: false,
-        });
-        setLoading(false);
-        return;
-      }
 
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/adviser/profile`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const token = localStorage.getItem("token");
+        if (!token) throw new Error("Unauthorized");
+
+        const res = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/api/adviser/profile`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
 
         const data = await res.json();
 
@@ -122,6 +115,7 @@ const AdviserProfile = () => {
           throw new Error(data.message || "Failed to fetch profile");
         }
 
+        // * [SUCCESS] Set profile + form
         setProfile(data.data);
 
         setFormData({
@@ -135,9 +129,11 @@ const AdviserProfile = () => {
         });
       } catch (err) {
         console.error(err);
+
         openGeneralModal({
           title: "Unable to Load Profile",
-          message: "We couldn't load your profile at the moment. Please check your internet connection and try again.",
+          message:
+            "We couldn't load your profile at the moment. Please try again later.",
           type: "error",
           confirmText: "Close",
           isCancelable: false,
@@ -151,10 +147,9 @@ const AdviserProfile = () => {
     fetchProfile();
   }, []);
 
-  // [HANDLE] Toggle Edit Mode
+  // [HANDLE] Toggle edit mode
   const handleEditToggle = () => {
     if (isEditing && profile) {
-      // Reset form to original values on cancel
       setFormData({
         name: profile.name,
         email: profile.email,
@@ -165,22 +160,26 @@ const AdviserProfile = () => {
         role: profile.role || "Adviser",
       });
     }
+
     setIsEditing((prev) => !prev);
   };
 
-  // [HANDLE] Form Field Change
+  // [HANDLE] Form change
   const handleFieldChange =
     (field: keyof AdviserProfileForm) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-      setFormData((prev) => ({ ...prev, [field]: e.target.value }));
+      setFormData((prev) => ({
+        ...prev,
+        [field]: e.target.value,
+      }));
     };
 
-  // [HANDLE] Save Profile
+  // * [HANDLE] Save profile
   const handleSave = async () => {
     if (!formData.name.trim() || !formData.email.trim()) {
       openGeneralModal({
         title: "Validation Error",
-        message: "Name and Email are required fields.",
+        message: "Name and Email are required.",
         type: "error",
         confirmText: "OK",
         isCancelable: false,
@@ -189,17 +188,22 @@ const AdviserProfile = () => {
       return;
     }
 
-    setLoading(true);
     try {
+      setLoading(true);
+
       const token = localStorage.getItem("token");
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/adviser/profile`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(formData),
-      });
+
+      const res = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/adviser/profile`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        }
+      );
 
       const data = await res.json();
 
@@ -207,6 +211,7 @@ const AdviserProfile = () => {
         throw new Error(data.message || "Failed to update profile");
       }
 
+      // * [SUCCESS] Sync state
       setProfile((prev) => ({ ...prev!, ...data.data }));
       setIsEditing(false);
 
@@ -220,9 +225,11 @@ const AdviserProfile = () => {
       });
     } catch (err) {
       console.error(err);
+
       openGeneralModal({
         title: "Unable to Save Changes",
-        message: "We couldn't save your changes. Please check your connection and try again.",
+        message:
+          "We couldn't save your changes. Please check your connection and try again.",
         type: "error",
         confirmText: "Close",
         isCancelable: false,
@@ -233,10 +240,16 @@ const AdviserProfile = () => {
     }
   };
 
+  // ? [LOADING STATE]
   if (loading) return <Skeleton />;
 
+  // [COMPUTE] Name split for banner
+  const [firstName, ...lastParts] = (profile?.name ?? "").split(" ");
+  const lastName = lastParts.length ? lastParts.join(" ") : firstName;
+  const displayFirstName = lastParts.length ? firstName : "";
+
   return (
-    <div>
+    <>
       {/* [MODAL] General */}
       <Modal
         isOpen={generalModal.isOpen}
@@ -249,159 +262,136 @@ const AdviserProfile = () => {
         isCancelable={generalModal.isCancelable}
       />
 
-      <div className="py-10 px-4 space-y-4 relative">
-        {/* [SECTION] Header */}
-        <div>
-          <h2 className="text-[var(--color-text-800)] leading-0">My Profile</h2>
-          <p className="font-roboto text-sm text-[var(--color-text-700)]">
-            Manage your account details.
-          </p>
-        </div>
+      {/* [LAYOUT] Adviser Page */}
+      <PageLayout header={<span className="page-title">My Profile</span>}>
+        <div className="flex flex-col gap-4 max-w-3xl">
 
-        {profile ? (
-          <>
-            {/* [COMPONENT] Profile Info Banner */}
-            {profile && (() => {
-              const [firstName, ...lastParts] = profile.name.split(" ");
-              const lastName = lastParts.length > 0 ? lastParts.join(" ") : firstName;
-              const displayFirstName = lastParts.length > 0 ? firstName : "";
+          {/* [COMPONENT] Profile Banner */}
+          {profile && (
+            <ProfileInfo
+              lastName={lastName}
+              firstName={displayFirstName}
+              role="Adviser"
+            />
+          )}
 
-              return (
-                <ProfileInfo
-                  lastName={lastName}
-                  firstName={displayFirstName}
-                  role="Class Adviser"
-                />
-              );
-            })()}
+          {/* [CARD] Personal Information */}
+          <div className="bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-lg shadow-sm p-5 space-y-5">
 
-            {/* [CARD] Personal Information */}
-            <div className="bg-[var(--color-bg-100)] rounded-lg p-6 space-y-6">
-              {/* Section Header + Buttons */}
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)]">
-                  Personal Information
-                </p>
+            <div className="border-t border-[var(--color-bg-200)]" />
 
-                <div className="flex items-center gap-2">
-                  {isEditing && (
-                    <button
-                      onClick={handleSave}
-                      disabled={loading}
-                      className="text-xs font-roboto font-semibold text-white bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] px-4 py-2 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Save
-                    </button>
-                  )}
-
+            {/* [HEADER] Section title + Edit / Save buttons */}
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)]">
+                Personal Information
+              </p>
+              <div className="flex items-center gap-2">
+                {isEditing && (
                   <button
-                    onClick={handleEditToggle}
+                    onClick={handleSave}
                     disabled={loading}
-                    className={`text-xs font-roboto font-medium px-4 py-2 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                      isEditing
-                        ? "text-[var(--color-text-50)] bg-[var(--color-red-700)] hover:bg-[var(--color-red-800)]"
-                        : "text-[var(--color-text-50)] bg-[var(--color-accent-600)] hover:bg-[var(--color-accent-700)]"
-                    }`}
+                    className="text-xs font-roboto font-semibold text-white bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] px-3 py-1.5 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isEditing ? "Cancel" : "Edit"}
+                    Save
                   </button>
-                </div>
-              </div>
-
-              {/* Form Fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <InputField
-                  label="Full Name"
-                  value={formData.name}
-                  onChange={handleFieldChange("name")}
-                  placeholder="e.g. Maria Santos"
-                  disabled={!isEditing}
-                  required
-                />
-
-                <InputField
-                  label="Sex"
-                  type="select"
-                  value={SEX_OPTIONS.find((s) => s.value === formData.sex)?.label ?? ""}
-                  onChange={(e) => {
-                    const selected = SEX_OPTIONS.find((s) => s.label === e.target.value);
-                    handleFieldChange("sex")({ target: { value: selected?.value || "" } } as any);
-                  }}
-                  options={SEX_OPTIONS.map((s) => s.label)}
-                  placeholder="Select Sex"
-                  disabled={!isEditing}
-                />
-
-                <InputField
-                  label="Date of Birth"
-                  type="date"
-                  value={formData.dateOfBirth ?? ""}
-                  onChange={handleFieldChange("dateOfBirth")}
-                  disabled={!isEditing}
-                />
-
-                <InputField
-                  label="Nationality"
-                  value={formData.nationality ?? ""}
-                  onChange={handleFieldChange("nationality")}
-                  placeholder="e.g. Filipino"
-                  disabled={!isEditing}
-                />
-
-                <InputField
-                  label="Contact Number"
-                  value={formData.contactNumber ?? ""}
-                  onChange={handleFieldChange("contactNumber")}
-                  placeholder="e.g. 09123456789"
-                  disabled={!isEditing}
-                />
-
-                <InputField
-                  label="Email Address"
-                  value={formData.email}
-                  onChange={handleFieldChange("email")}
-                  placeholder="your.email@example.com"
-                  disabled={!isEditing}
-                  required
-                />
-
-                <InputField
-                  label="Adviser ID"
-                  value={profile.adviserId}
-                  disabled={true}
-                  onChange={() => {}}
-                  required
-                />
-
-                <InputField
-                  label="Role"
-                  value={formData.role || "Class Adviser"}
-                  disabled={true}
-                  onChange={() => {}}
-                  required
-                />
-
-                {profile.advisorySection && (
-                  <>
-                    <InputField
-                      label="Advisory Grade"
-                      value={`Grade ${profile.advisorySection.gradeLevel}`}
-                      onChange={() => {}}
-                      disabled={true}
-                    />
-                    <InputField
-                      label="Advisory Section"
-                      value={profile.advisorySection.name}
-                      onChange={() => {}}
-                      disabled={true}
-                    />
-                  </>
                 )}
+                <button
+                  onClick={handleEditToggle}
+                  disabled={loading}
+                  className={`text-xs font-roboto font-medium px-3 py-1.5 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                    isEditing
+                      ? "text-[var(--color-text-50)] bg-[var(--color-red-700)] hover:bg-[var(--color-red-800)]"
+                      : "text-[var(--color-text-50)] bg-[var(--color-accent-600)] hover:bg-[var(--color-accent-700)]"
+                  }`}
+                >
+                  {isEditing ? "Cancel" : "Edit"}
+                </button>
               </div>
             </div>
 
-            {/* [META] Account Created */}
-            <p className="text-xs font-roboto text-[var(--color-text-500)] text-right">
+            {/* [FORM] Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+              <InputField
+                label="Full Name"
+                value={formData.name}
+                onChange={handleFieldChange("name")}
+                disabled={!isEditing}
+              />
+
+              <InputField
+                label="Email"
+                value={formData.email}
+                onChange={handleFieldChange("email")}
+                disabled={!isEditing}
+              />
+
+              <InputField
+                label="Sex"
+                value={formData.sex}
+                onChange={handleFieldChange("sex")}
+                disabled={!isEditing}
+              />
+
+              <InputField
+                label="Date of Birth"
+                type="date"
+                value={formData.dateOfBirth}
+                onChange={handleFieldChange("dateOfBirth")}
+                disabled={!isEditing}
+              />
+
+              <InputField
+                label="Nationality"
+                value={formData.nationality}
+                onChange={handleFieldChange("nationality")}
+                disabled={!isEditing}
+              />
+
+              <InputField
+                label="Contact Number"
+                value={formData.contactNumber}
+                onChange={handleFieldChange("contactNumber")}
+                disabled={!isEditing}
+              />
+
+              <InputField
+                label="Adviser ID"
+                value={profile?.adviserId || ""}
+                disabled
+                onChange={() => {}}
+              />
+
+              <InputField
+                label="Role"
+                value={formData.role || "Adviser"}
+                disabled
+                onChange={() => {}}
+              />
+
+              {profile?.advisorySection && (
+                <>
+                  <InputField
+                    label="Advisory Grade"
+                    value={`Grade ${profile.advisorySection.gradeLevel}`}
+                    disabled
+                    onChange={() => {}}
+                  />
+
+                  <InputField
+                    label="Advisory Section"
+                    value={profile.advisorySection.name}
+                    disabled
+                    onChange={() => {}}
+                  />
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* [META] */}
+          {profile && (
+            <p className="text-xs text-[var(--color-text-500)] text-right">
               Account created{" "}
               {new Date(profile.createdAt).toLocaleDateString("en-PH", {
                 year: "numeric",
@@ -409,22 +399,10 @@ const AdviserProfile = () => {
                 day: "numeric",
               })}
             </p>
-          </>
-        ) : (
-          <div className="bg-[var(--color-bg-100)] rounded-lg p-8 text-center">
-            <p className="text-sm font-roboto text-[var(--color-text-600)]">
-              Profile could not be loaded.
-            </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-3 text-sm font-roboto text-[var(--color-primary-600)] hover:underline cursor-pointer"
-            >
-              Try again
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
+          )}
+        </div>
+      </PageLayout>
+    </>
   );
 };
 
