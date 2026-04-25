@@ -100,6 +100,8 @@ export interface Section {
   color?: string;
   maleCount?: number;
   femaleCount?: number;
+
+  schoolForms?: SectionForm[];
 }
 
 export interface Adviser {

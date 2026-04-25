@@ -1,72 +1,178 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
-// [IMPORT] React
-import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+// [IMPORT] Hooks
+import { useState, useEffect, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
 import Modal from "../../components/Modal";
+import Skeleton from "../../components/Skeleton";
 import EmptyState from "../../components/EmptyState";
-import SchoolFormCard from "../../components/cards/SchoolFormCard";
+import Breadcrumbs from "../../components/Breadcrumbs";
+import PageLayout from "../../components/layouts/PageLayout";
 
-// [IMPORT] Helpers, Constants, Types
-import { GeneralModalConfig, SchoolFormStatus, SectionInfo, ImportResult } from "../../types";
+// [IMPORT] Helpers, Constants & Types
 import { darkenColor } from "../../helpers";
+import { STATUS_BADGE, STATUS_LABEL } from "../../constants";
+import { GeneralModalConfig, SchoolFormStatus, SectionInfo, ImportResult } from "../../types";
+
+// ? [INTERFACE] Individual school form shape
+interface SchoolForm {
+  id: number;
+  type: string;
+  status: SchoolFormStatus;
+  schoolYear: string;
+  generatedAt?: string;
+  submittedAt?: string;
+}
+
+// [CONSTANT] Section-level forms (one per section)
+const SECTION_FORMS = ["SF1", "SF2", "SF5"];
+
+// [CONSTANT] Student-level forms (one per student, shown as aggregate status)
+const STUDENT_FORMS = ["SF9", "SF10"];
+
+// [SUB-COMPONENT] Individual school form action card
+const SchoolFormActionCard = ({
+  form,
+  sectionSchoolYear,
+  onExport,
+  onImport,
+  exporting,
+  importing,
+  supportsImport,
+}: {
+  form: SchoolForm;
+  sectionId: number;
+  sectionSchoolYear: string;
+  onExport: () => void;
+  onImport?: () => void;
+  exporting: boolean;
+  importing: boolean;
+  supportsImport: boolean;
+}) => {
+  const isSection = SECTION_FORMS.includes(form.type);
+
+  return (
+    <div className="bg-[var(--color-bg-50)] border border-[var(--color-bg-200)] rounded-md overflow-hidden">
+      {/* [HEADER] Form type + status badge */}
+      <div className="px-4 py-3 flex items-center justify-between gap-3 border-b border-[var(--color-bg-200)]">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="size-10 rounded-md bg-[var(--color-primary-100)] flex items-center justify-center text-[var(--color-primary-700)] font-bold text-sm border border-[var(--color-primary-200)] flex-shrink-0">
+            {form.type}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-roboto font-bold text-[var(--color-text-900)] text-sm leading-tight">
+              {form.type}
+              {isSection ? " (Section)" : " (Per Student)"}
+            </p>
+            <p className="text-xs font-mono text-[var(--color-text-600)] mt-0.5">
+              {sectionSchoolYear}
+            </p>
+          </div>
+        </div>
+        <span className={`text-xs px-2 py-0.5 rounded-full font-semibold flex-shrink-0 ${STATUS_BADGE[form.status]}`}>
+          {STATUS_LABEL[form.status]}
+        </span>
+      </div>
+
+      {/* [DETAILS] Timestamps + Actions */}
+      <div className="px-4 py-3 space-y-3">
+        {/* [TEXT] Timestamps */}
+        <div className="space-y-1 text-xs font-roboto text-[var(--color-text-600)]">
+          {form.generatedAt && (
+            <p>Generated: {new Date(form.generatedAt).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}</p>
+          )}
+          {form.submittedAt && (
+            <p>Submitted: {new Date(form.submittedAt).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}</p>
+          )}
+        </div>
+
+        {/* [ACTIONS] Export + Import */}
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={onExport}
+            disabled={exporting}
+            className="text-xs font-roboto font-semibold px-3 py-1.5 rounded-md bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
+            {exporting ? "Exporting..." : `Export ${form.type}`}
+          </button>
+
+          {supportsImport && onImport && (
+            <button
+              onClick={onImport}
+              disabled={importing}
+              className="text-xs font-roboto font-semibold px-3 py-1.5 rounded-md bg-[var(--color-bg-200)] hover:bg-[var(--color-bg-300)] text-[var(--color-text-800)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {importing ? "Importing..." : `Import ${form.type}`}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const AdviserClassSchoolForms = () => {
   const { sectionId } = useParams<{ sectionId: string }>();
   const { setShowTokenExpiredModal } = useAuth();
   const navigate = useNavigate();
 
-  // [STATES]
-  const [section, setSection]   = useState<SectionInfo | null>(null);
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState<string | null>(null);
+  // [STATES] Entities
+  const [section, setSection] = useState<SectionInfo | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // [STATES] Import/Export
+  // [STATES] Import / Export
   const [exporting, setExporting] = useState<string | null>(null);
-
   const [importingFor, setImportingFor] = useState<"SF1" | null>(null);
   const [importLoading, setImportLoading] = useState(false);
-  const [importResult, setImportResult]   = useState<ImportResult | null>(null);
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // [STATES] General Modal
+  // [STATE] General Modal
   const [generalModal, setGeneralModal] = useState<GeneralModalConfig>({
-    isOpen: false, title: "", message: "", type: "default",
-    confirmText: "OK", isCancelable: false, onConfirm: () => {},
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "default",
+    confirmText: "OK",
+    isCancelable: false,
+    onConfirm: () => {},
   });
-  const openModal  = (cfg: Partial<Omit<GeneralModalConfig, "isOpen">>) =>
-    setGeneralModal((p) => ({ ...p, isOpen: true, ...cfg }));
-  const closeModal = () => setGeneralModal((p) => ({ ...p, isOpen: false }));
 
-  // * [HANDLE] Fetch Section
+  const openGeneralModal = (config: Partial<Omit<GeneralModalConfig, "isOpen">>) => {
+    setGeneralModal(prev => ({ ...prev, isOpen: true, ...config }));
+  };
+
+  const closeGeneralModal = () => {
+    setGeneralModal(prev => ({ ...prev, isOpen: false }));
+  };
+
+  // * [HANDLE] Fetch Section and Its School Forms
   const fetchSection = async () => {
     setLoading(true);
-    setError(null);
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/api/adviser/forms/section/${sectionId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
       if (res.status === 401) { setShowTokenExpiredModal(true); return; }
+
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed to fetch section");
 
-      const rawSection = data.data.section;
-
-      // Map API response to frontend SectionInfo type
-      const mappedSection: SectionInfo = {
-        id: rawSection.id,
-        name: rawSection.name,
-        gradeLevel: rawSection.gradeLevel,
-        schoolYear: rawSection.schoolYear,
-        color: rawSection.color,
+      const raw = data.data.section;
+      setSection({
+        id: raw.id,
+        name: raw.name,
+        gradeLevel: raw.gradeLevel,
+        schoolYear: raw.schoolYear,
+        color: raw.color,
         classSize: data.data.students?.length || 0,
-        schoolForms: rawSection.schoolForms.map((f: any) => ({
+        schoolForms: raw.schoolForms.map((f: any) => ({
           id: f.id,
           type: f.type,
           status: f.status as SchoolFormStatus,
@@ -74,125 +180,133 @@ const AdviserClassSchoolForms = () => {
           generatedAt: f.generatedAt ?? undefined,
           submittedAt: f.submittedAt ?? undefined,
         })),
-      };
-
-      setSection(mappedSection);
-
+      });
     } catch (err: any) {
-      setError(err.message);
+      // ! [ERROR] Fetching section failed
+      console.error(err);
+      openGeneralModal({
+        title: "Unable to Load Section",
+        message: "We couldn't load the section at the moment. Please check your internet connection and try again.",
+        type: "error",
+        confirmText: "Close",
+        onConfirm: () => closeGeneralModal(),
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchSection(); }, [sectionId]);
+  useEffect(() => {
+    fetchSection();
+  }, [sectionId]);
 
   // * [HANDLE] Export School Form
-  const handleExport = async (formType: "SF1" | "SF5") => {
+  const handleExport = async (formType: "SF1" | "SF2" | "SF5" | "SF9" | "SF10") => {
     setExporting(formType);
     try {
       const token = localStorage.getItem("token");
-      const endpoint =
-        formType === "SF1"
-          ? `${import.meta.env.VITE_API_BASE_URL}/api/adviser/sf1/export`
-          : `${import.meta.env.VITE_API_BASE_URL}/api/adviser/sf5/export`;
+      const endpointMap: Record<string, string> = {
+        SF1: `${import.meta.env.VITE_API_BASE_URL}/api/adviser/sf1/export`,
+        SF2: `${import.meta.env.VITE_API_BASE_URL}/api/adviser/sf2/export`,
+        SF5: `${import.meta.env.VITE_API_BASE_URL}/api/adviser/sf5/export`,
+        SF9: `${import.meta.env.VITE_API_BASE_URL}/api/adviser/sf9/export`,
+        SF10: `${import.meta.env.VITE_API_BASE_URL}/api/adviser/sf10/export`,
+      };
 
-      const res = await fetch(endpoint, {
+      const res = await fetch(endpointMap[formType], {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // Check for JSON error response (incomplete data, etc.)
       const contentType = res.headers.get("content-type") || "";
+
       if (contentType.includes("application/json")) {
         const errData = await res.json();
 
         if (!res.ok && errData.data && Array.isArray(errData.data)) {
-          // Incomplete student data — show details
           const names = errData.data
             .slice(0, 5)
-            .map((s: any) => `• ${s.name}: ${s.missing?.join(", ") || s.missingFields?.join(", ")}`)
+            .map((s: any) => `• ${s.name}: ${(s.missing ?? s.missingFields ?? []).join(", ")}`)
             .join("\n");
           const more = errData.data.length > 5 ? `\n...and ${errData.data.length - 5} more.` : "";
-          openModal({
+          openGeneralModal({
             title: `Cannot Export ${formType}`,
             message: `Some students have incomplete information:\n\n${names}${more}\n\nPlease complete their records before exporting.`,
             type: "error",
             confirmText: "Close",
-            onConfirm: closeModal,
+            onConfirm: () => closeGeneralModal(),
           });
           return;
         }
 
-        openModal({
-          title: `Export Failed`,
+        openGeneralModal({
+          title: "Export Failed",
           message: errData.message || "An error occurred while generating the file.",
           type: "error",
           confirmText: "Close",
-          onConfirm: closeModal,
+          onConfirm: () => closeGeneralModal(),
         });
         return;
       }
 
       if (!res.ok) {
-        openModal({
+        openGeneralModal({
           title: "Export Failed",
           message: "The server returned an error. Please try again.",
           type: "error",
           confirmText: "Close",
-          onConfirm: closeModal,
+          onConfirm: () => closeGeneralModal(),
         });
         return;
       }
 
-      // Stream download
+      // [DOWNLOAD] Stream the file blob to the user
       const blob = await res.blob();
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
       const disp = res.headers.get("content-disposition") || "";
       const match = disp.match(/filename="?([^"]+)"?/);
-      a.href     = url;
+      a.href = url;
       a.download = match ? match[1] : `${formType}_export.xlsx`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-
     } catch (err: any) {
-      openModal({
+      // ! [ERROR] Export failed
+      console.error(err);
+      openGeneralModal({
         title: "Export Failed",
         message: err.message || "Network error. Please check your connection.",
         type: "error",
         confirmText: "Close",
-        onConfirm: closeModal,
+        onConfirm: () => closeGeneralModal(),
       });
     } finally {
       setExporting(null);
     }
   };
 
-  // [HANDLE] Click Import Button
+  // [HANDLE] Trigger hidden file input for import
   const handleImportClick = (formType: "SF1") => {
     setImportingFor(formType);
     setImportResult(null);
     fileInputRef.current?.click();
   };
 
-  // [HANDLE] File Import
+  // [HANDLE] Process imported file
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    // Reset so the same file can be re-selected
     if (fileInputRef.current) fileInputRef.current.value = "";
-
     if (!file || !importingFor) return;
 
     const ext = file.name.split(".").pop()?.toLowerCase();
     if (!["xlsx", "csv"].includes(ext || "")) {
-      openModal({
+      openGeneralModal({
         title: "Invalid File",
         message: "Please upload a .xlsx or .csv file exported from the SF1 template.",
         type: "error",
         confirmText: "Close",
-        onConfirm: closeModal,
+        onConfirm: () => closeGeneralModal(),
       });
       return;
     }
@@ -200,49 +314,41 @@ const AdviserClassSchoolForms = () => {
     setImportLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const form  = new FormData();
+      const form = new FormData();
       form.append("sf1File", file);
 
-      const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/adviser/sf1/import`,
-        { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: form }
-      );
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/adviser/sf1/import`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
 
       const data = await res.json();
+      if (!data.success) throw new Error(data.message || "Could not import the file. Please check the format and try again.");
 
-      if (!data.success) {
-        openModal({
-          title: "Import Failed",
-          message: data.message || "Could not import the file. Please check the format and try again.",
-          type: "error",
-          confirmText: "Close",
-          onConfirm: closeModal,
-        });
-        return;
-      }
-
-      // Success — show results summary
       const r: ImportResult = data.data?.results;
       setImportResult(r);
-      await fetchSection(); // refresh form statuses + classSize
+      await fetchSection();
 
-      openModal({
+      // * [SUCCESS] Import Successful
+      openGeneralModal({
         title: "Import Successful",
         message:
           `${r.created} new student(s) added, ${r.updated} updated, ${r.enrolled} enrolled into your section.` +
           (r.errors.length ? `\n\n${r.errors.length} record(s) had errors and were skipped.` : ""),
         type: "success",
         confirmText: "Done",
-        onConfirm: closeModal,
+        onConfirm: () => closeGeneralModal(),
       });
-
     } catch (err: any) {
-      openModal({
+      // ! [ERROR] Import failed
+      console.error(err);
+      openGeneralModal({
         title: "Import Failed",
         message: err.message || "Network error during import.",
         type: "error",
         confirmText: "Close",
-        onConfirm: closeModal,
+        onConfirm: () => closeGeneralModal(),
       });
     } finally {
       setImportLoading(false);
@@ -250,37 +356,23 @@ const AdviserClassSchoolForms = () => {
     }
   };
 
-  // [DEBUG] School Forms
-  console.log("Full schoolForms array:", section?.schoolForms);
-  const sf1 = section?.schoolForms?.find((f) => 
-    f.type?.toString().toUpperCase() === "SF1"
-  );
-  const sf5 = section?.schoolForms?.find((f) => 
-    f.type?.toString().toUpperCase() === "SF5"
-  );
-  console.log("Extracted SF1:", sf1);
-  console.log("Extracted SF5:", sf5);
-
-  // *[BREADCRUMBS] Admin Adviser Details navigation
+  // * [BREADCRUMBS] Adviser Class School Forms navigation
   const breadcrumbs = [
+    { label: "Adviser Dashboard", path: "/adviser/dashboard" },
     { label: "School Forms", path: "/adviser/school-forms" },
-    { label: `${section?.gradeLevel} - ${section?.name}`, path: null },
+    { label: section ? `Grade ${section.gradeLevel} — ${section.name}` : "Section", path: null },
   ];
 
-  if (error || !section) {
-    return (
-      <div className="py-10 px-4">
-        <EmptyState
-          title="Unable to Load"
-          subtitle={error || "Section not found."}
-        />
-      </div>
-    );
-  }
+  // ? [LOADING STATE]
+  if (loading) return <Skeleton />;
+
+  // [COMPUTE] Separate section-level and student-level forms
+  const sectionLevelForms = section?.schoolForms.filter(f => SECTION_FORMS.includes(f.type)) ?? [];
+  const studentLevelForms = section?.schoolForms.filter(f => STUDENT_FORMS.includes(f.type)) ?? [];
 
   return (
-    <div className="py-10 px-4 space-y-4">
-      {/* Hidden file input for import */}
+    <>
+      {/* [HIDDEN] File input for SF1 import */}
       <input
         ref={fileInputRef}
         type="file"
@@ -292,7 +384,7 @@ const AdviserClassSchoolForms = () => {
       {/* [MODAL] General */}
       <Modal
         isOpen={generalModal.isOpen}
-        onClose={closeModal}
+        onClose={closeGeneralModal}
         title={generalModal.title}
         message={generalModal.message}
         type={generalModal.type}
@@ -301,109 +393,122 @@ const AdviserClassSchoolForms = () => {
         isCancelable={generalModal.isCancelable}
       />
 
-      {/* [SECTION] Header & Breadcrumbs */}
-      <div>
-        <h2 className="text-[var(--color-text-800)] leading-0">School Forms</h2>
-        <nav className="font-roboto text-sm text-[var(--color-text-700)]">
-          {breadcrumbs.map((crumb, idx) => (
-            <span key={idx}>
-              {crumb.path ? (
-                <span className="cursor-pointer hover:underline" onClick={() => navigate(crumb.path!)}>
-                  {crumb.label}
-                </span>
+      {/* [LAYOUT] Adviser Page */}
+      <PageLayout
+        header={<Breadcrumbs items={breadcrumbs} title="School Forms" />}
+      >
+        {section ? (
+          <div className="space-y-4">
+
+            {/* [CARD] Section Info Header */}
+            <div className="bg-[var(--color-bg-100)] rounded-lg overflow-hidden border border-[var(--color-bg-200)]">
+              <div className="h-1.5 w-full" style={{ backgroundColor: darkenColor(section.color, 0.1) }} />
+              <div className="px-4 py-4 flex items-center gap-4">
+                <div
+                  className="size-12 rounded-lg flex items-center justify-center text-white font-bold text-base flex-shrink-0"
+                  style={{ backgroundColor: darkenColor(section.color, 0.1) }}
+                >
+                  G{section.gradeLevel}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-roboto font-bold text-[var(--color-text-900)] text-lg leading-tight">
+                    Grade {section.gradeLevel} — {section.name}
+                  </p>
+                  <p className="text-sm font-roboto text-[var(--color-text-600)] mt-0.5">
+                    {section.schoolYear} · {section.classSize} student{section.classSize !== 1 ? "s" : ""}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* [SECTION] Section-level Forms — SF1, SF2, SF5 */}
+            <div className="bg-[var(--color-bg-100)] rounded-lg p-4 space-y-3">
+              <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)]">
+                Section Forms
+              </p>
+              {sectionLevelForms.length === 0 ? (
+                <EmptyState
+                  title="No section forms available"
+                  subtitle="SF1, SF2, and SF5 will appear here once created."
+                />
               ) : (
-                <span className="font-medium text-[var(--color-text-900)]">{crumb.label}</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {sectionLevelForms.map(form => (
+                    <SchoolFormActionCard
+                      key={form.id}
+                      form={form}
+                      sectionId={section.id}
+                      sectionSchoolYear={section.schoolYear}
+                      onExport={() => handleExport(form.type as any)}
+                      onImport={form.type === "SF1" ? () => handleImportClick("SF1") : undefined}
+                      exporting={exporting === form.type}
+                      importing={importLoading && importingFor === form.type}
+                      supportsImport={form.type === "SF1"}
+                    />
+                  ))}
+                </div>
               )}
-              {idx < breadcrumbs.length - 1 && " / "}
-            </span>
-          ))}
-        </nav>
-      </div>
+            </div>
 
-      {/* Section Info Card */}
-      <div className="bg-[var(--color-bg-100)] rounded-lg overflow-hidden border border-[var(--color-bg-200)]">
-        <div
-          className="h-1.5 w-full"
-          style={{ backgroundColor: darkenColor(section.color, 0.1) }}
-        />
-        <div className="px-4 py-4 flex items-center gap-4 flex-wrap">
-          <div
-            className="size-12 rounded-lg flex items-center justify-center text-white font-bold text-base flex-shrink-0"
-            style={{ backgroundColor: darkenColor(section.color, 0.1) }}
-          >
-            G{section.gradeLevel}
+            {/* [SECTION] Student-level Forms — SF9, SF10 */}
+            <div className="bg-[var(--color-bg-100)] rounded-lg p-4 space-y-3">
+              <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)]">
+                Student Forms
+              </p>
+              {studentLevelForms.length === 0 ? (
+                <EmptyState
+                  title="No student forms available"
+                  subtitle="SF9 and SF10 will appear here once grades are recorded."
+                />
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {studentLevelForms.map(form => (
+                    <SchoolFormActionCard
+                      key={form.id}
+                      form={form}
+                      sectionId={section.id}
+                      sectionSchoolYear={section.schoolYear}
+                      onExport={() => handleExport(form.type as any)}
+                      exporting={exporting === form.type}
+                      importing={false}
+                      supportsImport={false}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* [CARD] Import Error Details */}
+            {importResult && importResult.errors.length > 0 && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <p className="text-sm font-roboto font-semibold text-amber-700 mb-2">
+                  ⚠ {importResult.errors.length} record(s) could not be imported:
+                </p>
+                <ul className="space-y-1">
+                  {importResult.errors.map((e, i) => (
+                    <li key={i} className="text-xs text-amber-700">
+                      <span className="font-mono font-semibold">{e.lrn}</span>: {e.reason}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
           </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="text-base font-bold text-[var(--color-text-900)] leading-tight">
-              Grade {section.gradeLevel} | {section.name}
-            </h3>
-            <p className="text-sm text-[var(--color-text-500)] mt-0.5">
-              {section.schoolYear} · {section.classSize} student{section.classSize !== 1 ? "s" : ""}
-            </p>
+        ) : (
+          // [EMPTY STATE] Section not found
+          <div className="bg-[var(--color-bg-100)] rounded-lg p-8 text-center">
+            <p className="text-sm font-roboto text-[var(--color-text-600)]">Section not found.</p>
+            <button
+              onClick={() => navigate("/adviser/school-forms")}
+              className="mt-3 text-sm font-roboto text-[var(--color-primary-600)] hover:underline cursor-pointer"
+            >
+              ← Back to School Forms
+            </button>
           </div>
-        </div>
-      </div>
-
-      {/* Forms */}
-      <div className="space-y-3 bg-[var(--color-bg-100)] p-4 rounded-lg">
-        {(error || !section) && (
-          <EmptyState
-            title="We couldn’t load this section"
-            subtitle={
-              error ||
-              "This section may no longer exist or you may not have access to it."
-            }
-          />
         )}
-
-        {(!error && section && !sf1 && !sf5) && (
-          <EmptyState
-            title="Missing School Forms"
-            subtitle="There are no school forms available for this section right now."
-          />
-        )}
-        {sf1 && (
-          <SchoolFormCard
-            form={sf1}
-            sectionId={section.id}
-            sectionSchoolYear={section.schoolYear}
-            onExport={() => handleExport("SF1")}
-            onImport={() => handleImportClick("SF1")}
-            exporting={exporting === "SF1"}
-            importing={importLoading && importingFor === "SF1"}
-            supportsImport={true}
-          />
-        )}
-
-        {sf5 && (
-          <SchoolFormCard
-            form={sf5}
-            sectionId={section.id}
-            sectionSchoolYear={section.schoolYear}
-            onExport={() => handleExport("SF5")}
-            exporting={exporting === "SF5"}
-            importing={false}
-            supportsImport={false}
-          />
-        )}
-      </div>
-
-      {/* Import result detail (errors) */}
-      {importResult && importResult.errors.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-          <p className="text-sm font-semibold text-amber-700 mb-2">
-            ⚠ {importResult.errors.length} record(s) could not be imported:
-          </p>
-          <ul className="space-y-1">
-            {importResult.errors.map((e, i) => (
-              <li key={i} className="text-xs text-amber-700">
-                <span className="font-mono font-semibold">{e.lrn}</span>: {e.reason}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
+      </PageLayout>
+    </>
   );
 };
 
