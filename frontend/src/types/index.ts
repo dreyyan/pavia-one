@@ -406,3 +406,21 @@ export interface ScheduleItem {
   day: string;
   time: string;
 }
+
+export interface StudentGrade {
+  id: number;
+  lrn: string;
+  fullName: string;
+  average: number | null;
+  remarks: string | null;
+}
+
+export type SectionUI = {
+  id: number;
+  name: string;
+  gradeLevel: number;
+  classSize: number;
+  color: string;
+  maleCount: number;
+  femaleCount: number;
+};

@@ -1,42 +1,29 @@
+// [IMPORT] Hooks
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
 
+// [IMPORT] Components
 import Modal from "../../components/Modal";
+import Dropdown from "../../components/Dropdown";
 import Skeleton from "../../components/Skeleton";
+import SearchBar from "../../components/SearchBar";
 import EmptyState from "../../components/EmptyState";
+import Pagination from "../../components/Pagination";
 import Breadcrumbs from "../../components/Breadcrumbs";
+import PageLayout from "../../components/layouts/PageLayout";
 import ClassCard from "../../components/cards/ClassCard";
 import StudentGradeCard from "../../components/cards/StudentGradeCard";
-import PageLayout from "../../components/layouts/PageLayout";
-import SearchBar from "../../components/SearchBar";
-import Pagination from "../../components/Pagination";
-import Dropdown from "../../components/Dropdown";
 
-import { GeneralModalConfig } from "../../types";
+// [IMPORT] Helpers & Types
 import { getVisiblePages } from "../../helpers";
+import { GeneralModalConfig, StudentGrade, SectionUI, Enrollment } from "../../types";
 
-interface StudentGrade {
-  id: number;
-  lrn: string;
-  fullName: string;
-  average: number | null;
-  remarks: string | null;
-}
-
-interface SectionInfo {
-  id: number;
-  name: string;
-  gradeLevel: number;
-  classSize: number;
-  maleCount: number;
-  femaleCount: number;
-  color: string;
-}
-
-interface Enrollment {
-  student?: { sex?: "MALE" | "FEMALE" | null } | null;
-}
+export type EnrollmentWithStudent = Enrollment & {
+  student?: {
+    sex?: "MALE" | "FEMALE" | null;
+  } | null;
+};
 
 const AdviserClassGrades = () => {
   const { sectionId } = useParams<{ sectionId: string }>();
@@ -44,7 +31,7 @@ const AdviserClassGrades = () => {
   const { setShowTokenExpiredModal } = useAuth();
 
   const [grades, setGrades] = useState<StudentGrade[]>([]);
-  const [section, setSection] = useState<SectionInfo | null>(null);
+const [section, setSection] = useState<SectionUI | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState("");
@@ -107,7 +94,7 @@ const AdviserClassGrades = () => {
       let maleCount = 0;
       let femaleCount = 0;
 
-      (sec.enrollments || []).forEach((e: Enrollment) => {
+      (sec.enrollments || []).forEach((e: EnrollmentWithStudent) => {
         const sex = e.student?.sex;
         if (sex === "MALE") maleCount++;
         if (sex === "FEMALE") femaleCount++;
