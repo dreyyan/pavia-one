@@ -307,7 +307,7 @@ const filteredGrades = grades
                 student={student}
                 onClick={() =>
                   navigate(
-                    `/adviser/classes/grades/${sectionId}/${student.id}`
+                    `/adviser/classes/${sectionId}/grades/${student.id}`
                   )
                 }
               />
