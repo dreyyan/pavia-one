@@ -258,7 +258,7 @@ const AdminStudentDetails = () => {
   const breadcrumbs = [
     { label: "Admin Dashboard", path: "/admin/dashboard" },
     { label: "Students", path: "/admin/students" },
-    { label: student?.fullName ?? "Details", path: null },
+    { label: student?.fullName ?? "Details", path: null, isName: true },
   ];
 
   // * [RENDER] Form fields per active page
