@@ -14,10 +14,11 @@ import Breadcrumbs from "../../components/Breadcrumbs";
 import StudentCard from "../../components/cards/StudentCard";
 import PageLayout from "../../components/layouts/PageLayout";
 import ClassCard from "../../components/cards/ClassCard";
+import Modal from "../../components/Modal";
 
 // [IMPORT] Constants, Helpers & Types
 import { getVisiblePages } from "../../helpers/index";
-import { Student, Section } from "../../types";
+import { Student, Section, GeneralModalConfig } from "../../types";
 
 type SortOption = "name-asc" | "name-desc" | "lrn-asc" | "lrn-desc";
 
@@ -42,6 +43,25 @@ const AdviserClassStudents = () => {
   const [page, setPage] = useState(1);
   const itemsPerPage = 5;
 
+  // [STATE] General Modal
+  const [generalModal, setGeneralModal] = useState<GeneralModalConfig>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "default",
+    confirmText: "OK",
+    isCancelable: true,
+    onConfirm: () => {},
+  });
+
+  const openGeneralModal = (config: Partial<Omit<GeneralModalConfig, "isOpen">>) => {
+    setGeneralModal(prev => ({ ...prev, isOpen: true, ...config }));
+  };
+
+  const closeGeneralModal = () => {
+    setGeneralModal(prev => ({ ...prev, isOpen: false }));
+  };
+
   // * [HANDLE] Fetch Section and Students
   const fetchData = async () => {
     setLoading(true);
@@ -61,6 +81,16 @@ const AdviserClassStudents = () => {
       if (!data.success || !data.data) {
         setStudents([]);
         setSection(null);
+
+        openGeneralModal({
+          title: "No Section Data",
+          message: "We couldn't find students for this section.",
+          type: "error",
+          confirmText: "OK",
+          isCancelable: false,
+          onConfirm: () => closeGeneralModal(),
+        });
+
         return;
       }
 
@@ -83,6 +113,14 @@ const AdviserClassStudents = () => {
       console.error(err);
       setStudents([]);
       setSection(null);
+        openGeneralModal({
+          title: "No Section Data",
+          message: "We couldn't find students for this section.",
+          type: "error",
+          confirmText: "OK",
+          isCancelable: false,
+          onConfirm: () => closeGeneralModal(),
+        });
     } finally {
       setLoading(false);
     }
@@ -121,154 +159,190 @@ const AdviserClassStudents = () => {
   // ? [LOADING STATE]
   if (loading) return <Skeleton />;
 
-  if (!section) {
-    return (
-      <PageLayout header={<Breadcrumbs items={breadcrumbs} title="Students" />}>
-        <div className="bg-[var(--color-bg-100)] rounded-lg p-8 text-center">
-          <p className="text-sm font-roboto text-[var(--color-text-600)]">Section not found.</p>
-          <button
-            onClick={() => navigate("/adviser/classes")}
-            className="mt-3 text-sm font-roboto text-[var(--color-primary-600)] hover:underline cursor-pointer"
-          >
-            ← Back to Classes
-          </button>
-        </div>
-      </PageLayout>
-    );
-  }
-
   return (
-    <PageLayout
-      header={<Breadcrumbs items={breadcrumbs} title="Students" />}
-      card={
-        <div>
-          {/* [COMPONENT] Class Card */}
-          <ClassCard
-            id={section.id}
-            name={section.name}
-            classSize={section.classSize}
-            curriculum={section.curriculum}
-            gradeLevel={section.gradeLevel}
-          />
-        </div>
-      }
-      toolbar={
-        <div className="bg-[var(--color-bg-100)] px-3 sm:px-4 py-4 rounded-lg flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">
-          <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">
-            <div className="flex items-stretch gap-2 md:gap-4 w-full">
-              {/* [COMPONENT] Search Bar */}
-              <div className="w-full sm:w-64 md:w-80 lg:w-96">
-                <SearchBar
-                  value={search}
-                  placeholder="Search by name or LRN..."
-                  onChange={setSearch}
-                  onResetPage={() => setPage(1)}
-                />
-              </div>
+    <>
+      {/* [MODAL] General - ALWAYS MOUNTED */}
+      <Modal
+        isOpen={generalModal.isOpen}
+        onClose={closeGeneralModal}
+        title={generalModal.title}
+        message={generalModal.message}
+        type={generalModal.type}
+        confirmText={generalModal.confirmText}
+        onConfirm={generalModal.onConfirm}
+        isCancelable={generalModal.isCancelable}
+      />
 
-              {/* [COMPONENT] Sort Dropdown */}
-              <div className="flex gap-x-2 ml-auto shrink-0">
-                <Dropdown
-                  icon="/sort.svg"
-                  label="Sort"
-                  isOpen={activeDropdown === "sort"}
-                  onToggle={() =>
-                    setActiveDropdown(activeDropdown === "sort" ? null : "sort")
-                  }
-                  selected={sortOption}
-                  onSelect={(value) => {
-                    setSortOption(value as SortOptionType);
-                    setPage(1);
-                  }}
-                  options={[
-                    { label: "Name (A → Z)", value: "name-asc" },
-                    { label: "Name (Z → A)", value: "name-desc" },
-                    { label: "LRN ↑", value: "lrn-asc" },
-                    { label: "LRN ↓", value: "lrn-desc" },
-                  ]}
-                />
-              </div>
-            </div>
+      {/* [LOADING STATE] */}
+      {loading ? (
+        <Skeleton />
+      ) : !section ? (
+        /* [FALLBACK] Section not found */
+        <PageLayout header={<Breadcrumbs items={breadcrumbs} title="Students" />}>
+          <div className="bg-[var(--color-bg-100)] rounded-lg p-8 text-center">
+            <p className="text-sm font-roboto text-[var(--color-text-600)]">
+              Section not found.
+            </p>
+            <button
+              onClick={() => navigate("/adviser/classes")}
+              className="mt-3 text-sm font-roboto text-[var(--color-primary-600)] hover:underline cursor-pointer"
+            >
+              ← Back to Classes
+            </button>
           </div>
-        </div>
-      }
-      footer={
-        <Pagination
-          page={page}
-          totalPages={totalPages}
-          onPageChange={setPage}
-          getVisiblePages={getVisiblePages}
-        />
-      }
-    >
-      <div className="space-y-3">
-        {/* [SECTION] Student Cards (Mobile View) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:hidden gap-4 bg-[var(--color-bg-100)] px-3 py-4 rounded-lg">
-          {displayedStudents.length === 0 && (
-            <div className="sm:col-span-2 flex justify-center">
-              <EmptyState
-                title="No students found"
-                subtitle="No students match your current search."
+        </PageLayout>
+      ) : (
+        /* [MAIN CONTENT] */
+        <PageLayout
+          header={<Breadcrumbs items={breadcrumbs} title="Students" />}
+          card={
+            <div>
+              <ClassCard
+                id={section.id}
+                name={section.name}
+                classSize={section.classSize}
+                curriculum={section.curriculum}
+                gradeLevel={section.gradeLevel}
               />
             </div>
-          )}
-          {displayedStudents.map(s => (
-            <StudentCard
-              key={s.id}
-              student={s}
-              onClick={() => navigate(`/adviser/classes/${sectionId}/students/${s.id}`)}
-            />
-          ))}
-        </div>
+          }
+          toolbar={
+            <div className="bg-[var(--color-bg-100)] px-3 sm:px-4 py-4 rounded-lg flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">
+              <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">
+                <div className="flex items-stretch gap-2 md:gap-4 w-full">
+                  
+                  {/* Search */}
+                  <div className="w-full sm:w-64 md:w-80 lg:w-96">
+                    <SearchBar
+                      value={search}
+                      placeholder="Search by name or LRN..."
+                      onChange={setSearch}
+                      onResetPage={() => setPage(1)}
+                    />
+                  </div>
 
-        {/* [SECTION] Students Table (Desktop View) */}
-        <div className="hidden md:block bg-[var(--color-bg-100)] px-3 py-4 rounded-lg overflow-x-auto">
-          {displayedStudents.length === 0 && (
-            <EmptyState
-              title="No students found"
-              subtitle="No students match your current search."
-            />
-          )}
+                  {/* Sort */}
+                  <div className="flex gap-x-2 ml-auto shrink-0">
+                    <Dropdown
+                      icon="/sort.svg"
+                      label="Sort"
+                      isOpen={activeDropdown === "sort"}
+                      onToggle={() =>
+                        setActiveDropdown(activeDropdown === "sort" ? null : "sort")
+                      }
+                      selected={sortOption}
+                      onSelect={(value) => {
+                        setSortOption(value as SortOptionType);
+                        setPage(1);
+                      }}
+                      options={[
+                        { label: "Name (A → Z)", value: "name-asc" },
+                        { label: "Name (Z → A)", value: "name-desc" },
+                        { label: "LRN ↑", value: "lrn-asc" },
+                        { label: "LRN ↓", value: "lrn-desc" },
+                      ]}
+                    />
+                  </div>
 
-          {displayedStudents.length > 0 && (
-            <table className="min-w-full border-separate border-spacing-y-2">
-              <thead>
-                <tr className="text-left">
-                  <th className="table-header">Name</th>
-                  <th className="table-header">LRN</th>
-                  <th className="table-header">Sex</th>
-                  {/* <th className="table-header">Attendance</th> */}
-                </tr>
-              </thead>
-              <tbody>
-                {displayedStudents.map(s => (
-                  <tr
+                </div>
+              </div>
+            </div>
+          }
+          footer={
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              getVisiblePages={getVisiblePages}
+            />
+          }
+        >
+          <div className="space-y-3">
+
+            {/* Mobile */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:hidden gap-4 bg-[var(--color-bg-100)] px-3 py-4 rounded-lg">
+              {displayedStudents.length === 0 ? (
+                <div className="sm:col-span-2 flex justify-center">
+                  <EmptyState
+                    title="No students found"
+                    subtitle="No students match your current search."
+                  />
+                </div>
+              ) : (
+                displayedStudents.map(s => (
+                  <StudentCard
                     key={s.id}
-                    className="bg-[var(--color-bg-50)] hover:bg-[var(--color-bg-200)] transition cursor-pointer"
-                    onClick={() => navigate(`/adviser/classes/${sectionId}/students/${s.id}`)}
-                  >
-                    <td className="table-cell table-text table-text-link hover:underline">
-                      {s.fullName}
-                    </td>
-                    <td className="table-cell table-text table-text-default font-mono text-xs">
-                      {s.lrn}
-                    </td>
-                    <td className="table-cell table-text table-text-default">
-                      {s.sex === "MALE" ? "M" : s.sex === "FEMALE" ? "F" : "—"}
-                    </td>
-                    {/* TODO: Implement attendance rate display */}
-                    {/* <td className="table-cell table-text table-text-default">
-                      {s.attendanceRate ?? 0}%
-                    </td> */}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+                    student={s}
+                    onClick={() =>
+                      navigate(`/adviser/classes/${sectionId}/students/${s.id}`)
+                    }
+                  />
+                ))
+              )}
+            </div>
 
-      </div>
-    </PageLayout>
+            {/* Desktop */}
+            <div className="hidden md:block bg-[var(--color-bg-100)] px-3 py-4 rounded-lg overflow-x-auto">
+              {!loading && displayedStudents.length === 0 && (
+                <EmptyState
+                  title="No students found"
+                  subtitle="No students match your current search."
+                />
+              )}
+
+              {displayedStudents.length > 0 && (
+                <table className="min-w-full border-separate border-spacing-y-2">
+                  <thead>
+                    <tr className="text-left">
+                      <th className="table-header">Name</th>
+                      <th className="table-header">LRN</th>
+                      <th className="table-header">Grade, Section & Curriculum</th>
+                      <th className="table-header text-center">Sex</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {displayedStudents.map((s) => (
+                      <tr
+                        key={s.id}
+                        className="bg-[var(--color-bg-50)] hover:bg-[var(--color-bg-200)] transition"
+                      >
+                        {/* Name */}
+                        <td
+                          onClick={() =>
+                            navigate(`/adviser/classes/${sectionId}/students/${s.id}`)
+                          }
+                          className="table-cell table-text table-text-link cursor-pointer hover:underline"
+                        >
+                          {s.fullName}
+                        </td>
+
+                        {/* LRN */}
+                        <td className="table-cell table-text table-text-default">
+                          {s.lrn}
+                        </td>
+
+                        {/* Grade, Section & Curriculum */}
+                        <td className="table-cell table-text table-text-default">
+                          {section
+                            ? `Grade ${section.gradeLevel} - ${section.name} (${section.curriculum})`
+                            : "—"}
+                        </td>
+
+                        {/* Sex */}
+                        <td className="table-cell table-text table-text-default text-center">
+                          {s.sex === "MALE" ? "M" : s.sex === "FEMALE" ? "F" : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </PageLayout>
+      )}
+    </>
   );
 };
 
