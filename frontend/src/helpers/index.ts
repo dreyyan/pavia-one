@@ -185,3 +185,19 @@ export const getSectionCurriculum = (
 export const normalizeSchoolYear = (year: string) => {
   return year.replace(/\s*[-–—]\s*/, "-");
 };
+
+// [HELPER] Format breadcrumb name in the format "LAST_NAME, F. M."
+export const formatBreadcrumbName = (name: string): string => {
+  const parts = name.trim().split(" ");
+
+  // If it's not at least 2–3 parts, don't touch it
+  if (parts.length < 2) return name;
+
+  const lastName = parts[parts.length - 1].toUpperCase();
+  const initials = parts
+    .slice(0, -1)
+    .map((p) => p.charAt(0).toUpperCase() + ".")
+    .join(" ");
+
+  return `${lastName}, ${initials}`;
+};
