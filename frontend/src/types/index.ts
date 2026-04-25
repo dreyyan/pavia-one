@@ -298,15 +298,6 @@ export interface LearningAreaDetails {
   quarterlyAssessmentWeight: number;
 };
 
-export interface SectionForm {
-  id: number;
-  type: "SF1" | "SF5";
-  status: SchoolFormStatus;
-  schoolYear: string;
-  generatedAt?: string;
-  submittedAt?: string;
-}
-
 export interface SectionInfo {
   id: number;
   name: string;
@@ -364,10 +355,12 @@ export interface Announcement {
   content: string;
   publishedAt?: string;
   expiresAt?: string;
-  createdById: number;
+
+  createdById?: number;
   createdBy?: { id: number; name: string };
+
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
 export interface SchoolEvent {
@@ -378,11 +371,13 @@ export interface SchoolEvent {
   type: EventType;
   startDate: string;
   endDate?: string;
-  isOnline: boolean;
-  createdById: number;
+
+  isOnline?: boolean;
+  createdById?: number;
   createdBy?: { id: number; name: string };
+
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
 export interface AnnouncementFormData {
@@ -424,3 +419,32 @@ export type SectionUI = {
   maleCount: number;
   femaleCount: number;
 };
+
+export type AdviserAnnouncement = Pick<
+  Announcement,
+  "id" | "title" | "content" | "publishedAt" | "expiresAt" | "createdAt"
+>;
+
+export type AdviserSchoolEvent = Pick<
+  SchoolEvent,
+  "id" | "title" | "description" | "type" | "startDate" | "endDate" | "createdAt"
+>;
+
+export interface SectionOverview {
+  id: number;
+  name: string;
+  gradeLevel: number;
+  schoolYear: string;
+
+  curriculum: Curriculum;
+
+  adviser: {
+    id: number;
+    adviserId: string;
+    name: string;
+    email: string;
+  };
+
+  schoolForms: SectionForm[];
+  enrollments: { id: number }[];
+}
