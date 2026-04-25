@@ -586,11 +586,13 @@ const AdviserClassStudentDetails = () => {
             <ProfileInfo lastName={student.lastName} firstName={student.firstName} />
 
             {/* [ACTIONS] Generate SF9 */}
-            <PrimaryButton
-              text="Generate SF9"
-              iconSrc="/generate-file.svg"
-              onClick={() => console.log("SF9 generation not implemented yet.")}
-            />
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-4 w-full xl:w-auto xl:ml-auto">
+              <PrimaryButton
+                text="Generate SF9"
+                iconSrc="/generate-file.svg"
+                onClick={() => console.log("SF9 generation not implemented yet.")}
+              />
+            </div>
 
             {/* [COMPONENT] Student Details */}
             <TabbedFormCard
