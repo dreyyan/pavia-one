@@ -1,14 +1,28 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 // [IMPORT] Hooks
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
-import PrimaryButton from "../../components/buttons/PrimaryButton";
-import InputField from "../../components/InputField";
 import Modal from "../../components/Modal";
+import Skeleton from "../../components/Skeleton";
+import InputField from "../../components/InputField";
+import ProfileInfo from "../../components/ProfileInfo";
+import Breadcrumbs from "../../components/Breadcrumbs";
+import TabbedFormCard from "../../components/cards/TabbedFormCard";
+import PrimaryButton from "../../components/buttons/PrimaryButton";
+import PageLayout from "../../components/layouts/PageLayout";
 
-// ?[INTERFACES]
+// [IMPORT] Constants & Types
+import { GeneralModalConfig } from "../../types";
+
+// ? [TYPE] Active form page index
+type FormPage = 0 | 1 | 2;
+
+const PAGE_LABELS: [string, string, string] = ["Basic Information", "Address", "Parents & Guardian"];
+
+// ? [INTERFACE] Student entity shape
 interface Student {
   id: number;
   lrn: string;
@@ -20,19 +34,9 @@ interface Student {
   email?: string;
   sex?: string;
   birthDate?: string;
-  profilePic?: string;
   sectionId?: number;
   sectionName?: string;
   gradeLevel?: number;
-}
-
-interface StudentForm {
-  lastName: string;
-  firstName: string;
-  middleName?: string;
-  sex?: string;
-  birthDate?: string;
-  age?: number;
   motherTongue?: string;
   ip?: string;
   religion?: string;
@@ -51,23 +55,59 @@ interface StudentForm {
   learningModality?: string;
 }
 
+// ? [INTERFACE] Editable form fields
+interface StudentForm {
+  lastName: string;
+  firstName: string;
+  middleName?: string;
+  sex?: string;
+  birthDate?: string;
+  motherTongue?: string;
+  ip?: string;
+  religion?: string;
+  houseNo?: string;
+  street?: string;
+  sitio?: string;
+  purok?: string;
+  barangay?: string;
+  municipality?: string;
+  province?: string;
+  fatherName?: string;
+  motherName?: string;
+  guardianName?: string;
+  guardianRelationship?: string;
+  guardianContact?: string;
+  learningModality?: string;
+}
+
+// [CONSTANT] Learning modality options
+const LEARNING_MODALITIES = [
+  { label: "Face to Face", value: "FACE_TO_FACE" },
+  { label: "Distance Learning", value: "DISTANCE_LEARNING" },
+  { label: "Blended", value: "BLENDED" },
+  { label: "Online", value: "ONLINE" },
+  { label: "Homeschool", value: "HOMESCHOOL" },
+  { label: "Other", value: "OTHER" },
+];
+
 const AdviserClassStudentDetails = () => {
-  const { sectionId, studentId } = useParams<{
-    sectionId: string;
-    studentId: string;
-  }>();
+  const { sectionId, studentId } = useParams<{ sectionId: string; studentId: string }>();
   const navigate = useNavigate();
   const { setShowTokenExpiredModal } = useAuth();
 
-  // [STATES]
+  // [STATES] Entities
   const [student, setStudent] = useState<Student | null>(null);
-  const [form, setForm] = useState<StudentForm>({
+  const [loading, setLoading] = useState(true);
+
+  // [STATES] Identity Card
+  const [activePage, setActivePage] = useState<FormPage>(0);
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState<StudentForm>({
     lastName: "",
     firstName: "",
     middleName: "",
     sex: "",
     birthDate: "",
-    age: undefined,
     motherTongue: "",
     ip: "",
     religion: "",
@@ -86,527 +126,517 @@ const AdviserClassStudentDetails = () => {
     learningModality: "",
   });
 
-  const [originalForm, setOriginalForm] = useState<StudentForm | null>(null);
-  const [page, setPage] = useState(1);
-  const totalPages = 3;
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [modalTitle, setModalTitle] = useState("");
-  const [modalMessage, setModalMessage] = useState("");
-  const [modalType, setModalType] = useState<"default" | "error" | "success" | "info" | "warning">("default");
-  const [redirectOnConfirm, setRedirectOnConfirm] = useState(false);
+  // [STATE] General Modal
+  const [generalModal, setGeneralModal] = useState<GeneralModalConfig>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "default",
+    confirmText: "OK",
+    isCancelable: true,
+    onConfirm: () => {},
+  });
 
-  // [HANDLE] Student form update
-  const handleChange = (field: keyof StudentForm, value: string | number) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+  const openGeneralModal = (config: Partial<Omit<GeneralModalConfig, "isOpen">>) => {
+    setGeneralModal(prev => ({ ...prev, isOpen: true, ...config }));
   };
 
-  // [HANDLE] Toggle form edit state
-  const toggleEdit = () => {
-    if (isEditing && originalForm) {
-      setForm(originalForm);
-    } else if (!isEditing) {
-      setOriginalForm(form);
-    }
-    setIsEditing((prev) => !prev);
+  const closeGeneralModal = () => {
+    setGeneralModal(prev => ({ ...prev, isOpen: false }));
   };
 
-  // [HANDLE] Form navigation
-  const handleNextPage = () => {
-    if (page < totalPages) setPage((p) => p + 1);
-  };
-  const handlePrevPage = () => {
-    if (page > 1) setPage((p) => p - 1);
-  };
-
-  // *[HANDLE] Form save
-  const handleSave = async () => {
-    if (!form) return;
-
-    const requiredFields: (keyof StudentForm)[] = [
-      "lastName",
-      "firstName",
-      "sex",
-      "birthDate",
-      "learningModality",
-    ];
-
-    // *[VALIDATION] Check for missing required fields
-    const missingFields = requiredFields.filter(
-      (field) => !form[field] || form[field]?.toString().trim() === ""
-    );
-
-    if (missingFields.length > 0) {
-      // ![ERROR] Missing required fields
-      setModalTitle("Validation Error");
-      setModalMessage(
-        `Please fill in the following required fields: ${missingFields.join(", ")}`
-      );
-      setModalType("error");
-      setRedirectOnConfirm(false);
-      setShowModal(true);
-      return;
-    }
-
-    // *[VALIDATION] Check for invalid age
-    if (form.age !== undefined && (isNaN(form.age) || form.age < 0)) {
-      // ![ERROR] Invalid age
-      setModalTitle("Validation Error");
-      setModalMessage("Please enter a valid non-negative age.");
-      setModalType("error");
-      setRedirectOnConfirm(false);
-      setShowModal(true);
-      return;
-    }
-
-    // *[VALIDATION] Check guardian contact number
-    if (form.guardianContact && !/^\d+$/.test(form.guardianContact)) {
-      // ![ERROR] Invalid guardian contact no.
-      setModalTitle("Validation Error");
-      setModalMessage("Guardian contact number should contain only digits.");
-      setModalType("error");
-      setRedirectOnConfirm(false);
-      setShowModal(true);
-      return;
-    }
-
+  // * [HANDLE] Fetch Student Details
+  const fetchStudent = async () => {
+    if (!sectionId || !studentId) return;
+    setLoading(true);
     try {
-      setLoading(true);
-
       const token = localStorage.getItem("token");
-      // *[PREP] Remove `age` from payload if present
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { age, ...payload } = form;
-
-      // *[API] Send PUT request to update student
       const res = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/api/adviser/sections/${sectionId}/students/${studentId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
-        }
+        { headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } }
       );
 
+      if (res.status === 401) { setShowTokenExpiredModal(true); return; }
+
       const data = await res.json();
+      if (!data.success || !data.data) throw new Error(data.message || "Failed to fetch student data");
 
-      // ![ERROR] Backend failure or missing data
-      if (!data.success) {
-        setModalTitle("Save Failed");
-        setModalMessage(data.message || "Failed to save student data.");
-        setModalType("error");
-        setRedirectOnConfirm(false);
-        setShowModal(true);
-        return;
-      }
+      const s = data.data;
+      setStudent({
+        ...s,
+        sectionName: s.sectionName ?? "",
+        gradeLevel: s.gradeLevel ?? undefined,
+        sectionId: s.sectionId ?? undefined,
+      });
 
-      // *[SUCCESS] Student saved
-      setModalTitle("Success");
-      setModalMessage("Student details saved successfully!");
-      setModalType("success");
-      setRedirectOnConfirm(false);
-      setShowModal(true);
-      setIsEditing(false);
-      setOriginalForm(form);
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      setFormData({
+        lastName: s.lastName ?? "",
+        firstName: s.firstName ?? "",
+        middleName: s.middleName ?? "",
+        sex: s.sex?.toUpperCase() === "MALE" ? "Male" : s.sex?.toUpperCase() === "FEMALE" ? "Female" : "",
+        birthDate: s.birthDate ?? "",
+        motherTongue: s.motherTongue ?? "",
+        ip: s.ip ?? "",
+        religion: s.religion ?? "",
+        houseNo: s.houseNo ?? "",
+        street: s.street ?? "",
+        sitio: s.sitio ?? "",
+        purok: s.purok ?? "",
+        barangay: s.barangay ?? "",
+        municipality: s.municipality ?? "",
+        province: s.province ?? "",
+        fatherName: s.fatherName ?? "",
+        motherName: s.motherName ?? "",
+        guardianName: s.guardianName ?? "",
+        guardianRelationship: s.guardianRelationship ?? "",
+        guardianContact: s.guardianContact ?? "",
+        learningModality: s.learningModality ?? "",
+      });
     } catch (err) {
-      setModalTitle("Error");
-      setModalMessage("Something went wrong while saving.");
-      setModalType("error");
-      setRedirectOnConfirm(false);
-      setShowModal(true);
+      // ! [ERROR] Fetching student failed
+      console.error(err);
+      openGeneralModal({
+        title: "Unable to Load Student",
+        message: "We couldn't load the student details at the moment. Please check your internet connection and try again.",
+        type: "error",
+        confirmText: "Close",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  // [HELPER] Format student full name
-  const formatFullName = (student: Student) => {
-    const first = student.firstName ?? "";
-    const middleInitial = student.middleName ? `${student.middleName.charAt(0)}.` : "";
-    const last = student.lastName ?? "";
-    const extension = student.nameExtension ? ` ${student.nameExtension}` : "";
+  useEffect(() => {
+    fetchStudent();
+  }, [sectionId, studentId]);
 
-    return [first, middleInitial, last, extension].filter(Boolean).join(" ");
+  // [HANDLE] Edit toggle — discard changes on cancel
+  const handleEditToggle = () => {
+    if (isEditing && student) {
+      setFormData({
+        lastName: student.lastName ?? "",
+        firstName: student.firstName ?? "",
+        middleName: student.middleName ?? "",
+        sex: student.sex?.toUpperCase() === "MALE" ? "Male" : student.sex?.toUpperCase() === "FEMALE" ? "Female" : "",
+        birthDate: student.birthDate ?? "",
+        motherTongue: student.motherTongue ?? "",
+        ip: student.ip ?? "",
+        religion: student.religion ?? "",
+        houseNo: student.houseNo ?? "",
+        street: student.street ?? "",
+        sitio: student.sitio ?? "",
+        purok: student.purok ?? "",
+        barangay: student.barangay ?? "",
+        municipality: student.municipality ?? "",
+        province: student.province ?? "",
+        fatherName: student.fatherName ?? "",
+        motherName: student.motherName ?? "",
+        guardianName: student.guardianName ?? "",
+        guardianRelationship: student.guardianRelationship ?? "",
+        guardianContact: student.guardianContact ?? "",
+        learningModality: student.learningModality ?? "",
+      });
+    }
+    setIsEditing(prev => !prev);
   };
 
-  // [HELPER] Calculate age using birthdate
-  const calculateAgeFromBirthDate = (birthDate?: string) => {
-    if (!birthDate) return undefined;
+  // * [HANDLE] Save Updated Student Details
+  const handleSave = async () => {
+    if (!sectionId || !studentId) return;
 
-    const today = new Date();
-    const birth = new Date(birthDate);
-
-    let age = today.getFullYear() - birth.getFullYear();
-    const m = today.getMonth() - birth.getMonth();
-
-    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
-      age--;
+    // ! [VALIDATION] Required fields
+    if (!formData.lastName?.trim() || !formData.firstName?.trim()) {
+      openGeneralModal({
+        title: "Validation Error",
+        message: "First name and last name are required.",
+        type: "error",
+        confirmText: "OK",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
+      return;
     }
 
-    return age >= 0 ? age : undefined;
-  };
-
-  // TODO [HANDLE] Generate SF9
-  const handleGenerateSF9 = () => {
-    alert("SF9 generation not implemented yet.");
-  };
-
-  // *[EFFECT] Fetch student's birthdate
-  useEffect(() => {
-    if (form.birthDate) {
-      setForm((prev) => ({
-        ...prev,
-        age: calculateAgeFromBirthDate(prev.birthDate),
-      }));
+    // ! [VALIDATION] Guardian contact digits only
+    if (formData.guardianContact && !/^\d+$/.test(formData.guardianContact)) {
+      openGeneralModal({
+        title: "Validation Error",
+        message: "Guardian contact number should contain only digits.",
+        type: "error",
+        confirmText: "OK",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
+      return;
     }
-  }, [form.birthDate]);
 
-  // *[EFFECT] Fetch student information
-  useEffect(() => {
-    const fetchStudent = async () => {
-      if (!sectionId || !studentId) return;
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/api/adviser/sections/${sectionId}/students/${studentId}`,
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        // ![ERROR] Expired token
-        if (res.status === 401) {
-          setShowTokenExpiredModal(true);
-          setLoading(false);
-          return;
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/adviser/sections/${sectionId}/students/${studentId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify(formData),
         }
+      );
 
-        const data = await res.json();
-        const studentData = data.data;
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message || "Failed to save student data");
 
-        console.log("Fetched student data:", studentData);
+      // [UPDATE] Sync local student state
+      setStudent(prev => prev ? { ...prev, ...formData } : null);
+      setIsEditing(false);
 
-        // ![ERROR] Backend failure or missing data
-        if (!data.success || !data.data) {
-          setError(data.message || "Failed to fetch student data");
-          setStudent(null);
-          return;
-        }
+      // * [SUCCESS] Student Updated
+      openGeneralModal({
+        title: "Student Updated",
+        message: "Student details have been saved successfully.",
+        type: "success",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
+    } catch (err) {
+      // ! [ERROR] Student save failed
+      console.error(err);
+      openGeneralModal({
+        title: "Unable to Save Changes",
+        message: "Something went wrong while saving. Please check your connection and try again.",
+        type: "error",
+        confirmText: "Close",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        // Fetch student details
-        const studentFlat: Student = {
-          ...studentData,
-          sectionName: studentData.sectionName ?? "",
-          gradeLevel: studentData.gradeLevel ?? undefined,
-          sectionId: studentData.sectionId ?? undefined,
-        };
-
-        setStudent(studentFlat);
-
-        const prefillForm: StudentForm = {
-          lastName: studentData.lastName ?? "",
-          firstName: studentData.firstName ?? "",
-          middleName: studentData.middleName ?? "",
-          sex:
-            studentData.sex?.toUpperCase() === "MALE"
-              ? "M"
-              : studentData.sex?.toUpperCase() === "FEMALE"
-              ? "F"
-              : "",
-          birthDate: studentData.birthDate ?? "",
-          age: calculateAgeFromBirthDate(studentData.birthDate),
-          motherTongue: studentData.motherTongue ?? "",
-          ip: studentData.ip ?? "",
-          religion: studentData.religion ?? "",
-          houseNo: studentData.houseNo ?? "",
-          street: studentData.street ?? "",
-          sitio: studentData.sitio ?? "",
-          purok: studentData.purok ?? "",
-          barangay: studentData.barangay ?? "",
-          municipality: studentData.municipality ?? "",
-          province: studentData.province ?? "",
-          fatherName: studentData.fatherName ?? "",
-          motherName: studentData.motherName ?? "",
-          guardianName: studentData.guardianName ?? "",
-          guardianRelationship: studentData.guardianRelationship ?? "",
-          guardianContact: studentData.guardianContact ?? "",
-          learningModality: studentData.learningModality ?? "",
-        };
-
-        setForm(prefillForm);
-        setOriginalForm(prefillForm);
-      } catch (err) {
-        const error = err instanceof Error ? err : new Error("Something went wrong");
-        setError(error.message);
-        setStudent(null);
-      } finally {
-        setLoading(false);
-      }
+  // [HANDLE] Generic form field change
+  const handleFieldChange =
+    (field: keyof StudentForm) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      setFormData(prev => ({ ...prev, [field]: e.target.value }));
     };
 
-    fetchStudent();
-  }, [sectionId, studentId, setShowTokenExpiredModal]);
-
-  if (loading) return <p>Loading student details...</p>;
-  if (error) return <p className="text-red-500">{error}</p>;
-  if (!student) return <p>Student not found.</p>;
-
-  // [DATA] Learning Modalities
-  const LEARNING_MODALITIES = [
-    { label: "Face to Face", value: "FACE_TO_FACE" },
-    { label: "Distance Learning", value: "DISTANCE_LEARNING" },
-    { label: "Blended", value: "BLENDED" },
-    { label: "Online", value: "ONLINE" },
-    { label: "Homeschool", value: "HOMESCHOOL" },
-    { label: "Other", value: "OTHER" },
-  ];
-
-  // Breadcrumbs navigation
+  // * [BREADCRUMBS] Adviser Class Student Details navigation
   const breadcrumbs = [
     { label: "Class Management", path: "/adviser/classes" },
     {
-      label: `${student.gradeLevel ?? "?"} — ${student.sectionName ?? "Section"}`,
-      path: student.sectionId ? `/adviser/classes/${student.sectionId}` : undefined,
+      label: student ? `${student.gradeLevel ?? "?"} — ${student.sectionName ?? "Section"}` : "Section",
+      path: student?.sectionId ? `/adviser/classes/${student.sectionId}` : "/adviser/classes",
     },
-    { label: "View Students", path: `/adviser/classes/${student.sectionId}/students` },
-    { label: student.fullName, path: null },
+    { label: "Students", path: `/adviser/classes/${sectionId}/students` },
+    { label: student?.fullName ?? "Details", path: null, isName: true },
   ];
 
-  return (
-    <div className="py-10 px-4 space-y-4">
-      {/* [COMPONENT] Modal */}
-      {showModal && (
-        <Modal
-          isOpen={showModal}
-          onClose={() => setShowModal(false)}
-          onConfirm={() => {
-            setShowModal(false);
-            if (redirectOnConfirm) navigate("/adviser/classes");
-          }}
-          title={modalTitle}
-          message={modalMessage}
-          type={modalType}
-        />
-      )}
-      {/* [SECTION] Header & Breadcrumbs */}
-      <div>
-        <h2 className="text-[var(--color-text-800)] leading-0">Student Details</h2>
-        <nav className="font-roboto text-sm text-[var(--color-text-700)]">
-          {breadcrumbs.map((crumb, idx) => (
-            <span key={idx}>
-              {crumb.path ? (
-                <span className="cursor-pointer hover:underline" onClick={() => navigate(crumb.path!)}>
-                  {crumb.label}
-                </span>
-              ) : (
-                <span className="font-medium text-[var(--color-text-900)]">{crumb.label}</span>
-              )}
-              {idx < breadcrumbs.length - 1 && " / "}
-            </span>
-          ))}
-        </nav>
-      </div>
+  // * [RENDER] Form fields per active page
+  const renderFormPage = () => {
+    if (!student) return null;
 
-      {/* [SECTION] Student Information */}
-      <div className="p-4 bg-[var(--color-bg-50)] shadow-lg rounded-lg flex flex-col md:flex-row md:items-start gap-y-4">
-        {/* [SECTION] Name + Details */}
-        <div className="flex-1 flex flex-col gap-4">
-          {/* [UI] Full Name */}
-          <p className="font-figtree font-bold text-xl text-[var(--color-text-900)] md:text-left text-center">
-            {formatFullName(student)}
-          </p>
+    // [PAGE 0] Basic Information
+    if (activePage === 0) {
+      return (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <InputField
+            label="Last Name"
+            value={formData.lastName}
+            onChange={handleFieldChange("lastName")}
+            placeholder="Last Name"
+            disabled={!isEditing}
+            required
+          />
+          <InputField
+            label="First Name"
+            value={formData.firstName}
+            onChange={handleFieldChange("firstName")}
+            placeholder="First Name"
+            disabled={!isEditing}
+            required
+          />
+          <InputField
+            label="Middle Name"
+            value={formData.middleName ?? ""}
+            onChange={handleFieldChange("middleName")}
+            placeholder="Middle Name"
+            disabled={!isEditing}
+          />
+          <InputField
+            label="Sex"
+            type="select"
+            value={formData.sex ?? ""}
+            onChange={handleFieldChange("sex")}
+            placeholder="Select sex"
+            options={["Male", "Female"]}
+            disabled={!isEditing}
+            required
+          />
+          <InputField
+            label="Birth Date"
+            type="date"
+            value={formData.birthDate ? formData.birthDate.slice(0, 10) : ""}
+            onChange={handleFieldChange("birthDate")}
+            disabled={!isEditing}
+            required
+          />
+          <InputField
+            label="Mother Tongue"
+            value={formData.motherTongue ?? ""}
+            onChange={handleFieldChange("motherTongue")}
+            placeholder="Mother Tongue"
+            disabled={!isEditing}
+          />
+          <InputField
+            label="IP (Ethnic Group)"
+            value={formData.ip ?? ""}
+            onChange={handleFieldChange("ip")}
+            placeholder="Ethnic Group"
+            disabled={!isEditing}
+          />
+          <InputField
+            label="Religion"
+            value={formData.religion ?? ""}
+            onChange={handleFieldChange("religion")}
+            placeholder="Religion"
+            disabled={!isEditing}
+          />
+          <InputField
+            label="Learning Modality"
+            type="select"
+            value={LEARNING_MODALITIES.find(m => m.value === formData.learningModality)?.label ?? ""}
+            onChange={(e) => {
+              const modality = LEARNING_MODALITIES.find(m => m.label === e.target.value);
+              setFormData(prev => ({ ...prev, learningModality: modality?.value ?? "" }));
+            }}
+            options={LEARNING_MODALITIES.map(m => m.label)}
+            placeholder="Select modality"
+            disabled={!isEditing}
+            required
+          />
+        </div>
+      );
+    }
 
-          {/* [SECTION] Details Table */}
-          <div className="overflow-x-auto">
-            <table className="min-w-full table-auto border-collapse font-roboto text-[var(--color-text-900)]">
-              <colgroup>
-                <col className="w-22" />
-                <col />
-              </colgroup>
-              <tbody>
-                <tr className="border-t border-[var(--color-bg-200)]">
-                  <td className="py-2 pl-4 font-semibold text-sm min-w-[40px]">LRN</td>
-                  <td className="py-2 pl-2 text-sm">{student.lrn}</td>
-                </tr>
-                <tr className="border-t border-[var(--color-bg-100)]">
-                  <td className="py-2 pl-4 font-semibold text-sm min-w-[40px]">Email</td>
-                  <td className="py-2 pl-2 text-sm">{student.email ?? "-"}</td>
-                </tr>
-                <tr className="border-t border-[var(--color-bg-100)]">
-                  <td className="py-2 pl-4 font-semibold text-sm min-w-[40px]">Sex</td>
-                  <td className="py-2 pl-2 text-sm">
-                    {student.sex
-                      ? student.sex.toUpperCase() === "MALE"
-                        ? "M"
-                        : student.sex.toUpperCase() === "FEMALE"
-                        ? "F"
-                        : student.sex
-                      : "-"}
-                  </td>
-                </tr>
-                <tr className="border-t border-[var(--color-bg-100)]">
-                  <td className="py-2 pl-4 font-semibold text-sm min-w-[40px]">Birth Date</td>
-                  <td className="py-2 pl-2 text-sm">
-                    {student.birthDate ? new Date(student.birthDate).toLocaleDateString() : "-"}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+    // [PAGE 1] Address
+    if (activePage === 1) {
+      return (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <InputField
+            label="House #"
+            value={formData.houseNo ?? ""}
+            onChange={handleFieldChange("houseNo")}
+            placeholder="House #"
+            disabled={!isEditing}
+          />
+          <InputField
+            label="Street"
+            value={formData.street ?? ""}
+            onChange={handleFieldChange("street")}
+            placeholder="Street"
+            disabled={!isEditing}
+          />
+          <InputField
+            label="Sitio"
+            value={formData.sitio ?? ""}
+            onChange={handleFieldChange("sitio")}
+            placeholder="Sitio"
+            disabled={!isEditing}
+          />
+          <InputField
+            label="Purok"
+            value={formData.purok ?? ""}
+            onChange={handleFieldChange("purok")}
+            placeholder="Purok"
+            disabled={!isEditing}
+          />
+          <InputField
+            label="Barangay"
+            value={formData.barangay ?? ""}
+            onChange={handleFieldChange("barangay")}
+            placeholder="Barangay"
+            disabled={!isEditing}
+            required
+          />
+          <InputField
+            label="Municipality / City"
+            value={formData.municipality ?? ""}
+            onChange={handleFieldChange("municipality")}
+            placeholder="Municipality or City"
+            disabled={!isEditing}
+            required
+          />
+          <div className="col-span-2 sm:col-span-3">
+            <InputField
+              label="Province"
+              value={formData.province ?? ""}
+              onChange={handleFieldChange("province")}
+              placeholder="Province"
+              disabled={!isEditing}
+              required
+            />
           </div>
         </div>
-      </div>
+      );
+    }
 
-      {/* [PRIMARY BUTTON] Generate SF9 */}
-      <PrimaryButton text="Generate SF9" onClick={handleGenerateSF9} iconSrc="/generate-file.svg" />
+    // [PAGE 2] Parents & Guardian
+    if (activePage === 2) {
+      return (
+        <div className="space-y-5">
+          {/* [SECTION] Father */}
+          <div>
+            <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-500)] mb-2">
+              Father's Name
+            </p>
+            <InputField
+              label="Full Name"
+              sublabel="(Last Name, First Name, Middle Name)"
+              value={formData.fatherName ?? ""}
+              onChange={handleFieldChange("fatherName")}
+              placeholder="e.g. Dela Cruz, Juan, Santos"
+              disabled={!isEditing}
+            />
+          </div>
 
-      {/* [SECTION] Multi-page Student Information */}
-      <div className="shadow-lg rounded-xl p-6 bg-[var(--color-bg-100)] space-y-2">
-        {/* [SECTION] Pagination */}
-        <div className="flex justify-between items-center space-x-4">
-          {/* [BUTTON] Previous */}
-          <button
-            onClick={handlePrevPage}
-            disabled={page === 1}
-            className={`w-24 py-2 rounded-md text-[var(--color-text-50)] font-roboto text-xs font-semibold transition-colors duration-150 ${
-              page === 1
-                ? "bg-[var(--color-bg-400)] cursor-not-allowed opacity-50"
-                : "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)]"
-            }`}
-          >
-            &lt; Previous
-          </button>
+          {/* [SECTION] Mother */}
+          <div>
+            <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-500)] mb-2">
+              Mother's Maiden Name
+            </p>
+            <InputField
+              label="Full Name"
+              sublabel="(Last Name, First Name, Middle Name)"
+              value={formData.motherName ?? ""}
+              onChange={handleFieldChange("motherName")}
+              placeholder="e.g. Santos, Maria, Cruz"
+              disabled={!isEditing}
+            />
+          </div>
 
-          {/* [UI] Page Number */}
-          <span className="flex gap-x-1 text-sm text-[var(--color-text-900)] font-medium">
-            Page <span className="font-bold">{page}</span> of <span className="font-bold">{totalPages}</span>
-          </span>
-
-          {/* [BUTTON] Next */}
-          <button
-            onClick={handleNextPage}
-            disabled={page === totalPages}
-            className={`w-24 py-2 rounded-md text-[var(--color-text-50)] font-roboto text-xs font-semibold transition-colors duration-150 ${
-              page === totalPages
-                ? "bg-[var(--color-bg-400)] cursor-not-allowed opacity-50"
-                : "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-600)]"
-            }`}
-          >
-            Next &gt;
-          </button>
-        </div>
-
-        {/* [UI] Separator */}
-        <hr className="my-4 text-[var(--color-text-300)]"/>
-
-        {/* [BUTTON] Edit / Cancel */}
-        <div className="flex justify-end gap-4">
-          <button
-            onClick={toggleEdit}
-            className="flex items-center gap-2 rounded-md text-sm px-4 py-2 bg-[var(--color-secondary-600)] hover:bg-[var(--color-secondary-700)] transition text-[var(--color-text-50)] font-roboto font-medium"
-          >
-            {isEditing ? "Cancel" : "Edit"}
-
-            {!isEditing && (
-              <img
-                src="/edit.svg"
-                className="size-4 object-contain"
-                alt="edit icon"
-              />
-            )}
-          </button>
-
-          {/* [BUTTON] Save */}
-          {isEditing && (
-            <button
-              onClick={handleSave}
-              disabled={loading}
-              className="rounded-md text-sm px-4 py-2 bg-[var(--color-accent-600)] hover:bg-[var(--color-accent-700)] transition text-white font-roboto font-medium"
-            >
-              Save
-            </button>
-          )}
-        </div>
-
-        {/* [SECTION] Form Pages */}
-        {page === 1 && (
-          <>
-            <h3 className="pb-2 font-semibold">Basic Information</h3>
+          {/* [SECTION] Guardian */}
+          <div>
+            <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-500)] mb-2">
+              Guardian's Name{" "}
+              <span className="normal-case font-normal text-[var(--color-text-400)]">(if not Parent)</span>
+            </p>
             <div className="space-y-3">
-              <InputField label="Last Name" value={form.lastName} onChange={(e) => handleChange("lastName", e.target.value)} disabled={!isEditing} required />
-              <InputField label="First Name" value={form.firstName} onChange={(e) => handleChange("firstName", e.target.value)} disabled={!isEditing} required />
-              <InputField label="Middle Name" value={form.middleName ?? ""} onChange={(e) => handleChange("middleName", e.target.value)} disabled={!isEditing} required />
-              <InputField label="Sex (M/F)" type="select" value={form.sex ?? ""} onChange={(e) => handleChange("sex", e.target.value)} options={["M", "F"]} placeholder="Select sex" disabled={!isEditing} required />
-              <div className="flex gap-x-4">
-                <InputField label="Birth Date" type="date" value={form.birthDate ?? ""} onChange={(e) => handleChange("birthDate", e.target.value)} disabled={!isEditing} required />
-                <InputField label="Age" type="number" value={form.age ?? ""} onChange={(e) => { const val = e.target.value; handleChange("age", val !== "" ? parseInt(val) : 0); }} maxLength={3} disabled={true} />
-              </div>
-              <InputField label="Mother Tongue" value={form.motherTongue ?? ""} onChange={(e) => handleChange("motherTongue", e.target.value)} disabled={!isEditing} required />
-              <InputField label="IP (Ethnic Group)" value={form.ip ?? ""} onChange={(e) => handleChange("ip", e.target.value)} disabled={!isEditing} />
-              <InputField label="Religion" value={form.religion ?? ""} onChange={(e) => handleChange("religion", e.target.value)} disabled={!isEditing} required />
-            </div>
-          </>
-        )}
-
-        {page === 2 && (
-          <>
-            <h3 className="pb-2 font-semibold">Address</h3>
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-2 gap-x-4">
-                <InputField label="House #" value={form.houseNo ?? ""} onChange={(e) => handleChange("houseNo", e.target.value)} disabled={!isEditing} />
-                <InputField label="Street" value={form.street ?? ""} onChange={(e) => handleChange("street", e.target.value)} disabled={!isEditing} />
-                <InputField label="Sitio" value={form.sitio ?? ""} onChange={(e) => handleChange("sitio", e.target.value)} disabled={!isEditing} />
-                <InputField label="Purok" value={form.purok ?? ""} onChange={(e) => handleChange("purok", e.target.value)} disabled={!isEditing} />
-              </div>
-
-              <InputField label="Barangay" value={form.barangay ?? ""} onChange={(e) => handleChange("barangay", e.target.value)} disabled={!isEditing} required />
-              <InputField label="Municipality / City" value={form.municipality ?? ""} onChange={(e) => handleChange("municipality", e.target.value)} disabled={!isEditing} required />
-              <InputField label="Province" value={form.province ?? ""} onChange={(e) => handleChange("province", e.target.value)} disabled={!isEditing} required />
-            </div>
-          </>
-        )}
-
-        {page === 3 && (
-          <>
-            <h3 className="pb-2 font-semibold">Parents / Guardian</h3>
-            <div className="space-y-3">
-              <InputField label="Father's Name" sublabel="(Last Name, First Name, Middle Name)" value={form.fatherName ?? ""} onChange={(e) => handleChange("fatherName", e.target.value)} disabled={!isEditing} required />
-              <InputField label="Mother's Maiden Name" sublabel="(Last Name, First Name, Middle Name)" value={form.motherName ?? ""} onChange={(e) => handleChange("motherName", e.target.value)} disabled={!isEditing} required />
-              <InputField label="Guardian's Name" sublabel="(Last Name, First Name, Middle Name)" value={form.guardianName ?? ""} onChange={(e) => handleChange("guardianName", e.target.value)} disabled={!isEditing} />
-              <InputField label="Relationship" value={form.guardianRelationship ?? ""} onChange={(e) => handleChange("guardianRelationship", e.target.value)} disabled={!isEditing} />
-              <InputField label="Contact Number" value={form.guardianContact ?? ""} onChange={(e) => handleChange("guardianContact", e.target.value)} disabled={!isEditing} />
               <InputField
-                label="Learning Modality"
-                type="select"
-                value={LEARNING_MODALITIES.find(m => m.value === form.learningModality)?.label ?? ""}
-                onChange={(e) => {
-                  const selectedLabel = e.target.value;
-                  const modality = LEARNING_MODALITIES.find(m => m.label === selectedLabel);
-                  handleChange("learningModality", modality?.value ?? "");
-                }}
-                options={LEARNING_MODALITIES.map(m => m.label)}
-                placeholder="Select learning modality"
+                label="Full Name"
+                sublabel="(Last Name, First Name, Middle Name)"
+                value={formData.guardianName ?? ""}
+                onChange={handleFieldChange("guardianName")}
+                placeholder="e.g. Dela Cruz, Pedro, Reyes"
                 disabled={!isEditing}
-                required
+              />
+              <InputField
+                label="Relationship"
+                value={formData.guardianRelationship ?? ""}
+                onChange={handleFieldChange("guardianRelationship")}
+                placeholder="e.g. Uncle, Grandparent"
+                disabled={!isEditing}
               />
             </div>
-          </>
+          </div>
+
+          {/* [FIELD] Contact Number */}
+          <InputField
+            label="Contact Number of Parent / Guardian"
+            type="number"
+            value={formData.guardianContact ?? ""}
+            onChange={handleFieldChange("guardianContact")}
+            placeholder="e.g. 09XXXXXXXXX"
+            maxLength={11}
+            disabled={!isEditing}
+          />
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  // ? [LOADING STATE]
+  if (loading) return <Skeleton />;
+
+  return (
+    <>
+      {/* [MODAL] General */}
+      <Modal
+        isOpen={generalModal.isOpen}
+        onClose={closeGeneralModal}
+        title={generalModal.title}
+        message={generalModal.message}
+        type={generalModal.type}
+        confirmText={generalModal.confirmText}
+        onConfirm={generalModal.onConfirm}
+        isCancelable={generalModal.isCancelable}
+      />
+
+      {/* [LAYOUT] Adviser Page */}
+      <PageLayout
+        header={<Breadcrumbs items={breadcrumbs} title="Student Details" />}
+      >
+        {student ? (
+          <div className="space-y-4">
+
+            {/* [COMPONENT] Profile Info */}
+            <ProfileInfo lastName={student.lastName} firstName={student.firstName} />
+
+            {/* [ACTIONS] Generate SF9 */}
+            <PrimaryButton
+              text="Generate SF9"
+              iconSrc="/generate-file.svg"
+              onClick={() => console.log("SF9 generation not implemented yet.")}
+            />
+
+            {/* [COMPONENT] Student Details */}
+            <TabbedFormCard
+              labels={PAGE_LABELS}
+              activePage={activePage}
+              setActivePage={(p) => setActivePage(p as FormPage)}
+              isEditing={isEditing}
+              loading={loading}
+              onSave={handleSave}
+              onToggleEdit={handleEditToggle}
+            >
+              {renderFormPage()}
+            </TabbedFormCard>
+
+            {/* [META] LRN + Registration hint */}
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-roboto text-[var(--color-text-500)]">
+                LRN: <span className="font-mono font-semibold">{student.lrn}</span>
+              </p>
+              {student.birthDate && (
+                <p className="text-xs font-roboto text-[var(--color-text-500)] text-right">
+                  Born{" "}
+                  {new Date(student.birthDate).toLocaleDateString("en-PH", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </p>
+              )}
+            </div>
+
+          </div>
+        ) : (
+          // [EMPTY STATE] Student not found
+          <div className="bg-[var(--color-bg-100)] rounded-lg p-8 text-center">
+            <p className="text-sm font-roboto text-[var(--color-text-600)]">Student not found.</p>
+            <button
+              onClick={() => navigate(`/adviser/classes/${sectionId}/students`)}
+              className="mt-3 text-sm font-roboto text-[var(--color-primary-600)] hover:underline cursor-pointer"
+            >
+              ← Back to Students
+            </button>
+          </div>
         )}
-      </div>
-    </div>
+      </PageLayout>
+    </>
   );
 };
 
