@@ -256,3 +256,49 @@ export const SPECIAL_SECTIONS: SpecialSections = {
     SPA: ["Amber"],
   },
 };
+
+export const SECTION_FORMS = ["SF1", "SF2", "SF5"];
+export const STUDENT_FORMS = ["SF9", "SF10"];
+export const FORM_TITLES: Record<string, string> = {
+  SF1: "School Register",
+  SF2: "Daily Attendance Report",
+  SF5: "Report on Promotion and Learning Progress",
+  SF9: "Report Card",
+  SF10: "Permanent Record",
+};
+
+export const FORM_THEME: Record<
+  string,
+  { bg: string; border: string; text: string; icon: string }
+> = {
+  SF1: {
+    bg: "bg-[var(--color-blue-50)]",
+    border: "border-[var(--color-blue-200)]",
+    text: "text-[var(--color-blue-700)]",
+    icon: "text-[var(--color-blue-600)]",
+  },
+  SF2: {
+    bg: "bg-[var(--color-orange-50)]",
+    border: "border-[var(--color-orange-200)]",
+    text: "text-[var(--color-orange-700)]",
+    icon: "text-[var(--color-orange-600)]",
+  },
+  SF5: {
+    bg: "bg-[var(--color-green-50)]",
+    border: "border-[var(--color-green-200)]",
+    text: "text-[var(--color-green-700)]",
+    icon: "text-[var(--color-green-600)]",
+  },
+  SF9: {
+    bg: "bg-[var(--color-purple-50)]",
+    border: "border-[var(--color-purple-200)]",
+    text: "text-[var(--color-purple-700)]",
+    icon: "text-[var(--color-purple-600)]",
+  },
+  SF10: {
+    bg: "bg-[var(--color-bg-50)]",
+    border: "border-[var(--color-text-200)]",
+    text: "text-[var(--color-text-700)]",
+    icon: "text-[var(--color-text-600)]",
+  }
+};

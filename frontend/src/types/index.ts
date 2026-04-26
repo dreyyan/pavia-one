@@ -305,6 +305,7 @@ export interface SectionInfo {
   name: string;
   gradeLevel: number;
   schoolYear: string;
+  curriculum?: string;
   color: string;
   classSize: number;
   schoolForms: SectionForm[];
@@ -449,4 +450,13 @@ export interface SectionOverview {
 
   schoolForms: SectionForm[];
   enrollments: { id: number }[];
+}
+
+export interface SchoolForm {
+  id: number;
+  type: string;
+  status: SchoolFormStatus;
+  schoolYear: string;
+  generatedAt?: string;
+  submittedAt?: string;
 }

@@ -194,6 +194,30 @@ function generateSectionColor(gradeLevel, curriculum) {
   return `var(--color-${hue}-${tone})`;
 }
 
+// [HELPER] Create section with school forms
+async function createSectionWithForms(data) {
+  return await prisma.$transaction(async (tx) => {
+    const section = await tx.section.create({ data });
+
+    await tx.schoolForm.createMany({
+      data: [
+        {
+          sectionId: section.id,
+          schoolYear: section.schoolYear,
+          type: "SF1",
+        },
+        {
+          sectionId: section.id,
+          schoolYear: section.schoolYear,
+          type: "SF5",
+        },
+      ],
+    });
+
+    return section;
+  });
+}
+
 module.exports = {
   hashPassword,
   getFullName,
@@ -208,4 +232,5 @@ module.exports = {
   hslToHex,
   normalizeSchoolYear,
   generateSectionColor,
+  createSectionWithForms
 };

@@ -173,7 +173,7 @@ const AdviserSchoolForms = () => {
                 {/* [COMPONENT] Sort & Filter Dropdowns */}
                 <div className="flex gap-x-2 ml-auto shrink-0">
                   <Dropdown
-                    icon="/sort-icon.svg"
+                    icon="/sort.svg"
                     label="Sort"
                     isOpen={activeDropdown === "sort"}
                     onToggle={() =>
@@ -194,7 +194,7 @@ const AdviserSchoolForms = () => {
 
                   {/* [COMPONENT] Filter Dropdown */}
                   <Dropdown
-                    icon="/filter-icon.svg"
+                    icon="/filter.svg"
                     label="Filter"
                     isOpen={activeDropdown === "filter"}
                     onToggle={() =>
