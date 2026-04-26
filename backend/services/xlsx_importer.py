@@ -14,9 +14,12 @@ Supports two input formats:
 
 import json
 import sys
+import io
 import os
 import csv
 from datetime import datetime
+
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CSV column positions (0-indexed) — matches the SF1 template CSV export

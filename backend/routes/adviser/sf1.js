@@ -42,13 +42,13 @@ function runPythonWithJSON(scriptPath, jsonData) {
     });
     let stdout = "",
       stderr = "";
-    py.stdout.on("data", (d) => (stdout += d.toString()));
-    py.stderr.on("data", (d) => (stderr += d.toString()));
+    py.stdout.on("data", (d) => (stdout += d.toString("utf-8")));
+    py.stderr.on("data", (d) => (stderr += d.toString("utf-8")));
     py.on("close", (code) => {
       if (code !== 0) return reject({ code, stdout, stderr });
       resolve({ stdout, stderr });
     });
-    py.stdin.write(JSON.stringify(jsonData));
+    py.stdin.write(JSON.stringify(jsonData), "utf-8");
     py.stdin.end();
   });
 }
@@ -63,8 +63,8 @@ function runPythonWithFile(scriptPath, filePath) {
     });
     let stdout = "",
       stderr = "";
-    py.stdout.on("data", (d) => (stdout += d.toString()));
-    py.stderr.on("data", (d) => (stderr += d.toString()));
+    py.stdout.on("data", (d) => (stdout += d.toString("utf-8")));
+    py.stderr.on("data", (d) => (stderr += d.toString("utf-8")));
     py.on("close", (code) => {
       if (code !== 0) return reject({ code, stdout, stderr });
       resolve({ stdout, stderr });

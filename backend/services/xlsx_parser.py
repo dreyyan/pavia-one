@@ -5,9 +5,27 @@ from openpyxl import load_workbook
 from openpyxl.cell.cell import MergedCell
 import sys
 from datetime import datetime
+import io
+
+sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
 
 def adviser_full_name(a):
     return safe(a.get("name")).strip().upper()
+
+def format_birthdate(v):
+    v = safe(v)
+    if not v:
+        return ""
+
+    v = v.split("T")[0]
+
+    for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y"):
+        try:
+            return datetime.strptime(v, fmt).strftime("%m-%d-%Y")
+        except ValueError:
+            continue
+
+    return v  # fallback if unknown format
 
 try:
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -112,10 +130,27 @@ try:
         n = safe(n).strip()
         if not n:
             return ""
+
+        # already in correct format
         if "," in n:
             a, b = n.split(",", 1)
             return f"{a.strip().upper()}, {b.strip().upper()}"
-        return n.upper()
+
+        parts = n.split()
+
+        if len(parts) == 1:
+            return parts[0].upper()
+
+        if len(parts) == 2:
+            first, last = parts
+            return f"{last.upper()}, {first.upper()}"
+
+        # assume FIRST MIDDLE LAST
+        first = parts[0]
+        last = parts[-1]
+        middle = " ".join(parts[1:-1])
+
+        return f"{last.upper()}, {first.upper()} {middle.upper()}"
 
     def full_name(s):
         return f"{safe(s.get('Last Name')).upper()}, {safe(s.get('First Name')).upper()} {safe(s.get('Middle Name')).upper()}"
@@ -126,7 +161,7 @@ try:
         write_cell(row, COL["lrn"], s.get("LRN", ""), True)
         write_cell(row, COL["name"], full_name(s))
         write_cell(row, COL["sex"], sex)
-        write_cell(row, COL["birth"], safe(s.get("Birth Date")).split("T")[0])
+        write_cell(row, COL["birth"], format_birthdate(s.get("Birth Date")))
         write_cell(row, COL["age"], s.get("Age", ""))
 
         write_cell(row, COL["mother_tongue"], s.get("Mother Tongue", ""))

@@ -3,6 +3,11 @@ import os
 import pandas as pd
 from openpyxl import load_workbook
 
+import sys
+import io
+
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FORMS_DIR = os.path.join(BASE_DIR, "..", "forms")
 
