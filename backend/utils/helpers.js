@@ -215,6 +215,11 @@ async function createSectionWithForms(data) {
         {
           sectionId: section.id,
           schoolYear: section.schoolYear,
+          type: "SF2",
+        },
+        {
+          sectionId: section.id,
+          schoolYear: section.schoolYear,
           type: "SF5",
         },
       ],
