@@ -212,6 +212,7 @@ const AdviserClassDetails = () => {
                 iconSrc="/dashboard-school-forms.svg"
                 text="School Forms"
                 color="#28A428"
+                to={`/adviser/school-forms/${sectionId}`}
               />
             </div>
 
