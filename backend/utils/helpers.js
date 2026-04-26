@@ -1,3 +1,4 @@
+// [IMPORT] Libraries
 const bcrypt = require("bcrypt");
 const prisma = require("../lib/prisma");
 const {
@@ -42,13 +43,18 @@ const isValidSex = (sex) => ["MALE", "FEMALE"].includes(sex.toUpperCase());
 
 // [HELPER] Calculate age from birthdate
 const calculateAge = (birthDate) => {
+  if (!birthDate) return "";
+
   const today = new Date();
   const birth = new Date(birthDate);
+
   let age = today.getFullYear() - birth.getFullYear();
   const m = today.getMonth() - birth.getMonth();
+
   if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
     age--;
   }
+
   return age;
 };
 
@@ -232,5 +238,5 @@ module.exports = {
   hslToHex,
   normalizeSchoolYear,
   generateSectionColor,
-  createSectionWithForms
+  createSectionWithForms,
 };

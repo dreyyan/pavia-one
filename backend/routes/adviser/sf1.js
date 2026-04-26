@@ -2,138 +2,73 @@
 const express = require("express");
 const router = express.Router();
 const prisma = require("../../lib/prisma");
+
+// [IMPORT] Libraries
 const fs = require("fs");
 const path = require("path");
-const { spawn } = require("child_process");
+const multer = require("multer");
+
+// [IMPORT] Utilities
 const { successResponse, errorResponse } = require("../../utils/response");
+
+// [IMPORT] Services
+const {
+  resolveAdviserSection,
+} = require("../../services/node/adviser_service");
+
+// [IMPORT] Helpers
+const {
+  runPythonWithJSON,
+  runPythonWithFile,
+} = require("../../utils/pythonRunner");
+
+const { calculateAge } = require("../../utils/helpers");
+const { safeUnlink } = require("../../utils/file");
+
+// [IMPORT] Middleware
 const verifyAdviser = require("../../middleware/authMiddleware").verifyAdviser;
 
-const multer = require("multer");
-const UPLOAD_DIR = path.join(__dirname, "../../tmp");
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+// [SETUP] Paths
+const BASE_DIR = path.resolve(__dirname, "../..");
+
+const SERVICES_DIR = path.join(BASE_DIR, "services");
+const FORMS_DIR = path.join(BASE_DIR, "forms");
+const OUTPUT_DIR = path.join(FORMS_DIR, "output_data");
+
+// [SETUP] Python SF1 Paths
+const SF1_DIR = path.join(SERVICES_DIR, "python", "sf", "sf1");
+
+const IMPORTER_PATH = path.join(SF1_DIR, "sf1_import_runner.py");
+const PARSER_PATH = path.join(SF1_DIR, "parsers", "sf1_xlsx_parser.py");
+
+// [SETUP] Template
+const TEMPLATE_PATH = path.join(FORMS_DIR, "SF1_template.xlsx");
+
+// [SETUP] Uploads
+const UPLOAD_DIR = path.join(BASE_DIR, "tmp");
+
 const upload = multer({
   dest: UPLOAD_DIR,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB max
+  limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-// [SETUP] Paths
-const SERVICES_DIR = path.resolve(__dirname, "../../services");
-const FORMS_DIR = path.resolve(__dirname, "../../forms");
-const OUTPUT_DIR = path.join(FORMS_DIR, "output_data");
-const TEMPLATE_PATH = path.join(FORMS_DIR, "SF1_template.xlsx");
-const IMPORTER_PATH = path.join(SERVICES_DIR, "xlsx_importer.py");
-const PARSER_PATH = path.join(SERVICES_DIR, "xlsx_parser.py");
-
-// Cross-platform Python executable
+// [SETUP] Python executable path
 const PYTHON_EXE =
   process.platform === "win32"
     ? path.join(__dirname, "../../venv/Scripts/python.exe")
     : path.join(__dirname, "../../venv/bin/python3");
 
-if (!fs.existsSync(OUTPUT_DIR)) fs.mkdirSync(OUTPUT_DIR, { recursive: true });
-
-// ─────────────────────────────────────────────────────────────────────────────
-// [HELPER] Run Python with JSON piped via stdin → resolves with { stdout, stderr }
-// ─────────────────────────────────────────────────────────────────────────────
-function runPythonWithJSON(scriptPath, jsonData) {
-  return new Promise((resolve, reject) => {
-    const py = spawn(PYTHON_EXE, [scriptPath], {
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    let stdout = "",
-      stderr = "";
-    py.stdout.on("data", (d) => (stdout += d.toString("utf-8")));
-    py.stderr.on("data", (d) => (stderr += d.toString("utf-8")));
-    py.on("close", (code) => {
-      if (code !== 0) return reject({ code, stdout, stderr });
-      resolve({ stdout, stderr });
-    });
-    py.stdin.write(JSON.stringify(jsonData), "utf-8");
-    py.stdin.end();
-  });
+// [SETUP] Ensure directories exist
+if (!fs.existsSync(UPLOAD_DIR)) {
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// [HELPER] Run Python with a file argument
-// ─────────────────────────────────────────────────────────────────────────────
-function runPythonWithFile(scriptPath, filePath) {
-  return new Promise((resolve, reject) => {
-    const py = spawn(PYTHON_EXE, [scriptPath, filePath], {
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    let stdout = "",
-      stderr = "";
-    py.stdout.on("data", (d) => (stdout += d.toString("utf-8")));
-    py.stderr.on("data", (d) => (stderr += d.toString("utf-8")));
-    py.on("close", (code) => {
-      if (code !== 0) return reject({ code, stdout, stderr });
-      resolve({ stdout, stderr });
-    });
-  });
+if (!fs.existsSync(OUTPUT_DIR)) {
+  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// [HELPER] Calculate age from birthDate
-// ─────────────────────────────────────────────────────────────────────────────
-function calculateAge(birthDate) {
-  if (!birthDate) return "";
-  const birth = new Date(birthDate);
-  const today = new Date();
-  let age = today.getFullYear() - birth.getFullYear();
-  const m = today.getMonth() - birth.getMonth();
-  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-  return age;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// [HELPER] Resolve adviser → section  (used by both routes)
-// ─────────────────────────────────────────────────────────────────────────────
-async function resolveAdviserSection(adviserId) {
-  const adviser = await prisma.adviser.findUnique({
-    where: { adviserId },
-    select: {
-      id: true,
-      name: true,
-    },
-  });
-
-  if (!adviser) {
-    return { error: "Adviser not found", status: 404 };
-  }
-
-  const section = await prisma.section.findFirst({
-    where: { adviserId: adviser.id },
-    select: {
-      id: true,
-      name: true,
-      gradeLevel: true,
-      schoolYear: true,
-    },
-  });
-
-  if (!section) {
-    return { error: "No advisory section assigned", status: 404 };
-  }
-
-  section.adviser = adviser;
-
-  return { adviser, section };
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// [HELPER] Safely delete a temp file (no crash if already gone)
-// ─────────────────────────────────────────────────────────────────────────────
-function safeUnlink(p) {
-  try {
-    if (fs.existsSync(p)) fs.unlinkSync(p);
-  } catch (_) {}
-}
-
-// =============================================================================
-// ?[POST] Import SF1 file → parse students → upsert to DB → enroll in section
-// POST /api/adviser/sf1/import
-// Body: multipart/form-data  { sf1File: <xlsx|csv> }
-// =============================================================================
+// ? [POST] Import SF1 file → parse students → upsert to DB → enroll in section
+// /api/adviser/sf1/import
 router.post(
   "/import",
   verifyAdviser,
@@ -169,26 +104,26 @@ router.post(
         .json(errorResponse("Failed to process uploaded file"));
     }
 
+    let result;
     try {
-      // ── 1. Run Python importer ──────────────────────────────────────────────
-      let result;
+      // [1] Run python importer
       try {
-        result = await runPythonWithFile(IMPORTER_PATH, namedPath);
+        result = await runPythonWithFile(PYTHON_EXE, IMPORTER_PATH, namedPath);
       } catch (pyErr) {
-        console.error("[SF1 Import] Python error:", pyErr.stderr);
+        console.error("[SF1 Import] FULL ERROR:", pyErr);
         return res
           .status(500)
           .json(
             errorResponse(
-              "Failed to parse the uploaded file. Make sure it is a valid SF1 template.",
-              pyErr.stderr,
+              "Python importer failed",
+              pyErr.stderr || pyErr.stdout || pyErr,
             ),
           );
       } finally {
         safeUnlink(namedPath);
       }
 
-      // ── 2. Parse JSON output ────────────────────────────────────────────────
+      // [2] Parse JSON output
       let students;
       try {
         students = JSON.parse(result.stdout);
@@ -204,14 +139,14 @@ router.post(
           .json(errorResponse("No student records found in the uploaded file"));
       }
 
-      // ── 3. Resolve adviser + section ────────────────────────────────────────
+      // [3] Resolve adviser + section
       const resolved = await resolveAdviserSection(req.adviserId);
       if (resolved.error) {
         return res.status(resolved.status).json(errorResponse(resolved.error));
       }
       const { adviser, section } = resolved;
 
-      // ── 4. Upsert students + address + guardian ─────────────────────────────
+      // [4] Upsert students + address + guardian
       const results = {
         created: 0,
         updated: 0,
@@ -247,8 +182,8 @@ router.post(
                 motherTongue: s.motherTongue || null,
                 ethnicGroup: s.ethnicGroup || null,
                 religion: s.religion || null,
-                createdByAdviserId: req.adviserId, // String — the adviser's adviserId code, not the numeric PK
-                // Address (nested create)
+                createdByAdviserId: req.adviserId,
+                // Address
                 ...(s.barangay || s.municipality || s.province
                   ? {
                       address: {
@@ -260,7 +195,7 @@ router.post(
                       },
                     }
                   : {}),
-                // Guardian (nested create) — importer already splits names into individual fields
+                // Guardian
                 ...(s.fatherFirstName || s.motherMaidenFirstName
                   ? {
                       guardian: {
@@ -281,7 +216,7 @@ router.post(
             });
             results.created++;
           } else {
-            // Update core fields only (don't overwrite richer data)
+            // Update core fields only
             await prisma.student.update({
               where: { lrn: s.lrn },
               data: {
@@ -300,7 +235,7 @@ router.post(
             results.updated++;
           }
 
-          // ── 5. Enroll student in adviser's section ──────────────────────────
+          // [5] Enroll student in adviser's section
           const student = await prisma.student.findUnique({
             where: { lrn: s.lrn },
             select: { id: true },
@@ -354,20 +289,18 @@ router.post(
   },
 );
 
-// =============================================================================
-// ?[GET] Export SF1 — build Excel from DB data and stream it
-// GET /api/adviser/sf1/export
-// =============================================================================
+// ? [GET] Export SF1 — build Excel from DB data and stream it
+// /api/adviser/sf1/export
 router.get("/export", verifyAdviser, async (req, res) => {
   try {
-    // ── 1. Resolve adviser + section ────────────────────────────────────────
+    // [1] Resolve adviser + section
     const resolved = await resolveAdviserSection(req.adviserId);
     if (resolved.error) {
       return res.status(resolved.status).json(errorResponse(resolved.error));
     }
     const { section } = resolved;
 
-    // ── 2. Fetch enrolled students ──────────────────────────────────────────
+    // [2] Fetch enrolled students
     const enrollments = await prisma.enrollment.findMany({
       where: { sectionId: section.id, status: "ENROLLED" },
       include: { student: { include: { guardian: true, address: true } } },
@@ -380,7 +313,7 @@ router.get("/export", verifyAdviser, async (req, res) => {
         .json(errorResponse("No enrolled students found in this section"));
     }
 
-    // ── 3. Validate completeness ────────────────────────────────────────────
+    // [3] Validate completeness
     const REQUIRED = [
       "LRN",
       "First Name",
@@ -456,7 +389,7 @@ router.get("/export", verifyAdviser, async (req, res) => {
       });
     }
 
-    // ── 4. Run Python parser to fill the template ───────────────────────────
+    // [4] Run Python parser to fill the template
     if (!fs.existsSync(TEMPLATE_PATH)) {
       return res
         .status(500)
@@ -467,12 +400,16 @@ router.get("/export", verifyAdviser, async (req, res) => {
     const outputPath = path.join(OUTPUT_DIR, `SF1_${section.id}_filled.xlsx`);
 
     // Patch parser to use our per-section output path via env var
-    // (xlsx_parser.py reads OUTPUT_PATH from its own OUTPUT_DIR — we pass data via stdin)
+    let result;
     try {
-      await runPythonWithJSON(PARSER_PATH, {
+      result = await runPythonWithJSON(PYTHON_EXE, PARSER_PATH, {
         students: studentsData,
-        adviser: section.adviser, // or wherever your adviser is stored
+        adviser: section.adviser,
+        outputPath,
       });
+
+      console.log("[SF1 Export] Python STDOUT:", result.stdout);
+      console.log("[SF1 Export] Python STDERR:", result.stderr);
       console.log("ADVISER BEING SENT:", section.adviser);
     } catch (pyErr) {
       console.error("[SF1 Export] Python error:", pyErr.stderr || pyErr);
@@ -481,21 +418,16 @@ router.get("/export", verifyAdviser, async (req, res) => {
         .json(errorResponse("Failed to generate SF1 Excel file", pyErr.stderr));
     }
 
-    // xlsx_parser.py writes to OUTPUT_DIR/SF1_filled_output.xlsx by default
-    const defaultOutput = path.join(OUTPUT_DIR, "SF1_filled_output.xlsx");
-    if (!fs.existsSync(defaultOutput)) {
+    const finalPath = outputPath;
+
+    if (!finalPath) {
+      console.error("[SF1 Export] No output file found in:", OUTPUT_DIR);
       return res
         .status(500)
-        .json(errorResponse("Generated Excel file not found"));
+        .json(errorResponse("Excel file was not generated by Python"));
     }
 
-    // Rename to section-specific path so concurrent requests don't collide
-    try {
-      fs.renameSync(defaultOutput, outputPath);
-    } catch (_) {}
-    const finalPath = fs.existsSync(outputPath) ? outputPath : defaultOutput;
-
-    // ── 5. Stream file ───────────────────────────────────────────────────────
+    // [5] Stream file
     const filename = `SF1_Grade${section.gradeLevel}_${section.name}_${section.schoolYear.replace(/\s/g, "")}.xlsx`;
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.setHeader(
@@ -505,7 +437,7 @@ router.get("/export", verifyAdviser, async (req, res) => {
 
     const stream = fs.createReadStream(finalPath);
     stream.pipe(res);
-    stream.on("close", () => {
+    stream.on("end", () => {
       safeUnlink(finalPath);
     });
     stream.on("error", (err) => {
@@ -521,10 +453,8 @@ router.get("/export", verifyAdviser, async (req, res) => {
   }
 });
 
-// =============================================================================
 // ?[GET] View SF1 data as JSON (for in-browser preview)
 // GET /api/adviser/sf1/view
-// =============================================================================
 router.get("/view", verifyAdviser, async (req, res) => {
   try {
     const resolved = await resolveAdviserSection(req.adviserId);

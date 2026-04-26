@@ -1,15 +1,20 @@
-import json
+# [IMPORT] Libraries
 import os
-import pandas as pd
-from openpyxl import load_workbook
-
-import sys
 import io
+import sys
+import json
+import pandas as pd
+from openpyxl import load_workbook # pyright: ignore[reportMissingModuleSource]
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-FORMS_DIR = os.path.join(BASE_DIR, "..", "forms")
+
+PROJECT_ROOT = os.path.abspath(
+    os.path.join(BASE_DIR, "..", "..", "..", "..", "..")
+)
+
+FORMS_DIR = os.path.join(PROJECT_ROOT, "forms")
 
 CSV_PATH = os.path.join(FORMS_DIR, "output_data", "SF1_data.csv")
 TEMPLATE_PATH = os.path.join(FORMS_DIR, "SF1_template.xlsx")

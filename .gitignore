@@ -5,3 +5,13 @@ node_modules
 /generated/prisma
 /postman/globals
 *.yaml
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Temp uploads
+backend/tmp/
+
+# Generated SF1 outputs
+backend/forms/output_data/

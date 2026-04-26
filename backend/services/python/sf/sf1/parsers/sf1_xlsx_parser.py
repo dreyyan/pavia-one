@@ -1,35 +1,28 @@
-import json
+# [IMPORT] Libraries
 import os
-import pandas as pd
-from openpyxl import load_workbook
-from openpyxl.cell.cell import MergedCell
-import sys
-from datetime import datetime
 import io
+import sys
+import json
+import pandas as pd
+from datetime import datetime
+from openpyxl import load_workbook # pyright: ignore[reportMissingModuleSource]
+from openpyxl.cell.cell import MergedCell # pyright: ignore[reportMissingModuleSource]
+from openpyxl.cell.cell import Cell # pyright: ignore[reportMissingModuleSource]
+
+# [IMPORT] Utilities
+from sf.utils.normalization import safe, is_male, is_female, format_birthdate
+from sf.utils.name_parser import adviser_full_name
 
 sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
 
-def adviser_full_name(a):
-    return safe(a.get("name")).strip().upper()
-
-def format_birthdate(v):
-    v = safe(v)
-    if not v:
-        return ""
-
-    v = v.split("T")[0]
-
-    for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y"):
-        try:
-            return datetime.strptime(v, fmt).strftime("%m-%d-%Y")
-        except ValueError:
-            continue
-
-    return v  # fallback if unknown format
-
 try:
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    FORMS_DIR = os.path.join(BASE_DIR, "..", "forms")
+
+    PROJECT_ROOT = os.path.abspath(
+        os.path.join(BASE_DIR, "..", "..", "..", "..", "..")
+    )
+
+    FORMS_DIR = os.path.join(PROJECT_ROOT, "forms")
     OUTPUT_DIR = os.path.join(FORMS_DIR, "output_data")
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -73,7 +66,7 @@ try:
     ws = wb.active
 
     # ---------------- SAFE CELL WRITER ----------------
-    def get_safe_cell(ws, row, col):
+    def get_safe_cell(ws, row, col) -> Cell | None:
         cell = ws.cell(row=row, column=col)
 
         if isinstance(cell, MergedCell):
@@ -119,12 +112,6 @@ try:
         "barangay": 18, "municipality": 21, "province": 23,
         "father": 28, "mother": 32, "modality": 44, "remarks": 45
     }
-
-    def safe(v):
-        return "" if pd.isna(v) else str(v)
-
-    def is_male(v): return safe(v).upper() in ("M", "MALE")
-    def is_female(v): return safe(v).upper() in ("F", "FEMALE")
 
     def format_name(n):
         n = safe(n).strip()
@@ -186,9 +173,9 @@ try:
     marker = "List and Code of Indicators under REMARKS column"
     footer_row = None
 
-    for r in range(START_ROW, ws.max_row + 1):
+    for r in range(START_ROW, ws.max_row + 1): # pyright: ignore[reportOptionalMemberAccess]
         for c in range(1, 20):
-            v = ws.cell(r, c).value
+            v = ws.cell(r, c).value # pyright: ignore[reportOptionalMemberAccess]
             if isinstance(v, str) and marker in v:
                 footer_row = r
                 break
