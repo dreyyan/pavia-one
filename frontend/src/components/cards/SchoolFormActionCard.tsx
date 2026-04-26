@@ -29,7 +29,7 @@ const SchoolFormActionCard = ({
       <div className="px-4 py-3 flex items-center justify-between gap-3 border-b border-[var(--color-bg-200)]">
         <div className="flex items-center gap-3 min-w-0">
           <div
-            className={`size-10 rounded-md flex items-center justify-center font-bold text-sm flex-shrink-0 ${theme.bg} ${theme.border} ${theme.text}`}
+            className={`size-10 rounded-md flex items-center justify-center border font-bold text-sm flex-shrink-0 ${theme.bg} ${theme.border} ${theme.text}`}
           >
             {form.type}
           </div>
@@ -64,7 +64,7 @@ const SchoolFormActionCard = ({
           <button
             onClick={onExport}
             disabled={exporting}
-            className="flex items-center gap-1.5 text-sm font-roboto font-semibold px-3 py-1.5 rounded-md bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="flex items-center gap-1.5 text-xs font-roboto font-semibold px-3 py-1.5 rounded-md bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             <img src="/export.svg" alt="Export" className="size-4" />
             {exporting ? "Exporting..." : `Export ${form.type}`}
@@ -74,7 +74,7 @@ const SchoolFormActionCard = ({
             <button
               onClick={onImport}
               disabled={importing}
-              className="flex items-center gap-1.5 text-sm font-roboto font-medium px-3 py-1.5 rounded-md bg-[var(--color-bg-200)] hover:bg-[var(--color-bg-300)] text-[var(--color-text-800)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="flex items-center gap-1.5 text-xs font-roboto font-medium px-3 py-1.5 rounded-md bg-[var(--color-bg-200)] hover:bg-[var(--color-bg-300)] text-[var(--color-text-800)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               <img src="/import.svg" alt="Import" className="size-4" />
               {importing ? "Importing..." : `Import ${form.type}`}
