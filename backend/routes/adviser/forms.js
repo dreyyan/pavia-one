@@ -28,7 +28,7 @@ router.get("/section/:sectionId", verifyAdviser, async (req, res) => {
           select: { id: true, adviserId: true, name: true, email: true },
         },
         schoolForms: {
-          orderBy: { type: "asc" },
+          orderBy: { id: "asc" },
         },
       },
     });

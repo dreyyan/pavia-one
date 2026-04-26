@@ -302,3 +302,11 @@ export const FORM_THEME: Record<
     icon: "text-[var(--color-text-600)]",
   }
 };
+
+export const FORM_PERMISSIONS = {
+  SF1: { import: true, export: true },
+  SF2: { import: false, export: true },
+  SF5: { import: false, export: true },
+  SF9: { import: false, export: true },
+  SF10:{ import: false, export: true },
+};
