@@ -14,6 +14,7 @@ import PageLayout from "../../components/layouts/PageLayout";
 
 // [IMPORT] Types
 import { GeneralModalConfig } from "../../types";
+import GradeCard from "../../components/cards/GradeCard";
 
 // ? [INTERFACE] SF9 grade from API
 interface ApiSF9Grade {
@@ -308,52 +309,15 @@ const AdviserClassStudentGradesOverview = () => {
                 {/* ===================== MOBILE CARDS ===================== */}
                 <div className="md:hidden space-y-3">
                   {grades.map((grade) => (
-                    <div
+                    <GradeCard
                       key={grade.id}
-                      className="bg-[var(--color-bg-50)] border border-[var(--color-bg-200)] rounded-lg p-3 shadow-sm active:scale-[0.99] transition"
-                      onClick={() =>
+                      grade={grade}
+                      onClick={(id) =>
                         navigate(
-                          `/adviser/classes/${sectionId}/grades/${studentId}/subjects/${grade.id}`
+                          `/adviser/classes/${sectionId}/grades/${studentId}/subjects/${id}`
                         )
                       }
-                    >
-                      {/* Subject */}
-                      <div className="flex justify-between items-start mb-2">
-                        <p className="font-semibold text-[var(--color-text-900)]">
-                          {grade.subject}
-                        </p>
-                      </div>
-
-                      {/* Quarter Grid */}
-                      <div className="grid grid-cols-4 gap-2 text-xs text-center mb-2">
-                        <div>
-                          <p className="text-[var(--color-text-500)]">Q1</p>
-                          <p>{grade.q1 ?? "—"}</p>
-                        </div>
-                        <div>
-                          <p className="text-[var(--color-text-500)]">Q2</p>
-                          <p>{grade.q2 ?? "—"}</p>
-                        </div>
-                        <div>
-                          <p className="text-[var(--color-text-500)]">Q3</p>
-                          <p>{grade.q3 ?? "—"}</p>
-                        </div>
-                        <div>
-                          <p className="text-[var(--color-text-500)]">Q4</p>
-                          <p>{grade.q4 ?? "—"}</p>
-                        </div>
-                      </div>
-
-                      {/* Final + Remarks */}
-                      <div className="flex justify-between text-sm">
-                        <span className="font-medium">
-                          Final: {grade.finalRating ?? "—"}
-                        </span>
-                        <span className="text-[var(--color-text-600)]">
-                          {grade.remarks ?? "—"}
-                        </span>
-                      </div>
-                    </div>
+                    />
                   ))}
                 </div>
               </>
