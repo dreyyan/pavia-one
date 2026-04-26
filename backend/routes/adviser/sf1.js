@@ -67,7 +67,7 @@ if (!fs.existsSync(OUTPUT_DIR)) {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 }
 
-// ? [POST] Import SF1 file → parse students → upsert to DB → enroll in section
+// ? [POST] Import SF1 file → parse students → upsert → enroll → create SF9
 // /api/adviser/sf1/import
 router.post(
   "/import",
@@ -78,214 +78,260 @@ router.post(
       return res.status(400).json(errorResponse("No file uploaded"));
     }
 
+    console.log("[SF1 IMPORT HIT]", req.adviserId);
+
+    const fs = require("fs");
+    const path = require("path");
+
     const filePath = req.file.path;
     const originalExt = path.extname(req.file.originalname).toLowerCase();
 
-    // [VALIDATION] File type
     if (![".xlsx", ".csv"].includes(originalExt)) {
       safeUnlink(filePath);
-      return res
-        .status(400)
-        .json(
-          errorResponse(
-            "Invalid file type. Only .xlsx or .csv files are accepted.",
-          ),
-        );
+      return res.status(400).json(errorResponse("Invalid file type"));
     }
 
-    // Rename temp file to have the correct extension so Python can detect it
     const namedPath = filePath + originalExt;
+
     try {
       fs.renameSync(filePath, namedPath);
-    } catch (_) {
+    } catch {
       safeUnlink(filePath);
-      return res
-        .status(500)
-        .json(errorResponse("Failed to process uploaded file"));
+      return res.status(500).json(errorResponse("File processing failed"));
     }
 
     let result;
+
     try {
-      // [1] Run python importer
-      try {
-        result = await runPythonWithFile(PYTHON_EXE, IMPORTER_PATH, namedPath);
-      } catch (pyErr) {
-        console.error("[SF1 Import] FULL ERROR:", pyErr);
-        return res
-          .status(500)
-          .json(
-            errorResponse(
-              "Python importer failed",
-              pyErr.stderr || pyErr.stdout || pyErr,
-            ),
-          );
-      } finally {
-        safeUnlink(namedPath);
-      }
-
-      // [2] Parse JSON output
-      let students;
-      try {
-        students = JSON.parse(result.stdout);
-      } catch (_) {
-        return res
-          .status(500)
-          .json(errorResponse("Parser returned invalid data"));
-      }
-
-      if (!students.length) {
-        return res
-          .status(400)
-          .json(errorResponse("No student records found in the uploaded file"));
-      }
-
-      // [3] Resolve adviser + section
-      const resolved = await resolveAdviserSection(req.adviserId);
-      if (resolved.error) {
-        return res.status(resolved.status).json(errorResponse(resolved.error));
-      }
-      const { adviser, section } = resolved;
-
-      // [4] Upsert students + address + guardian
-      const results = {
-        created: 0,
-        updated: 0,
-        enrolled: 0,
-        skippedEnrollment: 0,
-        errors: [],
-      };
-
-      for (const s of students) {
-        if (!s.lrn || !s.firstName || !s.lastName) {
-          results.errors.push({
-            lrn: s.lrn || "?",
-            reason: "Missing required fields (LRN / First Name / Last Name)",
-          });
-          continue;
-        }
-
-        try {
-          // Upsert student
-          const existing = await prisma.student.findUnique({
-            where: { lrn: s.lrn },
-          });
-
-          if (!existing) {
-            await prisma.student.create({
-              data: {
-                lrn: s.lrn,
-                firstName: s.firstName,
-                middleName: s.middleName || null,
-                lastName: s.lastName,
-                sex: s.sex || "MALE",
-                birthDate: s.birthDate ? new Date(s.birthDate) : null,
-                motherTongue: s.motherTongue || null,
-                ethnicGroup: s.ethnicGroup || null,
-                religion: s.religion || null,
-                createdByAdviserId: req.adviserId,
-                // Address
-                ...(s.barangay || s.municipality || s.province
-                  ? {
-                      address: {
-                        create: {
-                          barangay: s.barangay || null,
-                          municipalityCity: s.municipality || null,
-                          province: s.province || null,
-                        },
-                      },
-                    }
-                  : {}),
-                // Guardian
-                ...(s.fatherFirstName || s.motherMaidenFirstName
-                  ? {
-                      guardian: {
-                        create: {
-                          fatherFirstName: s.fatherFirstName || null,
-                          fatherMiddleName: s.fatherMiddleName || null,
-                          fatherLastName: s.fatherLastName || null,
-                          motherMaidenFirstName:
-                            s.motherMaidenFirstName || null,
-                          motherMaidenMiddleName:
-                            s.motherMaidenMiddleName || null,
-                          motherMaidenLastName: s.motherMaidenLastName || null,
-                        },
-                      },
-                    }
-                  : {}),
-              },
-            });
-            results.created++;
-          } else {
-            // Update core fields only
-            await prisma.student.update({
-              where: { lrn: s.lrn },
-              data: {
-                firstName: s.firstName,
-                middleName: s.middleName || null,
-                lastName: s.lastName,
-                sex: s.sex || existing.sex,
-                birthDate: s.birthDate
-                  ? new Date(s.birthDate)
-                  : existing.birthDate,
-                motherTongue: s.motherTongue || existing.motherTongue,
-                ethnicGroup: s.ethnicGroup || existing.ethnicGroup,
-                religion: s.religion || existing.religion,
-              },
-            });
-            results.updated++;
-          }
-
-          // [5] Enroll student in adviser's section
-          const student = await prisma.student.findUnique({
-            where: { lrn: s.lrn },
-            select: { id: true },
-          });
-
-          const alreadyEnrolled = await prisma.enrollment.findFirst({
-            where: { studentId: student.id, sectionId: section.id },
-          });
-
-          if (!alreadyEnrolled) {
-            await prisma.enrollment.create({
-              data: {
-                studentId: student.id,
-                sectionId: section.id,
-                schoolYear: section.schoolYear,
-                learningModality: s.learningModality || "FACE_TO_FACE",
-                status: "ENROLLED",
-                remarks: s.remarks || null,
-              },
-            });
-            results.enrolled++;
-          } else {
-            results.skippedEnrollment++;
-          }
-        } catch (err) {
-          console.error(`[SF1 Import] Student ${s.lrn} error:`, err.message);
-          results.errors.push({ lrn: s.lrn, reason: err.message });
-        }
-      }
-
-      return res.status(200).json(
-        successResponse(
-          `Import complete. ${results.created} new student(s) created, ${results.updated} updated, ${results.enrolled} enrolled.`,
-          {
-            section: {
-              id: section.id,
-              name: section.name,
-              gradeLevel: section.gradeLevel,
-            },
-            results,
-          },
-        ),
-      );
-    } catch (err) {
+      result = await runPythonWithFile(PYTHON_EXE, IMPORTER_PATH, namedPath);
+    } catch (pyErr) {
       safeUnlink(namedPath);
-      console.error("[SF1 Import] Unexpected error:", err);
       return res
         .status(500)
-        .json(errorResponse("Import failed unexpectedly", err.message));
+        .json(errorResponse("Python importer failed", pyErr.stderr || pyErr));
     }
+
+    safeUnlink(namedPath);
+
+    let students;
+    try {
+      students = JSON.parse(result.stdout);
+    } catch {
+      return res.status(500).json(errorResponse("Invalid parser output"));
+    }
+
+    if (!students.length) {
+      return res.status(400).json(errorResponse("No students found"));
+    }
+
+    const resolved = await resolveAdviserSection(req.adviserId);
+    if (resolved.error) {
+      return res.status(resolved.status).json(errorResponse(resolved.error));
+    }
+
+    const section = await prisma.section.findUnique({
+      where: { id: resolved.section.id },
+    });
+
+    const { SPECIAL_SECTIONS } = require("../../utils/constants");
+
+    const hasCurriculum = (gradeLevel, curriculum) => {
+      if (curriculum === "Regular") return true;
+      return SPECIAL_SECTIONS?.[gradeLevel]?.[curriculum]?.length > 0;
+    };
+
+    const coreSubjects = [
+      "Filipino",
+      "English",
+      "Mathematics",
+      "Science",
+      "Araling Panlipunan",
+      "Edukasyon sa Pagpapakatao",
+      "MAPEH",
+      "Edukasyong Pantahanan at Pangkabuhayan",
+    ];
+
+    const steSpecializedSubjects = {
+      7: ["Environmental Science", "Research I"],
+      8: ["Biotechnology", "Research II"],
+      9: ["Applied Chemistry", "Research III"],
+      10: ["Electronics", "Research IV"],
+    };
+
+    const curriculumAddons = {
+      SPJ: ["ICT", "Journalism"],
+      SPS: ["Badminton"],
+      SPA: ["Visual Arts"],
+    };
+
+    const { gradeLevel, curriculum } = section;
+
+    let subjects = [];
+
+    if (hasCurriculum(gradeLevel, curriculum)) {
+      if (curriculum === "Regular") {
+        subjects = coreSubjects;
+      } else if (curriculum === "STE") {
+        subjects = [
+          ...coreSubjects,
+          ...(steSpecializedSubjects[gradeLevel] || []),
+        ];
+      } else {
+        subjects = [...coreSubjects, ...(curriculumAddons[curriculum] || [])];
+      }
+    }
+
+    // =========================
+    // 🔥 FIX: SAFE MATCHING (NO STRICT WHERE NAME IN)
+    // =========================
+    const learningAreas = await prisma.learningArea.findMany({
+      where: {
+        gradeLevel: Number(gradeLevel),
+        curriculum,
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+
+    const normalize = (str) => str.toLowerCase().trim();
+
+    const subjectSet = new Set(subjects.map(normalize));
+
+    const subjectIds = learningAreas
+      .filter((la) => subjectSet.has(normalize(la.name)))
+      .map((la) => la.id);
+
+    console.log({
+      gradeLevel,
+      curriculum,
+      subjects,
+      learningAreasCount: learningAreas.length,
+      matchedSubjectIds: subjectIds.length,
+    });
+
+    const results = {
+      created: 0,
+      updated: 0,
+      enrolled: 0,
+      skippedEnrollment: 0,
+      sf9Created: 0,
+      errors: [],
+    };
+
+    for (const s of students) {
+      if (!s.lrn || !s.firstName || !s.lastName) {
+        results.errors.push({ lrn: s.lrn || "?", reason: "Missing fields" });
+        continue;
+      }
+
+      try {
+        let studentId;
+
+        const existing = await prisma.student.findUnique({
+          where: { lrn: s.lrn },
+        });
+
+        if (!existing) {
+          const created = await prisma.student.create({
+            data: {
+              lrn: s.lrn,
+              firstName: s.firstName,
+              middleName: s.middleName || null,
+              lastName: s.lastName,
+              sex: s.sex || "MALE",
+              birthDate: s.birthDate ? new Date(s.birthDate) : null,
+              motherTongue: s.motherTongue || null,
+              ethnicGroup: s.ethnicGroup || null,
+              religion: s.religion || null,
+              createdByAdviserId: req.adviserId,
+            },
+          });
+
+          studentId = created.id;
+          results.created++;
+        } else {
+          await prisma.student.update({
+            where: { lrn: s.lrn },
+            data: {
+              firstName: s.firstName,
+              middleName: s.middleName || null,
+              lastName: s.lastName,
+            },
+          });
+
+          studentId = existing.id;
+          results.updated++;
+        }
+
+        const enrolled = await prisma.enrollment.findFirst({
+          where: {
+            studentId,
+            sectionId: section.id,
+          },
+        });
+
+        let isNewEnrollment = false;
+
+        if (!enrolled) {
+          await prisma.enrollment.create({
+            data: {
+              studentId,
+              sectionId: section.id,
+              schoolYear: section.schoolYear,
+              learningModality: s.learningModality || "FACE_TO_FACE",
+              status: "ENROLLED",
+            },
+          });
+
+          results.enrolled++;
+          isNewEnrollment = true;
+        } else {
+          results.skippedEnrollment++;
+        }
+
+        // =========================
+        // 🔥 SF9 CREATION (FIXED + GUARANTEED)
+        // =========================
+        const existingSF9 = await prisma.sF9Grade.findFirst({
+          where: {
+            studentId,
+            schoolYear: section.schoolYear,
+          },
+        });
+
+        if (!existingSF9 && subjectIds.length > 0) {
+          await prisma.sF9Grade.createMany({
+            data: subjectIds.map((id) => ({
+              studentId,
+              learningAreaId: id,
+              schoolYear: section.schoolYear,
+              q1: null,
+              q2: null,
+              q3: null,
+              q4: null,
+              q1Ready: false,
+              q2Ready: false,
+              q3Ready: false,
+              q4Ready: false,
+            })),
+            skipDuplicates: true,
+          });
+
+          results.sf9Created++;
+        }
+      } catch (err) {
+        results.errors.push({ lrn: s.lrn, reason: err.message });
+      }
+    }
+
+    return res.json(
+      successResponse("Import complete", {
+        section,
+        results,
+      }),
+    );
   },
 );
 
