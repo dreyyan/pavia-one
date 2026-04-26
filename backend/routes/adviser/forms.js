@@ -79,6 +79,8 @@ router.get("/section/:sectionId", verifyAdviser, async (req, res) => {
       orderBy: { student: { lastName: "asc" } },
     });
 
+    const classSize = enrollments.length;
+
     // --- Derive per-student form statuses ---
     const students = enrollments.map((e) => {
       const s = e.student;
@@ -134,6 +136,7 @@ router.get("/section/:sectionId", verifyAdviser, async (req, res) => {
           color: section.color,
           adviser: section.adviser,
           schoolForms: section.schoolForms,
+          classSize,
         },
         students,
       }),
