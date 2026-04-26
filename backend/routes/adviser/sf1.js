@@ -91,15 +91,31 @@ function calculateAge(birthDate) {
 async function resolveAdviserSection(adviserId) {
   const adviser = await prisma.adviser.findUnique({
     where: { adviserId },
-    select: { id: true },
+    select: {
+      id: true,
+      name: true,
+    },
   });
-  if (!adviser) return { error: "Adviser not found", status: 404 };
+
+  if (!adviser) {
+    return { error: "Adviser not found", status: 404 };
+  }
 
   const section = await prisma.section.findFirst({
     where: { adviserId: adviser.id },
-    select: { id: true, name: true, gradeLevel: true, schoolYear: true },
+    select: {
+      id: true,
+      name: true,
+      gradeLevel: true,
+      schoolYear: true,
+    },
   });
-  if (!section) return { error: "No advisory section assigned", status: 404 };
+
+  if (!section) {
+    return { error: "No advisory section assigned", status: 404 };
+  }
+
+  section.adviser = adviser;
 
   return { adviser, section };
 }
@@ -453,7 +469,11 @@ router.get("/export", verifyAdviser, async (req, res) => {
     // Patch parser to use our per-section output path via env var
     // (xlsx_parser.py reads OUTPUT_PATH from its own OUTPUT_DIR — we pass data via stdin)
     try {
-      await runPythonWithJSON(PARSER_PATH, studentsData);
+      await runPythonWithJSON(PARSER_PATH, {
+        students: studentsData,
+        adviser: section.adviser, // or wherever your adviser is stored
+      });
+      console.log("ADVISER BEING SENT:", section.adviser);
     } catch (pyErr) {
       console.error("[SF1 Export] Python error:", pyErr.stderr || pyErr);
       return res
