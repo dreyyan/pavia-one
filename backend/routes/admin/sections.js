@@ -5,7 +5,7 @@ const prisma = require("../../lib/prisma");
 
 // [IMPORT] Utilities & Middleware
 const { successResponse, errorResponse } = require("../../utils/response");
-const { getFullName, normalizeSchoolYear } = require("../../utils/helpers");
+const { getFullName, normalizeSchoolYear, createSectionWithForms } = require("../../utils/helpers");
 const verifyAdmin = require("../../middleware/authMiddleware").verifyAdmin;
 
 // [IMPORT] Constants, Helpers
@@ -213,126 +213,154 @@ router.post("/", verifyAdmin, async (req, res) => {
     const createdSections = [];
     const errors = [];
 
-    for (const section of sectionsInput) {
-      const {
-        name,
-        adviserId, // now optional — can be null / undefined
-        gradeLevel,
-        schoolYear,
-        color,
-        schedule,
-        curriculum,
-        learningModality,
-        room,
-      } = section;
+    // [PREFETCH] Existing sections (avoid duplicate DB calls)
+    const existingSections = await prisma.section.findMany({
+      select: { name: true, gradeLevel: true, schoolYear: true },
+    });
 
-      // [VALIDATION] Required fields (adviser NOT required)
-      if (!name || gradeLevel === undefined || !schoolYear) {
-        errors.push({
-          name,
-          message: "Missing required fields: name, gradeLevel, schoolYear",
-        });
-        continue;
-      }
+    const existingSet = new Set(
+      existingSections.map(
+        (s) => `${s.name}|${s.gradeLevel}|${s.schoolYear}`
+      )
+    );
 
-      // [VALIDATION] Grade level
-      const gradeNum = parseInt(gradeLevel);
-      if (![7, 8, 9, 10].includes(gradeNum)) {
-        errors.push({
-          name,
-          gradeLevel,
-          message: "Grade level must be between 7 and 10",
-        });
-        continue;
-      }
+    // [PREFETCH] Advisers
+    const adviserMap = new Map();
+    const adviserIds = sectionsInput
+      .map((s) => s.adviserId)
+      .filter(Boolean)
+      .map(String);
 
-      // [VALIDATION] School year
-      if (!isValidSchoolYear(schoolYear)) {
-        errors.push({
-          name,
-          schoolYear,
-          message: 'schoolYear must follow "YYYY - YYYY"',
-        });
-        continue;
-      }
-
-      // [VALIDATION] Curriculum
-      const sectionCurriculum = curriculum || "Regular";
-      if (!VALID_CURRICULA.includes(sectionCurriculum)) {
-        errors.push({
-          name,
-          curriculum,
-          message: `Invalid curriculum. Must be one of: ${VALID_CURRICULA.join(", ")}`,
-        });
-        continue;
-      }
-
-      // [VALIDATION] Duplicate section (name + gradeLevel + schoolYear)
-      const existing = await prisma.section.findFirst({
-        where: { name, gradeLevel: gradeNum, schoolYear },
+    if (adviserIds.length) {
+      const advisers = await prisma.adviser.findMany({
+        where: { adviserId: { in: adviserIds } },
       });
-      if (existing) {
-        errors.push({
-          name,
-          message: `Section already exists for grade ${gradeLevel} in ${schoolYear}`,
-        });
-        continue;
-      }
 
-      // [VALIDATION] Adviser — only validate if actually provided
-      let resolvedAdviserId = null;
-      if (adviserId !== undefined && adviserId !== null && adviserId !== "") {
-        const adviser = await prisma.adviser.findUnique({
-          where: { adviserId: String(adviserId) },
-        });
-        if (!adviser) {
-          errors.push({ name, adviserId, message: "Adviser not found" });
+      advisers.forEach((a) => adviserMap.set(a.adviserId, a));
+    }
+
+    // [TRANSACTION] Create sections + forms
+    await prisma.$transaction(async (tx) => {
+      for (const section of sectionsInput) {
+        const {
+          name,
+          adviserId,
+          gradeLevel,
+          schoolYear,
+          color,
+          schedule,
+          curriculum,
+          room,
+        } = section;
+
+        // [VALIDATION] Required fields (adviser NOT required)
+        if (!name || gradeLevel === undefined || !schoolYear) {
+          errors.push({
+            name,
+            message: "Missing required fields: name, gradeLevel, schoolYear",
+          });
           continue;
         }
-        resolvedAdviserId = adviser.id;
-      }
 
-      // [CREATE]
-      const newSection = await prisma.section.create({
-        data: {
+        // [VALIDATION] Grade level
+        const gradeNum = parseInt(gradeLevel);
+        if (![7, 8, 9, 10].includes(gradeNum)) {
+          errors.push({
+            name,
+            gradeLevel,
+            message: "Grade level must be between 7 and 10",
+          });
+          continue;
+        }
+
+        // [VALIDATION] School year
+        if (!isValidSchoolYear(schoolYear)) {
+          errors.push({
+            name,
+            schoolYear,
+            message: 'schoolYear must follow "YYYY - YYYY"',
+          });
+          continue;
+        }
+
+        // [VALIDATION] Curriculum
+        const sectionCurriculum = curriculum || "Regular";
+        if (!VALID_CURRICULA.includes(sectionCurriculum)) {
+          errors.push({
+            name,
+            curriculum,
+            message: `Invalid curriculum. Must be one of: ${VALID_CURRICULA.join(", ")}`,
+          });
+          continue;
+        }
+
+        // [VALIDATION] Duplicate section (name + gradeLevel + schoolYear)
+        const key = `${name}|${gradeNum}|${schoolYear}`;
+        if (existingSet.has(key)) {
+          errors.push({
+            name,
+            message: `Section already exists for grade ${gradeLevel} in ${schoolYear}`,
+          });
+          continue;
+        }
+
+        // [VALIDATION] Adviser — only validate if actually provided
+        let resolvedAdviserId = null;
+        if (adviserId !== undefined && adviserId !== null && adviserId !== "") {
+          const adviser = adviserMap.get(String(adviserId));
+          if (!adviser) {
+            errors.push({ name, adviserId, message: "Adviser not found" });
+            continue;
+          }
+          resolvedAdviserId = adviser.id;
+        }
+
+        // [CREATE] Section + SchoolForms
+        const newSection = await createSectionWithForms(tx, {
           name,
           gradeLevel: gradeNum,
           schoolYear,
+          curriculum: sectionCurriculum,
+          color: color || null,
+          schedule: schedule || null,
+          room: room || null,
           ...(resolvedAdviserId !== null
             ? { adviser: { connect: { id: resolvedAdviserId } } }
             : {}),
-          color: color || null,
-          schedule: schedule || null,
-          curriculum: sectionCurriculum,
-          room: room || null,
-        },
-      });
+        });
 
-      const sectionWithEnrollments = await prisma.section.findUnique({
-        where: { id: newSection.id },
-        select: {
-          id: true,
-          name: true,
-          gradeLevel: true,
-          schoolYear: true,
-          curriculum: true,
-          color: true,
-          schedule: true,
-          createdAt: true,
-          adviser: {
-            select: { id: true, adviserId: true, name: true, email: true },
+        // [FETCH] Return formatted section
+        const sectionWithEnrollments = await tx.section.findUnique({
+          where: { id: newSection.id },
+          select: {
+            id: true,
+            name: true,
+            gradeLevel: true,
+            schoolYear: true,
+            curriculum: true,
+            color: true,
+            schedule: true,
+            createdAt: true,
+            adviser: {
+              select: { id: true, adviserId: true, name: true, email: true },
+            },
+            enrollments: { select: { id: true } },
           },
-          enrollments: { select: { id: true } },
-        },
-      });
+        });
 
-      const finalSection = {
-        ...sectionWithEnrollments,
-        classSize: sectionWithEnrollments.enrollments.length,
-      };
-      delete finalSection.enrollments;
-      createdSections.push(finalSection);
-    }
+        const finalSection = {
+          ...sectionWithEnrollments,
+          classSize: sectionWithEnrollments.enrollments.length,
+        };
+
+        delete finalSection.enrollments;
+
+        createdSections.push(finalSection);
+
+        // [STATE] Prevent duplicates within same request
+        existingSet.add(key);
+      }
+    });
 
     if (isSingle) {
       return res.status(201).json(
@@ -410,14 +438,12 @@ router.post("/generate", verifyAdmin, async (req, res) => {
 
         const color = generateSectionColor(Number(gradeLevel), curriculum);
 
-        const newSection = await prisma.section.create({
-          data: {
-            name: sectionName,
-            gradeLevel: Number(gradeLevel),
-            schoolYear: normalizedYear,
-            curriculum,
-            color,
-          },
+        const newSection = await createSectionWithForms({
+          name: sectionName,
+          gradeLevel: Number(gradeLevel),
+          schoolYear: normalizedYear,
+          curriculum,
+          color,
         });
 
         created.push(newSection);
