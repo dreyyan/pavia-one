@@ -12,6 +12,7 @@ import PageLayout from "../../components/layouts/PageLayout";
 
 // [IMPORT] Types
 import { GeneralModalConfig } from "../../types";
+import PasswordRequirement from "../../components/authentication/PasswordRequirement";
 
 // ? [INTERFACE] Settings form fields
 interface SettingsForm {
@@ -65,6 +66,20 @@ const AdminSettings = () => {
   // * [HANDLE] Save Password
   const handleSavePassword = async () => {
     const { currentPassword, newPassword, confirmPassword } = form;
+    const isPasswordValid = Object.values(passwordChecks).every(Boolean);
+
+    // ! [VALIDATION] Weak password
+    if (!isPasswordValid) {
+      openGeneralModal({
+        title: "Weak Password",
+        message: "Please meet all password requirements.",
+        type: "error",
+        confirmText: "Close",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
+      return;
+    }
 
     // ! [VALIDATION] All fields required
     if (!currentPassword || !newPassword || !confirmPassword) {
@@ -210,6 +225,17 @@ const AdminSettings = () => {
   // ? [LOADING STATE]
   if (loading) return <Skeleton />;
 
+  // [DERIVED STATE] Real-time password validation checks
+  const password = form.newPassword;
+
+  const passwordChecks = {
+    minLength: password.length >= 8,
+    hasUpper: /[A-Z]/.test(password),
+    hasLower: /[a-z]/.test(password),
+    hasNumber: /[0-9]/.test(password),
+    hasSpecial: /[^A-Za-z0-9]/.test(password),
+  };
+
   return (
     <>
       {/* [MODAL] General */}
@@ -230,10 +256,10 @@ const AdminSettings = () => {
           <span className="page-title">Settings</span>
         }
       >
-        <div className="flex flex-col gap-4 max-w-lg">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
           {/* [CARD] Security */}
-          <div className="bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-lg shadow-sm p-5 space-y-4">
+          <div className="bg-[var(--color-bg-100)] rounded-lg shadow-sm p-5 space-y-4">
             <h3 className="text-[var(--color-text-700)]">Security</h3>
 
             {/* [FIELDS] Password inputs */}
@@ -241,21 +267,48 @@ const AdminSettings = () => {
               <InputField
                 label="Current Password"
                 type="password"
+                placeholder="Enter current password"
                 value={form.currentPassword}
                 onChange={(e) => handleChange("currentPassword", e.target.value)}
               />
               <InputField
                 label="New Password"
                 type="password"
+                placeholder="Enter new password"
                 value={form.newPassword}
                 onChange={(e) => handleChange("newPassword", e.target.value)}
               />
               <InputField
                 label="Confirm Password"
                 type="password"
+                placeholder="Confirm new password"
                 value={form.confirmPassword}
                 onChange={(e) => handleChange("confirmPassword", e.target.value)}
               />
+
+              {/* [SECTION] Password Requirements */}
+              <div className="space-y-1 mt-2">
+                <PasswordRequirement
+                  requirement="At least 8 characters"
+                  isMet={passwordChecks.minLength}
+                />
+                <PasswordRequirement
+                  requirement="Contains uppercase letter"
+                  isMet={passwordChecks.hasUpper}
+                />
+                <PasswordRequirement
+                  requirement="Contains lowercase letter"
+                  isMet={passwordChecks.hasLower}
+                />
+                <PasswordRequirement
+                  requirement="Contains a number"
+                  isMet={passwordChecks.hasNumber}
+                />
+                <PasswordRequirement
+                  requirement="Contains a special character"
+                  isMet={passwordChecks.hasSpecial}
+                />
+              </div>
             </div>
 
             {/* [BUTTON] Change Password */}
@@ -268,7 +321,7 @@ const AdminSettings = () => {
           </div>
 
           {/* [CARD] Preferences */}
-          <div className="bg-[var(--color-bg-100)] border border-[var(--color-bg-300)] rounded-lg shadow-sm p-5 space-y-4">
+          <div className="bg-[var(--color-bg-100)] rounded-lg shadow-sm p-5 space-y-4">
             <h3 className="text-[var(--color-text-700)]">Preferences</h3>
 
             {/* [FIELDS] Toggle inputs */}
