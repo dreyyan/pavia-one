@@ -1,4 +1,7 @@
+// [IMPORT] Hooks
 import { useNavigate } from "react-router-dom";
+
+// [IMPORT] Helpers
 import { darkenColor } from "../../helpers";
 
 interface DashboardButtonProps {
@@ -18,6 +21,7 @@ const DashboardButton: React.FC<DashboardButtonProps> = ({
 }) => {
   const navigate = useNavigate();
 
+  // [HANDLE] Navigate to link
   const handleClick = () => {
     if (disabled) return;
     if (to) navigate(to);
@@ -46,20 +50,17 @@ const DashboardButton: React.FC<DashboardButtonProps> = ({
         }
       }}
     >
-      {/* Icon */}
+      {/* [UI] Icon */}
       {iconSrc && (
         <img
           src={iconSrc}
-          className="size-16 sm:size-20 md:size-22 lg:size-24 
-                     xl:size-20 2xl:size-24 flex-shrink-0"
+          className="size-16 sm:size-20 md:size-22 lg:size-24 xl:size-20 2xl:size-24 flex-shrink-0"
           alt={text}
         />
       )}
 
-      {/* Text */}
-      <p className="font-roboto font-bold text-sm sm:text-md md:text-lg lg:text-xl 
-                   xl:text-2xl 2xl:text-3xl text-[var(--color-text-50)] 
-                   mt-2 xl:mt-0 text-center xl:text-left">
+      {/* [TEXT] Button Label */}
+      <p className="font-roboto font-bold text-sm sm:text-md md:text-lg lg:text-xl xl:text-2xl 2xl:text-3xl text-[var(--color-text-50)] mt-2 xl:mt-0 text-center xl:text-left">
         {text}
       </p>
     </button>
