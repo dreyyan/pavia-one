@@ -459,11 +459,13 @@ const AdminSubjects = () => {
                   <tr className="text-left">
                     {/* [SECTION] Table Headers */}
                     <th className="table-header">Subject</th>
-                    <th className="table-header">Code</th>
+                    {/* TODO: Subject Code */}
+                    {/* <th className="table-header">Code</th> */}
                     <th className="table-header">Grade</th>
                     <th className="table-header">Curriculum</th>
                     <th className="table-header">Adviser</th>
-                    <th className="table-header">Hrs/Week</th>
+                    {/* TODO: Subject Code */}                    
+                    {/* <th className="table-header">Hrs/Week</th> */}
                   </tr>
                 </thead>
 
@@ -479,9 +481,10 @@ const AdminSubjects = () => {
                         {s.name}
                       </td>
 
-                      <td className="table-cell table-text table-text-default font-mono text-xs">
+                      {/* TODO: Subject Code */}
+                      {/* <td className="table-cell table-text table-text-default font-mono text-xs">
                         {s.code}
-                      </td>
+                      </td> */}
 
                       <td className="table-cell table-text table-text-default">
                         Grade {s.gradeLevel}
@@ -507,10 +510,10 @@ const AdminSubjects = () => {
                           <Badge label="Unassigned" color="red" />
                         )}
                       </td>
-
-                      <td className="table-cell table-text table-text-default">
+                      {/* TODO: Subject Code */}
+                      {/* <td className="table-cell table-text table-text-default">
                         {s.hoursPerWeek ?? "—"}
-                      </td>
+                      </td> */}
                     </tr>
                   ))}
                 </tbody>
