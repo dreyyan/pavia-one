@@ -21,7 +21,7 @@ import { STUDENT_DETAILS_PAGE_LABELS } from "../../constants";
 import { normalizeSex } from "../../helpers";
 import type { StudentDetails, GeneralModalConfig } from "../../types";
 import PersonInfoCard from "../../components/cards/PersonInfoCard";
-import EnrollmentHistoryCard from "../../components/cards/EnrollmentHistoryCard";
+import EnrollmentHistoryCard from "../../components/cards/details/EnrollmentHistoryCard";
 
 // ? [TYPE] Active form page index
 type FormPage = 0 | 1 | 2;

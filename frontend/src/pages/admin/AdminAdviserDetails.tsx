@@ -12,7 +12,7 @@ import InputField from "../../components/InputField";
 import ProfileInfo from "../../components/ProfileInfo";
 import Breadcrumbs from "../../components/Breadcrumbs";
 import PageLayout from "../../components/layouts/PageLayout";
-import AssignedSectionsCard from "../../components/cards/AssignedSectionsCard";
+import AssignedSectionsCard from "../../components/cards/details/AssignedSectionsCard";
 import DeleteButton from "../../components/buttons/DeleteButton";
 
 // [IMPORT] Types

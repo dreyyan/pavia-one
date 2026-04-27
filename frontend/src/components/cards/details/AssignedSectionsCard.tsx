@@ -2,10 +2,10 @@
 import React from "react";
 
 // [IMPORT] Sub-components
-import AdvisoryBadge from "../badges/AdvisoryBadge";
+import AdvisoryBadge from "../../badges/AdvisoryBadge";
 
 // [IMPORT] Types
-import type { AdviserDetails } from "../../types";
+import type { AdviserDetails } from "../../../types";
 
 // ? [TYPE] Section shape from AdviserDetails
 type Section = AdviserDetails["sections"][number];

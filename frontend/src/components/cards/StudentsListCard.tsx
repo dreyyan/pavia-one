@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 
 // [IMPORT] Components
-import { StatusBadge } from "../StatusBadge";
+import { StatusBadge } from "../badges/StatusBadge";
 
 // [IMPORT] Types
 import type { SectionDetails } from "../../types";
