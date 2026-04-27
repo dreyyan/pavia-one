@@ -65,7 +65,6 @@ const WeightRow = ({
   </div>
 );
 
-// [COMPONENT]
 const SubjectFormModal = ({
   isOpen,
   title,

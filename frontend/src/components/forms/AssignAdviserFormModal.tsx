@@ -1,15 +1,9 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 // [IMPORT] Hooks
 import { useState, useEffect, useRef } from "react";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
-interface Adviser {
-  id: number;
-  adviserId: string;
-  name: string;
-  email?: string;
-}
+// [IMPORT] Types
+import { Adviser } from "../../types";
 
 interface AssignAdviserFormModalProps {
   isOpen: boolean;
@@ -21,9 +15,6 @@ interface AssignAdviserFormModalProps {
   onSubmit: (adviserId: string, adviserName: string) => Promise<void>;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Component
-// ─────────────────────────────────────────────────────────────────────────────
 export const AssignAdviserFormModal = ({
   isOpen,
   sectionName,
@@ -33,6 +24,7 @@ export const AssignAdviserFormModal = ({
   onClose,
   onSubmit,
 }: AssignAdviserFormModalProps) => {
+  // [STATES]
   const [search, setSearch]                   = useState("");
   const [selectedAdviserId, setSelectedAdviserId] = useState("");
   const [selectedAdviserName, setSelectedAdviserName] = useState("");
@@ -42,7 +34,7 @@ export const AssignAdviserFormModal = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef    = useRef<HTMLInputElement>(null);
 
-  // ── Reset state every time the modal opens ────────────────────────────────
+  // [EFFECT] Reset state every time the modal opens
   useEffect(() => {
     if (isOpen) {
       setSearch("");
@@ -55,7 +47,7 @@ export const AssignAdviserFormModal = ({
     }
   }, [isOpen]);
 
-  // ── Close dropdown on outside click ──────────────────────────────────────
+  // [EFFECT] Close dropdown on outside click
   useEffect(() => {
     const handle = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -68,7 +60,7 @@ export const AssignAdviserFormModal = ({
 
   if (!isOpen) return null;
 
-  // ── Filtered adviser list ─────────────────────────────────────────────────
+  // [FILTER] Filtered adviser list
   const filtered = advisers.filter(
     (a) =>
       a.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -76,7 +68,7 @@ export const AssignAdviserFormModal = ({
       (a.email ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
-  // ── Handlers ─────────────────────────────────────────────────────────────
+  // [HANDLE] Select
   const handleSelect = (adviser: Adviser) => {
     setSelectedAdviserId(adviser.adviserId);
     setSelectedAdviserName(adviser.name);
@@ -85,6 +77,7 @@ export const AssignAdviserFormModal = ({
     setFormError("");
   };
 
+  // [HANDLE] Search bar change input
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
     // Clear selection if the user edits after choosing
@@ -96,6 +89,7 @@ export const AssignAdviserFormModal = ({
     setFormError("");
   };
 
+  // [HANDLE] Submit
   const handleSubmit = async () => {
     if (!selectedAdviserId) {
       setFormError("Please select an adviser from the list.");
@@ -104,12 +98,12 @@ export const AssignAdviserFormModal = ({
     await onSubmit(selectedAdviserId, selectedAdviserName);
   };
 
+  // [HANDLE] Keybaord shortcuts
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") { setShowDropdown(false); }
     if (e.key === "Enter" && !showDropdown) { handleSubmit(); }
   };
 
-  // ── Shared input style (mirrors SectionFormModal) ─────────────────────────
   const inputCls =
     "bg-[var(--color-bg-50)] font-roboto rounded-md py-2 px-3 border border-[var(--color-text-300)] outline-none focus:ring-2 focus:ring-[var(--color-primary-600)] text-sm w-full";
 
@@ -117,7 +111,7 @@ export const AssignAdviserFormModal = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
       <div className="bg-[var(--color-bg-100)] rounded-lg p-6 w-full max-w-md shadow-lg">
 
-        {/* ── Header ── */}
+        {/* [SECTION] Header */}
         <div className="flex items-start justify-between mb-1 gap-3">
           <div>
             <h2 className="text-lg font-bold text-[var(--color-text-900)]">Assign Adviser</h2>
@@ -137,12 +131,12 @@ export const AssignAdviserFormModal = ({
           </button>
         </div>
 
-        {/* ── Progress bar (single step, always full) ── */}
+        {/* [UI] Progress Bar */}
         <div className="flex gap-1.5 mb-5 mt-3">
           <div className="h-1 flex-1 rounded-full bg-[var(--color-primary-600)]" />
         </div>
 
-        {/* ── Current adviser notice ── */}
+        {/* [SECTION] Current Adviser */}
         {currentAdviser && (
           <div className="mb-4 bg-[var(--color-bg-50)] border border-[var(--color-bg-300)] rounded-md px-3 py-2.5 flex items-center gap-2.5">
             <div className="size-7 rounded-md bg-[var(--color-bg-300)] flex items-center justify-center text-[var(--color-text-600)] font-bold text-xs flex-shrink-0">
@@ -160,7 +154,7 @@ export const AssignAdviserFormModal = ({
           </div>
         )}
 
-        {/* ── Adviser search ── */}
+        {/* [COMPONENT] Adviser search */}
         <div className="flex flex-col gap-1 mb-2">
           <label className="font-roboto text-sm">
             Adviser <span className="text-[var(--color-red-500)]">*</span>
@@ -179,7 +173,7 @@ export const AssignAdviserFormModal = ({
               autoComplete="off"
             />
 
-            {/* ── Dropdown list ── */}
+            {/* [DROPDOWN] Adviser list */}
             {showDropdown && (
               <div className="absolute z-50 w-full mt-1 bg-white border border-[var(--color-bg-300)] rounded-md shadow-lg max-h-52 overflow-y-auto">
                 {filtered.length === 0 ? (
@@ -202,7 +196,7 @@ export const AssignAdviserFormModal = ({
                             : ""
                         }`}
                       >
-                        {/* Avatar */}
+                        {/* [UI] Avatar */}
                         <div
                           className={`size-7 rounded-md flex items-center justify-center text-xs font-bold flex-shrink-0 ${
                             isSelected
@@ -228,7 +222,7 @@ export const AssignAdviserFormModal = ({
                             )}
                           </p>
                         </div>
-                        {/* Checkmark for selected */}
+                        {/* Checkmark (for selected) */}
                         {isSelected && (
                           <svg className="size-4 text-[var(--color-primary-600)] flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -243,7 +237,7 @@ export const AssignAdviserFormModal = ({
           </div>
         </div>
 
-        {/* ── Selected adviser confirmation card ── */}
+        {/* [COMPONENT] Selected adviser confirmation card */}
         {selectedAdviserId && (
           <div className="mt-3 bg-[var(--color-bg-50)] border border-[var(--color-primary-200)] rounded-md px-3 py-2.5 flex items-center gap-2.5">
             <div className="size-7 rounded-md bg-[var(--color-primary-100)] flex items-center justify-center text-[var(--color-primary-700)] font-bold text-xs flex-shrink-0">
@@ -255,7 +249,7 @@ export const AssignAdviserFormModal = ({
                 {selectedAdviserName}
               </p>
             </div>
-            {/* Clear selection */}
+            {/* [DELETE BUTTON] Clear selection */}
             <button
               type="button"
               onClick={() => {
@@ -274,12 +268,12 @@ export const AssignAdviserFormModal = ({
           </div>
         )}
 
-        {/* ── Error message ── */}
+        {/* Error message */}
         {formError && (
           <p className="text-[var(--color-red-500)] text-sm mt-3">{formError}</p>
         )}
 
-        {/* ── Footer ── */}
+        {/* [SECTION] Footer */}
         <div className="flex justify-between items-center gap-3 mt-6">
           <button
             onClick={onClose}
