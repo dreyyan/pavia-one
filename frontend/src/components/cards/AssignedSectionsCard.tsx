@@ -17,7 +17,9 @@ interface AssignedSectionsCardProps {
 const AssignedSectionsCard: React.FC<AssignedSectionsCardProps> = ({ sections }) => {
   return (
     <div className="bg-[var(--color-bg-100)] rounded-lg p-4 space-y-3 shadow">
-      <p className="form-section-title">Assigned Sections</p>
+      <p className="form-section-title">
+        Assigned Sections <span className="form-section-value">({sections.length})</span>
+      </p>
 
       {sections.length === 0 ? (
         <p className="text-sm font-roboto text-[var(--color-text-600)]">
