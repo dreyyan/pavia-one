@@ -6,6 +6,7 @@ import { StatusBadge } from "../../badges/StatusBadge";
 
 // [IMPORT] Types
 import { Enrollment } from "../../../types";
+import Badge from "../../badges/Badge";
 
 interface EnrollmentHistoryCardProps {
   enrollments: Enrollment[];
@@ -43,9 +44,21 @@ const EnrollmentHistoryCard: React.FC<EnrollmentHistoryCardProps> = ({ enrollmen
                   {enrollment.schoolYear}
                 </p>
 
-                <p className="text-xs md:text-sm font-roboto text-[var(--color-text-500)]">
-                  {enrollment.learningModality}
-                </p>
+                {/* [COMPONENT] Learning Modality Badge */}
+                <div className="mt-1">
+                  <Badge
+                    label={enrollment.learningModality}
+                    color={
+                      enrollment.learningModality === "Online"
+                        ? "blue"
+                        : enrollment.learningModality === "Blended"
+                        ? "purple"
+                        : enrollment.learningModality === "Modular"
+                        ? "orange"
+                        : "secondary"
+                    }
+                  />
+                </div>
               </div>
 
               {/* [COMPONENT] Status Badge */}
