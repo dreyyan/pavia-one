@@ -8,7 +8,7 @@ interface PersonInfoCardProps {
 
 const PersonInfoCard: React.FC<PersonInfoCardProps> = ({ title, person }) => {
   return (
-    <div className="bg-[var(--color-bg-100)] rounded-lg p-4">
+    <div className="bg-[var(--color-bg-100)] rounded-lg p-4 shadow">
       <span className="form-section-title">
         {title}
       </span>

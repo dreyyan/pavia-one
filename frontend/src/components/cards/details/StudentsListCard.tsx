@@ -25,7 +25,7 @@ const StudentsListCard: React.FC<StudentsListCardProps> = ({ students, classSize
   const currentStudents = students.slice(startIdx, startIdx + studentsPerPage);
 
   return (
-    <div className="bg-[var(--color-bg-100)] rounded-lg p-4 space-y-3">
+    <div className="bg-[var(--color-bg-100)] rounded-lg p-4 space-y-3 shadow">
       <p className="form-section-title">Students ({classSize})</p>
 
       {students.length === 0 ? (

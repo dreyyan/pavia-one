@@ -22,7 +22,7 @@ const TabbedFormCard: React.FC<TabbedFormCardProps> = ({
   children,
 }) => {
   return (
-    <div className="bg-[var(--color-bg-100)] rounded-lg p-4 space-y-4">
+    <div className="bg-[var(--color-bg-100)] rounded-lg p-4 space-y-4 shadow">
       <div className="flex gap-1 bg-[var(--color-bg-200)] rounded-lg p-1">
         {labels.map((label, idx) => (
           <button

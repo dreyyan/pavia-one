@@ -13,7 +13,7 @@ interface EnrollmentHistoryCardProps {
 
 const EnrollmentHistoryCard: React.FC<EnrollmentHistoryCardProps> = ({ enrollments }) => {
   return (
-    <div className="bg-[var(--color-bg-100)] rounded-lg p-4 space-y-1">
+    <div className="bg-[var(--color-bg-100)] rounded-lg p-4 space-y-1 shadow">
       <p className="form-section-title">
         Enrollment History <span className="form-section-value">({enrollments.length})</span>
       </p>
