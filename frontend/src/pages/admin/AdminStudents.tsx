@@ -593,7 +593,13 @@ const AdminStudents = () => {
                         {s.lrn}
                       </td>
 
-                      <td className="table-cell table-text table-text-default">
+                      <td
+                        onClick={() =>
+                          s.enrollments?.[0]?.section?.id &&
+                          navigate(`/admin/sections/view/${s.enrollments[0].section.id}`)
+                        }
+                        className="table-cell table-text text-[var(--color-text-600)] cursor-pointer hover:underline hover:text-[var(--color-primary-700)] transition"
+                      >
                         {s.enrollments?.[0]?.section
                           ? `Grade ${s.enrollments[0].section.gradeLevel} - ${s.enrollments[0].section.name}`
                           : "—"}
