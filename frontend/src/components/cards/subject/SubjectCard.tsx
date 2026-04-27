@@ -47,7 +47,7 @@ const SubjectCard: React.FC<SubjectCardProps> = ({ subject, onClick }) => {
           </div>
         </div>
 
-        {!subject.assignedAdviser && (
+        {!subject.adviser && (
           <span className="ml-2 flex-shrink-0 text-xs px-2 py-0.5 rounded-full border font-semibold text-[var(--color-red-600)] bg-[var(--color-red-50)] border-[var(--color-red-300)] italic">
             No Adviser
           </span>
@@ -72,12 +72,12 @@ const SubjectCard: React.FC<SubjectCardProps> = ({ subject, onClick }) => {
           </span>
           <span
             className={`truncate text-right max-w-[180px] min-w-0 ${
-              !subject.assignedAdviser
+              !subject.adviser
                 ? "text-[var(--color-red-600)] italic"
                 : "text-[var(--color-text-900)] font-semibold"
             }`}
           >
-            {subject.assignedAdviser?.name ?? "—"}
+            {subject.adviser?.name ?? "—"}
           </span>
         </div>
       </div>

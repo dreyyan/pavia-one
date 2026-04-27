@@ -96,7 +96,17 @@ router.get("/", verifyAdmin, async (req, res) => {
   try {
     const learningAreas = await prisma.learningArea.findMany({
       orderBy: { name: "asc" },
+      include: {
+        adviser: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
     });
+
     res.json(
       successResponse("Learning areas retrieved successfully", learningAreas),
     );

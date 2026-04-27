@@ -186,10 +186,10 @@ export interface Subject {
   quarterlyAssessmentWeight?: number;
   createdAt: string;
 
-  assignedAdviser?: {
+  adviser?: {
     id: number;
     name: string;
-  };
+  } | null;
 }
 
 // ? [TYPES] Specific Fields

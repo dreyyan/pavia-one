@@ -21,22 +21,7 @@ import PageLayout from "../../components/layouts/PageLayout";
 // [IMPORT] Helpers, Constants & Types
 import { getVisiblePages } from "../../helpers/index";
 import { GRADE_LEVEL_OPTIONS, CURRICULUM_OPTIONS } from "../../constants";
-import { LearningAreaFormData, GeneralModalConfig } from "../../types";
-
-// ? [INTERFACE] Subject entity
-interface Subject {
-  id: number;
-  code: string;
-  name: string;
-  gradeLevel: number;
-  hoursPerWeek?: number;
-  description?: string;
-  curriculum?: string;
-  writtenWorkWeight?: number;
-  performanceTaskWeight?: number;
-  quarterlyAssessmentWeight?: number;
-  createdAt: string;
-}
+import { LearningAreaFormData, GeneralModalConfig, Subject } from "../../types";
 
 // [CONSTANT] Empty form state
 const EMPTY_FORM: LearningAreaFormData = {
@@ -476,6 +461,7 @@ const AdminSubjects = () => {
                     <th className="table-header">Code</th>
                     <th className="table-header">Grade</th>
                     <th className="table-header">Curriculum</th>
+                    <th className="table-header">Adviser</th>
                     <th className="table-header">Hrs/Week</th>
                   </tr>
                 </thead>
@@ -502,6 +488,10 @@ const AdminSubjects = () => {
 
                       <td className="table-cell table-text table-text-default">
                         {s.curriculum ?? "—"}
+                      </td>
+
+                      <td className="table-cell table-text table-text-default">
+                        {s.adviser ? s.adviser.name : "Unassigned"}
                       </td>
 
                       <td className="table-cell table-text table-text-default">

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/exhaustive-deps */
 // [IMPORT] Hooks
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 // [IMPORT] Components
@@ -9,15 +9,15 @@ import Modal from "../../components/modal/Modal";
 import Skeleton from "../../components/ui/Skeleton";
 import InputField from "../../components/toolbar/InputField";
 import Breadcrumbs from "../../components/toolbar/Breadcrumbs";
-import { WeightRow } from "../../components/WeightRow";
 import PageLayout from "../../components/layouts/PageLayout";
+import { WeightRow } from "../../components/WeightRow";
 import DeleteButton from "../../components/buttons/DeleteButton";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
 import SecondaryButton from "../../components/buttons/SecondaryButton";
 
 // [IMPORT] Constants & Types
 import { GRADE_LEVEL_OPTIONS, CURRICULUM_OPTIONS, SUBJECT_PAGE_LABELS } from "../../constants";
-import type { GeneralModalConfig, LearningAreaDetails } from "../../types";
+import type { GeneralModalConfig, LearningAreaDetails, Adviser } from "../../types";
 
 // ? [TYPE] Active form page index
 type FormPage = 0 | 1;
@@ -30,14 +30,22 @@ const AdminSubjectDetails = () => {
   const [subject, setSubject] = useState<LearningAreaDetails | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // [STATES] Adviser
-  const [advisers, setAdvisers] = useState<any[]>([]);
-  const [selectedAdviserId, setSelectedAdviserId] = useState<string>("");
-
   // [STATES] Identity Card
   const [activePage, setActivePage] = useState<FormPage>(0);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<LearningAreaDetails>>({});
+
+  // [STATES] Assign Adviser Modal
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [advisers, setAdvisers] = useState<Adviser[]>([]);
+  const [adviserSearch, setAdviserSearch] = useState("");
+  const [selectedAdviserId, setSelectedAdviserId] = useState<number | null>(null);
+  const [selectedAdviserName, setSelectedAdviserName] = useState("");
+  const [showAdviserDropdown, setShowAdviserDropdown] = useState(false);
+  const [assignFormError, setAssignFormError] = useState("");
+  const [assignLoading, setAssignLoading] = useState(false);
+  const adviserDropdownRef = useRef<HTMLDivElement>(null);
+  const adviserInputRef = useRef<HTMLInputElement>(null);
 
   // [STATE] General Modal
   const [generalModal, setGeneralModal] = useState<GeneralModalConfig>({
@@ -51,16 +59,23 @@ const AdminSubjectDetails = () => {
   });
 
   const openGeneralModal = (config: Partial<Omit<GeneralModalConfig, "isOpen">>) => {
-    setGeneralModal({
-      ...generalModal,
-      isOpen: true,
-      ...config,
-    });
+    setGeneralModal(prev => ({ ...prev, isOpen: true, ...config }));
   };
 
   const closeGeneralModal = () => {
     setGeneralModal(prev => ({ ...prev, isOpen: false }));
   };
+
+  // * [EFFECT] Close adviser dropdown on outside click
+  useEffect(() => {
+    const handle = (e: MouseEvent) => {
+      if (adviserDropdownRef.current && !adviserDropdownRef.current.contains(e.target as Node)) {
+        setShowAdviserDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, []);
 
   // * [HANDLE] Fetch Subject by ID
   const fetchSubject = async () => {
@@ -91,9 +106,148 @@ const AdminSubjectDetails = () => {
     }
   };
 
+  // * [FETCH] Advisers — lazy, only when the assign modal is first opened
+  const fetchAdvisers = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/advisers`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message || "Failed to fetch advisers");
+      const list = data.data?.data;
+      setAdvisers(Array.isArray(list) ? list : []);
+    } catch (err) {
+      // ! [ERROR] Fetching advisers failed
+      console.error(err);
+      openGeneralModal({
+        title: "Unable to Load Advisers",
+        message: "We couldn't load the adviser list. Please try again.",
+        type: "error",
+        confirmText: "Close",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
+    }
+  };
+
   useEffect(() => {
     fetchSubject();
   }, [id]);
+
+  // * [HANDLE] Open Assign Adviser Modal
+  const handleAssignAdviser = async () => {
+    if (advisers.length === 0) await fetchAdvisers();
+    setAdviserSearch("");
+    setSelectedAdviserId(null);
+    setSelectedAdviserName("");
+    setAssignFormError("");
+    setShowAdviserDropdown(false);
+    setShowAssignModal(true);
+    setTimeout(() => adviserInputRef.current?.focus(), 50);
+  };
+
+  // * [HANDLE] Submit Adviser Assignment
+  const handleAssignSubmit = async () => {
+    if (!selectedAdviserId) {
+      setAssignFormError("Please select an adviser from the list.");
+      return;
+    }
+
+    setAssignLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area/${id}/assign-advisser`,
+        {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ adviserId: selectedAdviserId }),
+        }
+      );
+      const data = await res.json();
+      if (!data.success) {
+        openGeneralModal({
+          title: "Unable to Assign Adviser",
+          message: data.message || "Failed to assign adviser. Please try again.",
+          type: "error",
+          confirmText: "Close",
+          isCancelable: false,
+          onConfirm: () => closeGeneralModal(),
+        });
+
+        throw new Error(data.message || "Failed to assign adviser");
+      }
+
+      setSubject(data.data);
+      setShowAssignModal(false);
+
+      // * [SUCCESS] Adviser Assigned
+      openGeneralModal({
+        title: "Adviser Assigned",
+        message: `"${selectedAdviserName}" has been assigned to ${subject?.name} successfully.`,
+        type: "success",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
+    } catch (err: any) {
+      // ! [ERROR] Adviser assignment failed
+      console.error(err);
+      setAssignFormError(err.message || "Failed to assign adviser. Please try again.");
+    } finally {
+      setAssignLoading(false);
+    }
+  };
+
+  // * [HANDLE] Unassign Adviser
+  const handleUnassignAdviser = () => {
+    // ? [CONFIRMATION] Before unassigning, ask user to confirm
+    openGeneralModal({
+      title: "Unassign Adviser",
+      message: "Are you sure you want to remove the assigned adviser from this subject?",
+      type: "error",
+      confirmText: "Unassign",
+      isCancelable: true,
+      onConfirm: async () => {
+        setLoading(true);
+        try {
+          const token = localStorage.getItem("token");
+          const res = await fetch(
+            `${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area/${id}/unassign-adviser`,
+            {
+              method: "PUT",
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
+          const data = await res.json();
+          if (!data.success) throw new Error(data.message || "Failed to unassign adviser");
+
+          setSubject(data.data);
+
+          // * [SUCCESS] Adviser Unassigned
+          openGeneralModal({
+            title: "Adviser Removed",
+            message: "The adviser has been unassigned from this subject successfully.",
+            type: "success",
+            isCancelable: false,
+            onConfirm: () => closeGeneralModal(),
+          });
+        } catch (err: any) {
+          // ! [ERROR] Unassign adviser failed
+          console.error(err);
+          openGeneralModal({
+            title: "Unable to Unassign Adviser",
+            message: err.message || "We couldn't unassign the adviser. Please try again.",
+            type: "error",
+            isCancelable: false,
+            onConfirm: () => closeGeneralModal(),
+          });
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+  };
 
   // * [HANDLE] Delete Subject
   const handleDelete = () => {
@@ -151,13 +305,12 @@ const AdminSubjectDetails = () => {
 
   // * [HANDLE] Save Updated Subject Details
   const handleSave = async () => {
-    // [VALIDATE] Weights must sum to 1.0 (100%) before hitting the backend
     const weightSum =
       Number(formData.writtenWorkWeight ?? 0) +
       Number(formData.performanceTaskWeight ?? 0) +
       Number(formData.quarterlyAssessmentWeight ?? 0);
 
-    // ! [ERROR] Weights don't sum to 100%
+    // ! [VALIDATION] Weights must sum to 100%
     if (Math.abs(weightSum - 1.0) >= 0.001) {
       openGeneralModal({
         title: "Invalid Weights",
@@ -175,10 +328,7 @@ const AdminSubjectDetails = () => {
       const token = localStorage.getItem("token");
       const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area/${id}`, {
         method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           name: formData.name,
           writtenWorkWeight: Number(formData.writtenWorkWeight),
@@ -216,106 +366,6 @@ const AdminSubjectDetails = () => {
     }
   };
 
-  // * [HANDLE] Assign Adviser
-  const handleAssignAdviser = () => {
-    openGeneralModal({
-      title: "Assign Adviser",
-      message: (
-        <div className="mt-2">
-          <select
-            className="w-full border rounded-md px-2 py-1 text-sm"
-            value={selectedAdviserId}
-            onChange={(e) => setSelectedAdviserId(e.target.value)}
-          >
-            <option value="">Select adviser</option>
-            {advisers.map(a => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      ) as any,
-      confirmText: "Assign",
-      isCancelable: true,
-      onConfirm: async () => {
-        try {
-          const token = localStorage.getItem("token");
-          const res = await fetch(
-            `${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area/${id}/assign-adviser`,
-            {
-              method: "PUT",
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ adviserId: Number(selectedAdviserId) }),
-            }
-          );
-
-          const data = await res.json();
-          if (!data.success) throw new Error(data.message);
-
-          setSubject(data.data);
-          setSelectedAdviserId("");
-
-          openGeneralModal({
-            title: "Adviser Assigned",
-            message: "Adviser successfully assigned.",
-            type: "success",
-            isCancelable: false,
-            onConfirm: closeGeneralModal,
-          });
-        } catch (err: any) {
-          console.error(err);
-          openGeneralModal({
-            title: "Failed",
-            message: err.message || "Failed to assign adviser.",
-            type: "error",
-            isCancelable: false,
-            onConfirm: closeGeneralModal,
-          });
-        }
-      },
-    });
-  };
-
-  // * [HANDLE] Unassign Adviser
-  const handleUnassignAdviser = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area/${id}/unassign-adviser`,
-        {
-          method: "PUT",
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      const data = await res.json();
-      if (!data.success) throw new Error(data.message);
-
-      setSubject(data.data);
-
-      openGeneralModal({
-        title: "Adviser Removed",
-        message: "Adviser unassigned successfully.",
-        type: "success",
-        isCancelable: false,
-        onConfirm: closeGeneralModal,
-      });
-    } catch (err: any) {
-      console.error(err);
-      openGeneralModal({
-        title: "Failed",
-        message: err.message || "Failed to unassign adviser.",
-        type: "error",
-        isCancelable: false,
-        onConfirm: closeGeneralModal,
-      });
-    }
-  };
-
   // [HANDLE] Generic text / select field change
   const handleFieldChange =
     (field: keyof LearningAreaDetails) =>
@@ -323,23 +373,26 @@ const AdminSubjectDetails = () => {
       setFormData(prev => ({ ...prev, [field]: e.target.value }));
     };
 
-  // [HANDLE] Numeric weight field change — casts to number immediately
+  // [HANDLE] Numeric weight field change
   const handleWeightChange =
     (field: keyof LearningAreaDetails) =>
     (v: string) => {
       setFormData(prev => ({ ...prev, [field]: v === "" ? 0 : Number(v) }));
     };
 
+  // [COMPUTE] Filtered advisers for the searchable dropdown
+  const filteredAdvisers = advisers.filter(
+    a =>
+      a.name.toLowerCase().includes(adviserSearch.toLowerCase()) ||
+      a.adviserId.toLowerCase().includes(adviserSearch.toLowerCase()) ||
+      (a.email ?? "").toLowerCase().includes(adviserSearch.toLowerCase())
+  );
+
   // * [BREADCRUMBS] Admin Subject Details navigation
   const breadcrumbs = [
     { label: "Admin Dashboard", path: "/admin/dashboard" },
     { label: "Subjects", path: "/admin/subjects" },
-    {
-      label: subject
-        ? `${subject.name} (Grade ${subject.gradeLevel})`
-        : "Details",
-      path: null,
-    },
+    { label: subject ? `${subject.name} (Grade ${subject.gradeLevel})` : "Details", path: null },
   ];
 
   // [COMPUTE] Live weight sum for validation and display
@@ -385,7 +438,6 @@ const AdminSubjectDetails = () => {
             options={CURRICULUM_OPTIONS.map(opt => opt.label)}
             disabled
           />
-          {/* [HINT] Grade level and curriculum are locked after creation */}
           <p className="col-span-2 sm:col-span-3 text-xs font-roboto text-[var(--color-text-500)]">
             Grade level and curriculum cannot be changed — they are part of the subject's unique identity.
           </p>
@@ -459,11 +511,184 @@ const AdminSubjectDetails = () => {
         isCancelable={generalModal.isCancelable}
       />
 
+      {/* [MODAL] Assign Adviser */}
+      {showAssignModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="bg-[var(--color-bg-100)] rounded-lg p-6 w-full max-w-md shadow-lg">
+
+            {/* [HEADER] Title + close */}
+            <div className="flex items-start justify-between mb-1 gap-3">
+              <div>
+                <h2 className="text-lg font-bold text-[var(--color-text-900)]">Assign Adviser</h2>
+                <p className="text-xs font-roboto text-[var(--color-text-500)] mt-0.5">
+                  Subject: <span className="font-semibold text-[var(--color-text-700)]">{subject?.name}</span>
+                </p>
+              </div>
+              <button
+                onClick={() => setShowAssignModal(false)}
+                disabled={assignLoading}
+                className="text-[var(--color-text-400)] hover:text-[var(--color-text-700)] transition-colors mt-0.5 cursor-pointer disabled:opacity-50"
+              >
+                <svg className="size-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+
+            {/* [UI] Progress bar */}
+            <div className="flex gap-1.5 mb-5 mt-3">
+              <div className="h-1 flex-1 rounded-full bg-[var(--color-primary-600)]" />
+            </div>
+
+            {/* [FIELD] Adviser searchable dropdown */}
+            <div className="flex flex-col gap-1 mb-2">
+              <label className="font-roboto text-sm">
+                Adviser <span className="text-[var(--color-red-500)]">*</span>
+              </label>
+              <div ref={adviserDropdownRef} className="relative">
+                <input
+                  ref={adviserInputRef}
+                  type="text"
+                  placeholder="Search by name, ID, or email..."
+                  value={adviserSearch}
+                  onChange={(e) => {
+                    setAdviserSearch(e.target.value);
+                    if (selectedAdviserId) {
+                      setSelectedAdviserId(null);
+                      setSelectedAdviserName("");
+                    }
+                    setShowAdviserDropdown(true);
+                    setAssignFormError("");
+                  }}
+                  onFocus={() => setShowAdviserDropdown(true)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") setShowAdviserDropdown(false);
+                    if (e.key === "Enter" && !showAdviserDropdown) handleAssignSubmit();
+                  }}
+                  className="input-base w-full"
+                  autoComplete="off"
+                />
+
+                {/* [DROPDOWN] Adviser list */}
+                {showAdviserDropdown && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-[var(--color-bg-300)] rounded-md shadow-lg max-h-52 overflow-y-auto">
+                    {filteredAdvisers.length === 0 ? (
+                      <p className="px-3 py-3 text-sm text-[var(--color-text-400)] text-center">
+                        No advisers found
+                      </p>
+                    ) : (
+                      filteredAdvisers.map(adviser => {
+                        const isSelected = adviser.id === selectedAdviserId;
+                        const initials = adviser.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+                        return (
+                          <button
+                            key={adviser.id}
+                            type="button"
+                            onMouseDown={e => e.preventDefault()}
+                            onClick={() => {
+                              setSelectedAdviserId(adviser.id);
+                              setSelectedAdviserName(adviser.name);
+                              setAdviserSearch(adviser.name);
+                              setShowAdviserDropdown(false);
+                              setAssignFormError("");
+                            }}
+                            className={`w-full text-left px-3 py-2.5 flex items-center gap-3 transition-colors hover:bg-[var(--color-bg-100)] ${
+                              isSelected ? "bg-[var(--color-primary-50)] border-l-2 border-[var(--color-primary-500)]" : ""
+                            }`}
+                          >
+                            <div className={`size-7 rounded-md flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                              isSelected
+                                ? "bg-[var(--color-primary-100)] text-[var(--color-primary-700)]"
+                                : "bg-[var(--color-bg-200)] text-[var(--color-text-600)]"
+                            }`}>
+                              {initials}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className={`text-sm font-roboto font-medium truncate ${
+                                isSelected ? "text-[var(--color-primary-700)]" : "text-[var(--color-text-900)]"
+                              }`}>
+                                {adviser.name}
+                              </p>
+                              <p className="text-xs font-mono text-[var(--color-text-400)]">
+                                #{adviser.adviserId}
+                                {adviser.email && (
+                                  <span className="ml-2 font-sans not-italic">· {adviser.email}</span>
+                                )}
+                              </p>
+                            </div>
+                            {isSelected && (
+                              <svg className="size-4 text-[var(--color-primary-600)] flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* [CARD] Selected adviser confirmation */}
+            {selectedAdviserId && (
+              <div className="mt-3 bg-[var(--color-bg-50)] border border-[var(--color-primary-200)] rounded-md px-3 py-2.5 flex items-center gap-2.5">
+                <div className="size-7 rounded-md bg-[var(--color-primary-100)] flex items-center justify-center text-[var(--color-primary-700)] font-bold text-xs flex-shrink-0">
+                  {selectedAdviserName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-roboto text-[var(--color-text-500)]">Will be assigned</p>
+                  <p className="text-sm font-roboto font-semibold text-[var(--color-primary-700)] truncate">
+                    {selectedAdviserName}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedAdviserId(null);
+                    setSelectedAdviserName("");
+                    setAdviserSearch("");
+                    adviserInputRef.current?.focus();
+                  }}
+                  className="text-[var(--color-text-400)] hover:text-[var(--color-red-500)] transition-colors cursor-pointer"
+                >
+                  <svg className="size-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+            )}
+
+            {/* [ERROR] Form error message */}
+            {assignFormError && (
+              <p className="text-[var(--color-red-500)] text-sm mt-3">{assignFormError}</p>
+            )}
+
+            {/* [FOOTER] Cancel / Assign */}
+            <div className="flex justify-between items-center gap-3 mt-6">
+              <button
+                onClick={() => setShowAssignModal(false)}
+                disabled={assignLoading}
+                className="px-4 py-2 rounded-lg font-roboto bg-[var(--color-bg-200)] text-[var(--color-text-700)] hover:bg-[var(--color-bg-300)] transition-colors text-sm disabled:opacity-60 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAssignSubmit}
+                disabled={assignLoading || !selectedAdviserId}
+                className="px-4 py-2 rounded-lg font-roboto bg-[var(--color-primary-500)] text-white hover:bg-[var(--color-primary-600)] transition-colors text-sm disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {assignLoading ? "Assigning..." : "Assign Adviser"}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
       {/* [LAYOUT] Admin Page */}
       <PageLayout
-        header={
-          <Breadcrumbs items={breadcrumbs} title="Subject Details" />
-        }
+        header={<Breadcrumbs items={breadcrumbs} title="Subject Details" />}
       >
         {subject ? (
           <div className="space-y-4">
@@ -489,8 +714,8 @@ const AdminSubjectDetails = () => {
               </div>
             </div>
 
-            {/* [ACTIONS] Delete */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-4 w-full xl:w-auto xl:ml-auto">
+            {/* [ACTIONS] Assign / Unassign Adviser + Delete */}
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               <PrimaryButton
                 text="Assign Adviser"
                 iconSrc="/assign-adviser.svg"
