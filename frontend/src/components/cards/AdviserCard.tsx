@@ -11,7 +11,6 @@ interface AdviserCardProps {
   onClick?: (adviserId: number) => void;
 }
 
-// [COMPONENT]
 const AdviserCard: React.FC<AdviserCardProps> = ({ adviser: a, onClick }) => {
   const navigate = useNavigate();
 
@@ -22,6 +21,7 @@ const AdviserCard: React.FC<AdviserCardProps> = ({ adviser: a, onClick }) => {
     .toUpperCase()
     .slice(0, 2);
 
+  // [HANDLE] Navigate to adviser detials
   const handleClick = () => {
     if (onClick) onClick(a.id);
     else navigate(`/admin/advisers/view/${a.id}`);
