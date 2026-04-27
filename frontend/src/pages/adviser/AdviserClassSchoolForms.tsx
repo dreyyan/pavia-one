@@ -88,6 +88,18 @@ const AdviserClassSchoolForms = () => {
       if (!data.success) throw new Error(data.message);
 
       const raw = data.data.section;
+      const students = data.data.students || [];
+
+      // [COMPUTE] Male / Female counts
+      let maleCount = 0;
+      let femaleCount = 0;
+
+      students.forEach((student: any) => {
+        const sex = student.sex?.toUpperCase();
+
+        if (sex === "MALE") maleCount++;
+        else if (sex === "FEMALE") femaleCount++;
+      });
 
       setSection({
         id: raw.id,
@@ -96,7 +108,12 @@ const AdviserClassSchoolForms = () => {
         schoolYear: raw.schoolYear,
         color: raw.color,
         curriculum: raw.curriculum,
-        classSize: data.data.students?.length || 0,
+
+        classSize: raw.enrollments?.length || 0,
+
+        maleCount,
+        femaleCount,
+
         schoolForms: raw.schoolForms.map((f: any) => ({
           id: f.id,
           type: f.type,
@@ -294,42 +311,67 @@ const AdviserClassSchoolForms = () => {
             <ClassCard {...section} />
 
             {/* [SECTION FORMS] */}
-            <div className="grid gap-3">
-              {sectionLevelForms.map((form) => {
-                const permissions = FORM_PERMISSIONS[form.type];
+            <div className="bg-[var(--color-bg-100)] px-3 py-4 rounded-lg space-y-3">
+              <span className="form-section-title block">Section Forms</span>
 
-                return (
-                  <SchoolFormActionCard
-                    key={form.id}
-                    form={form}
-                    sectionSchoolYear={section.schoolYear}
-                    onExport={() => handleExport(form.type)}
-                    onImport={
-                      form.type === "SF1" ? handleImportClick : undefined
-                    }
-                    exporting={exporting === form.type}
-                    importing={importLoading && importingFor === form.type}
-                    supportsImport={permissions?.import ?? false}
-                  />
-                );
-              })}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {sectionLevelForms.length === 0 ? (
+                  <div className="sm:col-span-2 flex justify-center">
+                    <EmptyState
+                      title="No section forms available"
+                      subtitle="Section forms will appear here once they are generated."
+                    />
+                  </div>
+                ) : (
+                  sectionLevelForms.map((form) => {
+                    const permissions = FORM_PERMISSIONS[form.type];
+
+                    return (
+                      <SchoolFormActionCard
+                        key={form.id}
+                        form={form}
+                        sectionSchoolYear={section.schoolYear}
+                        onExport={() => handleExport(form.type)}
+                        onImport={
+                          form.type === "SF1" ? handleImportClick : undefined
+                        }
+                        exporting={exporting === form.type}
+                        importing={importLoading && importingFor === form.type}
+                        supportsImport={permissions?.import ?? false}
+                      />
+                    );
+                  })
+                )}
+              </div>
             </div>
 
             {/* [STUDENT FORMS] */}
-            <div className="grid gap-3">
-              {studentLevelForms.map((form) => (
-                <SchoolFormActionCard
-                  key={form.id}
-                  form={form}
-                  sectionSchoolYear={section.schoolYear}
-                  onExport={() => handleExport(form.type)}
-                  exporting={exporting === form.type}
-                  importing={false}
-                  supportsImport={false}
-                />
-              ))}
-            </div>
+            <div className="bg-[var(--color-bg-100)] px-3 py-4 rounded-lg space-y-3">
+              <span className="form-section-title block">Student Forms</span>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {studentLevelForms.length === 0 ? (
+                  <div className="sm:col-span-2 flex justify-center">
+                    <EmptyState
+                      title="No student forms available"
+                      subtitle="Student forms will appear here once they are generated."
+                    />
+                  </div>
+                ) : (
+                  studentLevelForms.map((form) => (
+                    <SchoolFormActionCard
+                      key={form.id}
+                      form={form}
+                      sectionSchoolYear={section.schoolYear}
+                      onExport={() => handleExport(form.type)}
+                      exporting={exporting === form.type}
+                      importing={false}
+                      supportsImport={false}
+                    />
+                  ))
+                )}
+              </div>
+            </div>
           </div>
         ) : (
           <EmptyState title="Section not found" subtitle="" />

@@ -167,7 +167,6 @@ const AdviserClassGrades = () => {
 
   // * [BREADCRUMBS] Adviser Class Grades navigation
   const breadcrumbs = [
-    { label: "Adviser Dashboard", path: "/adviser/dashboard" },
     { label: "Class Management", path: "/adviser/classes" },
     { label: sectionLabel || "Class", path: `/adviser/classes/${sectionId}` },
     { label: "Grades", path: null },

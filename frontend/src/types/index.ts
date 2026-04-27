@@ -309,6 +309,9 @@ export interface SectionInfo {
   color: string;
   classSize: number;
   schoolForms: SectionForm[];
+
+  maleCount?: number;
+  femaleCount?: number;
 }
 
 export interface ImportResult {

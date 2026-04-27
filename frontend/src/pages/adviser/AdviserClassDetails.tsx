@@ -14,20 +14,7 @@ import DashboardButton from "../../components/buttons/DashboardButton";
 import PageLayout from "../../components/layouts/PageLayout";
 
 // [IMPORT] Types
-import { GeneralModalConfig } from "../../types";
-
-// ? [INTERFACE] Section shape
-interface Section {
-  id: number;
-  name: string;
-  gradeLevel: number;
-  schoolYear: string;
-  color: string;
-  classSize: number;
-  curriculum?: string;
-  maleCount?: number;
-  femaleCount?: number;
-}
+import { GeneralModalConfig, Section } from "../../types";
 
 const AdviserClassDetails = () => {
   const { sectionId } = useParams<{ sectionId: string }>();
@@ -184,7 +171,7 @@ const AdviserClassDetails = () => {
                 <InfoItem
                   iconSrc="/school-year.svg"
                   text="School Year"
-                  value={section.schoolYear}
+                  value={String(section.schoolYear)}
                   color="var(--color-orange-600)"
                 />
               </div>
