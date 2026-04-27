@@ -12,7 +12,6 @@ import Dropdown from "../../components/Dropdown";
 import SearchBar from "../../components/SearchBar";
 import Pagination from "../../components/Pagination";
 import Breadcrumbs from "../../components/Breadcrumbs";
-import BulkActionsBar from "../../components/BulkActionsBar";
 import StudentCard from "../../components/cards/student/StudentCard";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
 import StudentFormModal from "../../components/forms/StudentFormModal";
@@ -532,13 +531,6 @@ const AdminStudents = () => {
           />
         }>
         <div className="space-y-3">
-          {/* [COMPONENT] Bulk Actions */}
-          <BulkActionsBar
-            selectedCount={selectedStudents.length}
-            onDelete={handleBulkDelete}
-            onClear={() => setSelectedStudents([])}
-          />
-
           {/* [SECTION] Student Cards (Mobile View) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:hidden gap-4 bg-[var(--color-bg-100)] px-3 py-4 rounded-lg">
             {!loading && displayedStudents.length === 0 && (
@@ -572,35 +564,6 @@ const AdminStudents = () => {
               <table className="min-w-full border-separate border-spacing-y-2">
                 <thead>
                   <tr className="text-left">
-                    <th className="px-3 py-2">
-                      <input
-                        type="checkbox"
-                        checked={
-                          displayedStudents.length > 0 &&
-                          displayedStudents.every(s =>
-                            selectedStudents.includes(s.id)
-                          )
-                        }
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedStudents(prev => [
-                              ...new Set([
-                                ...prev,
-                                ...displayedStudents.map(s => s.id),
-                              ]),
-                            ]);
-                          } else {
-                            setSelectedStudents(prev =>
-                              prev.filter(
-                                id =>
-                                  !displayedStudents.some(s => s.id === id)
-                              )
-                            );
-                          }
-                        }}
-                      />
-                    </th>
-
                     {/* [SECTION] Table Headers */}
                     <th className="table-header">Name</th>
                     <th className="table-header">LRN</th>
@@ -617,22 +580,6 @@ const AdminStudents = () => {
                       key={s.id}
                       className="bg-[var(--color-bg-50)] hover:bg-[var(--color-bg-200)] transition"
                     >
-                      <td className="px-3 py-3">
-                        <input
-                          type="checkbox"
-                          checked={selectedStudents.includes(s.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedStudents(prev => [...prev, s.id]);
-                            } else {
-                              setSelectedStudents(prev =>
-                                prev.filter(id => id !== s.id)
-                              );
-                            }
-                          }}
-                        />
-                      </td>
-
                       <td
                         onClick={() =>
                           navigate(`/admin/students/view/${s.id}`)
