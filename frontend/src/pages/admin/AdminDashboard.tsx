@@ -118,10 +118,10 @@ const AdminDashboard = () => {
       {/* [UI] Dashboard */}
       <h1 className="text-[var(--color-text-800)]">Dashboard</h1>
 
-      <div className="lg:flex lg:flex-row-reverse gap-x-3 sm:gap-x-6 md:gap-x-9 space-y-3 sm:space-y-6 md:space-y-9">
+      <div className="lg:flex lg:flex-row-reverse lg:items-stretch gap-x-3 sm:gap-x-6 md:gap-x-9 space-y-3 sm:space-y-6 md:space-y-9">
 
         {/* [SECTION] Profile */}
-        <div className="relative flex lg:flex-2 lg:flex-col-reverse items-center lg:items-end bg-[var(--color-bg-100)] rounded-lg px-3 sm:px-4 md:px-6 py-3 sm:py-4 gap-x-3 sm:gap-x-4 shadow-md">
+        <div className="relative flex lg:flex-2 lg:flex-col-reverse items-center lg:items-end bg-[var(--color-bg-100)] rounded-lg px-3 sm:px-4 md:px-6 py-3 sm:py-4 gap-x-3 sm:gap-x-4 shadow">
 
           {/* [SECTION] Profile Buttons */}
           <div className="
@@ -177,7 +177,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* [SECTION] Dashboard Overview */}
-        <div className="lg:flex-8 bg-[var(--color-bg-100)] rounded-xl px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 py-5 sm:py-8 md:py-11 lg:py-14 xl:py-17 shadow-md">
+        <div className="lg:flex-8 bg-[var(--color-bg-100)] rounded-xl px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 py-5 sm:py-8 md:py-11 lg:py-14 xl:py-17 shadow">
           
           <h2 className="mb-2 sm:mb-3 text-base sm:text-lg font-semibold">
             Overview
