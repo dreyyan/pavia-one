@@ -2,7 +2,6 @@ interface PrimaryButtonProps {
   text: string;
   onClick?: () => void;
   disabled?: boolean;
-  color?: string;
   iconSrc?: string;
   iconPosition?: "left" | "right";
   className?: string;
@@ -12,7 +11,6 @@ const PrimaryButton: React.FC<PrimaryButtonProps> = ({
   text,
   onClick,
   disabled,
-  color,
   iconSrc,
   iconPosition = "left",
   className = "",
@@ -21,8 +19,7 @@ const PrimaryButton: React.FC<PrimaryButtonProps> = ({
     <button
       onClick={onClick}
       disabled={disabled}
-      style={color ? { backgroundColor: `#${color}` } : undefined}
-      className={`flex justify-center items-center gap-1 px-4 md:px-8 h-10 rounded-md cursor-pointer bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] transition-all duration-200 disabled:opacity-50 whitespace-nowrap ${className}`}
+      className={`flex justify-center items-center gap-1 md:gap-2 px-4 md:px-5 h-10 rounded-md cursor-pointer bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] transition-all duration-200 disabled:opacity-50 whitespace-nowrap ${className}`}
     >
       {iconSrc && iconPosition === "left" && (
         <img src={iconSrc} className="size-4 sm:size-5" />
