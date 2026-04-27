@@ -273,6 +273,10 @@ const AdviserClassStudentDetails = () => {
     }
 
     setLoading(true);
+    const payload = {
+      ...formData,
+      sex: formData.sex?.toUpperCase(),
+    };
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
@@ -280,7 +284,7 @@ const AdviserClassStudentDetails = () => {
         {
           method: "PUT",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify(formData),
+          body: JSON.stringify(payload),
         }
       );
 

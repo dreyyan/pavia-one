@@ -10,11 +10,11 @@ import Modal from "../../components/Modal";
 import Skeleton from "../../components/Skeleton";
 import ProfileInfo from "../../components/ProfileInfo";
 import Breadcrumbs from "../../components/Breadcrumbs";
+import GradeCard from "../../components/cards/GradeCard";
 import PageLayout from "../../components/layouts/PageLayout";
 
 // [IMPORT] Types
 import { GeneralModalConfig } from "../../types";
-import GradeCard from "../../components/cards/GradeCard";
 
 // ? [INTERFACE] SF9 grade from API
 interface ApiSF9Grade {
@@ -241,9 +241,8 @@ const AdviserClassStudentGradesOverview = () => {
             </div>
           )}
 
-          {/* [SECTION] Grades Table / Mobile Cards */}
+          {/* [CARD] SF9 Grades */}
           <div className="bg-[var(--color-bg-100)] px-3 py-4 rounded-lg">
-
             <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)] mb-3">
               SF9 Grades
             </p>
@@ -254,7 +253,7 @@ const AdviserClassStudentGradesOverview = () => {
               </p>
             ) : (
               <>
-                {/* ===================== DESKTOP TABLE ===================== */}
+                {/* [SECTION] Grades Table (Desktop View) */}
                 <div className="hidden md:block overflow-x-auto">
                   <table className="min-w-full border-separate border-spacing-y-2">
                     <thead>
@@ -268,9 +267,8 @@ const AdviserClassStudentGradesOverview = () => {
                         <th className="table-header">Remarks</th>
                       </tr>
                     </thead>
-
                     <tbody>
-                      {grades.map((grade) => (
+                      {grades.map(grade => (
                         <tr
                           key={grade.id}
                           className="bg-[var(--color-bg-50)] hover:bg-[var(--color-bg-200)] transition"
@@ -279,43 +277,69 @@ const AdviserClassStudentGradesOverview = () => {
                             <span
                               className="table-text-link hover:underline cursor-pointer"
                               onClick={() =>
-                                navigate(
-                                  `/adviser/classes/${sectionId}/grades/${studentId}/subjects/${grade.id}`
-                                )
+                                navigate(`/adviser/classes/${sectionId}/grades/${studentId}/subjects/${grade.id}`)
                               }
                             >
                               {grade.subject}
                             </span>
                           </td>
+                          <td className="table-cell table-text table-text-default">{grade.q1 ?? "—"}</td>
+                          <td className="table-cell table-text table-text-default">{grade.q2 ?? "—"}</td>
+                          <td className="table-cell table-text table-text-default">{grade.q3 ?? "—"}</td>
+                          <td className="table-cell table-text table-text-default">{grade.q4 ?? "—"}</td>
 
-                          <td className="table-cell table-text-default">{grade.q1 ?? "—"}</td>
-                          <td className="table-cell table-text-default">{grade.q2 ?? "—"}</td>
-                          <td className="table-cell table-text-default">{grade.q3 ?? "—"}</td>
-                          <td className="table-cell table-text-default">{grade.q4 ?? "—"}</td>
-
-                          <td className="table-cell table-text-default">
+                          {/* [CELL] Final Rating with quarterly breakdown tooltip */}
+                          <td
+                            ref={el => { if (el) finalRatingRefs.current[grade.id] = el; }}
+                            className="table-cell table-text table-text-default cursor-default"
+                            onMouseEnter={() => {
+                              setHoveredGradeId(grade.id);
+                              const rect = finalRatingRefs.current[grade.id]?.getBoundingClientRect();
+                              if (rect) setBubblePos({ top: rect.top - 8, left: rect.left + rect.width / 2 });
+                            }}
+                            onMouseLeave={() => { setHoveredGradeId(null); setBubblePos(null); }}
+                          >
                             {grade.finalRating ?? "—"}
+
+                            {/* [UI] Quarterly breakdown tooltip rendered via portal */}
+                            {hoveredGradeId === grade.id && bubblePos && createPortal(
+                              <div
+                                className="fixed z-50 bg-white border border-[var(--color-bg-300)] rounded-xl shadow-lg px-4 py-3 text-xs whitespace-nowrap"
+                                style={{
+                                  top: bubblePos.top,
+                                  left: bubblePos.left,
+                                  transform: "translateX(-50%) translateY(-100%)",
+                                  pointerEvents: "none",
+                                }}
+                              >
+                                {(["Q1", "Q2", "Q3", "Q4"] as const).map((q, i) => (
+                                  <div key={q} className="flex justify-between gap-4 py-0.5">
+                                    <span className="text-[var(--color-text-500)] font-medium">{q}</span>
+                                    <span className="font-medium text-[var(--color-text-800)]">
+                                      {([grade.q1, grade.q2, grade.q3, grade.q4])[i] ?? "—"}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>,
+                              document.body
+                            )}
                           </td>
 
-                          <td className="table-cell table-text-default">
-                            {grade.remarks ?? "—"}
-                          </td>
+                          <td className="table-cell table-text table-text-default">{grade.remarks ?? "—"}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
 
-                {/* ===================== MOBILE CARDS ===================== */}
+                {/* [SECTION] Grade Cards (Mobile View) */}
                 <div className="md:hidden space-y-3">
-                  {grades.map((grade) => (
+                  {grades.map(grade => (
                     <GradeCard
                       key={grade.id}
                       grade={grade}
-                      onClick={(id) =>
-                        navigate(
-                          `/adviser/classes/${sectionId}/grades/${studentId}/subjects/${id}`
-                        )
+                      onClick={id =>
+                        navigate(`/adviser/classes/${sectionId}/grades/${studentId}/subjects/${id}`)
                       }
                     />
                   ))}

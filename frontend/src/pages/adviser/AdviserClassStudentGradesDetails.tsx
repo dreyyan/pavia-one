@@ -1,11 +1,20 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 // [IMPORT] Hooks
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
 import Modal from "../../components/Modal";
+import Skeleton from "../../components/Skeleton";
+import ProfileInfo from "../../components/ProfileInfo";
+import Breadcrumbs from "../../components/Breadcrumbs";
+import PageLayout from "../../components/layouts/PageLayout";
 
-// ?[INTERFACES]
+// [IMPORT] Types
+import { GeneralModalConfig } from "../../types";
+
+// ? [INTERFACE] Grade item from API
 interface GradeItemApi {
   id: number;
   type: string;
@@ -15,12 +24,14 @@ interface GradeItemApi {
   quarter?: number;
 }
 
+// ? [INTERFACE] Subject grade from API
 interface SubjectGradeApi {
   id: number;
   learningArea?: { name: string };
   items?: GradeItemApi[];
 }
 
+// ? [INTERFACE] Grading item for the UI
 interface GradingItem {
   id: number;
   criteria: string;
@@ -31,19 +42,27 @@ interface GradingItem {
   displayLabel?: string;
 }
 
+// ? [INTERFACE] Full subject grade detail
 interface SubjectGradeDetail {
   id: number;
   subject: string;
   gradingItems: GradingItem[];
 }
 
-// ?[CONSTANTS]
+// ? [INTERFACE] Advisory section summary
+interface AdvisorySection {
+  gradeLevel: string;
+  name: string;
+}
+
+// [CONSTANT] Abbreviations for criteria display labels
 const CRITERIA_ABBREVIATIONS: Record<string, string> = {
   WRITTEN_WORK: "WW",
   PERFORMANCE_TASK: "PT",
   QUARTERLY_ASSESSMENT: "QA",
 };
 
+// [CONSTANT] Subject display abbreviations
 const SUBJECT_ABBREVIATIONS: Record<string, string> = {
   Filipino: "FIL",
   English: "ENG",
@@ -55,32 +74,31 @@ const SUBJECT_ABBREVIATIONS: Record<string, string> = {
   "Edukasyong Pantahanan at Pangkabuhayan": "EPP/TLE",
 };
 
+// [CONSTANT] Full criteria labels for selects
 const CRITERIA_LABELS: Record<string, string> = {
   WRITTEN_WORK: "Written Works",
   PERFORMANCE_TASK: "Performance Tasks",
   QUARTERLY_ASSESSMENT: "Quarterly Assessment",
 };
 
-// ?[HELPERS]
-
-// [HELPER] Assigns sequential display labels (e.g., "WW 1", "PT 2", "QA") to items.
+// [HELPER] Assign sequential display labels per criteria per quarter
+// e.g. "WW 1", "WW 2", "PT 1", "QA" (QA has no sequence number)
 const buildNumberedItems = (items: GradingItem[]): GradingItem[] => {
-  // Counters keyed by "criteria-quarter" so WW numbering resets per quarter
   const counters: Record<string, number> = {};
-
-  return items.map((item) => {
+  return items.map(item => {
     const key = `${item.criteria}-${item.quarter}`;
     counters[key] = (counters[key] ?? 0) + 1;
-
     const abbrev = CRITERIA_ABBREVIATIONS[item.criteria] ?? item.criteria;
     const displayLabel =
       item.criteria === "WRITTEN_WORK" || item.criteria === "PERFORMANCE_TASK"
         ? `${abbrev} ${counters[key]}`
-        : abbrev; // QA has no sequence number
-
+        : abbrev;
     return { ...item, displayLabel };
   });
 };
+
+// [CONSTANT] Input class shared across form fields
+const INPUT_CLS = "input-base font-roboto text-sm w-full sm:w-auto";
 
 const AdviserClassStudentGradesDetails = () => {
   const { sectionId, studentId, subjectId } = useParams<{
@@ -89,153 +107,121 @@ const AdviserClassStudentGradesDetails = () => {
     subjectId: string;
   }>();
   const navigate = useNavigate();
+  const { setShowTokenExpiredModal } = useAuth();
 
-  // [STATES] Core data
+  // [STATES] Entities
   const [grade, setGrade] = useState<SubjectGradeDetail | null>(null);
-  const [profileName, setProfileName] = useState("Unknown Name");
-  const [advisorySection, setAdvisorySection] = useState<{
-    gradeLevel: string;
-    name: string;
-  } | null>(null);
+  const [profileName, setProfileName] = useState("");
+  const [advisorySection, setAdvisorySection] = useState<AdvisorySection | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   // [STATES] Filter
-  const [selectedCriteria, setSelectedCriteria] = useState<string>("All");
   const [filterQuarter, setFilterQuarter] = useState<number | "All">("All");
-  const [selectedQuarter, setSelectedQuarter] = useState<number>(1);
+  const [selectedCriteria, setSelectedCriteria] = useState<string>("All");
 
-  // [STATES] Add / edit form
+  // [STATES] Add / Edit Form
   const [editingItem, setEditingItem] = useState<GradingItem | null>(null);
+  const [selectedQuarter, setSelectedQuarter] = useState<number>(1);
   const [newItemScore, setNewItemScore] = useState<number | "">("");
   const [newItemMaxScore, setNewItemMaxScore] = useState<number | "">(100);
   const [newItemCriteria, setNewItemCriteria] = useState<string>("WRITTEN_WORK");
 
-  // [STATES] Quarter lock
+  // [STATES] Quarter lock — keyed by quarter number
   const [quarterLocked, setQuarterLocked] = useState<Record<number, boolean>>({});
 
-  // [STATES] Modal
-  const [showModal, setShowModal] = useState(false);
-  const [modalTitle, setModalTitle] = useState("");
-  const [modalMessage, setModalMessage] = useState("");
-  const [modalType, setModalType] = useState<
-    "default" | "error" | "success" | "info" | "warning"
-  >("default");
+  // [STATE] General Modal
+  const [generalModal, setGeneralModal] = useState<GeneralModalConfig>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "default",
+    confirmText: "OK",
+    isCancelable: true,
+    onConfirm: () => {},
+  });
 
   /**
-   * Use a ref instead of state for pendingAction.
-   * React's setState(fn) treats `fn` as an updater and calls it immediately —
+   * Use a ref for pending modal actions instead of state.
+   * React's setState(fn) treats fn as an updater and calls it immediately —
    * storing an async function via setState would invoke it. A ref avoids this.
    */
   const pendingActionRef = useRef<(() => Promise<void>) | null>(null);
 
   const token = localStorage.getItem("token");
 
-  // ?[DERIVED] Per-quarter status for the status indicator row
+  // [COMPUTE] Per-quarter status for the indicator row
   const quarterStatus: Record<number, { hasGrades: boolean; locked: boolean }> =
-    [1, 2, 3, 4].reduce(
-      (acc, q) => {
-        const itemsInQuarter =
-          grade?.gradingItems.filter((item) => item.quarter === q) ?? [];
-        acc[q] = {
-          hasGrades: itemsInQuarter.length > 0,
-          locked: !!quarterLocked[q],
-        };
-        return acc;
-      },
-      {} as Record<number, { hasGrades: boolean; locked: boolean }>
-    );
+    [1, 2, 3, 4].reduce((acc, q) => {
+      const items = grade?.gradingItems.filter(item => item.quarter === q) ?? [];
+      acc[q] = { hasGrades: items.length > 0, locked: !!quarterLocked[q] };
+      return acc;
+    }, {} as Record<number, { hasGrades: boolean; locked: boolean }>);
 
-  // ?[DERIVED] Lock state for the currently selected form quarter
+  // [COMPUTE] Lock state for the currently selected form quarter
   const isLocked = !!quarterLocked[selectedQuarter];
 
-  // ---------------------------------------------------------------------------
-  // API helpers
-  // ---------------------------------------------------------------------------
-
-  const handleApiResponse = async (res: Response) => {
-    // ![ERROR] Expired token
-    if (res.status === 401) {
-      alert("Session expired. Please login again.");
-      return null;
-    }
-    return res.json();
+  const openGeneralModal = (config: Partial<Omit<GeneralModalConfig, "isOpen">>) => {
+    setGeneralModal(prev => ({ ...prev, isOpen: true, ...config }));
   };
 
-  // *[EFFECT] Fetch student info + SF9 grades (single request — sf9Grades is embedded in the student response)
+  const closeGeneralModal = () => {
+    setGeneralModal(prev => ({ ...prev, isOpen: false }));
+    pendingActionRef.current = null;
+  };
+
+  const handleModalConfirm = async () => {
+    setGeneralModal(prev => ({ ...prev, isOpen: false }));
+    if (pendingActionRef.current) {
+      const action = pendingActionRef.current;
+      pendingActionRef.current = null;
+      await action();
+    }
+  };
+
+  // * [HANDLE] Fetch Student Info + SF9 Grades
   const fetchGradeDetails = useCallback(async () => {
     if (!sectionId || !studentId || !subjectId) return;
-
     setLoading(true);
-    setError(null);
 
     try {
-      // Single fetch — student endpoint already includes sf9Grades with items & learningArea
-      const studentRes = await fetch(
+      const res = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/api/adviser/sections/${sectionId}/students/${studentId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      const studentData = await handleApiResponse(studentRes);
 
-      // ![ERROR] Backend failure or missing data
-      if (!studentData?.success || !studentData.data) {
-        setError(studentData?.message || "Failed to fetch student");
-        setGrade(null);
-        return;
-      }
+      if (res.status === 401) { setShowTokenExpiredModal(true); return; }
+
+      const studentData = await res.json();
+      if (!studentData?.success || !studentData.data) throw new Error(studentData?.message || "Failed to fetch student");
 
       const s = studentData.data;
+      setProfileName(s.fullName ?? "");
+      setAdvisorySection({ gradeLevel: String(s.gradeLevel), name: s.sectionName });
 
-      setProfileName(s.fullName ?? "Unknown Name");
-      setAdvisorySection({
-        gradeLevel: String(s.gradeLevel),
-        name: s.sectionName,
-      });
+      const gradesArray: SubjectGradeApi[] = Array.isArray(s.sf9Grades) ? s.sf9Grades : [];
+      if (gradesArray.length === 0) throw new Error("No SF9 grades found for this student");
 
-      // sf9Grades is an array embedded directly in the student response
-      const gradesArray: SubjectGradeApi[] = Array.isArray(s.sf9Grades)
-        ? s.sf9Grades
-        : [];
+      const subjectGradeData = gradesArray.find(g => g?.id === Number(subjectId));
+      if (!subjectGradeData) throw new Error("Subject grade not found");
 
-      // ![ERROR] No grades array on the student record
-      if (gradesArray.length === 0) {
-        setError("No SF9 grades found for this student");
-        setGrade(null);
-        return;
-      }
-
-      const subjectGradeData = gradesArray.find(
-        (g: SubjectGradeApi) => g?.id === Number(subjectId)
-      );
-
-      // ![ERROR] Subject grade not found in response
-      if (!subjectGradeData) {
-        setError("Subject grade not found");
-        setGrade(null);
-        return;
-      }
-
-      // Sort items by createdAt then id so numbering is deterministic
+      // [SORT] Items by createdAt then id for deterministic numbering
       const sortedItems: GradingItem[] = (subjectGradeData.items ?? [])
         .slice()
-        .sort((a: GradeItemApi, b: GradeItemApi) => {
+        .sort((a, b) => {
           if (a.createdAt && b.createdAt)
-            return (
-              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-            );
+            return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
           return a.id - b.id;
         })
-        .map((item: GradeItemApi) => ({
+        .map(item => ({
           id: item.id,
           criteria: item.type,
           score: item.score,
           maxScore: item.maxScore ?? 100,
           createdAt: item.createdAt,
-          quarter: item.quarter ?? 1, // default to Q1 if undefined
+          quarter: item.quarter ?? 1,
         }));
 
       const gradeId = subjectGradeData.id;
-
       setGrade({
         id: gradeId,
         subject:
@@ -245,22 +231,28 @@ const AdviserClassStudentGradesDetails = () => {
         gradingItems: sortedItems,
       });
 
-      // Fetch quarter lock status using the SF9 *grade* ID (not studentId)
+      // [FETCH] Quarter lock status using the SF9 grade ID
       try {
         const lockRes = await fetch(
           `${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/sf9/${gradeId}/quarter-status`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        const lockData = await handleApiResponse(lockRes);
-        if (lockData?.success) {
-          setQuarterLocked(lockData.data ?? {});
-        }
+        const lockData = await lockRes.json();
+        if (lockData?.success) setQuarterLocked(lockData.data ?? {});
       } catch (lockErr) {
         console.warn("Failed to fetch quarter status", lockErr);
       }
-    } catch (err: unknown) {
-      // ![ERROR] Network or unexpected failure
-      setError(err instanceof Error ? err.message : String(err));
+    } catch (err) {
+      // ! [ERROR] Fetching grade details failed
+      console.error(err);
+      openGeneralModal({
+        title: "Unable to Load Grades",
+        message: "We couldn't load the grade details. Please check your connection and try again.",
+        type: "error",
+        confirmText: "Close",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
       setGrade(null);
     } finally {
       setLoading(false);
@@ -271,24 +263,19 @@ const AdviserClassStudentGradesDetails = () => {
     fetchGradeDetails();
   }, [fetchGradeDetails]);
 
-  // ---------------------------------------------------------------------------
-  // Quarter lock toggle
-  // ---------------------------------------------------------------------------
-
+  // * [HANDLE] Toggle Quarter Lock / Unlock
   const toggleQuarterLock = async (quarter: number) => {
     if (!grade?.id) return;
 
-    // ![ERROR] Cannot lock a quarter with no items
-    const quarterItems = grade.gradingItems.filter(
-      (item) => item.quarter === quarter
-    );
+    const quarterItems = grade.gradingItems.filter(item => item.quarter === quarter);
     if (quarterItems.length === 0) {
-      setModalTitle("Cannot Lock Quarter");
-      setModalMessage(
-        `Quarter ${quarter} has no grade items. Add at least one item before locking.`
-      );
-      setModalType("error");
-      setShowModal(true);
+      openGeneralModal({
+        title: "Cannot Lock Quarter",
+        message: `Quarter ${quarter} has no grade items. Add at least one item before locking.`,
+        type: "error",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
       return;
     }
 
@@ -299,64 +286,41 @@ const AdviserClassStudentGradesDetails = () => {
         `${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/sf9/${grade.id}/quarter-ready`,
         {
           method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            quarter: `q${quarter}`,
-            ready: !isCurrentlyLocked,
-          }),
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ quarter: `q${quarter}`, ready: !isCurrentlyLocked }),
         }
       );
-      const data = await handleApiResponse(res);
+      const data = await res.json();
 
-      if (data?.success) {
-        const newLockValue: boolean =
-          data.data[`q${quarter}Ready`] ?? !isCurrentlyLocked;
-        setQuarterLocked((prev) => ({ ...prev, [quarter]: newLockValue }));
-        setModalTitle("Success");
-        setModalMessage(
-          `Quarter ${quarter} has been ${newLockValue ? "locked" : "unlocked"} successfully.`
-        );
-        setModalType("success");
-        setShowModal(true);
-      } else {
-        throw new Error(data?.message || "Unknown error");
-      }
+      if (!data?.success) throw new Error(data?.message || "Unknown error");
+
+      const newLockValue: boolean = data.data[`q${quarter}Ready`] ?? !isCurrentlyLocked;
+      setQuarterLocked(prev => ({ ...prev, [quarter]: newLockValue }));
+
+      // * [SUCCESS] Quarter lock toggled
+      openGeneralModal({
+        title: newLockValue ? "Quarter Locked" : "Quarter Unlocked",
+        message: `Quarter ${quarter} has been ${newLockValue ? "locked" : "unlocked"} successfully.`,
+        type: "success",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
     } catch (err) {
+      // ! [ERROR] Quarter lock toggle failed
       console.error(err);
-      setModalTitle("Error");
-      setModalMessage(
-        `Failed to ${!isCurrentlyLocked ? "lock" : "unlock"} Quarter ${quarter}.`
-      );
-      setModalType("error");
-      setShowModal(true);
+      openGeneralModal({
+        title: "Action Failed",
+        message: `Failed to ${isCurrentlyLocked ? "unlock" : "lock"} Quarter ${quarter}. Please try again.`,
+        type: "error",
+        isCancelable: false,
+        onConfirm: () => closeGeneralModal(),
+      });
     }
   };
 
-  // ---------------------------------------------------------------------------
-  // CRUD helpers
-  // ---------------------------------------------------------------------------
-
-  const showInfoModal = (
-    title: string,
-    message: string,
-    type: typeof modalType
-  ) => {
-    setModalTitle(title);
-    setModalMessage(message);
-    setModalType(type);
-    pendingActionRef.current = null;
-    setShowModal(true);
-  };
-
-  const validateScores = (
-    score: number | "",
-    maxScore: number | ""
-  ): string | null => {
-    if (score === "" || maxScore === "")
-      return "Please enter a score and max score.";
+  // [HANDLE] Shared validation for score inputs
+  const validateScores = (score: number | "", maxScore: number | ""): string | null => {
+    if (score === "" || maxScore === "") return "Please enter a score and max score.";
     if (maxScore <= 0) return "Max Score must be greater than 0.";
     if (score < 0) return "Score cannot be negative.";
     if (score > maxScore) return "Score cannot exceed Max Score.";
@@ -370,125 +334,108 @@ const AdviserClassStudentGradesDetails = () => {
     setNewItemCriteria("WRITTEN_WORK");
   };
 
-  // [CREATE] Add a new grade item
+  // * [HANDLE] Create Grade Item
   const createGradeItem = async () => {
     if (!grade) return;
 
     const validationError = validateScores(newItemScore, newItemMaxScore);
     if (validationError) {
-      showInfoModal("Validation Error", validationError, "error");
+      openGeneralModal({ title: "Validation Error", message: validationError, type: "error", isCancelable: false, onConfirm: () => closeGeneralModal() });
       return;
     }
 
     if (!newItemCriteria) {
-      showInfoModal("Validation Error", "Please select a criteria.", "error");
+      openGeneralModal({ title: "Validation Error", message: "Please select a criteria.", type: "error", isCancelable: false, onConfirm: () => closeGeneralModal() });
       return;
     }
 
-    // ![ERROR] Duplicate QA guard
+    // ! [VALIDATION] Duplicate QA guard
     if (newItemCriteria === "QUARTERLY_ASSESSMENT") {
       const existingQA = grade.gradingItems.find(
-        (item) =>
-          item.criteria === "QUARTERLY_ASSESSMENT" &&
-          item.quarter === selectedQuarter
+        item => item.criteria === "QUARTERLY_ASSESSMENT" && item.quarter === selectedQuarter
       );
       if (existingQA) {
-        showInfoModal(
-          "Duplicate Quarterly Assessment",
-          `A Quarterly Assessment already exists for Quarter ${selectedQuarter}. You cannot add another.`,
-          "error"
-        );
+        openGeneralModal({
+          title: "Duplicate Quarterly Assessment",
+          message: `A Quarterly Assessment already exists for Quarter ${selectedQuarter}. You cannot add another.`,
+          type: "error",
+          isCancelable: false,
+          onConfirm: () => closeGeneralModal(),
+        });
         return;
       }
     }
 
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/sf9/item`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            sf9GradeId: grade.id,
-            quarter: selectedQuarter,
-            type: newItemCriteria,
-            score: Number(newItemScore),
-            maxScore: Number(newItemMaxScore),
-          }),
-        }
-      );
-      const data = await handleApiResponse(res);
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/sf9/item`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          sf9GradeId: grade.id,
+          quarter: selectedQuarter,
+          type: newItemCriteria,
+          score: Number(newItemScore),
+          maxScore: Number(newItemMaxScore),
+        }),
+      });
+      const data = await res.json();
 
-      if (data?.success) {
-        resetForm();
-        // Optimistic update — append new item immediately, then background refresh
-        if (data.data) {
-          const newItem: GradingItem = {
-            id: data.data.id,
-            criteria: data.data.type,
-            score: data.data.score,
-            maxScore: data.data.maxScore ?? 100,
-            createdAt: data.data.createdAt,
-            quarter: data.data.quarter ?? selectedQuarter,
-          };
-          setGrade((prev) =>
-            prev
-              ? { ...prev, gradingItems: [...prev.gradingItems, newItem] }
-              : prev
-          );
-        }
-        await fetchGradeDetails();
-      } else {
-        showInfoModal("Error", data?.message || "Failed to add grade item.", "error");
+      if (!data?.success) throw new Error(data?.message || "Failed to add grade item");
+
+      resetForm();
+      if (data.data) {
+        const newItem: GradingItem = {
+          id: data.data.id,
+          criteria: data.data.type,
+          score: data.data.score,
+          maxScore: data.data.maxScore ?? 100,
+          createdAt: data.data.createdAt,
+          quarter: data.data.quarter ?? selectedQuarter,
+        };
+        setGrade(prev => prev ? { ...prev, gradingItems: [...prev.gradingItems, newItem] } : prev);
       }
+      await fetchGradeDetails();
     } catch (err) {
+      // ! [ERROR] Create grade item failed
       console.error(err);
-      showInfoModal("Error", "Failed to add grade item. Please try again.", "error");
+      openGeneralModal({ title: "Error", message: "Failed to add grade item. Please try again.", type: "error", isCancelable: false, onConfirm: () => closeGeneralModal() });
     }
   };
 
-  // [UPDATE] Edit an existing grade item
+  // * [HANDLE] Update Grade Item (shows confirmation modal first)
   const updateGradeItem = () => {
     if (!editingItem) return;
 
     const validationError = validateScores(newItemScore, newItemMaxScore);
     if (validationError) {
-      showInfoModal("Validation Error", validationError, "error");
+      openGeneralModal({ title: "Validation Error", message: validationError, type: "error", isCancelable: false, onConfirm: () => closeGeneralModal() });
       return;
     }
 
-    // ![ERROR] Duplicate QA guard — exclude the item being edited
+    // ! [VALIDATION] Duplicate QA guard — exclude the item being edited
     if (newItemCriteria === "QUARTERLY_ASSESSMENT") {
       const existingQA = grade?.gradingItems.find(
-        (item) =>
-          item.criteria === "QUARTERLY_ASSESSMENT" &&
-          item.quarter === selectedQuarter &&
-          item.id !== editingItem.id
+        item => item.criteria === "QUARTERLY_ASSESSMENT" && item.quarter === selectedQuarter && item.id !== editingItem.id
       );
       if (existingQA) {
-        showInfoModal(
-          "Duplicate Quarterly Assessment",
-          `A Quarterly Assessment already exists for Quarter ${selectedQuarter}.`,
-          "error"
-        );
+        openGeneralModal({
+          title: "Duplicate Quarterly Assessment",
+          message: `A Quarterly Assessment already exists for Quarter ${selectedQuarter}.`,
+          type: "error",
+          isCancelable: false,
+          onConfirm: () => closeGeneralModal(),
+        });
         return;
       }
     }
 
-    // Use ref to store the pending async action (avoids React treating it as a state updater)
     pendingActionRef.current = async () => {
       try {
         const res = await fetch(
           `${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/sf9/item/${editingItem.id}`,
           {
             method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
             body: JSON.stringify({
               quarter: selectedQuarter,
               type: newItemCriteria,
@@ -497,460 +444,353 @@ const AdviserClassStudentGradesDetails = () => {
             }),
           }
         );
-        const data = await handleApiResponse(res);
+        const data = await res.json();
 
-        if (data?.success) {
-          resetForm();
-          // Optimistic update — patch in-place, then background refresh
-          setGrade((prev) => {
-            if (!prev) return prev;
-            return {
-              ...prev,
-              gradingItems: prev.gradingItems.map((item) =>
-                item.id === editingItem.id
-                  ? {
-                      ...item,
-                      criteria: newItemCriteria,
-                      score: Number(newItemScore),
-                      maxScore: Number(newItemMaxScore),
-                      quarter: selectedQuarter,
-                    }
-                  : item
-              ),
-            };
-          });
-          await fetchGradeDetails();
-          showInfoModal("Success", "Grade item updated successfully.", "success");
-        } else {
-          showInfoModal("Error", data?.message || "Failed to update grade item.", "error");
-        }
+        if (!data?.success) throw new Error(data?.message || "Failed to update grade item");
+
+        resetForm();
+        setGrade(prev =>
+          prev
+            ? {
+                ...prev,
+                gradingItems: prev.gradingItems.map(item =>
+                  item.id === editingItem.id
+                    ? { ...item, criteria: newItemCriteria, score: Number(newItemScore), maxScore: Number(newItemMaxScore), quarter: selectedQuarter }
+                    : item
+                ),
+              }
+            : prev
+        );
+        await fetchGradeDetails();
+
+        // * [SUCCESS] Grade item updated
+        openGeneralModal({ title: "Updated", message: "Grade item updated successfully.", type: "success", isCancelable: false, onConfirm: () => closeGeneralModal() });
       } catch (err) {
+        // ! [ERROR] Update grade item failed
         console.error(err);
-        showInfoModal("Error", "Failed to update grade item. Please try again.", "error");
+        openGeneralModal({ title: "Error", message: "Failed to update grade item. Please try again.", type: "error", isCancelable: false, onConfirm: () => closeGeneralModal() });
       }
     };
 
-    setModalTitle("Confirm Update");
-    setModalMessage("Are you sure you want to update this grade item?");
-    setModalType("info");
-    setShowModal(true);
+    openGeneralModal({
+      title: "Confirm Update",
+      message: "Are you sure you want to update this grade item?",
+      type: "info",
+      isCancelable: true,
+      onConfirm: handleModalConfirm,
+    });
   };
 
-  // [DELETE] Remove a grade item
+  // * [HANDLE] Delete Grade Item (shows confirmation modal first)
   const confirmDeleteGradeItem = (id: number) => {
-    // Use ref to store the pending async action
     pendingActionRef.current = async () => {
       try {
-        const res = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/sf9/item`,
-          {
-            method: "DELETE",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ itemIds: [id] }),
-          }
-        );
-        const data = await handleApiResponse(res);
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/adviser/grades/sf9/item`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ itemIds: [id] }),
+        });
+        const data = await res.json();
 
-        if (data?.success) {
-          // Optimistic update — remove item immediately, then refresh
-          setGrade((prev) => {
-            if (!prev) return prev;
-            return {
-              ...prev,
-              gradingItems: prev.gradingItems.filter((item) => item.id !== id),
-            };
-          });
-          await fetchGradeDetails();
-        } else {
-          showInfoModal("Error", data?.message || "Failed to delete item.", "error");
-        }
+        if (!data?.success) throw new Error(data?.message || "Failed to delete item");
+
+        setGrade(prev =>
+          prev ? { ...prev, gradingItems: prev.gradingItems.filter(item => item.id !== id) } : prev
+        );
+        await fetchGradeDetails();
       } catch (err) {
+        // ! [ERROR] Delete grade item failed
         console.error(err);
-        showInfoModal("Error", "Failed to delete item. Please try again.", "error");
+        openGeneralModal({ title: "Error", message: "Failed to delete item. Please try again.", type: "error", isCancelable: false, onConfirm: () => closeGeneralModal() });
       }
     };
 
-    setModalTitle("Confirm Delete");
-    setModalMessage("Are you sure you want to delete this grade item?");
-    setModalType("warning");
-    setShowModal(true);
+    openGeneralModal({
+      title: "Confirm Delete",
+      message: "Are you sure you want to delete this grade item?",
+      type: "error",
+      confirmText: "Delete",
+      isCancelable: true,
+      onConfirm: handleModalConfirm,
+    });
   };
 
-  // ---------------------------------------------------------------------------
-  // Modal handlers
-  // ---------------------------------------------------------------------------
-
-  const handleModalClose = () => {
-    setShowModal(false);
-    pendingActionRef.current = null;
-  };
-
-  const handleModalConfirm = async () => {
-    setShowModal(false);
-    if (pendingActionRef.current) {
-      const action = pendingActionRef.current;
-      pendingActionRef.current = null; // clear before calling to prevent double-fire
-      await action();
-    }
-  };
-
-  // ?[DERIVED] Build display labels from the full list, then filter
+  // [COMPUTE] Build display labels then apply filters
   const numberedItems = buildNumberedItems(grade?.gradingItems ?? []);
-
-  const filteredItems = numberedItems.filter((item) => {
-    const quarterMatch =
-      filterQuarter === "All" || item.quarter === filterQuarter;
-    const criteriaMatch =
-      selectedCriteria === "All" || item.criteria === selectedCriteria;
+  const filteredItems = numberedItems.filter(item => {
+    const quarterMatch = filterQuarter === "All" || item.quarter === filterQuarter;
+    const criteriaMatch = selectedCriteria === "All" || item.criteria === selectedCriteria;
     return quarterMatch && criteriaMatch;
   });
 
-  // [LOADING STATE] Wait for data fetch
-  if (loading)
-    return <p className="text-center py-4">Loading subject grade...</p>;
-  if (error)
-    return <p className="text-red-500 text-center py-4">{error}</p>;
-  if (!grade)
-    return <p className="text-center py-4">Grade not available.</p>;
-
-  // Breadcrumbs navigation
+  // * [BREADCRUMBS] Adviser Student Grade Details navigation
   const breadcrumbs = [
+    { label: "Adviser Dashboard", path: "/adviser/dashboard" },
     { label: "Class Management", path: "/adviser/classes" },
     {
-      label: advisorySection
-        ? `${advisorySection.gradeLevel} — ${advisorySection.name}`
-        : "Unknown Section",
+      label: advisorySection ? `${advisorySection.gradeLevel} — ${advisorySection.name}` : "Section",
       path: `/adviser/classes/${sectionId}`,
     },
-    { label: "Grades", path: `/adviser/classes/grades/${sectionId}` },
-    {
-      label: profileName,
-      path: `/adviser/classes/grades/${sectionId}/${studentId}`,
-    },
-    { label: grade.subject, path: null },
+    { label: "Grades", path: `/adviser/classes/${sectionId}/grades` },
+    { label: profileName || "Student", path: `/adviser/classes/${sectionId}/grades/${studentId}` },
+    { label: grade?.subject ?? "Subject", path: null },
   ];
 
+  // ? [LOADING STATE]
+  if (loading) return <Skeleton />;
+
+  // [COMPUTE] Split name for ProfileInfo
+  const nameParts = profileName.trim().split(" ");
+  const firstName = nameParts.shift() ?? "";
+  const lastName = nameParts.join(" ") || firstName;
+
   return (
-    <div className="py-10 px-4 space-y-6 max-w-md mx-auto">
-      {/* [COMPONENT] Confirmation / info modal */}
-      {showModal && (
-        <Modal
-          isOpen={showModal}
-          onClose={handleModalClose}
-          onConfirm={handleModalConfirm}
-          title={modalTitle}
-          message={modalMessage}
-          type={modalType}
-          closeOnBackdrop={true}
-          isCancelable={true}
-        />
-      )}
+    <>
+      {/* [MODAL] General */}
+      <Modal
+        isOpen={generalModal.isOpen}
+        onClose={closeGeneralModal}
+        title={generalModal.title}
+        message={generalModal.message}
+        type={generalModal.type}
+        confirmText={generalModal.confirmText}
+        onConfirm={generalModal.onConfirm}
+        isCancelable={generalModal.isCancelable}
+      />
 
-      {/* [SECTION] Breadcrumbs Navigation */}
-      <nav className="font-roboto text-sm text-[var(--color-text-700)] px-2 pb-2">
-        {breadcrumbs.map((crumb, idx) => (
-          <span key={idx}>
-            {crumb.path ? (
-              <span
-                className="hover:underline cursor-pointer"
-                onClick={() => navigate(crumb.path!)}
-              >
-                {crumb.label}
-              </span>
-            ) : (
-              <span className="font-roboto font-medium text-[var(--color-text-900)]">
-                {crumb.label}
-              </span>
-            )}
-            {idx < breadcrumbs.length - 1 && " / "}
-          </span>
-        ))}
-      </nav>
+      {/* [LAYOUT] Adviser Page */}
+      <PageLayout
+        header={<Breadcrumbs items={breadcrumbs} title="Subject Grades" />}
+      >
+        {grade ? (
+          <div className="space-y-4">
 
-      {/* [SECTION] Student Header */}
-      <div className="flex items-center bg-[var(--color-primary-600)] border-3 border-[var(--color-primary-700)]/60 rounded-xl px-5 py-6 gap-x-4 shadow-md">
-        <div className="bg-[var(--color-bg-200)] w-18 h-18 rounded-full flex-shrink-0" />
-        <div className="flex-1">
-          <p className="font-roboto font-extrabold text-xl mb-2 text-[var(--color-text-50)]">
-            {profileName}
-          </p>
-          {advisorySection ? (
-            <>
-              <p className="font-roboto font-semibold text-sm text-[var(--color-text-100)]">
-                Grade {advisorySection.gradeLevel} — {advisorySection.name}
+            {/* [COMPONENT] Profile Info */}
+            <ProfileInfo lastName={lastName} firstName={firstName} />
+
+            {/* [CARD] Quarter Status Indicators */}
+            <div className="bg-[var(--color-bg-100)] rounded-lg p-4">
+              <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)] mb-3">
+                Quarter Status
               </p>
-              <p className="font-roboto font-medium text-xs text-[var(--color-text-100)]">
-                Student
-              </p>
-            </>
-          ) : (
-            <p className="text-red-600 font-semibold text-sm">
-              You are not assigned to any advisory section.
-            </p>
-          )}
-        </div>
-      </div>
+              <div className="flex justify-around gap-2">
+                {[1, 2, 3, 4].map(q => {
+                  const status = quarterStatus[q];
+                  const { dot, label } = status.locked && status.hasGrades
+                    ? { dot: "bg-[var(--color-accent-600)]", label: "Locked" }
+                    : status.hasGrades
+                    ? { dot: "bg-amber-400", label: "Has Grades" }
+                    : { dot: "bg-[var(--color-red-500)]", label: "No Grades" };
 
-      {/* [SECTION] Quarter Status Indicators */}
-      <div className="flex justify-center gap-4 mb-4 bg-[var(--color-bg-100)] p-4 rounded-lg">
-        {[1, 2, 3, 4].map((q) => {
-          const status = quarterStatus[q];
-
-          let bgColor = "bg-gray-300";
-          let label = "No grades";
-
-          if (status.hasGrades && status.locked) {
-            bgColor = "bg-green-600";
-            label = "Locked";
-          } else if (status.hasGrades && !status.locked) {
-            bgColor = "bg-yellow-400";
-            label = "Has grades";
-          } else {
-            bgColor = "bg-red-600";
-            label = "No grades";
-          }
-
-          return (
-            <div key={q} className="flex flex-col items-center gap-1">
-              <div className={`w-6 h-6 rounded-full ${bgColor}`} />
-              <span className="text-sm font-semibold font-figtree">Q{q}</span>
-              <span className="text-xs text-[var(--color-text-800)]">{label}</span>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* [SECTION] Filters & Grade Table */}
-      <div className="bg-[var(--color-bg-100)] p-4 rounded-lg space-y-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-          {/* [COMPONENT] Quarter Filter */}
-          <select
-            value={filterQuarter}
-            onChange={(e) =>
-              setFilterQuarter(
-                e.target.value === "All" ? "All" : Number(e.target.value)
-              )
-            }
-            className="font-roboto text-sm border border-[var(--color-bg-200)] bg-[var(--color-bg-50)] rounded px-3 py-2 w-full sm:w-auto"
-          >
-            <option value="All">All Quarters</option>
-            <option value={1}>Quarter 1</option>
-            <option value={2}>Quarter 2</option>
-            <option value={3}>Quarter 3</option>
-            <option value={4}>Quarter 4</option>
-          </select>
-
-          {/* [COMPONENT] Criteria Filter */}
-          <select
-            className="font-roboto text-sm border border-[var(--color-bg-200)] bg-[var(--color-bg-50)] rounded px-3 py-2 w-full sm:w-auto"
-            value={selectedCriteria}
-            onChange={(e) => setSelectedCriteria(e.target.value)}
-          >
-            <option value="All">All</option>
-            {Object.entries(CRITERIA_LABELS).map(([key, label]) => (
-              <option key={key} value={key}>
-                {label}
-              </option>
-            ))}
-          </select>
-
-          {/* [COMPONENT] Lock / Unlock Button — only visible when a specific quarter is selected */}
-          {filterQuarter !== "All" && (
-            <button
-              onClick={() => toggleQuarterLock(filterQuarter as number)}
-              className={`sm:ml-auto px-4 py-2 rounded font-medium text-sm whitespace-nowrap ${
-                quarterLocked[filterQuarter as number]
-                  ? "bg-gray-400 text-white hover:bg-gray-500"
-                  : "bg-green-600 text-white hover:bg-green-700"
-              }`}
-            >
-              {quarterLocked[filterQuarter as number]
-                ? `Q${filterQuarter} Locked`
-                : `Lock Q${filterQuarter}`}
-            </button>
-          )}
-        </div>
-
-        {/* [SECTION] Grade Items Table */}
-        <div className="bg-white rounded-t-lg shadow overflow-x-auto">
-          <table className="table-fixed w-full divide-y divide-gray-200">
-            <colgroup>
-              <col className="w-1/3" />
-              <col className="w-1/3" />
-              <col className="w-1/3" />
-            </colgroup>
-            <thead className="bg-blue-600 text-white text-sm">
-              <tr>
-                <th className="px-2 py-2 text-left truncate">Criteria</th>
-                <th className="px-2 py-2 text-left">Score</th>
-                <th className="px-2 py-2 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="text-sm text-gray-700">
-              {filteredItems.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={3}
-                    className="px-2 py-4 text-center text-gray-400"
-                  >
-                    No grade items found.
-                  </td>
-                </tr>
-              ) : (
-                filteredItems.map((item) => {
-                  // Lock status is per the item's own quarter, not the form's quarter
-                  const itemLocked = !!quarterLocked[item.quarter];
                   return (
-                    <tr key={item.id} className="hover:bg-gray-50">
-                      <td
-                        className="px-2 py-2 truncate cursor-pointer"
-                        title={item.displayLabel}
-                      >
-                        {item.displayLabel}
-                      </td>
-                      <td className="px-2 py-2 text-left">
-                        {item.score != null
-                          ? `${item.score} / ${item.maxScore}`
-                          : "-"}
-                      </td>
-                      <td className="px-2 py-2 flex justify-center gap-2">
-                        <button
-                          className={`text-blue-600 font-medium ${
-                            itemLocked ? "opacity-50 cursor-not-allowed" : ""
-                          }`}
-                          onClick={() => {
-                            if (itemLocked) return;
-                            setEditingItem(item);
-                            setNewItemScore(item.score ?? "");
-                            setNewItemMaxScore(item.maxScore);
-                            setNewItemCriteria(item.criteria);
-                            setSelectedQuarter(item.quarter);
-                          }}
-                          disabled={itemLocked}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className={`text-red-600 font-medium ${
-                            itemLocked ? "opacity-50 cursor-not-allowed" : ""
-                          }`}
-                          onClick={() => {
-                            if (!itemLocked) confirmDeleteGradeItem(item.id);
-                          }}
-                          disabled={itemLocked}
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
+                    <div key={q} className="flex flex-col items-center gap-1">
+                      <div className={`size-5 rounded-full ${dot}`} />
+                      <span className="text-sm font-semibold font-roboto">Q{q}</span>
+                      <span className="text-xs text-[var(--color-text-600)]">{label}</span>
+                    </div>
                   );
-                })
+                })}
+              </div>
+            </div>
+
+            {/* [CARD] Filters + Lock Button + Grade Items Table */}
+            <div className="bg-[var(--color-bg-100)] rounded-lg p-4 space-y-4">
+
+              {/* [TOOLBAR] Quarter filter + Criteria filter + Lock button */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                <select
+                  value={filterQuarter}
+                  onChange={e => setFilterQuarter(e.target.value === "All" ? "All" : Number(e.target.value))}
+                  className={INPUT_CLS}
+                >
+                  <option value="All">All Quarters</option>
+                  {[1, 2, 3, 4].map(q => <option key={q} value={q}>Quarter {q}</option>)}
+                </select>
+
+                <select
+                  value={selectedCriteria}
+                  onChange={e => setSelectedCriteria(e.target.value)}
+                  className={INPUT_CLS}
+                >
+                  <option value="All">All Criteria</option>
+                  {Object.entries(CRITERIA_LABELS).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
+
+                {/* [BUTTON] Lock / Unlock — always visible, disabled when no quarter selected */}
+                <button
+                  onClick={() => filterQuarter !== "All" && toggleQuarterLock(filterQuarter as number)}
+                  disabled={filterQuarter === "All"}
+                  className={`sm:ml-auto px-4 py-2 rounded-md font-roboto font-semibold text-sm whitespace-nowrap transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${
+                    filterQuarter !== "All" && quarterLocked[filterQuarter as number]
+                      ? "bg-[var(--color-bg-300)] text-[var(--color-text-700)] hover:bg-[var(--color-bg-400)]"
+                      : "bg-[var(--color-accent-600)] text-white hover:bg-[var(--color-accent-700)]"
+                  }`}
+                >
+                  {filterQuarter === "All"
+                    ? "Lock Quarter"
+                    : quarterLocked[filterQuarter as number]
+                    ? `Unlock Q${filterQuarter}`
+                    : `Lock Q${filterQuarter}`}
+                </button>
+              </div>
+
+              {/* [SECTION] Grade Items Table */}
+              <div className="overflow-x-auto">
+                <table className="min-w-full border-separate border-spacing-y-2">
+                  <thead>
+                    <tr className="text-left">
+                      <th className="table-header">Criteria</th>
+                      <th className="table-header">Score</th>
+                      <th className="table-header text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredItems.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} className="table-cell table-text table-text-default text-center py-4">
+                          No grade items found.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredItems.map(item => {
+                        const itemLocked = !!quarterLocked[item.quarter];
+                        return (
+                          <tr key={item.id} className="bg-[var(--color-bg-50)] hover:bg-[var(--color-bg-200)] transition">
+                            <td className="table-cell table-text table-text-default" title={item.displayLabel}>
+                              {item.displayLabel}
+                            </td>
+                            <td className="table-cell table-text table-text-default">
+                              {item.score != null ? `${item.score} / ${item.maxScore}` : "—"}
+                            </td>
+                            <td className="table-cell table-text">
+                              <div className="flex justify-center gap-3">
+                                <button
+                                  disabled={itemLocked}
+                                  onClick={() => {
+                                    if (itemLocked) return;
+                                    setEditingItem(item);
+                                    setNewItemScore(item.score ?? "");
+                                    setNewItemMaxScore(item.maxScore);
+                                    setNewItemCriteria(item.criteria);
+                                    setSelectedQuarter(item.quarter);
+                                  }}
+                                  className="text-xs font-roboto font-semibold text-[var(--color-primary-600)] hover:underline disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  disabled={itemLocked}
+                                  onClick={() => { if (!itemLocked) confirmDeleteGradeItem(item.id); }}
+                                  className="text-xs font-roboto font-semibold text-[var(--color-red-600)] hover:underline disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* [CARD] Add / Edit Grade Item Form */}
+            <div className="bg-[var(--color-bg-100)] rounded-lg p-4 space-y-3">
+              <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)]">
+                {editingItem ? "Edit Grade Item" : "Add Grade Item"}
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-2">
+                {/* [FIELD] Quarter Selector */}
+                <select
+                  value={selectedQuarter}
+                  onChange={e => setSelectedQuarter(Number(e.target.value))}
+                  className={INPUT_CLS}
+                >
+                  {[1, 2, 3, 4].map(q => <option key={q} value={q}>Quarter {q}</option>)}
+                </select>
+
+                {/* [FIELD] Criteria Selector */}
+                <select
+                  value={newItemCriteria}
+                  onChange={e => setNewItemCriteria(e.target.value)}
+                  disabled={isLocked}
+                  className={INPUT_CLS}
+                >
+                  {Object.entries(CRITERIA_LABELS).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
+
+                {/* [FIELD] Score Input */}
+                <input
+                  type="number"
+                  placeholder="Score"
+                  value={newItemScore}
+                  onChange={e => setNewItemScore(e.target.value === "" ? "" : Number(e.target.value))}
+                  disabled={isLocked}
+                  min={0}
+                  className={INPUT_CLS}
+                />
+
+                {/* [FIELD] Max Score Input */}
+                <input
+                  type="number"
+                  placeholder="Max Score"
+                  value={newItemMaxScore}
+                  onChange={e => setNewItemMaxScore(e.target.value === "" ? "" : Number(e.target.value))}
+                  disabled={isLocked}
+                  min={1}
+                  className={INPUT_CLS}
+                />
+
+                {/* [BUTTONS] Submit + Cancel */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => editingItem ? updateGradeItem() : createGradeItem()}
+                    disabled={isLocked}
+                    className="px-4 py-2 rounded-md font-roboto font-semibold text-sm text-white bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {editingItem ? "Update" : "Add"}
+                  </button>
+                  {editingItem && (
+                    <button
+                      onClick={resetForm}
+                      className="px-4 py-2 rounded-md font-roboto font-semibold text-sm bg-[var(--color-bg-200)] hover:bg-[var(--color-bg-300)] text-[var(--color-text-700)] transition-colors cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* [HINT] Locked quarter warning */}
+              {isLocked && (
+                <p className="text-xs font-roboto text-amber-600 font-medium">
+                  Quarter {selectedQuarter} is locked. Switch to a different quarter or unlock it above.
+                </p>
               )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            </div>
 
-      {/* [SECTION] Add / Edit Grade Item Form */}
-      <div className="bg-[var(--color-bg-100)] p-4 rounded-lg shadow space-y-3">
-        <h4 className="font-medium">
-          {editingItem ? "Edit Grade Item" : "Add New Grade Item"}
-        </h4>
-
-        <div className="flex flex-col sm:flex-row gap-2">
-          {/* [COMPONENT] Quarter Selector */}
-          <select
-            value={selectedQuarter}
-            onChange={(e) => setSelectedQuarter(Number(e.target.value))}
-            className="font-roboto text-sm border border-[var(--color-bg-200)] bg-[var(--color-bg-50)] rounded px-3 py-2 w-full sm:w-auto"
-          >
-            <option value={1}>Quarter 1</option>
-            <option value={2}>Quarter 2</option>
-            <option value={3}>Quarter 3</option>
-            <option value={4}>Quarter 4</option>
-          </select>
-
-          {/* [COMPONENT] Criteria Selector */}
-          <select
-            value={newItemCriteria}
-            onChange={(e) => setNewItemCriteria(e.target.value)}
-            disabled={isLocked}
-            className="font-roboto text-sm border border-[var(--color-bg-200)] bg-[var(--color-bg-50)] rounded px-3 py-2 w-full sm:w-auto"
-          >
-            {Object.entries(CRITERIA_LABELS).map(([key, label]) => (
-              <option key={key} value={key}>
-                {label}
-              </option>
-            ))}
-          </select>
-
-          {/* [COMPONENT] Score Input */}
-          <input
-            type="number"
-            placeholder="Score"
-            value={newItemScore}
-            onChange={(e) =>
-              setNewItemScore(
-                e.target.value === "" ? "" : Number(e.target.value)
-              )
-            }
-            disabled={isLocked}
-            min={0}
-            className="font-roboto text-sm border border-[var(--color-bg-200)] bg-[var(--color-bg-50)] rounded px-3 py-2 w-full sm:w-auto"
-          />
-
-          {/* [COMPONENT] Max Score Input */}
-          <input
-            type="number"
-            placeholder="Max Score"
-            value={newItemMaxScore}
-            onChange={(e) =>
-              setNewItemMaxScore(
-                e.target.value === "" ? "" : Number(e.target.value)
-              )
-            }
-            disabled={isLocked}
-            min={1}
-            className="font-roboto text-sm border border-[var(--color-bg-200)] bg-[var(--color-bg-50)] rounded px-3 py-2 w-full sm:w-auto"
-          />
-
-          {/* [COMPONENT] Action Buttons */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => (editingItem ? updateGradeItem() : createGradeItem())}
-              disabled={isLocked}
-              className={`px-4 py-1 rounded font-medium ${
-                isLocked
-                  ? "bg-gray-400 cursor-not-allowed text-white"
-                  : "bg-blue-600 hover:bg-blue-700 text-white"
-              }`}
-            >
-              {editingItem ? "Update" : "Add"}
-            </button>
-
-            {editingItem && (
-              <button
-                onClick={resetForm}
-                className="bg-gray-300 px-4 py-1 rounded hover:bg-gray-400"
-              >
-                Cancel
-              </button>
-            )}
           </div>
-        </div>
-
-        {/* Locked hint for the selected form quarter */}
-        {isLocked && (
-          <p className="text-xs text-amber-600 font-medium">
-            Quarter {selectedQuarter} is locked. Switch to a different quarter
-            or unlock it from the filter above.
-          </p>
+        ) : (
+          // [EMPTY STATE] Grade not found
+          <div className="bg-[var(--color-bg-100)] rounded-lg p-8 text-center">
+            <p className="text-sm font-roboto text-[var(--color-text-600)]">Grade not available.</p>
+            <button
+              onClick={() => navigate(`/adviser/classes/${sectionId}/grades`)}
+              className="mt-3 text-sm font-roboto text-[var(--color-primary-600)] hover:underline cursor-pointer"
+            >
+              ← Back to Grades
+            </button>
+          </div>
         )}
-      </div>
-    </div>
+      </PageLayout>
+    </>
   );
 };
 

@@ -7,6 +7,89 @@ const prisma = require("../../lib/prisma");
 const { successResponse, errorResponse } = require("../../utils/response");
 const verifyAdmin = require("../../middleware/authMiddleware").verifyAdmin;
 
+// ?[PUT] Assign Adviser to Learning Area
+// /api/admin/learning-area/:id/assign-adviser
+router.put("/:id/assign-adviser", verifyAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { adviserId } = req.body;
+
+    if (isNaN(id)) {
+      return res.status(400).json(errorResponse("Invalid learning area ID"));
+    }
+
+    if (!adviserId || isNaN(Number(adviserId))) {
+      return res.status(400).json(errorResponse("Valid adviserId is required"));
+    }
+
+    // Check learning area
+    const learningArea = await prisma.learningArea.findUnique({
+      where: { id },
+    });
+    if (!learningArea) {
+      return res.status(404).json(errorResponse("Learning area not found"));
+    }
+
+    // Check adviser exists
+    const adviser = await prisma.adviser.findUnique({
+      where: { id: Number(adviserId) },
+    });
+    if (!adviser) {
+      return res.status(404).json(errorResponse("Adviser not found"));
+    }
+
+    // Assign adviser
+    const updated = await prisma.learningArea.update({
+      where: { id },
+      data: { adviserId: Number(adviserId) },
+      include: {
+        adviser: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    });
+
+    res.json(successResponse("Adviser assigned successfully", updated));
+  } catch (err) {
+    console.error(err);
+    res
+      .status(500)
+      .json(errorResponse("Failed to assign adviser", err.message));
+  }
+});
+
+// ?[PUT] Unassign Adviser from Learning Area
+// /api/admin/learning-area/:id/unassign-adviser
+router.put("/:id/unassign-adviser", verifyAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    if (isNaN(id)) {
+      return res.status(400).json(errorResponse("Invalid learning area ID"));
+    }
+
+    const learningArea = await prisma.learningArea.findUnique({
+      where: { id },
+    });
+
+    if (!learningArea) {
+      return res.status(404).json(errorResponse("Learning area not found"));
+    }
+
+    const updated = await prisma.learningArea.update({
+      where: { id },
+      data: { adviserId: null },
+    });
+
+    res.json(successResponse("Adviser unassigned successfully", updated));
+  } catch (err) {
+    console.error(err);
+    res
+      .status(500)
+      .json(errorResponse("Failed to unassign adviser", err.message));
+  }
+});
+
 // ?[GET] Get All Learning Areas
 // /api/admin/learning-area
 router.get("/", verifyAdmin, async (req, res) => {

@@ -111,7 +111,7 @@ const AdminSchoolForms = () => {
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/admin/school-forms/generate`,
+        `${import.meta.env.VITE_API_BASE_URL}/api/admin/school-forms/genesrate`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -119,7 +119,7 @@ const AdminSchoolForms = () => {
         }
       );
       const data = await safeJson(res);
-      if (!data.success) throw new Error(data.message || "Generation failed");
+      if (!data.success) throw new Error(data.message);
 
       setShowGenerateModal(false);
       await fetchSections();
@@ -131,10 +131,20 @@ const AdminSchoolForms = () => {
       });
     } catch (err: any) {
       console.error(err);
+
+      const message =
+        err?.message?.includes("Network")
+          ? "We couldn’t reach the server. Please check your internet connection."
+          : err?.message?.includes("already")
+          ? "Some forms already exist for this school year. No duplicates were created."
+          : err?.message || "Something went wrong while generating forms.";
+
       openGeneralModal({
-        title: "Generation Failed",
-        message: err.message || "Could not generate forms. Please try again.",
-        type: "error", isCancelable: false,
+        title: "Unable to Generate Forms",
+        message,
+        type: "error",
+        confirmText: "Close",
+        isCancelable: false,
         onConfirm: () => closeGeneralModal(),
       });
     } finally {

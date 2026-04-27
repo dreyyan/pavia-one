@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/exhaustive-deps */
 // [IMPORT] Hooks
 import { useState, useEffect } from "react";
@@ -8,9 +9,11 @@ import Modal from "../../components/Modal";
 import Skeleton from "../../components/Skeleton";
 import InputField from "../../components/InputField";
 import Breadcrumbs from "../../components/Breadcrumbs";
-import PageLayout from "../../components/layouts/PageLayout";
 import { WeightRow } from "../../components/WeightRow";
+import PageLayout from "../../components/layouts/PageLayout";
 import DeleteButton from "../../components/buttons/DeleteButton";
+import PrimaryButton from "../../components/buttons/PrimaryButton";
+import SecondaryButton from "../../components/buttons/SecondaryButton";
 
 // [IMPORT] Constants & Types
 import { GRADE_LEVEL_OPTIONS, CURRICULUM_OPTIONS, SUBJECT_PAGE_LABELS } from "../../constants";
@@ -26,6 +29,10 @@ const AdminSubjectDetails = () => {
   // [STATES] Entities
   const [subject, setSubject] = useState<LearningAreaDetails | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // [STATES] Adviser
+  const [advisers, setAdvisers] = useState<any[]>([]);
+  const [selectedAdviserId, setSelectedAdviserId] = useState<string>("");
 
   // [STATES] Identity Card
   const [activePage, setActivePage] = useState<FormPage>(0);
@@ -209,6 +216,106 @@ const AdminSubjectDetails = () => {
     }
   };
 
+  // * [HANDLE] Assign Adviser
+  const handleAssignAdviser = () => {
+    openGeneralModal({
+      title: "Assign Adviser",
+      message: (
+        <div className="mt-2">
+          <select
+            className="w-full border rounded-md px-2 py-1 text-sm"
+            value={selectedAdviserId}
+            onChange={(e) => setSelectedAdviserId(e.target.value)}
+          >
+            <option value="">Select adviser</option>
+            {advisers.map(a => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) as any,
+      confirmText: "Assign",
+      isCancelable: true,
+      onConfirm: async () => {
+        try {
+          const token = localStorage.getItem("token");
+          const res = await fetch(
+            `${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area/${id}/assign-adviser`,
+            {
+              method: "PUT",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ adviserId: Number(selectedAdviserId) }),
+            }
+          );
+
+          const data = await res.json();
+          if (!data.success) throw new Error(data.message);
+
+          setSubject(data.data);
+          setSelectedAdviserId("");
+
+          openGeneralModal({
+            title: "Adviser Assigned",
+            message: "Adviser successfully assigned.",
+            type: "success",
+            isCancelable: false,
+            onConfirm: closeGeneralModal,
+          });
+        } catch (err: any) {
+          console.error(err);
+          openGeneralModal({
+            title: "Failed",
+            message: err.message || "Failed to assign adviser.",
+            type: "error",
+            isCancelable: false,
+            onConfirm: closeGeneralModal,
+          });
+        }
+      },
+    });
+  };
+
+  // * [HANDLE] Unassign Adviser
+  const handleUnassignAdviser = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area/${id}/unassign-adviser`,
+        {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message);
+
+      setSubject(data.data);
+
+      openGeneralModal({
+        title: "Adviser Removed",
+        message: "Adviser unassigned successfully.",
+        type: "success",
+        isCancelable: false,
+        onConfirm: closeGeneralModal,
+      });
+    } catch (err: any) {
+      console.error(err);
+      openGeneralModal({
+        title: "Failed",
+        message: err.message || "Failed to unassign adviser.",
+        type: "error",
+        isCancelable: false,
+        onConfirm: closeGeneralModal,
+      });
+    }
+  };
+
   // [HANDLE] Generic text / select field change
   const handleFieldChange =
     (field: keyof LearningAreaDetails) =>
@@ -384,6 +491,16 @@ const AdminSubjectDetails = () => {
 
             {/* [ACTIONS] Delete */}
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-4 w-full xl:w-auto xl:ml-auto">
+              <PrimaryButton
+                text="Assign Adviser"
+                iconSrc="/assign-adviser.svg"
+                onClick={handleAssignAdviser}
+              />
+              <SecondaryButton
+                text="Unassign Adviser"
+                iconSrc="/unassign.svg"
+                onClick={handleUnassignAdviser}
+              />
               <DeleteButton onClick={handleDelete} text="Delete Subject" disabled={loading} />
             </div>
 
