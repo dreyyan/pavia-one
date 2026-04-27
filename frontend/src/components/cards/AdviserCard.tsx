@@ -13,10 +13,16 @@ interface AdviserCardProps {
 
 const AdviserCard: React.FC<AdviserCardProps> = ({ adviser: a, onClick }) => {
   const navigate = useNavigate();
-  const firstSection = a.sections?.[0];
-  const colors = firstSection
+
+  // [DERIVED] Section
+  const sections = a.sections ?? [];
+  const firstSection = sections[0];
+  const hasSection = sections.length > 0;
+  
+  // [DERIVED] Avatar color
+  const colors = hasSection
     ? getGradeColor(Number(firstSection.gradeLevel))
-    : getGradeColor(0);
+    : null;
 
   const initials = a.name
     .split(" ")
@@ -40,7 +46,14 @@ const AdviserCard: React.FC<AdviserCardProps> = ({ adviser: a, onClick }) => {
       <div className="bg-[var(--color-bg-50)] px-3 pr-4 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
         <div className="flex items-center w-full gap-3 min-w-0">
           {/* [UI] Initials Avatar */}
-          <div className={`size-10 rounded-md flex items-center justify-center bg-[var(--color-bg-100)] text-[var(--color-bg-700)] border border-[var(--color-bg-200)] font-bold text-sm flex-shrink-0 ${colors.badge}`}>
+          <div
+            className={`size-10 rounded-md flex items-center justify-center font-bold text-sm flex-shrink-0 border
+              ${
+                colors?.badge ??
+                "bg-[var(--color-bg-100)] text-[var(--color-text-700)] border-[var(--color-bg-200)]"
+              }
+            `}
+          >
             {initials}
           </div>
 
@@ -71,10 +84,16 @@ const AdviserCard: React.FC<AdviserCardProps> = ({ adviser: a, onClick }) => {
           <span className="text-[var(--color-text-700)] font-figree font-semibold">
             Assigned Section
           </span>
-          <span className="text-[var(--color-text-900)] truncate text-right min-w-0">
-            {a.sections?.length
-              ? `Grade ${a.sections[0].gradeLevel} – ${a.sections[0].name}`
-              : "None"}
+          <span
+            className={`truncate text-right min-w-0 ${
+              hasSection
+                ? "text-[var(--color-text-900)]"
+                : "text-[var(--color-red-600)]"
+            }`}
+          >
+            {hasSection
+              ? `Grade ${firstSection.gradeLevel} – ${firstSection.name}`
+              : "Unassigned"}
           </span>
         </div>
 
