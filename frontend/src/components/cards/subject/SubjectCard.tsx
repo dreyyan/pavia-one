@@ -2,6 +2,9 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
+// [IMPORT] Sub-components
+import Badge from "../../badges/Badge";
+
 // [IMPORT] Helpers
 import { getGradeColor } from "../../../helpers";
 
@@ -46,12 +49,6 @@ const SubjectCard: React.FC<SubjectCardProps> = ({ subject, onClick }) => {
             </p>
           </div>
         </div>
-
-        {!subject.adviser && (
-          <span className="ml-2 flex-shrink-0 text-xs px-2 py-0.5 rounded-full border font-semibold text-[var(--color-red-600)] bg-[var(--color-red-50)] border-[var(--color-red-300)] italic">
-            No Adviser
-          </span>
-        )}
       </div>
 
       {/* [DETAILS] Fields */}
@@ -70,15 +67,16 @@ const SubjectCard: React.FC<SubjectCardProps> = ({ subject, onClick }) => {
           <span className="text-[var(--color-text-700)] font-figree font-semibold">
             Assigned Adviser
           </span>
-          <span
-            className={`truncate text-right max-w-[180px] min-w-0 ${
-              !subject.adviser
-                ? "text-[var(--color-red-600)] italic"
-                : "text-[var(--color-text-900)] font-semibold"
-            }`}
-          >
-            {subject.adviser?.name ?? "—"}
-          </span>
+
+          <div className="flex justify-end min-w-0">
+            {subject.adviser ? (
+              <span className="text-[var(--color-text-900)] font-semibold truncate">
+                {subject.adviser.name}
+              </span>
+            ) : (
+              <Badge label="Unassigned" color="red" />
+            )}
+          </div>
         </div>
       </div>
     </div>

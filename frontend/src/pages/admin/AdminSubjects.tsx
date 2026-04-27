@@ -22,6 +22,7 @@ import PageLayout from "../../components/layouts/PageLayout";
 import { getVisiblePages } from "../../helpers/index";
 import { GRADE_LEVEL_OPTIONS, CURRICULUM_OPTIONS } from "../../constants";
 import { LearningAreaFormData, GeneralModalConfig, Subject } from "../../types";
+import Badge from "../../components/badges/Badge";
 
 // [CONSTANT] Empty form state
 const EMPTY_FORM: LearningAreaFormData = {
@@ -490,8 +491,21 @@ const AdminSubjects = () => {
                         {s.curriculum ?? "—"}
                       </td>
 
-                      <td className="table-cell table-text table-text-default">
-                        {s.adviser ? s.adviser.name : "Unassigned"}
+
+                      <td className="table-cell table-text">
+                        {s.adviser ? (
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/admin/advisers/view/${s.adviser!.id}`);
+                            }}
+                            className="table-text-default text-[var(--color-primary-700)] cursor-pointer hover:underline transition"
+                          >
+                            {s.adviser.name}
+                          </span>
+                        ) : (
+                          <Badge label="Unassigned" color="red" />
+                        )}
                       </td>
 
                       <td className="table-cell table-text table-text-default">
