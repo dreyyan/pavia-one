@@ -22,9 +22,7 @@ const SecondaryButton: React.FC<SecondaryButtonProps> = ({
       onClick={onClick}
       disabled={disabled}
       style={color ? { backgroundColor: `#${color}` } : undefined}
-      className={`flex justify-center items-center gap-1 px-4 md:px-8 h-10 rounded-md cursor-pointer 
-        bg-[var(--color-secondary-500)] hover:bg-[var(--color-secondary-600)] 
-        transition-all duration-200 disabled:opacity-50 whitespace-nowrap ${className}`}
+      className={`flex justify-center items-center gap-1 md:gap-2 px-4 md:px-5 h-10 rounded-md cursor-pointer bg-[var(--color-secondary-500)] hover:bg-[var(--color-secondary-600)]  transition-all duration-200 disabled:opacity-50 whitespace-nowrap ${className}`}
     >
       {/* Left Icon */}
       {iconSrc && iconPosition === "left" && (
