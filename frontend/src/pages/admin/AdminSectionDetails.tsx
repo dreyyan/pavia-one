@@ -12,7 +12,7 @@ import InputField from "../../components/toolbar/InputField";
 import Breadcrumbs from "../../components/toolbar/Breadcrumbs";
 import PageLayout from "../../components/layouts/PageLayout";
 import PersonInfoCard from "../../components/cards/PersonInfoCard";
-import StudentsListCard from "../../components/cards/student/StudentsListCard";
+import StudentsListCard from "../../components/cards/details/StudentsListCard";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
 import DeleteButton from "../../components/buttons/DeleteButton";
 import { AssignAdviserFormModal } from "../../components/forms/AssignAdviserFormModal";
