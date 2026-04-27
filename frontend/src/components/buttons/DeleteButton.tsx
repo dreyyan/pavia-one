@@ -16,7 +16,7 @@ const DeleteButton: React.FC<DeleteButtonProps> = ({
       onClick={onClick}
       disabled={disabled}
       className={`flex justify-center items-center gap-1 px-4 md:px-8 h-10 rounded-md cursor-pointer 
-        bg-[var(--color-red-600)] hover:bg-[var(--color-red-700)] 
+        bg-[var(--color-red-700)] hover:bg-[var(--color-red-800)] 
         transition-all duration-200 disabled:opacity-50 whitespace-nowrap ${className}`}
     >
       <img 
