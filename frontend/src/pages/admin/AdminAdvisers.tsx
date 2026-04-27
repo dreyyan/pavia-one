@@ -12,7 +12,7 @@ import Dropdown from "../../components/Dropdown";
 import SearchBar from "../../components/SearchBar";
 import Pagination from "../../components/Pagination";
 import Breadcrumbs from "../../components/Breadcrumbs";
-import AdviserCard from "../../components/cards/AdviserCard";
+import AdviserCard from "../../components/cards/adviser/AdviserCard";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
 import AdviserFormModal from "../../components/forms/AdviserFormModal";
 import PageLayout from "../../components/layouts/PageLayout";

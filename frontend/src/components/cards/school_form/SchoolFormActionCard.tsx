@@ -1,12 +1,11 @@
 // [IMPORT] Constants & Types
-import { SchoolForm } from "../../types";
+import { SchoolForm } from "../../../types";
 import {
   STATUS_BADGE,
   STATUS_LABEL,
-  SECTION_FORMS,
   FORM_TITLES,
   FORM_THEME,
-} from "../../constants";
+} from "../../../constants";
 
 const SchoolFormActionCard = ({
   form,
@@ -27,7 +26,6 @@ const SchoolFormActionCard = ({
 }) => {
   // [COMPUTE] Form configuration
   const theme = FORM_THEME[form.type] || FORM_THEME.SF1;
-  const isSectionForm = SECTION_FORMS.includes(form.type);
 
   return (
     <div className="bg-[var(--color-bg-50)] border border-[var(--color-bg-200)] rounded-md overflow-hidden">

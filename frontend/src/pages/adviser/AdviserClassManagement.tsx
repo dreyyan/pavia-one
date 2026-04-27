@@ -12,7 +12,7 @@ import EmptyState from "../../components/EmptyState";
 import SearchBar from "../../components/SearchBar";
 import Dropdown from "../../components/Dropdown";
 import Pagination from "../../components/Pagination";
-import ClassCard from "../../components/cards/ClassCard";
+import ClassCard from "../../components/cards/class/ClassCard";
 import PageLayout from "../../components/layouts/PageLayout";
 
 // [IMPORT] Helpers, Constants & Types

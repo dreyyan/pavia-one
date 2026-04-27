@@ -14,7 +14,7 @@ import Dropdown from "../../components/Dropdown";
 import Pagination from "../../components/Pagination";
 import Breadcrumbs from "../../components/Breadcrumbs";
 import PageLayout from "../../components/layouts/PageLayout";
-import SectionSchoolFormCard from "../../components/cards/SectionSchoolFormCard";
+import SectionSchoolFormCard from "../../components/cards/section/SectionSchoolFormCard";
 
 // [IMPORT] Helpers, Constants & Types
 import { getVisiblePages } from "../../helpers/index";

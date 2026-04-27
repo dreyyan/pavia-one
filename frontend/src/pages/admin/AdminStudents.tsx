@@ -13,7 +13,7 @@ import SearchBar from "../../components/SearchBar";
 import Pagination from "../../components/Pagination";
 import Breadcrumbs from "../../components/Breadcrumbs";
 import BulkActionsBar from "../../components/BulkActionsBar";
-import StudentCard from "../../components/cards/StudentCard";
+import StudentCard from "../../components/cards/student/StudentCard";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
 import StudentFormModal from "../../components/forms/StudentFormModal";
 import PageLayout from "../../components/layouts/PageLayout";

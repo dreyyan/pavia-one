@@ -12,7 +12,7 @@ import Dropdown from "../../components/Dropdown";
 import SearchBar from "../../components/SearchBar";
 import Pagination from "../../components/Pagination";
 import Breadcrumbs from "../../components/Breadcrumbs";
-import SubjectCard from "../../components/cards/SubjectCard";
+import SubjectCard from "../../components/cards/subject/SubjectCard";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
 import SecondaryButton from "../../components/buttons/SecondaryButton";
 import SubjectFormModal from "../../components/forms/SubjectFormModal";

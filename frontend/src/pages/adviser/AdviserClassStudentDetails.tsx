@@ -10,7 +10,7 @@ import Skeleton from "../../components/Skeleton";
 import InputField from "../../components/InputField";
 import ProfileInfo from "../../components/ProfileInfo";
 import Breadcrumbs from "../../components/Breadcrumbs";
-import TabbedFormCard from "../../components/cards/TabbedFormCard";
+import TabbedFormCard from "../../components/cards/details/TabbedFormCard";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
 import PageLayout from "../../components/layouts/PageLayout";
 

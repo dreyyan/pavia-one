@@ -3,10 +3,10 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Helpers
-import { getGradeColor } from "../../helpers";
+import { getGradeColor } from "../../../helpers";
 
 // [IMPORT] Types
-import type { Subject } from "../../types";
+import type { Subject } from "../../../types";
 
 interface SubjectCardProps {
   subject: Subject;

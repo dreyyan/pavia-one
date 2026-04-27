@@ -1,6 +1,6 @@
-import { STATUS_BADGE, STATUS_LABEL } from "../../constants";
-import { getGradeColor } from "../../helpers";
-import type { Section, SectionForm } from "../../types";
+import { STATUS_BADGE, STATUS_LABEL } from "../../../constants";
+import { getGradeColor } from "../../../helpers";
+import type { Section, SectionForm } from "../../../types";
 
 const FORM_TYPES = ["SF1", "SF2", "SF5", "SF9", "SF10"];
 

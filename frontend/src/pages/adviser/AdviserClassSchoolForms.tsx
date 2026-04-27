@@ -13,8 +13,8 @@ import Skeleton from "../../components/Skeleton";
 import EmptyState from "../../components/EmptyState";
 import Breadcrumbs from "../../components/Breadcrumbs";
 import PageLayout from "../../components/layouts/PageLayout";
-import ClassCard from "../../components/cards/ClassCard";
-import SchoolFormActionCard from "../../components/cards/SchoolFormActionCard";
+import ClassCard from "../../components/cards/class/ClassCard";
+import SchoolFormActionCard from "../../components/cards/school_form/SchoolFormActionCard";
 
 // [IMPORT] Helpers, Constants & Types
 import {

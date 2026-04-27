@@ -2,7 +2,7 @@
 import React from "react";
 
 // [IMPORT] Types
-import type { Announcement } from "../../types";
+import type { Announcement } from "../../../types";
 
 interface AnnouncementCardProps {
   announcement: Announcement;

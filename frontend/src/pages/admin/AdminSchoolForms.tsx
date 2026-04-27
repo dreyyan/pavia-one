@@ -16,7 +16,7 @@ import { SectionOverview, GeneralModalConfig } from "../../types/index";
 import { safeJson, getMissingInfo, sectionFormSummary } from "./../../helpers/index";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
 import DashboardItem from "../../components/DashboardItem";
-import SectionFormCard from "../../components/cards/SectionFormCard";
+import SectionFormCard from "../../components/cards/section/SectionFormCard";
 
 const AdminSchoolForms = () => {
   const navigate = useNavigate();

@@ -2,8 +2,8 @@
 import React from "react";
 
 // [IMPORT] Constants & Types
-import { EVENT_TYPE_LABELS } from "../../constants";
-import type { SchoolEvent } from "../../types";
+import { EVENT_TYPE_LABELS } from "../../../constants";
+import type { SchoolEvent } from "../../../types";
 
 interface EventCardProps {
   event: SchoolEvent;

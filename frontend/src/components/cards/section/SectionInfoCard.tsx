@@ -2,10 +2,10 @@
 import React from "react";
 
 // [IMPORT] Types
-import type { Section } from "../../types";
+import type { Section } from "../../../types";
 
 // [IMPORT] Helpers
-import { getGradeColor } from "../../helpers/index";
+import { getGradeColor } from "../../../helpers/index";
 
 interface SectionInfoCardProps {
   section: Section;

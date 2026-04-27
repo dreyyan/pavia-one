@@ -11,8 +11,8 @@ import SearchBar from "../../components/SearchBar";
 import Dropdown from "../../components/Dropdown";
 import Pagination from "../../components/Pagination";
 import PageLayout from "../../components/layouts/PageLayout";
-import AnnouncementCard from "../../components/cards/AnnouncementCard";
-import EventCard from "../../components/cards/EventCard";
+import AnnouncementCard from "../../components/cards/announcement/AnnouncementCard";
+import EventCard from "../../components/cards/event/EventCard";
 
 // [IMPORT] Helpers, Constants & Types
 import {

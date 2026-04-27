@@ -15,7 +15,7 @@ import DashboardItem from "../../components/DashboardItem";
 import { GeneralModalConfig, SchoolFormType, SchoolFormStatus, SectionForm, StudentFormStatus } from "../../types";
 import { FORM_STATUS_BADGE, FORM_STATUS_LABELS } from "../../constants/index";
 import { safeJson } from "../../helpers/index";
-import SectionInfoCard from "../../components/cards/SectionInfoCard";
+import SectionInfoCard from "../../components/cards/section/SectionInfoCard";
 
 // ? [INTERFACES]
 interface SectionDetail {

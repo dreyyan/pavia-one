@@ -11,7 +11,7 @@ import EmptyState from "../../components/EmptyState";
 import InputField from "../../components/InputField";
 import ProfileInfo from "../../components/ProfileInfo";
 import Breadcrumbs from "../../components/Breadcrumbs";
-import TabbedFormCard from "../../components/cards/TabbedFormCard";
+import TabbedFormCard from "../../components/cards/details/TabbedFormCard";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
 import DeleteButton from "../../components/buttons/DeleteButton";
 import PageLayout from "../../components/layouts/PageLayout";

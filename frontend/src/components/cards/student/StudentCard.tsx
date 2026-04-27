@@ -2,8 +2,8 @@
 import React from "react";
 
 // [IMPORT] Helpers & Types
-import { formatName } from "../../helpers";
-import { Student } from "../../types";
+import { formatName } from "../../../helpers";
+import { Student } from "../../../types";
 
 interface StudentCardProps {
   student: Student;

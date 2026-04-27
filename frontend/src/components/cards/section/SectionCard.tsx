@@ -3,8 +3,8 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Helpers & Types
-import { getGradeColor } from "../../helpers";
-import type { Section } from "../../types";
+import { getGradeColor } from "../../../helpers";
+import type { Section } from "../../../types";
 
 interface SectionCardProps {
   section: Section;

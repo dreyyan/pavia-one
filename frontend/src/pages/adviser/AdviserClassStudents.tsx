@@ -11,9 +11,9 @@ import SearchBar from "../../components/SearchBar";
 import Dropdown from "../../components/Dropdown";
 import Pagination from "../../components/Pagination";
 import Breadcrumbs from "../../components/Breadcrumbs";
-import StudentCard from "../../components/cards/StudentCard";
+import StudentCard from "../../components/cards/student/StudentCard";
 import PageLayout from "../../components/layouts/PageLayout";
-import ClassCard from "../../components/cards/ClassCard";
+import ClassCard from "../../components/cards/class/ClassCard";
 import Modal from "../../components/Modal";
 
 // [IMPORT] Constants, Helpers & Types

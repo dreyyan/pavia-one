@@ -3,8 +3,8 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Helpers & Types
-import { formatName, getGradeColor } from "../../helpers";
-import type { Adviser } from "../../types";
+import { formatName, getGradeColor } from "../../../helpers";
+import type { Adviser } from "../../../types";
 
 interface AdviserCardProps {
   adviser: Adviser;

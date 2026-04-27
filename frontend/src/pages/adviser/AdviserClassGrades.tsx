@@ -12,8 +12,8 @@ import SearchBar from "../../components/SearchBar";
 import Dropdown from "../../components/Dropdown";
 import Pagination from "../../components/Pagination";
 import Breadcrumbs from "../../components/Breadcrumbs";
-import ClassCard from "../../components/cards/ClassCard";
-import StudentGradeCard from "../../components/cards/StudentGradeCard";
+import ClassCard from "../../components/cards/class/ClassCard";
+import StudentGradeCard from "../../components/cards/student/StudentGradeCard";
 import PageLayout from "../../components/layouts/PageLayout";
 
 // [IMPORT] Helpers & Types

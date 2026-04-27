@@ -13,7 +13,7 @@ import Dropdown from "../../components/Dropdown";
 import SearchBar from "../../components/SearchBar";
 import Pagination from "../../components/Pagination";
 import Breadcrumbs from "../../components/Breadcrumbs";
-import SectionCard from "../../components/cards/SectionCard";
+import SectionCard from "../../components/cards/section/SectionCard";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
 import SecondaryButton from "../../components/buttons/SecondaryButton";
 import SectionFormModal from "../../components/forms/SectionFormModal";

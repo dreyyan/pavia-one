@@ -3,7 +3,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Helpers
-import { getGradeColor } from "../../helpers";
+import { getGradeColor } from "../../../helpers";
 
 interface ClassCardProps {
   id: number;

@@ -8,7 +8,7 @@ import { useAuth } from "../../context/useAuth";
 import Modal from "../../components/Modal";
 import Skeleton from "../../components/Skeleton";
 import Breadcrumbs from "../../components/Breadcrumbs";
-import ClassCard from "../../components/cards/ClassCard";
+import ClassCard from "../../components/cards/class/ClassCard";
 import DashboardItem from "../../components/DashboardItem";
 import DashboardButton from "../../components/buttons/DashboardButton";
 import PageLayout from "../../components/layouts/PageLayout";
