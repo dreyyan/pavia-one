@@ -40,7 +40,7 @@ const DashboardIconButton: React.FC<DashboardIconButtonProps> = ({
       />
 
       {/* [TEXT] Label (hidden on mobile, shown on md) */}
-      <span className="hidden sm:block font-roboto font-bold text-sm sm:text-sm xl:text-md 2xl:text-lg text-[var(--color-text-50)]">
+      <span className="hidden sm:block font-roboto font-bold text-sm sm:text-sm xl:text-md 2xl:text-lg text-[var(--color-text-50)] text-left">
         {label}
       </span>
     </button>

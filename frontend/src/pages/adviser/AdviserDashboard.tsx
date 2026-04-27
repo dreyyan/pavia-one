@@ -138,36 +138,46 @@ const AdviserDashboard = () => {
         {/* [SECTION] Profile */}
         <div className="relative flex lg:flex-2 lg:flex-col-reverse items-center lg:items-end bg-[var(--color-bg-100)] rounded-lg px-3 sm:px-4 md:px-6 py-3 sm:py-4 gap-x-3 sm:gap-x-4 shadow-md">
 
-          {/* [SECTION] Profile Buttons */}
-          <div className="
+        {/* [SECTION] Profile Buttons */}
+        <div
+          className="
             absolute top-3 right-3
             flex lg:flex-col
             items-center lg:items-stretch
             gap-1 sm:gap-2 md:gap-3
             lg:static lg:w-full
-          ">
-            <DashboardIconButton
-              iconSrc="/profile.svg"
-              alt="Adviser Profile"
-              label="Profile"
-              onClick={() => navigate("/adviser/profile")}
-              variant="primary"
-            />
-            <DashboardIconButton
-              iconSrc="/settings.svg"
-              alt="Adviser Settings"
-              label="Settings"
-              onClick={() => navigate("/adviser/settings")}
-              variant="neutral"
-            />
-            <DashboardIconButton
-              iconSrc="/logout.svg"
-              alt="Adviser Logout"
-              label="Logout"
-              onClick={handleLogout}
-              variant="danger"
-            />
-          </div>
+          "
+        >
+          {/* PRIMARY ACTION */}
+          <DashboardIconButton
+            iconSrc="/class-management.svg"
+            alt="Class Management"
+            label="Class Management"
+            onClick={() =>
+              navigate("/adviser/classes")
+            }
+            variant="primary"
+          />
+
+          <hr className="hidden lg:block w-full border-t border-[var(--color-bg-300)] my-2" />
+
+          {/* PROFILE */}
+          <DashboardIconButton
+            iconSrc="/profile.svg"
+            alt="Adviser Profile"
+            label="Profile"
+            onClick={() => navigate("/adviser/profile")}
+            variant="neutral"
+          />
+
+          <DashboardIconButton
+            iconSrc="/logout.svg"
+            alt="Adviser Logout"
+            label="Logout"
+            onClick={handleLogout}
+            variant="danger"
+          />
+        </div>
 
           <hr className="hidden lg:block w-full border-t border-[var(--color-bg-400)] my-4" />
 
