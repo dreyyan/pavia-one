@@ -16,6 +16,7 @@ import AdviserCard from "../../components/cards/adviser/AdviserCard";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
 import AdviserFormModal from "../../components/forms/AdviserFormModal";
 import PageLayout from "../../components/layouts/PageLayout";
+import Badge from "../../components/badges/Badge";
 
 // [IMPORT] Helpers & Types
 import { getVisiblePages, getLastName } from "../../helpers/index";
@@ -421,13 +422,33 @@ const AdminAdvisers = () => {
                       </td>
 
                       <td className="table-cell table-text table-text-default">
-                        {a.sections?.[0]?.curriculum ?? "—"}
+                        {a.sections?.[0]?.curriculum ? (
+                          a.sections[0].curriculum
+                        ) : (
+                          <Badge label="Missing" color="red" />
+                        )}
                       </td>
 
-                      <td className="table-cell table-text table-text-default">
-                        {a.sections?.length
-                          ? `Grade ${a.sections[0].gradeLevel} – ${a.sections[0].name}`
-                          : "Unassigned"}
+                      <td
+                        className="table-cell table-text text-[var(--color-text-600)]"
+                      >
+                        {a.sections?.length ? (
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+
+                              const section = a.sections?.[0];
+                              if (!section) return;
+
+                              navigate(`/admin/sections/view/${section.id}`);
+                            }}
+                            className="cursor-pointer hover:underline hover:text-[var(--color-primary-700)] transition"
+                          >
+                            Grade {a.sections[0].gradeLevel} - {a.sections[0].name}
+                          </span>
+                        ) : (
+                          <Badge label="Unassigned" color="red" />
+                        )}
                       </td>
 
                       <td className="table-cell table-text table-text-default">

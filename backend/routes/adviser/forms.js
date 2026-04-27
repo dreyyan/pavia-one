@@ -20,7 +20,7 @@ router.get("/section/:sectionId", verifyAdviser, async (req, res) => {
     if (isNaN(sectionId))
       return res.status(400).json(errorResponse("Invalid section ID"));
 
-    // --- Section + adviser + school forms ---
+    // --- Section ---
     const section = await prisma.section.findUnique({
       where: { id: sectionId },
       include: {
@@ -36,9 +36,11 @@ router.get("/section/:sectionId", verifyAdviser, async (req, res) => {
     if (!section)
       return res.status(404).json(errorResponse("Section not found"));
 
-    // --- Enrolled students with their SF9 grades and SF5 reports ---
+    // --- Enrollments + SF9 ---
     const enrollments = await prisma.enrollment.findMany({
-      where: { sectionId, schoolYear: section.schoolYear },
+      where: {
+        sectionId,
+      },
       include: {
         student: {
           select: {
@@ -49,6 +51,8 @@ router.get("/section/:sectionId", verifyAdviser, async (req, res) => {
             lastName: true,
             nameExtension: true,
             sex: true,
+
+            // 🔥 RAW SF9 grades
             sf9Grades: {
               where: { schoolYear: section.schoolYear },
               select: {
@@ -66,31 +70,64 @@ router.get("/section/:sectionId", verifyAdviser, async (req, res) => {
                 remarks: true,
               },
             },
+
             sf9Summaries: {
               where: { schoolYear: section.schoolYear },
-              select: { id: true, generalAverage: true },
+              select: {
+                id: true,
+                generalAverage: true,
+              },
             },
+
             sf5Reports: {
-              select: { id: true, generalAverage: true, actionTaken: true },
+              select: {
+                id: true,
+                generalAverage: true,
+                actionTaken: true,
+              },
             },
           },
         },
       },
-      orderBy: { student: { lastName: "asc" } },
+      orderBy: {
+        student: { lastName: "asc" },
+      },
     });
 
     const classSize = enrollments.length;
 
-    // --- Derive per-student form statuses ---
+    // =========================
+    // 🔥 NORMALIZE SF9 + STATUS
+    // =========================
     const students = enrollments.map((e) => {
       const s = e.student;
 
       const sf9Grades = s.sf9Grades ?? [];
+
+      // 🔥 group SF9 by learningAreaId
+      const sf9Map = sf9Grades.reduce((acc, g) => {
+        acc[g.learningAreaId] = {
+          id: g.id,
+          q1: g.q1,
+          q2: g.q2,
+          q3: g.q3,
+          q4: g.q4,
+          q1Ready: g.q1Ready,
+          q2Ready: g.q2Ready,
+          q3Ready: g.q3Ready,
+          q4Ready: g.q4Ready,
+          finalRating: g.finalRating,
+          remarks: g.remarks,
+        };
+        return acc;
+      }, {});
+
       const allReady =
         sf9Grades.length > 0 &&
         sf9Grades.every(
           (g) => g.q1Ready && g.q2Ready && g.q3Ready && g.q4Ready,
         );
+
       const partialReady =
         sf9Grades.length > 0 &&
         sf9Grades.some((g) => g.q1Ready || g.q2Ready || g.q3Ready || g.q4Ready);
@@ -102,6 +139,7 @@ router.get("/section/:sectionId", verifyAdviser, async (req, res) => {
           : "PENDING";
 
       const sf9Summary = s.sf9Summaries?.[0] ?? null;
+
       const sf10Status =
         sf9Summary?.generalAverage != null ? "COMPLETE" : "PENDING";
 
@@ -116,10 +154,16 @@ router.get("/section/:sectionId", verifyAdviser, async (req, res) => {
         lastName: s.lastName,
         nameExtension: s.nameExtension,
         sex: s.sex,
+
         enrollmentStatus: e.status,
+
+        // 🔥 ADD THIS
+        sf9: sf9Map,
+
         sf9Status,
         sf10Status,
         sf5Status,
+
         generalAverage: sf9Summary?.generalAverage ?? null,
         actionTaken: sf5Report?.actionTaken ?? null,
       };

@@ -2,6 +2,9 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
+// [IMPORT] Sub-components
+import Badge from "../../badges/Badge";
+
 // [IMPORT] Helpers & Types
 import { formatName, getGradeColor } from "../../../helpers";
 import type { Adviser } from "../../../types";
@@ -84,17 +87,16 @@ const AdviserCard: React.FC<AdviserCardProps> = ({ adviser: a, onClick }) => {
           <span className="text-[var(--color-text-700)] font-figree font-semibold">
             Assigned Section
           </span>
-          <span
-            className={`truncate text-right min-w-0 ${
-              hasSection
-                ? "text-[var(--color-text-900)]"
-                : "text-[var(--color-red-600)]"
-            }`}
-          >
-            {hasSection
-              ? `Grade ${firstSection.gradeLevel} – ${firstSection.name}`
-              : "Unassigned"}
-          </span>
+
+          <div className="flex justify-end min-w-0">
+            {hasSection && firstSection ? (
+              <span className="truncate text-[var(--color-text-900)]">
+                Grade {firstSection.gradeLevel} – {firstSection.name}
+              </span>
+            ) : (
+              <Badge label="Unassigned" color="red" />
+            )}
+          </div>
         </div>
 
         <div className="flex justify-between items-center min-w-0">

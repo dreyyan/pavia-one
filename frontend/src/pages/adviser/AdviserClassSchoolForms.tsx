@@ -34,11 +34,11 @@ const AdviserClassSchoolForms = () => {
   const { sectionId } = useParams<{ sectionId: string }>();
   const { setShowTokenExpiredModal } = useAuth();
 
-  // [STATES] Section
+  // [STATES]
   const [section, setSection] = useState<SectionInfo | null>(null);
+  const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // [STATES] Import / Export
   const [exporting, setExporting] = useState<string | null>(null);
   const [importingFor, setImportingFor] = useState<"SF1" | null>(null);
   const [importLoading, setImportLoading] = useState(false);
@@ -46,7 +46,7 @@ const AdviserClassSchoolForms = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // [STATE] Modal
+  // [MODAL]
   const [generalModal, setGeneralModal] = useState<GeneralModalConfig>({
     isOpen: false,
     title: "",
@@ -68,80 +68,82 @@ const AdviserClassSchoolForms = () => {
   };
 
   // ? [GET] Fetch Section
-  const fetchSection = async () => {
-    setLoading(true);
+const fetchSection = async () => {
+  setLoading(true);
 
-    try {
-      const token = localStorage.getItem("token");
+  try {
+    const token = localStorage.getItem("token");
 
-      const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/adviser/forms/section/${sectionId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+    const res = await fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/api/adviser/forms/section/${sectionId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-      if (res.status === 401) {
-        setShowTokenExpiredModal(true);
-        return;
-      }
-
-      const data = await res.json();
-      if (!data.success) throw new Error(data.message);
-
-      const raw = data.data.section;
-      const students = data.data.students || [];
-
-      // [COMPUTE] Male / Female counts
-      let maleCount = 0;
-      let femaleCount = 0;
-
-      students.forEach((student: any) => {
-        const sex = student.sex?.toUpperCase();
-
-        if (sex === "MALE") maleCount++;
-        else if (sex === "FEMALE") femaleCount++;
-      });
-
-      setSection({
-        id: raw.id,
-        name: raw.name,
-        gradeLevel: raw.gradeLevel,
-        schoolYear: raw.schoolYear,
-        color: raw.color,
-        curriculum: raw.curriculum,
-
-        classSize: raw.enrollments?.length || 0,
-
-        maleCount,
-        femaleCount,
-
-        schoolForms: raw.schoolForms.map((f: any) => ({
-          id: f.id,
-          type: f.type,
-          status: f.status as SchoolFormStatus,
-          schoolYear: f.schoolYear,
-          generatedAt: f.generatedAt ?? undefined,
-          submittedAt: f.submittedAt ?? undefined,
-        })),
-      });
-    } catch (err) {
-      console.error(err);
-      openGeneralModal({
-        title: "Unable to Load Section",
-        message: "We couldn't load the section. Please try again.",
-        type: "error",
-        confirmText: "Close",
-        onConfirm: closeGeneralModal,
-      });
-    } finally {
-      setLoading(false);
+    if (res.status === 401) {
+      setShowTokenExpiredModal(true);
+      return;
     }
-  };
+
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message);
+
+    const raw = data.data.section;
+    const studentsData = data.data.students ?? [];
+
+    // ✅ IMPORTANT: compute from studentsData (NOT state)
+    let maleCount = 0;
+    let femaleCount = 0;
+
+    studentsData.forEach((student: any) => {
+      const sex = student.sex?.toUpperCase();
+      if (sex === "MALE") maleCount++;
+      else if (sex === "FEMALE") femaleCount++;
+    });
+
+    // ✅ update BOTH states properly
+    setStudents(studentsData);
+
+    setSection({
+      id: raw.id,
+      name: raw.name,
+      gradeLevel: raw.gradeLevel,
+      schoolYear: raw.schoolYear,
+      color: raw.color,
+      curriculum: raw.curriculum,
+
+      classSize: raw.classSize ?? studentsData.length ?? 0,
+
+      maleCount,
+      femaleCount,
+
+      schoolForms: (raw.schoolForms ?? []).map((f: any) => ({
+        id: f.id,
+        type: f.type,
+        status: f.status as SchoolFormStatus,
+        schoolYear: f.schoolYear,
+        generatedAt: f.generatedAt ?? undefined,
+        submittedAt: f.submittedAt ?? undefined,
+      })),
+    });
+  } catch (err) {
+    console.error(err);
+    openGeneralModal({
+      title: "Unable to Load Section",
+      message: "We couldn't load the section. Please try again.",
+      type: "error",
+      confirmText: "Close",
+      onConfirm: closeGeneralModal,
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchSection();
   }, [sectionId]);
 
-  // * [HANDLE] Export
+  // * [EXPORT]
   const handleExport = async (formType: string) => {
     setExporting(formType);
 
@@ -175,7 +177,6 @@ const AdviserClassSchoolForms = () => {
 
       URL.revokeObjectURL(url);
     } catch (err: any) {
-      console.error(err);
       openGeneralModal({
         title: "Export Failed",
         message: err.message,
@@ -188,31 +189,18 @@ const AdviserClassSchoolForms = () => {
     }
   };
 
-  // * [HANDLE] Import SF1
+  // * [IMPORT]
   const handleImportClick = () => {
     setImportingFor("SF1");
     setImportResult(null);
     fileInputRef.current?.click();
   };
 
-  // * [HANDLE] File Upload
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (fileInputRef.current) fileInputRef.current.value = "";
 
     if (!file) return;
-
-    const ext = file.name.split(".").pop()?.toLowerCase();
-    if (!["xlsx", "csv"].includes(ext || "")) {
-      openGeneralModal({
-        title: "Invalid File",
-        message: "Only .xlsx or .csv files are allowed.",
-        type: "error",
-        confirmText: "Close",
-        onConfirm: closeGeneralModal,
-      });
-      return;
-    }
 
     setImportLoading(true);
 
@@ -244,7 +232,6 @@ const AdviserClassSchoolForms = () => {
         onConfirm: closeGeneralModal,
       });
     } catch (err: any) {
-      console.error(err);
       openGeneralModal({
         title: "Import Failed",
         message: err.message,
@@ -258,31 +245,27 @@ const AdviserClassSchoolForms = () => {
     }
   };
 
-  // [COMPUTE] Forms
+  // [SAFE COMPUTE]
   const sectionLevelForms =
-    section?.schoolForms.filter((f) => SECTION_FORMS.includes(f.type)) ?? [];
+    section?.schoolForms?.filter((f) => SECTION_FORMS.includes(f.type)) ?? [];
 
   const studentLevelForms =
-    section?.schoolForms.filter((f) => STUDENT_FORMS.includes(f.type)) ?? [];
+    section?.schoolForms?.filter((f) => STUDENT_FORMS.includes(f.type)) ?? [];
 
-  // [DERIVED] Section
   const sectionLabel = section
     ? `${section.gradeLevel} — ${section.name}`
     : "Class";
 
-  // * [BREADCRUMBS] Adviser Class School Forms Navigation
   const breadcrumbs = [
     { label: "School Forms", path: "/adviser/school-forms" },
-    { label: sectionLabel || "Class", path: `/adviser/classes/${sectionId}` },
+    { label: sectionLabel, path: `/adviser/classes/${sectionId}` },
     { label: "Forms", path: null },
   ];
 
-  // ? [LOADING]
   if (loading) return <Skeleton />;
 
   return (
     <>
-      {/* [HIDDEN] File Input */}
       <input
         ref={fileInputRef}
         type="file"
@@ -291,7 +274,6 @@ const AdviserClassSchoolForms = () => {
         onChange={handleFileChange}
       />
 
-      {/* [MODAL] General */}
       <Modal
         isOpen={generalModal.isOpen}
         onClose={closeGeneralModal}
@@ -302,61 +284,94 @@ const AdviserClassSchoolForms = () => {
         onConfirm={generalModal.onConfirm}
       />
 
-      {/* [PAGE] */}
-      <PageLayout header={<Breadcrumbs title={`School Forms (${sectionLabel})`} items={breadcrumbs} />}>
+      <PageLayout
+        header={
+          <Breadcrumbs
+            title={`School Forms (${sectionLabel})`}
+            items={breadcrumbs}
+          />
+        }
+      >
         {section ? (
           <div className="space-y-4">
-
-            {/* [CARD] */}
             <ClassCard {...section} />
 
-            {/* [SECTION FORMS] */}
+            {/* Section Forms */}
             <div className="bg-[var(--color-bg-100)] px-3 py-4 rounded-lg space-y-3">
               <span className="form-section-title block">Section Forms</span>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {sectionLevelForms.length === 0 ? (
-                  <div className="sm:col-span-2 flex justify-center">
-                    <EmptyState
-                      title="No section forms available"
-                      subtitle="Section forms will appear here once they are generated."
-                    />
-                  </div>
+                  <EmptyState
+                    title="No section forms available"
+                    subtitle="Section forms will appear here once generated."
+                  />
                 ) : (
-                  sectionLevelForms.map((form) => {
-                    const permissions = FORM_PERMISSIONS[form.type];
-
-                    return (
-                      <SchoolFormActionCard
-                        key={form.id}
-                        form={form}
-                        sectionSchoolYear={section.schoolYear}
-                        onExport={() => handleExport(form.type)}
-                        onImport={
-                          form.type === "SF1" ? handleImportClick : undefined
-                        }
-                        exporting={exporting === form.type}
-                        importing={importLoading && importingFor === form.type}
-                        supportsImport={permissions?.import ?? false}
-                      />
-                    );
-                  })
+                  sectionLevelForms.map((form) => (
+                    <SchoolFormActionCard
+                      key={form.id}
+                      form={form}
+                      sectionSchoolYear={section.schoolYear}
+                      onExport={() => handleExport(form.type)}
+                      onImport={
+                        form.type === "SF1" ? handleImportClick : undefined
+                      }
+                      exporting={exporting === form.type}
+                      importing={importLoading && importingFor === form.type}
+                      supportsImport={
+                        FORM_PERMISSIONS[form.type]?.import ?? false
+                      }
+                    />
+                  ))
                 )}
               </div>
             </div>
 
-            {/* [STUDENT FORMS] */}
+            {/* Student Forms */}
             <div className="bg-[var(--color-bg-100)] px-3 py-4 rounded-lg space-y-3">
               <span className="form-section-title block">Student Forms</span>
 
+              {/* [SF9 STATUS PREVIEW] */}
+              <div className="bg-[var(--color-bg-100)] px-3 py-4 rounded-lg space-y-3">
+                <span className="form-section-title block">SF9 Student Grades</span>
+
+                <div className="grid grid-cols-1 gap-3">
+                  {students.length === 0 ? (
+                    <EmptyState
+                      title="No students found"
+                      subtitle="Import SF1 to generate student SF9 records."
+                    />
+                  ) : (
+                    students.map((student: any) => (
+                      <div
+                        key={student.id}
+                        className="bg-[var(--color-bg-50)] border border-[var(--color-bg-200)] rounded-md px-4 py-3"
+                      >
+                        <div className="flex justify-between items-center">
+                          <p className="font-semibold text-sm">
+                            {student.lastName}, {student.firstName}
+                          </p>
+
+                          <span className="text-xs px-2 py-1 rounded-full bg-[var(--color-bg-200)]">
+                            SF9: {student.sf9Status}
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-[var(--color-text-600)] mt-1">
+                          SF10: {student.sf10Status} • SF5: {student.sf5Status}
+                        </p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {studentLevelForms.length === 0 ? (
-                  <div className="sm:col-span-2 flex justify-center">
-                    <EmptyState
-                      title="No student forms available"
-                      subtitle="Student forms will appear here once they are generated."
-                    />
-                  </div>
+                  <EmptyState
+                    title="No student forms available"
+                    subtitle="Student forms will appear here once generated."
+                  />
                 ) : (
                   studentLevelForms.map((form) => (
                     <SchoolFormActionCard

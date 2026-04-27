@@ -158,7 +158,7 @@ const AdminSubjectDetails = () => {
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area/${id}/assign-advisser`,
+        `${import.meta.env.VITE_API_BASE_URL}/api/admin/learning-area/${id}/assign-adviser`,
         {
           method: "PUT",
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -220,7 +220,18 @@ const AdminSubjectDetails = () => {
             }
           );
           const data = await res.json();
-          if (!data.success) throw new Error(data.message || "Failed to unassign adviser");
+          if (!data.success) {
+            openGeneralModal({
+              title: "Unable to Assign Adviser",
+              message: data.message || "Failed to unassign adviser. Please try again.",
+              type: "error",
+              confirmText: "Close",
+              isCancelable: false,
+              onConfirm: () => closeGeneralModal(),
+            });
+
+            throw new Error(data.message || "Failed to unassign adviser");
+          }
 
           setSubject(data.data);
 

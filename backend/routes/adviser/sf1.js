@@ -124,6 +124,9 @@ router.post(
       return res.status(400).json(errorResponse("No students found"));
     }
 
+    // =========================
+    // SECTION RESOLUTION
+    // =========================
     const resolved = await resolveAdviserSection(req.adviserId);
     if (resolved.error) {
       return res.status(resolved.status).json(errorResponse(resolved.error));
@@ -140,6 +143,9 @@ router.post(
       return SPECIAL_SECTIONS?.[gradeLevel]?.[curriculum]?.length > 0;
     };
 
+    // =========================
+    // SUBJECTS SETUP
+    // =========================
     const coreSubjects = [
       "Filipino",
       "English",
@@ -182,7 +188,7 @@ router.post(
     }
 
     // =========================
-    // 🔥 FIX: SAFE MATCHING (NO STRICT WHERE NAME IN)
+    // LEARNING AREA MATCHING
     // =========================
     const learningAreas = await prisma.learningArea.findMany({
       where: {
@@ -196,7 +202,6 @@ router.post(
     });
 
     const normalize = (str) => str.toLowerCase().trim();
-
     const subjectSet = new Set(subjects.map(normalize));
 
     const subjectIds = learningAreas
@@ -211,6 +216,9 @@ router.post(
       matchedSubjectIds: subjectIds.length,
     });
 
+    // =========================
+    // RESULTS TRACKING
+    // =========================
     const results = {
       created: 0,
       updated: 0,
@@ -220,6 +228,9 @@ router.post(
       errors: [],
     };
 
+    // =========================
+    // PROCESS STUDENTS
+    // =========================
     for (const s of students) {
       if (!s.lrn || !s.firstName || !s.lastName) {
         results.errors.push({ lrn: s.lrn || "?", reason: "Missing fields" });
@@ -265,14 +276,15 @@ router.post(
           results.updated++;
         }
 
+        // =========================
+        // ENROLLMENT
+        // =========================
         const enrolled = await prisma.enrollment.findFirst({
           where: {
             studentId,
             sectionId: section.id,
           },
         });
-
-        let isNewEnrollment = false;
 
         if (!enrolled) {
           await prisma.enrollment.create({
@@ -286,43 +298,57 @@ router.post(
           });
 
           results.enrolled++;
-          isNewEnrollment = true;
         } else {
           results.skippedEnrollment++;
         }
 
         // =========================
-        // 🔥 SF9 CREATION (FIXED + GUARANTEED)
+        // SF9 CREATION (FIXED LOGIC)
         // =========================
-        const existingSF9 = await prisma.sF9Grade.findFirst({
-          where: {
-            studentId,
-            schoolYear: section.schoolYear,
-          },
-        });
 
-        if (!existingSF9 && subjectIds.length > 0) {
-          await prisma.sF9Grade.createMany({
-            data: subjectIds.map((id) => ({
+        if (subjectIds.length > 0) {
+          const existingSF9 = await prisma.sF9Grade.findMany({
+            where: {
               studentId,
-              learningAreaId: id,
               schoolYear: section.schoolYear,
-              q1: null,
-              q2: null,
-              q3: null,
-              q4: null,
-              q1Ready: false,
-              q2Ready: false,
-              q3Ready: false,
-              q4Ready: false,
-            })),
-            skipDuplicates: true,
+              learningAreaId: {
+                in: subjectIds,
+              },
+            },
+            select: {
+              learningAreaId: true,
+            },
           });
 
-          results.sf9Created++;
+          const existingSet = new Set(existingSF9.map((g) => g.learningAreaId));
+
+          const toCreate = subjectIds.filter((id) => !existingSet.has(id));
+
+          if (toCreate.length > 0) {
+            await prisma.sF9Grade.createMany({
+              data: toCreate.map((id) => ({
+                studentId,
+                learningAreaId: id,
+                schoolYear: section.schoolYear,
+                q1: null,
+                q2: null,
+                q3: null,
+                q4: null,
+                q1Ready: false,
+                q2Ready: false,
+                q3Ready: false,
+                q4Ready: false,
+              })),
+            });
+
+            results.sf9Created++;
+          }
         }
       } catch (err) {
-        results.errors.push({ lrn: s.lrn, reason: err.message });
+        results.errors.push({
+          lrn: s.lrn,
+          reason: err.message,
+        });
       }
     }
 
