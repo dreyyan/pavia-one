@@ -248,6 +248,18 @@ const AdviserClassSchoolForms = () => {
   const studentLevelForms =
     section?.schoolForms.filter((f) => STUDENT_FORMS.includes(f.type)) ?? [];
 
+  // [DERIVED] Section
+  const sectionLabel = section
+    ? `${section.gradeLevel} — ${section.name}`
+    : "Class";
+
+  // * [BREADCRUMBS] Adviser Class School Forms Navigation
+  const breadcrumbs = [
+    { label: "School Forms", path: "/adviser/school-forms" },
+    { label: sectionLabel || "Class", path: `/adviser/classes/${sectionId}` },
+    { label: "Forms", path: null },
+  ];
+
   // ? [LOADING]
   if (loading) return <Skeleton />;
 
@@ -274,7 +286,7 @@ const AdviserClassSchoolForms = () => {
       />
 
       {/* [PAGE] */}
-      <PageLayout header={<Breadcrumbs title="School Forms" items={[]} />}>
+      <PageLayout header={<Breadcrumbs title={`School Forms (${sectionLabel})`} items={breadcrumbs} />}>
         {section ? (
           <div className="space-y-4">
 

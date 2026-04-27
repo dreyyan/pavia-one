@@ -97,7 +97,7 @@ const AdviserClassGrades = () => {
       setSection({
         id: sec.id,
         gradeLevel: Number(sec.gradeLevel),
-        name: `${sec.gradeLevel} — ${sec.name}`,
+        name: sec.name,
         classSize: sec.classSize ?? maleCount + femaleCount,
         maleCount,
         femaleCount,
@@ -160,11 +160,16 @@ const AdviserClassGrades = () => {
   const totalPages = Math.ceil(filteredGrades.length / itemsPerPage);
   const displayedGrades = filteredGrades.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
+  // [DERIVED] Section
+  const sectionLabel = section
+    ? `${section.gradeLevel} — ${section.name}`
+    : "Class";
+
   // * [BREADCRUMBS] Adviser Class Grades navigation
   const breadcrumbs = [
     { label: "Adviser Dashboard", path: "/adviser/dashboard" },
     { label: "Class Management", path: "/adviser/classes" },
-    { label: section?.name ?? "Class", path: `/adviser/classes/${sectionId}` },
+    { label: sectionLabel || "Class", path: `/adviser/classes/${sectionId}` },
     { label: "Grades", path: null },
   ];
 
@@ -187,7 +192,7 @@ const AdviserClassGrades = () => {
 
       {/* [LAYOUT] Adviser Page */}
       <PageLayout
-        header={<Breadcrumbs items={breadcrumbs} title="Grades" />}
+        header={<Breadcrumbs items={breadcrumbs} title={`Grades (${sectionLabel})`} />}
         toolbar={
           <div className="space-y-3">
             {/* [COMPONENT] Class Card */}

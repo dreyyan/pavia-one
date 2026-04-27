@@ -149,10 +149,15 @@ const AdviserClassStudents = () => {
   const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
   const displayedStudents = filteredStudents.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
+  // [DERIVED] Section
+  const sectionLabel = section
+    ? `${section.gradeLevel} — ${section.name}`
+    : "Class";
+
   // * [BREADCRUMBS] Adviser Class Students navigation
   const breadcrumbs = [
     { label: "Class Management", path: "/adviser/classes" },
-    { label: section?.name || "Class", path: `/adviser/classes/${sectionId}` },
+    { label: sectionLabel || "Class", path: `/adviser/classes/${sectionId}` },
     { label: "Students", path: null },
   ];
 
@@ -194,7 +199,7 @@ const AdviserClassStudents = () => {
       ) : (
         /* [MAIN CONTENT] */
         <PageLayout
-          header={<Breadcrumbs items={breadcrumbs} title="Students" />}
+          header={<Breadcrumbs items={breadcrumbs} title={`Students (${sectionLabel})`} />}
           card={
             <div>
               <ClassCard
