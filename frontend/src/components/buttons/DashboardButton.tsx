@@ -31,9 +31,13 @@ const DashboardButton: React.FC<DashboardButtonProps> = ({
     <button
       onClick={handleClick}
       style={{ backgroundColor: color }}
-      className={`flex flex-col justify-center items-center aspect-square rounded-lg shadow-md 
+      className={`
+        flex flex-col justify-center items-center aspect-square rounded-lg shadow-md 
         transition-all duration-200 w-full overflow-hidden
-        xl:flex-row xl:aspect-auto xl:justify-start xl:items-center xl:gap-6 xl:px-8 xl:py-6
+
+        xl:flex-row xl:aspect-auto xl:w-fit xl:inline-flex
+        xl:justify-start xl:items-center xl:gap-6 xl:px-8 xl:py-6
+
         ${disabled 
           ? "opacity-50 cursor-not-allowed" 
           : "cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
@@ -54,7 +58,7 @@ const DashboardButton: React.FC<DashboardButtonProps> = ({
       {iconSrc && (
         <img
           src={iconSrc}
-          className="size-16 sm:size-20 md:size-22 lg:size-24 xl:size-20 2xl:size-24 flex-shrink-0"
+          className="size-16 sm:size-20 md:size-22 lg:size-24 xl:size-16 2xl:size-20 flex-shrink-0"
           alt={text}
         />
       )}
