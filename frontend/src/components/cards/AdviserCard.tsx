@@ -1,4 +1,4 @@
-// [IMPORT] Libraries
+// [IMPORT] Hooks
 import React from "react";
 import { useNavigate } from "react-router-dom";
 

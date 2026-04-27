@@ -1,4 +1,4 @@
-// [IMPORT] Libraries
+// [IMPORT] Hooks
 import React from "react";
 
 // [IMPORT] Types
@@ -10,7 +10,6 @@ interface AnnouncementCardProps {
   onClick: (announcement: Announcement) => void;
 }
 
-// [COMPONENT]
 const AnnouncementCard: React.FC<AnnouncementCardProps> = ({
   announcement,
   formatDate,
@@ -22,18 +21,18 @@ const AnnouncementCard: React.FC<AnnouncementCardProps> = ({
       className="bg-[var(--color-bg-50)] border border-[var(--color-text-300)] p-4 rounded-lg shadow-lg cursor-pointer hover:bg-[var(--color-bg-100)] transition-colors duration-150"
     >
       {/* [TEXT] Publish date */}
-      <p className="body-small text-[var(--color-text-600)] mb-1">
+      <p className="body-small text-[var(--color-text-400)] mb-1">
         {formatDate(announcement.publishedAt)}
       </p>
 
       {/* [TEXT] Title */}
-      <p className="font-figtree font-bold text-[var(--color-text-800)] leading-tight">
+      <p className="font-figtree font-bold lg:font-extrabold text-[var(--color-text-800)] leading-tight">
         {announcement.title}
       </p>
 
       {/* [TEXT] Content preview */}
       {announcement.content && (
-        <p className="text-[var(--color-text-600)] text-sm mt-1 line-clamp-2">
+        <p className="text-[var(--color-text-700)] text-sm mt-1 line-clamp-2">
           {announcement.content}
         </p>
       )}
