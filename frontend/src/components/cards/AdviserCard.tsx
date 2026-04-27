@@ -3,8 +3,8 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Helpers & Types
+import { formatName, getGradeColor } from "../../helpers";
 import type { Adviser } from "../../types";
-import { formatName } from "../../helpers";
 
 interface AdviserCardProps {
   adviser: Adviser;
@@ -13,6 +13,10 @@ interface AdviserCardProps {
 
 const AdviserCard: React.FC<AdviserCardProps> = ({ adviser: a, onClick }) => {
   const navigate = useNavigate();
+  const firstSection = a.sections?.[0];
+  const colors = firstSection
+    ? getGradeColor(Number(firstSection.gradeLevel))
+    : getGradeColor(0);
 
   const initials = a.name
     .split(" ")
@@ -36,7 +40,7 @@ const AdviserCard: React.FC<AdviserCardProps> = ({ adviser: a, onClick }) => {
       <div className="bg-[var(--color-bg-50)] px-3 pr-4 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
         <div className="flex items-center w-full gap-3 min-w-0">
           {/* [UI] Initials Avatar */}
-          <div className="size-10 rounded-md bg-[var(--color-primary-100)] flex items-center justify-center text-[var(--color-primary-700)] font-bold text-sm border border-[var(--color-primary-200)] flex-shrink-0">
+          <div className={`size-10 rounded-md flex items-center justify-center bg-[var(--color-bg-100)] text-[var(--color-bg-700)] border border-[var(--color-bg-200)] font-bold text-sm flex-shrink-0 ${colors.badge}`}>
             {initials}
           </div>
 
