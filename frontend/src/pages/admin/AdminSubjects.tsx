@@ -339,11 +339,14 @@ const AdminSubjects = () => {
           <Breadcrumbs items={breadcrumbs} title="Subjects" />
         }
         toolbar={
-          <div className="bg-[var(--color-bg-100)] px-3 sm:px-4 py-4 rounded-lg flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">
-            <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4 w-full">
-              <div className="flex items-stretch gap-2 md:gap-4 w-full">
+          <div className="bg-[var(--color-bg-100)] px-3 sm:px-4 py-4 rounded-lg flex flex-col gap-3 w-full">
+
+            <div className="flex flex-col lg:flex-row lg:items-center gap-3 w-full">
+
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full min-w-0">
+
                 {/* [COMPONENT] Search Bar */}
-                <div className="w-full sm:w-64 md:w-80 lg:w-96">
+                <div className="w-full sm:w-64 md:w-80 lg:w-96 min-w-0">
                   <SearchBar
                     value={search}
                     placeholder="Search by name or code..."
@@ -353,7 +356,7 @@ const AdminSubjects = () => {
                 </div>
 
                 {/* [COMPONENT] Sort & Filter Dropdowns */}
-                <div className="flex gap-x-2 ml-auto shrink-0">
+                <div className="flex gap-2 flex-wrap sm:flex-nowrap sm:ml-auto shrink-0">
                   <Dropdown
                     icon="/sort.svg"
                     label="Sort"
@@ -386,15 +389,27 @@ const AdminSubjects = () => {
                     groups={[
                       {
                         label: "Grade",
-                        options: GRADE_LEVEL_OPTIONS.map(g => ({ label: `Grade ${g}`, value: String(g) })),
+                        options: GRADE_LEVEL_OPTIONS.map(g => ({
+                          label: `Grade ${g}`,
+                          value: String(g),
+                        })),
                         selectedValues: selectedGrades,
-                        onSelectMultiple: (v) => { setSelectedGrades(v); setPage(1); },
+                        onSelectMultiple: (v) => {
+                          setSelectedGrades(v);
+                          setPage(1);
+                        },
                       },
                       {
                         label: "Curriculum",
-                        options: CURRICULUM_OPTIONS.map(c => ({ label: c.label, value: c.value })),
+                        options: CURRICULUM_OPTIONS.map(c => ({
+                          label: c.label,
+                          value: c.value,
+                        })),
                         selectedValues: selectedCurricula,
-                        onSelectMultiple: (v) => { setSelectedCurricula(v); setPage(1); },
+                        onSelectMultiple: (v) => {
+                          setSelectedCurricula(v);
+                          setPage(1);
+                        },
                       },
                     ]}
                   />
@@ -402,18 +417,29 @@ const AdminSubjects = () => {
               </div>
 
               {/* [ACTION BUTTONS] Add Subject + Auto-Create */}
-              <div className="flex flex-col sm:flex-row gap-2 w-full xl:w-auto xl:ml-auto">
+              <div className="
+                flex flex-col sm:flex-row
+                gap-2 w-full lg:w-auto
+                lg:ml-auto
+                shrink-0
+                flex-wrap
+              ">
                 <PrimaryButton
                   text="Add Subject"
                   iconSrc="/add.svg"
                   onClick={handleAddSubject}
                 />
+
                 <SecondaryButton
                   text="Auto-Create Subjects"
                   iconSrc="/auto-generate.svg"
-                  onClick={() => { setAutoCreateError(""); setShowAutoCreateModal(true); }}
+                  onClick={() => {
+                    setAutoCreateError("");
+                    setShowAutoCreateModal(true);
+                  }}
                 />
               </div>
+
             </div>
           </div>
         }
