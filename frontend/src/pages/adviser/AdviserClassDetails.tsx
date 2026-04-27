@@ -153,6 +153,7 @@ const AdviserClassDetails = () => {
               classSize={section.classSize}
               curriculum={section.curriculum}
               gradeLevel={section.gradeLevel}
+              displayFields={false}
             />
 
             {/* [CARD] Overview */}

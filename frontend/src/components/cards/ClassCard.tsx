@@ -1,4 +1,4 @@
-// [IMPORT] Libraries
+// [IMPORT] Hooks
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -16,6 +16,7 @@ interface ClassCardProps {
   sf5_status?: string;
   gradeLevel?: number | string;
   curriculum?: string;
+  displayFields?: boolean;
 }
 
 const ClassCard: React.FC<ClassCardProps> = ({
@@ -29,12 +30,35 @@ const ClassCard: React.FC<ClassCardProps> = ({
   sf5_status,
   gradeLevel = "—",
   curriculum = "",
+  displayFields = true
 }) => {
   const navigate = useNavigate();
-
+  
   const grade = Number.parseInt(String(gradeLevel), 10);
+
+  // [DERIVED] Avatar color
   const colors = !Number.isNaN(grade) ? getGradeColor(grade) : null;
 
+  // [DERIVED] School Form Status Color
+  const statusColor = (status?: string) => {
+    const s = status?.toLowerCase();
+    if (s === "complete") {
+      return "bg-[var(--color-green-50)] text-[var(--color-green-700)] border-[var(--color-green-200)]";
+    }
+    if (s === "pending") {
+      return "bg-[var(--color-orange-50)] text-[var(--color-orange-700)] border-[var(--color-orange-200)]";
+    }
+    return "bg-[var(--color-bg-50)] text-[var(--color-text-600)] border-[var(--color-bg-200)]";
+  };
+
+  // [DERIVED] School Forms Status'
+  const sfStatuses = [
+    { key: "SF1", value: sf1_status },
+    { key: "SF2", value: sf2_status },
+    { key: "SF5", value: sf5_status },
+  ].filter((s) => s.value);
+
+  // [HANDLE] Dynamic navigation (section details or school form details)
   const handleClick = () => {
     const hasSchoolForms = sf1_status || sf2_status || sf5_status;
     const path = hasSchoolForms
@@ -43,33 +67,13 @@ const ClassCard: React.FC<ClassCardProps> = ({
     navigate(path);
   };
 
-  const sfStatuses = [
-    { key: "SF1", value: sf1_status },
-    { key: "SF2", value: sf2_status },
-    { key: "SF5", value: sf5_status },
-  ].filter((s) => s.value);
-
-  const statusColor = (status?: string) => {
-    const s = status?.toLowerCase();
-    if (s === "complete")
-      return "bg-emerald-50 text-emerald-700 border-emerald-200";
-    if (s === "pending")
-      return "bg-amber-50 text-amber-700 border-amber-200";
-    return "bg-slate-50 text-slate-600 border-slate-200";
-  };
-
-  const hasBottomData =
-    (maleCount ?? 0) > 0 ||
-    (femaleCount ?? 0) > 0 ||
-    sfStatuses.length > 0;
-
   return (
     <div
-      className="w-full min-w-0 bg-[var(--color-bg-100)] rounded-md border border-[var(--color-bg-300)] overflow-hidden hover:translate-y-[-1px] hover:shadow-md active:shadow-md transition-all duration-200 cursor-pointer"
+      className="w-full min-w-0 bg-[var(--color-bg-100)] rounded-md border border-[var(--color-bg-300)] overflow-hidden hover:translate-y-[-1px] hover:shadow-md active:shadow-md transition-all duration-200 cursor-pointer shadow"
       onClick={handleClick}
     >
       {/* [SECTION] Header */}
-      <div className="px-3 pr-4 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
+      <div className="px-3 pr-4 py-3 flex items-center justify-between border-b border-[var(--color-text-200)]">
         <div className="flex items-center w-full gap-3 min-w-0">
           {/* [UI] Grade Badge */}
           <div
@@ -85,6 +89,7 @@ const ClassCard: React.FC<ClassCardProps> = ({
             <p className="font-roboto font-bold text-[var(--color-text-900)] text-lg leading-tight truncate">
               {name}
             </p>
+
             <p className="text-xs font-mono text-[var(--color-text-600)] mt-0.5 tracking-wider truncate">
               {curriculum}
             </p>
@@ -100,9 +105,9 @@ const ClassCard: React.FC<ClassCardProps> = ({
         )}
       </div>
 
-      {/* [SECTION] Body */}
-      {hasBottomData && (
-        <div className="px-4 py-3 space-y-2 text-sm bg-[var(--color-bg-50)]">
+      {displayFields && (
+        // [SECTION] Student Demographics
+        <div className="px-4 py-3 space-y-2 text-sm sm:text-base bg-[var(--color-bg-50)]">
           <div className="flex justify-between items-center min-w-0">
             <span className="text-[var(--color-text-700)] font-figree font-semibold">
               Male
