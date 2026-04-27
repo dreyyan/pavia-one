@@ -23,6 +23,7 @@ import PageLayout from "../../components/layouts/PageLayout";
 import { getVisiblePages, normalizeSchoolYear } from "../../helpers/index";
 import { GRADE_LEVEL_OPTIONS, CURRICULUM_OPTIONS } from "../../constants";
 import { GeneralModalConfig, Section, SectionFormData } from "../../types";
+import Badge from "../../components/badges/Badge";
 
 // [CONSTANT] Empty form state
 const EMPTY_FORM: SectionFormData = {
@@ -616,14 +617,29 @@ const AdminSections = () => {
                       </td>
 
                       <td className="table-cell table-text">
-                        {s.adviser
-                          ? <span className="table-text-default">{s.adviser.name}</span>
-                          : <span className="text-xs px-2 py-0.5 rounded-full text-[var(--color-red-600)] bg-[var(--color-red-50)] border-[var(--color-red-300)] font-semibold">Unassigned</span>
-                        }
+                        {s.adviser ? (
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/admin/advisers/view/${s.adviser!.id}`);
+                            }}
+                            className="table-text-default text-[var(--color-primary-700)] cursor-pointer hover:underline transition"
+                          >
+                            {s.adviser.name}
+                          </span>
+                        ) : (
+                          <Badge label="Unassigned" color="red" />
+                        )}
                       </td>
 
-                      <td className="table-cell table-text table-text-default">
-                        {s.classSize}
+                      <td className="table-cell table-text">
+                        {s.classSize === 0 ? (
+                          <Badge label="Empty" color="red" />
+                        ) : (
+                          <span className="table-text-default">
+                            {s.classSize} student{s.classSize !== 1 ? "s" : ""}
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))}

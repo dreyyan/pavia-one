@@ -2,6 +2,9 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
+// [IMPORT] Sub-components
+import Badge from "../../badges/Badge";
+
 // [IMPORT] Helpers & Types
 import { getGradeColor } from "../../../helpers";
 import type { Section } from "../../../types";
@@ -22,10 +25,11 @@ const SectionCard: React.FC<SectionCardProps> = ({ section, onClick }) => {
 
   return (
     <div
-      className="w-full min-w-0 bg-[var(--color-bg-100)] rounded-md border border-[var(--color-bg-300)] overflow-hidden hover:translate-y-[-1px] hover:shadow-md active:shadow-md transition-all duration-200 cursor-pointer"
+      className="w-full min-w-0 bg-white rounded-md border border-[var(--color-bg-300)] overflow-hidden hover:translate-y-[-1px] hover:shadow-md active:shadow-md transition-all duration-200 cursor-pointer"
       onClick={handleClick}
     >
-      <div className="px-3 pr-4 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
+      {/* [HEADER] Grade + Name */}
+      <div className="bg-[var(--color-bg-50)] px-3 pr-4 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
         <div className="flex items-center w-full gap-3 min-w-0">
           <div
             className={`size-10 rounded-md flex items-center justify-center font-bold text-xl border flex-shrink-0 ${colors.badge}`}
@@ -42,17 +46,11 @@ const SectionCard: React.FC<SectionCardProps> = ({ section, onClick }) => {
             </p>
           </div>
         </div>
-
-        {!section.adviser && (
-          <span
-            className={`ml-2 flex-shrink-0 text-xs px-2 py-0.5 rounded-full border font-semibold text-[var(--color-red-600)] bg-[var(--color-red-50)] border-[var(--color-red-300)] italic`}
-          >
-            No Adviser
-          </span>
-        )}
       </div>
 
-      <div className="px-4 py-3 space-y-2 text-sm bg-[var(--color-bg-50)]">
+      {/* [DETAILS] */}
+      <div className="px-4 py-3 space-y-2 text-sm">
+        {/* Students */}
         <div className="flex justify-between items-center min-w-0">
           <span className="text-[var(--color-text-700)] font-figree font-semibold">
             Students
@@ -62,21 +60,24 @@ const SectionCard: React.FC<SectionCardProps> = ({ section, onClick }) => {
           </span>
         </div>
 
+        {/* Adviser */}
         <div className="flex justify-between items-center min-w-0">
           <span className="text-[var(--color-text-700)] font-figree font-semibold">
             Adviser
           </span>
-          <span
-            className={`truncate text-right max-w-[180px] min-w-0 ${
-              !section.adviser
-                ? "text-[var(--color-red-600)] italic"
-                : "text-[var(--color-text-900)] font-semibold"
-            }`}
-          >
-            {section.adviser?.name ?? "—"}
-          </span>
+
+          <div className="flex justify-end min-w-0">
+            {section.adviser ? (
+              <span className="text-[var(--color-text-900)] font-semibold truncate">
+                {section.adviser.name}
+              </span>
+            ) : (
+              <Badge label="No Adviser" color="red" />
+            )}
+          </div>
         </div>
 
+        {/* Curriculum */}
         <div className="flex justify-between items-center min-w-0">
           <span className="text-[var(--color-text-700)] font-figree font-semibold">
             Curriculum
