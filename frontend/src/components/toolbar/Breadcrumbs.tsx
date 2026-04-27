@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Helpers
-import { formatBreadcrumbName } from "../helpers";
+import { formatBreadcrumbName } from "../../helpers";
 
 export interface BreadcrumbItem {
   label: string;

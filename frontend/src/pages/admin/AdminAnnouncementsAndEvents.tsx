@@ -5,11 +5,11 @@ import { useState, useEffect, useCallback } from "react";
 
 // [IMPORT] Components
 import Modal from "../../components/modal/Modal";
-import Skeleton from "../../components/Skeleton";
-import EmptyState from "../../components/EmptyState";
-import SearchBar from "../../components/SearchBar";
-import Dropdown from "../../components/Dropdown";
-import Pagination from "../../components/Pagination";
+import Skeleton from "../../components/ui/Skeleton";
+import EmptyState from "../../components/ui/EmptyState";
+import SearchBar from "../../components/toolbar/SearchBar";
+import Dropdown from "../../components/toolbar/Dropdown";
+import Pagination from "../../components/toolbar/Pagination";
 import PageLayout from "../../components/layouts/PageLayout";
 import AnnouncementCard from "../../components/cards/announcement/AnnouncementCard";
 import EventCard from "../../components/cards/event/EventCard";
@@ -352,7 +352,7 @@ const AdminAnnouncementsAndEvents = () => {
       type: event.type,
       startDate: formatDateInput(event.startDate),
       endDate: formatDateInput(event.endDate),
-      isOnline: event.isOnline,
+      isOnline: event.isOnline ?? false,
     });
     setEventFormError("");
     setEditingEventId(event.id);

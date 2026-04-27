@@ -6,12 +6,12 @@ import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Components
 import Modal from "../../components/modal/Modal";
-import Skeleton from "../../components/Skeleton";
-import EmptyState from "../../components/EmptyState";
-import Dropdown from "../../components/Dropdown";
-import SearchBar from "../../components/SearchBar";
-import Pagination from "../../components/Pagination";
-import Breadcrumbs from "../../components/Breadcrumbs";
+import Skeleton from "../../components/ui/Skeleton";
+import EmptyState from "../../components/ui/EmptyState";
+import Dropdown from "../../components/toolbar/Dropdown";
+import SearchBar from "../../components/toolbar/SearchBar";
+import Pagination from "../../components/toolbar/Pagination";
+import Breadcrumbs from "../../components/toolbar/Breadcrumbs";
 import AdviserCard from "../../components/cards/adviser/AdviserCard";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
 import AdviserFormModal from "../../components/forms/AdviserFormModal";

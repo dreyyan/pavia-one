@@ -7,11 +7,11 @@ import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Components
 import Modal from "../../components/modal/Modal";
-import Skeleton from "../../components/Skeleton";
-import EmptyState from "../../components/EmptyState";
-import SearchBar from "../../components/SearchBar";
-import Dropdown from "../../components/Dropdown";
-import Pagination from "../../components/Pagination";
+import Skeleton from "../../components/ui/Skeleton";
+import EmptyState from "../../components/ui/EmptyState";
+import SearchBar from "../../components/toolbar/SearchBar";
+import Dropdown from "../../components/toolbar/Dropdown";
+import Pagination from "../../components/toolbar/Pagination";
 import ClassCard from "../../components/cards/class/ClassCard";
 import PageLayout from "../../components/layouts/PageLayout";
 

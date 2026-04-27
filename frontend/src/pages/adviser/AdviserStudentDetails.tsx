@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
-import InputField from "../../components/InputField";
+import InputField from "../../components/toolbar/InputField";
 import { useAuth } from "../../context/useAuth";
 import Modal from "../../components/modal/Modal";
 

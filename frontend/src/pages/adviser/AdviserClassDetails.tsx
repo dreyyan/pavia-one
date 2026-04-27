@@ -6,10 +6,10 @@ import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
 import Modal from "../../components/modal/Modal";
-import Skeleton from "../../components/Skeleton";
-import Breadcrumbs from "../../components/Breadcrumbs";
+import Skeleton from "../../components/ui/Skeleton";
+import Breadcrumbs from "../../components/toolbar/Breadcrumbs";
 import ClassCard from "../../components/cards/class/ClassCard";
-import DashboardItem from "../../components/DashboardItem";
+import InfoItem from "../../components/info/InfoItem";
 import DashboardButton from "../../components/buttons/DashboardButton";
 import PageLayout from "../../components/layouts/PageLayout";
 
@@ -160,28 +160,28 @@ const AdviserClassDetails = () => {
             <div className="bg-[var(--color-bg-100)] rounded-xl px-4 sm:px-6 md:px-8 py-5 sm:py-6 shadow-md">
               <h2 className="mb-3 text-base sm:text-lg font-semibold">Overview</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
-                <DashboardItem
+                <InfoItem
                   iconSrc="/class-size.svg"
                   text="Class Size"
                   value={section.classSize}
                   color="var(--color-primary-600)"
                 />
 
-                <DashboardItem
+                <InfoItem
                   iconSrc="/male.svg"
                   text="Male Students"
                   value={section.maleCount ?? 0}
                   color="var(--color-blue-600)"
                 />
 
-                <DashboardItem
+                <InfoItem
                   iconSrc="/female.svg"
                   text="Female Students"
                   value={section.femaleCount ?? 0}
                   color="var(--color-violet-600)"
                 />
 
-                <DashboardItem
+                <InfoItem
                   iconSrc="/school-year.svg"
                   text="School Year"
                   value={section.schoolYear}

@@ -1,4 +1,4 @@
-import InputField from "./InputField";
+import InputField from "./toolbar/InputField";
 
 export const WeightRow = ({
   label,

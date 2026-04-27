@@ -3,8 +3,8 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
 // [IMPORT] Components
-import ImageHeader from "../components/ImageHeader";
-import InputField from "../components/InputField";
+import ImageHeader from "../components/authentication/ImageHeader";
+import InputField from "../components/toolbar/InputField";
 import PrimaryButton from "../components/buttons/PrimaryButton";
 import Modal from "../components/modal/Modal";
 

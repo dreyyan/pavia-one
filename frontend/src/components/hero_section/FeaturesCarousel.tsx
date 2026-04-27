@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import PrimaryButton from "./buttons/PrimaryButton";
+import PrimaryButton from "../buttons/PrimaryButton";
+import SecondaryButton from "../buttons/SecondaryButton";
 
 const images = [
   "/hero-01.png",
@@ -113,7 +114,7 @@ const FeaturesCarousel = () => {
 
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 md:gap-6 mt-2 md:mt-4">
                 <PrimaryButton text="Login as Adviser" onClick={handleAdviserLogin} />
-                <PrimaryButton text="Login as Admin" color="FCB103" onClick={handleAdminLogin} />
+                <SecondaryButton text="Login as Admin"  onClick={handleAdminLogin} />
             </div>
         </div>
     </div>

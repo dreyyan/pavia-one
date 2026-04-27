@@ -6,16 +6,16 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Components
-import Skeleton from "../../components/Skeleton";
+import Skeleton from "../../components/ui/Skeleton";
 import Modal from "../../components/modal/Modal";
-import EmptyState from "../../components/EmptyState";
+import EmptyState from "../../components/ui/EmptyState";
 
 // [IMPORT] Constants, Types, Helpers
 import { FORM_STATUS_BADGE, FORM_STATUS_LABELS } from "../../constants/index";
 import { SectionOverview, GeneralModalConfig } from "../../types/index";
 import { safeJson, getMissingInfo, sectionFormSummary } from "./../../helpers/index";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
-import DashboardItem from "../../components/DashboardItem";
+import InfoItem from "../../components/info/InfoItem";
 import SectionFormCard from "../../components/cards/section/SectionFormCard";
 
 const AdminSchoolForms = () => {
@@ -255,9 +255,9 @@ const filteredSections = sections
         <div className="bg-[var(--color-bg-100)] rounded-xl px-5 py-6 gap-x-3 shadow-md">
           <h2 className="mb-3">Overview</h2>
           <div className="space-y-2">
-            <DashboardItem iconSrc="/sections.svg" text="Total Sections" value={totalSections} />
-            <DashboardItem iconSrc="/check.svg" text="Approved / Locked" value={approvedSections} color="#0066CC" />
-            <DashboardItem iconSrc="/status-pending.svg" text="Needs Attention" value={incompleteSections} color="#E60000" />
+            <InfoItem iconSrc="/sections.svg" text="Total Sections" value={totalSections} />
+            <InfoItem iconSrc="/check.svg" text="Approved / Locked" value={approvedSections} color="#0066CC" />
+            <InfoItem iconSrc="/status-pending.svg" text="Needs Attention" value={incompleteSections} color="#E60000" />
           </div>
         </div>
 

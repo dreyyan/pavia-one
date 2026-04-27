@@ -4,8 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
-import ImageHeader from "../../components/ImageHeader";
-import InputField from "../../components/InputField";
+import ImageHeader from "../../components/authentication/ImageHeader";
+import InputField from "../../components/toolbar/InputField";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
 import Modal from "../../components/modal/Modal";
 

@@ -7,12 +7,12 @@ import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
 import Modal from "../../components/modal/Modal";
-import Skeleton from "../../components/Skeleton";
-import EmptyState from "../../components/EmptyState";
-import SearchBar from "../../components/SearchBar";
-import Dropdown from "../../components/Dropdown";
-import Pagination from "../../components/Pagination";
-import Breadcrumbs from "../../components/Breadcrumbs";
+import Skeleton from "../../components/ui/Skeleton";
+import EmptyState from "../../components/ui/EmptyState";
+import SearchBar from "../../components/toolbar/SearchBar";
+import Dropdown from "../../components/toolbar/Dropdown";
+import Pagination from "../../components/toolbar/Pagination";
+import Breadcrumbs from "../../components/toolbar/Breadcrumbs";
 import PageLayout from "../../components/layouts/PageLayout";
 import SectionSchoolFormCard from "../../components/cards/section/SectionSchoolFormCard";
 

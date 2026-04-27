@@ -6,10 +6,10 @@ import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
 import Modal from "../../components/modal/Modal";
-import Skeleton from "../../components/Skeleton";
-import InputField from "../../components/InputField";
-import ProfileInfo from "../../components/ProfileInfo";
-import Breadcrumbs from "../../components/Breadcrumbs";
+import Skeleton from "../../components/ui/Skeleton";
+import InputField from "../../components/toolbar/InputField";
+import ProfileInfo from "../../components/info/ProfileInfo";
+import Breadcrumbs from "../../components/toolbar/Breadcrumbs";
 import TabbedFormCard from "../../components/cards/details/TabbedFormCard";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
 import PageLayout from "../../components/layouts/PageLayout";

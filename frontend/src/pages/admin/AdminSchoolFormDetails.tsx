@@ -6,10 +6,10 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 // [IMPORT] Components
-import Skeleton from "../../components/Skeleton";
+import Skeleton from "../../components/ui/Skeleton";
 import Modal from "../../components/modal/Modal";
-import EmptyState from "../../components/EmptyState";
-import DashboardItem from "../../components/DashboardItem";
+import EmptyState from "../../components/ui/EmptyState";
+import InfoItem from "../../components/info/InfoItem";
 
 // [IMPORT] Constants, Types, Helpers
 import { GeneralModalConfig, SchoolFormType, SchoolFormStatus, SectionForm, StudentFormStatus } from "../../types";
@@ -303,10 +303,10 @@ const AdminSchoolFormDetails = () => {
               <div className="bg-[var(--color-bg-100)] rounded-xl px-5 py-6 shadow-md">
                 <h2 className="mb-3">Student Overview</h2>
                 <div className="space-y-2">
-                  <DashboardItem iconSrc="/student.svg" text="Total Students"    value={totalStudents} />
-                  <DashboardItem iconSrc="/check.svg"          text="Complete"          value={completeStudents} color="#28A428" />
-                  <DashboardItem iconSrc="/partial.svg"           text="Partial"           value={partialStudents} color="#FCB103" />
-                  <DashboardItem iconSrc="/status-pending.svg"    text="Pending"           value={pendingStudents}  color="#808080" />
+                  <InfoItem iconSrc="/student.svg" text="Total Students"    value={totalStudents} />
+                  <InfoItem iconSrc="/check.svg"          text="Complete"          value={completeStudents} color="#28A428" />
+                  <InfoItem iconSrc="/partial.svg"           text="Partial"           value={partialStudents} color="#FCB103" />
+                  <InfoItem iconSrc="/status-pending.svg"    text="Pending"           value={pendingStudents}  color="#808080" />
                 </div>
               </div>
             )}

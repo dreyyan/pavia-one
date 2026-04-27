@@ -1,11 +1,11 @@
-interface DashboardProps {
+interface InfoProps {
     iconSrc?: string;
     text: string;
     value: number | string;
     color?: string;
 };
 
-const DashboardItem: React.FC<DashboardProps> = ({iconSrc, text, value, color}) => {
+const InfoItem: React.FC<InfoProps> = ({iconSrc, text, value, color}) => {
     return (
         <div className="flex lg:flex-col items-center justify-between lg:items-start gap-x-2 lg:gap-4 bg-[var(--color-bg-50)] pr-3 sm:pr-4 lg:p-6 rounded-sm shadow-sm/10">
             <div className="flex items-center gap-x-2 sm:gap-x-3 md:gap-x-4 lg:gap-x-5 xl:gap-x-6">
@@ -38,4 +38,4 @@ const DashboardItem: React.FC<DashboardProps> = ({iconSrc, text, value, color}) 
     );
 };
 
-export default DashboardItem;
+export default InfoItem;

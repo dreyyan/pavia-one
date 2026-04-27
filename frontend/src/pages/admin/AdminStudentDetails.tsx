@@ -6,11 +6,11 @@ import { useNavigate, useParams } from "react-router-dom";
 
 // [IMPORT] Components
 import Modal from "../../components/modal/Modal";
-import Skeleton from "../../components/Skeleton";
-import EmptyState from "../../components/EmptyState";
-import InputField from "../../components/InputField";
-import ProfileInfo from "../../components/ProfileInfo";
-import Breadcrumbs from "../../components/Breadcrumbs";
+import Skeleton from "../../components/ui/Skeleton";
+import EmptyState from "../../components/ui/EmptyState";
+import InputField from "../../components/toolbar/InputField";
+import ProfileInfo from "../../components/info/ProfileInfo";
+import Breadcrumbs from "../../components/toolbar/Breadcrumbs";
 import TabbedFormCard from "../../components/cards/details/TabbedFormCard";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
 import DeleteButton from "../../components/buttons/DeleteButton";

@@ -6,8 +6,8 @@ import { usePageTitle } from "../../hooks/usePageTitle";
 
 // [IMPORT] Components
 import Modal from "../../components/modal/Modal";
-import Skeleton from "../../components/Skeleton";
-import InputField from "../../components/InputField";
+import Skeleton from "../../components/ui/Skeleton";
+import InputField from "../../components/toolbar/InputField";
 import PageLayout from "../../components/layouts/PageLayout";
 
 // [IMPORT] Types

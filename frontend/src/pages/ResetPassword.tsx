@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 
 // [IMPORT] Components
-import InputField from "../components/InputField";
+import InputField from "../components/toolbar/InputField";
 import PrimaryButton from "../components/buttons/PrimaryButton";
 import Modal from "../components/modal/Modal";
 

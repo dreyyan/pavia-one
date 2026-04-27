@@ -7,9 +7,9 @@ import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
 import Modal from "../../components/modal/Modal";
-import Skeleton from "../../components/Skeleton";
-import InputField from "../../components/InputField";
-import Breadcrumbs from "../../components/Breadcrumbs";
+import Skeleton from "../../components/ui/Skeleton";
+import InputField from "../../components/toolbar/InputField";
+import Breadcrumbs from "../../components/toolbar/Breadcrumbs";
 import PageLayout from "../../components/layouts/PageLayout";
 import PersonInfoCard from "../../components/cards/PersonInfoCard";
 import StudentsListCard from "../../components/cards/student/StudentsListCard";

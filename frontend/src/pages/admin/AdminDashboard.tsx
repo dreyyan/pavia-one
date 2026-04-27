@@ -5,8 +5,8 @@ import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Components
 import DashboardButton from "../../components/buttons/DashboardButton";
-import DashboardItem from "../../components/DashboardItem";
-import Skeleton from "../../components/Skeleton";
+import InfoItem from "../../components/info/InfoItem";
+import Skeleton from "../../components/ui/Skeleton";
 import Modal from "../../components/modal/Modal";
 import DashboardIconButton from "../../components/buttons/DashboardIconButton";
 
@@ -184,23 +184,23 @@ const AdminDashboard = () => {
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 md:gap-6">
-            <DashboardItem
+            <InfoItem
               iconSrc="/student.svg"
               text="Total Students"
               value={totalStudents}
             />
-            <DashboardItem
+            <InfoItem
               iconSrc="/adviser.svg"
               text="Total Advisers"
               value={totalAdvisers}
               color="#0066CC"
             />
-            <DashboardItem
+            <InfoItem
               iconSrc="/sections.svg"
               text="Total Sections"
               value={totalSections}
             />
-            <DashboardItem
+            <InfoItem
               iconSrc="/admin.svg"
               text="Total Admins"
               value={totalAdmins}

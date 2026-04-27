@@ -6,9 +6,9 @@ import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Components
 import DashboardButton from "../../components/buttons/DashboardButton";
-import DashboardItem from "../../components/DashboardItem";
+import InfoItem from "../../components/info/InfoItem";
 import DashboardIconButton from "../../components/buttons/DashboardIconButton";
-import Skeleton from "../../components/Skeleton";
+import Skeleton from "../../components/ui/Skeleton";
 import Modal from "../../components/modal/Modal";
 
 // [IMPORT] Types
@@ -200,18 +200,18 @@ const AdviserDashboard = () => {
         <div className="lg:flex-8 bg-[var(--color-bg-100)] rounded-xl px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 py-5 sm:py-8 md:py-11 lg:py-14 xl:py-17 shadow-md">
           <h2 className="mb-2 sm:mb-3 text-base sm:text-lg font-semibold">Overview</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 md:gap-6">
-            <DashboardItem
+            <InfoItem
               iconSrc="/class-size.svg"
               text="Class Size"
               value={advisorySection?.classSize ?? 0}
             />
-            <DashboardItem
+            <InfoItem
               iconSrc="/present-today.svg"
               text="Present Today"
               value={profile?.presentToday ?? 0}
               color="#0066CC"
             />
-            <DashboardItem
+            <InfoItem
               iconSrc="/pending-tasks.svg"
               text="Pending Tasks"
               value={profile?.pendingTasks ?? 0}

@@ -1,5 +1,5 @@
-import FeaturesCarousel from "../components/FeaturesCarousel";
-import ImageHeader from "../components/ImageHeader";
+import FeaturesCarousel from "../components/hero_section/FeaturesCarousel";
+import ImageHeader from "../components/authentication/ImageHeader";
 
 export default function Home() {
   return (

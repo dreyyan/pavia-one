@@ -9,9 +9,9 @@ import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
 import Modal from "../../components/modal/Modal";
-import Skeleton from "../../components/Skeleton";
-import EmptyState from "../../components/EmptyState";
-import Breadcrumbs from "../../components/Breadcrumbs";
+import Skeleton from "../../components/ui/Skeleton";
+import EmptyState from "../../components/ui/EmptyState";
+import Breadcrumbs from "../../components/toolbar/Breadcrumbs";
 import PageLayout from "../../components/layouts/PageLayout";
 import ClassCard from "../../components/cards/class/ClassCard";
 import SchoolFormActionCard from "../../components/cards/school_form/SchoolFormActionCard";

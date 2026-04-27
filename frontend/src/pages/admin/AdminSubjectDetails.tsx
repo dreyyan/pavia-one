@@ -6,9 +6,9 @@ import { useNavigate, useParams } from "react-router-dom";
 
 // [IMPORT] Components
 import Modal from "../../components/modal/Modal";
-import Skeleton from "../../components/Skeleton";
-import InputField from "../../components/InputField";
-import Breadcrumbs from "../../components/Breadcrumbs";
+import Skeleton from "../../components/ui/Skeleton";
+import InputField from "../../components/toolbar/InputField";
+import Breadcrumbs from "../../components/toolbar/Breadcrumbs";
 import { WeightRow } from "../../components/WeightRow";
 import PageLayout from "../../components/layouts/PageLayout";
 import DeleteButton from "../../components/buttons/DeleteButton";
