@@ -7,7 +7,7 @@ import { useAuth } from "../../context/useAuth";
 import ImageHeader from "../../components/ImageHeader";
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
-import Modal from "../../components/Modal";
+import Modal from "../../components/modal/Modal";
 
 const AdviserLogin = () => {
     const navigate = useNavigate();

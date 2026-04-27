@@ -310,3 +310,27 @@ export const FORM_PERMISSIONS = {
   SF9: { import: false, export: true },
   SF10:{ import: false, export: true },
 };
+
+export const BORDER_COLORS = {
+  default: "border-t-[var(--color-primary-500)]",
+  error: "border-t-[var(--color-red-600)]",
+  success: "border-t-[var(--color-accent-500)]",
+  info: "border-t-[var(--color-primary-700)]",
+  warning: "border-t-[var(--color-secondary-600)]",
+};
+
+export const TEXT_COLORS = {
+  default: "text-[var(--color-primary-500)]",
+  error: "text-[var(--color-red-600)]",
+  success: "text-[var(--color-accent-600)]",
+  info: "text-[var(--color-primary-700)]",
+  warning: "text-[var(--color-secondary-500)]",
+};
+  
+export const CONFIRM_BUTTON_COLORS = {
+  default: "bg-[var(--color-primary-500)] hover:bg-[var(--color-primary-600)]",
+  error: "bg-[var(--color-red-600)] hover:bg-[var(--color-red-700)]",
+  success: "bg-[var(--color-accent-500)] hover:bg-[var(--color-accent-600)]",
+  info: "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-800)]",
+  warning: "bg-[var(--color-secondary-600)] hover:bg-[var(--color-secondary-700)]",
+};

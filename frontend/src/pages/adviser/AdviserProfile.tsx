@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { usePageTitle } from "../../hooks/usePageTitle";
 
 // [IMPORT] Components
-import Modal from "../../components/Modal";
+import Modal from "../../components/modal/Modal";
 import Skeleton from "../../components/Skeleton";
 import InputField from "../../components/InputField";
 import ProfileInfo from "../../components/ProfileInfo";

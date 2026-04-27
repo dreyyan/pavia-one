@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Components
 import Skeleton from "../../components/Skeleton";
-import Modal from "../../components/Modal";
+import Modal from "../../components/modal/Modal";
 import EmptyState from "../../components/EmptyState";
 
 // [IMPORT] Constants, Types, Helpers

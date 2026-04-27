@@ -1,6 +1,9 @@
 // [IMPORT] Hooks
 import { useState, useEffect, useRef } from "react";
 
+// [IMPORT] Constants
+import { BORDER_COLORS, TEXT_COLORS, CONFIRM_BUTTON_COLORS } from "../../constants";
+
 type ModalProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -10,7 +13,7 @@ type ModalProps = {
   cancelText?: string;
   inputValue?: string;
   onConfirm?: (value: string) => void;
-  confirmButton?: React.ReactNode; // <- custom button support
+  confirmButton?: React.ReactNode;
   children?: React.ReactNode;
   type?: "default" | "error" | "success" | "info" | "warning";
   showInput?: boolean;
@@ -60,31 +63,11 @@ const Modal = ({
   if (!isOpen) return null;
 
   // [STYLES] border + text colors
-  const borderColors = {
-    default: "border-t-[var(--color-primary-500)]",
-    error: "border-t-[var(--color-red-600)]",
-    success: "border-t-[var(--color-accent-500)]",
-    info: "border-t-[var(--color-primary-700)]",
-    warning: "border-t-[var(--color-secondary-600)]",
-  };
-  const textColors = {
-    default: "text-[var(--color-primary-500)]",
-    error: "text-[var(--color-red-600)]",
-    success: "text-[var(--color-accent-600)]",
-    info: "text-[var(--color-primary-700)]",
-    warning: "text-[var(--color-secondary-500)]",
-  };
-  const confirmButtonColors = {
-    default: "bg-[var(--color-primary-500)] hover:bg-[var(--color-primary-600)]",
-    error: "bg-[var(--color-red-600)] hover:bg-[var(--color-red-700)]",
-    success: "bg-[var(--color-accent-500)] hover:bg-[var(--color-accent-600)]",
-    info: "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-800)]",
-    warning: "bg-[var(--color-secondary-600)] hover:bg-[var(--color-secondary-700)]",
-  };
 
-  const borderClass = borderColors[type];
-  const textClass = textColors[type];
-  const confirmButtonClass = confirmButtonColors[type];
+
+  const borderClass = BORDER_COLORS[type];
+  const textClass = TEXT_COLORS[type];
+  const confirmButtonClass = CONFIRM_BUTTON_COLORS[type];
 
   const inputBorderClass =
     type === "error"

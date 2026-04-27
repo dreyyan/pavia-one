@@ -7,7 +7,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 // [IMPORT] Components
 import Skeleton from "../../components/Skeleton";
-import Modal from "../../components/Modal";
+import Modal from "../../components/modal/Modal";
 import EmptyState from "../../components/EmptyState";
 import DashboardItem from "../../components/DashboardItem";
 

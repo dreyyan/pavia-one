@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
 import InputField from "../../components/InputField";
 import { useAuth } from "../../context/useAuth";
-import Modal from "../../components/Modal";
+import Modal from "../../components/modal/Modal";
 
 interface Student {
   id: number;

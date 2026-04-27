@@ -5,7 +5,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
 
 // [IMPORT] Components
-import Modal from "../../components/Modal";
+import Modal from "../../components/modal/Modal";
 import Skeleton from "../../components/Skeleton";
 import EmptyState from "../../components/EmptyState";
 import SearchBar from "../../components/SearchBar";

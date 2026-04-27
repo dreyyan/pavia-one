@@ -9,7 +9,7 @@ import DashboardButton from "../../components/buttons/DashboardButton";
 import DashboardItem from "../../components/DashboardItem";
 import DashboardIconButton from "../../components/buttons/DashboardIconButton";
 import Skeleton from "../../components/Skeleton";
-import Modal from "../../components/Modal";
+import Modal from "../../components/modal/Modal";
 
 // [IMPORT] Types
 import { GeneralModalConfig, AdviserProfile } from "../../types";

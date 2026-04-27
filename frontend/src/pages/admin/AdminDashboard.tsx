@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardButton from "../../components/buttons/DashboardButton";
 import DashboardItem from "../../components/DashboardItem";
 import Skeleton from "../../components/Skeleton";
-import Modal from "../../components/Modal";
+import Modal from "../../components/modal/Modal";
 import DashboardIconButton from "../../components/buttons/DashboardIconButton";
 
 // [IMPORT] Types

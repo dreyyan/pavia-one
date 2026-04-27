@@ -2,7 +2,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import Footer from "./components/Footer";
 import Header from "./components/Header";
 import { useAuth } from "./context/useAuth";
-import Modal from "./components/Modal";
+import Modal from "./components/modal/Modal";
 
 export default function Layout() {
   const location = useLocation();

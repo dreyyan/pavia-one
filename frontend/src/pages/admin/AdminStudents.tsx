@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Components
-import Modal from "../../components/Modal";
+import Modal from "../../components/modal/Modal";
 import Skeleton from "../../components/Skeleton";
 import EmptyState from "../../components/EmptyState";
 import Dropdown from "../../components/Dropdown";

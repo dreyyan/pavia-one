@@ -14,7 +14,7 @@ import Breadcrumbs from "../../components/Breadcrumbs";
 import StudentCard from "../../components/cards/student/StudentCard";
 import PageLayout from "../../components/layouts/PageLayout";
 import ClassCard from "../../components/cards/class/ClassCard";
-import Modal from "../../components/Modal";
+import Modal from "../../components/modal/Modal";
 
 // [IMPORT] Constants, Helpers & Types
 import { getVisiblePages } from "../../helpers/index";
