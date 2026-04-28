@@ -16,9 +16,7 @@ from sf.utils.name_parser import adviser_full_name
 sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
 
 try:
-    # =========================
     # [LOAD PAYLOAD]
-    # =========================
     payload = json.loads(sys.stdin.read())
 
     students_list = payload.get("students", [])
@@ -38,9 +36,7 @@ try:
 
     adviser_name = adviser_full_name(adviser)
 
-    # =========================
     # DEFAULT VALUES
-    # =========================
     defaults = {
         "Age": "",
         "Mother Tongue": "",
@@ -71,15 +67,11 @@ try:
 
     data = pd.DataFrame(students_list).fillna("")
 
-    # =========================
     # LOAD TEMPLATE
-    # =========================
     wb = load_workbook(TEMPLATE_PATH)
     ws = wb.active
 
-    # =========================
     # SAFE CELL WRITER
-    # =========================
     def get_safe_cell(ws, row, col) -> Cell | None:
         cell = ws.cell(row=row, column=col)
 
@@ -101,25 +93,21 @@ try:
 
         cell.value = str(value) if as_text else value
 
-    # =========================
     # HEADER
-    # =========================
     today = datetime.today()
     sy = f"{today.year} - {today.year + 1}"
 
     for c in range(20, 25):
         write_cell(4, c, sy)
 
+    # Section Details
     grade = data["Grade Level"].iloc[0] if len(data) else "Grade 10"
     section_name = data["Section"].iloc[0].upper() if len(data) else "A"
 
     write_cell(4, 31, grade)
     write_cell(4, 32, grade)
 
-    # =========================
-    # SCHOOL HEADER FIX (MERGED CELLS SAFE)
-    # =========================
-
+    # School Details
     # Row 3
     write_cell(3, 6, school.get("School ID", ""))   # F3 (F-I merged)
     write_cell(3, 11, school.get("Region", ""))     # K3 (K-O merged)

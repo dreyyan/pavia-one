@@ -13,9 +13,7 @@ const baseEnv = {
   PYTHONPATH: PYTHON_ROOT,
 };
 
-// ================================
-// 🔥 DEBUG LOGGER (GLOBAL)
-// ================================
+// DEBUG LOGGER (GLOBAL)
 const DEBUG_PY = true;
 
 function logPY(...args) {
@@ -28,14 +26,10 @@ function logPYError(...args) {
   console.error("[PY ERROR]", ...args);
 }
 
-// ================================
 // [CONFIG]
-// ================================
 const PY_TIMEOUT_MS = 60000; // 60s safety timeout
 
-// ================================
 // [HELPER] Run Python with JSON
-// ================================
 function runPythonWithJSON(pythonExe, scriptPath, jsonData) {
   return new Promise((resolve, reject) => {
     logPY("========== PYTHON START ==========");
@@ -52,9 +46,7 @@ function runPythonWithJSON(pythonExe, scriptPath, jsonData) {
     let stdout = "";
     let stderr = "";
 
-    // =========================
     // TIMEOUT SAFETY
-    // =========================
     const timeout = setTimeout(() => {
       logPYError("Python timeout reached. Killing process.");
       py.kill("SIGKILL");
@@ -65,32 +57,24 @@ function runPythonWithJSON(pythonExe, scriptPath, jsonData) {
       reject(err);
     }, PY_TIMEOUT_MS);
 
-    // =========================
     // STDOUT STREAM
-    // =========================
     py.stdout.on("data", (d) => {
       stdout += d.toString("utf-8");
     });
 
-    // =========================
     // STDERR STREAM
-    // =========================
     py.stderr.on("data", (d) => {
       stderr += d.toString("utf-8");
     });
 
-    // =========================
     // PROCESS ERROR (FAILED TO START)
-    // =========================
     py.on("error", (err) => {
       clearTimeout(timeout);
       logPYError("FAILED TO START PYTHON PROCESS:", err);
       reject(err);
     });
 
-    // =========================
     // PROCESS EXIT
-    // =========================
     py.on("close", (code) => {
       clearTimeout(timeout);
 
@@ -113,9 +97,7 @@ function runPythonWithJSON(pythonExe, scriptPath, jsonData) {
       });
     });
 
-    // =========================
     // SEND INPUT
-    // =========================
     try {
       const payloadStr = JSON.stringify(jsonData);
 
@@ -129,9 +111,6 @@ function runPythonWithJSON(pythonExe, scriptPath, jsonData) {
   });
 }
 
-// ================================
-// [HELPER] Run Python with file
-// ================================
 function runPythonWithFile(pythonExe, scriptPath, filePath) {
   return new Promise((resolve, reject) => {
     logPY("========== PYTHON FILE START ==========");
@@ -148,9 +127,6 @@ function runPythonWithFile(pythonExe, scriptPath, filePath) {
     let stdout = "";
     let stderr = "";
 
-    // =========================
-    // TIMEOUT SAFETY
-    // =========================
     const timeout = setTimeout(() => {
       logPYError("Python timeout reached. Killing process.");
       py.kill("SIGKILL");
@@ -161,32 +137,24 @@ function runPythonWithFile(pythonExe, scriptPath, filePath) {
       reject(err);
     }, PY_TIMEOUT_MS);
 
-    // =========================
     // STDOUT STREAM
-    // =========================
     py.stdout.on("data", (d) => {
       stdout += d.toString("utf-8");
     });
 
-    // =========================
     // STDERR STREAM
-    // =========================
     py.stderr.on("data", (d) => {
       stderr += d.toString("utf-8");
     });
 
-    // =========================
     // PROCESS ERROR
-    // =========================
     py.on("error", (err) => {
       clearTimeout(timeout);
       logPYError("FAILED TO START PYTHON PROCESS:", err);
       reject(err);
     });
 
-    // =========================
     // PROCESS EXIT
-    // =========================
     py.on("close", (code) => {
       clearTimeout(timeout);
 
