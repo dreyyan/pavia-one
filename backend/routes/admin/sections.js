@@ -5,7 +5,11 @@ const prisma = require("../../lib/prisma");
 
 // [IMPORT] Utilities & Middleware
 const { successResponse, errorResponse } = require("../../utils/response");
-const { getFullName, normalizeSchoolYear, createSectionWithForms } = require("../../utils/helpers");
+const {
+  getFullName,
+  normalizeSchoolYear,
+  createSectionWithForms,
+} = require("../../utils/helpers");
 const verifyAdmin = require("../../middleware/authMiddleware").verifyAdmin;
 
 // [IMPORT] Constants, Helpers
@@ -219,9 +223,7 @@ router.post("/", verifyAdmin, async (req, res) => {
     });
 
     const existingSet = new Set(
-      existingSections.map(
-        (s) => `${s.name}|${s.gradeLevel}|${s.schoolYear}`
-      )
+      existingSections.map((s) => `${s.name}|${s.gradeLevel}|${s.schoolYear}`),
     );
 
     // [PREFETCH] Advisers
@@ -593,12 +595,96 @@ router.put("/:id", verifyAdmin, async (req, res) => {
       },
     });
 
+    // ? Detect adviser assignment (null → assigned)
+    const adviserJustAssigned =
+      existingSection.adviserId === null && updatedSection.adviserId !== null;
+
+    // ? Only trigger if adviser assigned AND schoolYear exists
+    if (adviserJustAssigned && updatedSection.schoolYear) {
+      const formTypes = ["SF1", "SF2", "SF5"];
+
+      for (const type of formTypes) {
+        try {
+          await prisma.schoolForm.create({
+            data: {
+              sectionId: updatedSection.id,
+              type,
+              schoolYear: updatedSection.schoolYear,
+              generatedBy: updatedSection.adviserId ?? null,
+            },
+          });
+        } catch (err) {
+          // ! Skip duplicates (same behavior as your admin route)
+          if (err.code !== "P2002") {
+            console.error(
+              `[ERROR] Creating ${type} for section ${updatedSection.id}:`,
+              err,
+            );
+          }
+        }
+      }
+    }
+
     res.json(successResponse("Section updated successfully", updatedSection));
   } catch (err) {
     console.error("Update section error:", err);
     res
       .status(500)
       .json(errorResponse("Failed to update section", err.message));
+  }
+});
+
+// ?[PUT] Unassign Adviser from Section
+// /api/admin/sections/:id/unassign-adviser
+router.put("/:id/unassign-adviser", verifyAdmin, async (req, res) => {
+  try {
+    const sectionId = Number(req.params.id);
+
+    if (isNaN(sectionId)) {
+      return res.status(400).json(errorResponse("Invalid section ID"));
+    }
+
+    // ? Check if section exists
+    const section = await prisma.section.findUnique({
+      where: { id: sectionId },
+    });
+
+    if (!section) {
+      return res.status(404).json(errorResponse("Section not found"));
+    }
+
+    // ? If already unassigned, return early (optional but clean)
+    if (section.adviserId === null) {
+      return res
+        .status(400)
+        .json(errorResponse("No adviser is assigned to this section"));
+    }
+
+    // ? Unassign adviser
+    const updated = await prisma.section.update({
+      where: { id: sectionId },
+      data: {
+        adviserId: null,
+      },
+      select: {
+        id: true,
+        name: true,
+        gradeLevel: true,
+        curriculum: true,
+        adviserId: true,
+        schoolYear: true,
+        color: true,
+        schedule: true,
+        room: true,
+      },
+    });
+
+    res.json(successResponse("Adviser unassigned successfully", updated));
+  } catch (err) {
+    console.error("[ERROR] Unassign adviser:", err);
+    res
+      .status(500)
+      .json(errorResponse("Failed to unassign adviser", err.message));
   }
 });
 

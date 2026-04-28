@@ -20,6 +20,7 @@ import { AssignAdviserFormModal } from "../../components/forms/AssignAdviserForm
 // [IMPORT] Constants & Types
 import { GRADE_LEVEL_OPTIONS, CURRICULUM_OPTIONS, LEARNING_MODALITY_OPTIONS } from "../../constants";
 import { GeneralModalConfig, SectionDetails } from "../../types";
+import SecondaryButton from "../../components/buttons/SecondaryButton";
 
 // ? [TYPE] Active form page index
 type FormPage = 0 | 1;
@@ -265,6 +266,80 @@ const AdminSectionDetails = () => {
     setShowAssignModal(true);
   };
 
+  // [HANDLE] Open unassign adviser modal
+  const handleUnassignAdviser = () => {
+    if (!id) return;
+
+    openGeneralModal({
+      title: "Unassign Adviser",
+      message:
+        "Are you sure you want to unassign the adviser from this section?",
+      type: "error",
+      confirmText: "Unassign",
+      isCancelable: true,
+      onConfirm: async () => {
+        setLoading(true);
+
+        try {
+          const token = localStorage.getItem("token");
+
+          const res = await fetch(
+            `${import.meta.env.VITE_API_BASE_URL}/api/admin/sections/${id}/unassign-adviser`,
+            {
+              method: "PUT",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          const data = await res.json();
+
+          if (!data.success) {
+            throw new Error(data.message || "Failed to unassign adviser");
+          }
+
+          // ? Update UI state
+          setSection(prev =>
+            prev
+              ? {
+                  ...prev,
+                  adviserId: null,
+                  adviser: undefined,
+                }
+              : prev
+          );
+
+          // * SUCCESS MODAL
+          openGeneralModal({
+            title: "Adviser Unassigned",
+            message: "The adviser has been removed from this section.",
+            type: "success",
+            isCancelable: false,
+            confirmText: "OK",
+            onConfirm: () => closeGeneralModal(),
+          });
+        } catch (err: any) {
+          console.error("Unassign error:", err);
+
+          openGeneralModal({
+            title: "Unassign Failed",
+            message:
+              err?.message ||
+              "We couldn't unassign the adviser. Please try again.",
+            type: "error",
+            confirmText: "Close",
+            isCancelable: false,
+            onConfirm: () => closeGeneralModal(),
+          });
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+  };
+
   // [HANDLE] Submit adviser assignment
   const handleAssignSubmit = async (adviserId: string, adviserName: string) => {
     setAssignLoading(true);
@@ -470,6 +545,11 @@ const AdminSectionDetails = () => {
                 text="Assign Adviser"
                 iconSrc="/assign-adviser.svg"
                 onClick={handleAssignAdviser}
+              />
+              <SecondaryButton
+                text="Unassign Adviser"
+                iconSrc="/unassign.svg"
+                onClick={handleUnassignAdviser}
               />
               <DeleteButton
                 onClick={() => handleDelete(section.id)}
