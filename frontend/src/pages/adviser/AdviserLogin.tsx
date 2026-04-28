@@ -99,7 +99,7 @@ const AdviserLogin = () => {
     };
 
     return (
-        <div className="pb-20 bg-[var(--color-bg-100)] min-h-screen flex flex-col items-center">
+        <div className="pb-20 bg-[var(--color-bg-50)] min-h-screen flex flex-col items-center">
             {/* [COMPONENT] Modal */}
             {showModal && (
                 <Modal
@@ -122,9 +122,12 @@ const AdviserLogin = () => {
             {/* [SECTION] Login Form */}
             <div className="flex flex-col pt-15 px-6 w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl">
                 {/* [UI] Adviser Login */}
-                <h1 className="text-[var(--color-primary-700)] text-lg sm:text-xl md:text-2xl">
-                    Adviser Login
-                </h1>
+                <span className="flex space-x-2">
+                    <img src="/adviser-outline.svg" className="" />
+                    <h1 className="text-[var(--color-primary-700)] text-lg sm:text-xl md:text-2xl">
+                        Adviser Login
+                    </h1>
+                </span>
 
                 {/* [SECTION] Input Fields */}
                 <div className="flex flex-col gap-y-4 mt-6 mb-2">
@@ -177,7 +180,7 @@ const AdviserLogin = () => {
                 <span className="label-caption text-center">Not an Adviser?</span>
                 <a
                     href="/login/admin"
-                    className="link text-[var(--color-primary-600)] hover:underline"
+                    className="link text-[var(--color-primary-700)] hover:underline"
                 >
                     Login as Admin
                 </a>
