@@ -426,6 +426,7 @@ router.get(
         where: { adviserId: req.adviserId },
         select: { id: true },
       });
+
       if (!adviser)
         return res.status(404).json(errorResponse("Adviser not found"));
 
@@ -434,6 +435,7 @@ router.get(
         where: { id: sectionId, adviserId: adviser.id },
         select: { id: true, name: true, gradeLevel: true },
       });
+
       if (!section)
         return res
           .status(403)
@@ -447,23 +449,39 @@ router.get(
             include: {
               address: true,
               guardian: true,
+
+              enrollments: {
+                include: {
+                  learningAreas: {
+                    include: {
+                      learningArea: true,
+                    },
+                  },
+                },
+              },
+
               sf9Grades: { include: { items: true, learningArea: true } },
               sf9Summaries: true,
               sf5Reports: true,
               sf9CoreValues: true,
             },
           },
-          section: { select: { id: true, name: true, gradeLevel: true } },
+          section: {
+            select: { id: true, name: true, gradeLevel: true },
+          },
         },
       });
+
       if (!enrollment)
         return res
           .status(404)
           .json(errorResponse("Student not found in this section"));
 
       const s = enrollment.student;
+      const address = s.address || {};
+      const guardian = s.guardian || {};
 
-      // Build flattened student response similar to admin
+      // Build flattened student response (ADMIN-COMPATIBLE SHAPE)
       const studentResponse = {
         id: s.id,
         lrn: s.lrn,
@@ -476,57 +494,63 @@ router.get(
         sex: s.sex,
         birthDate: s.birthDate,
         age: calculateAge(s.birthDate),
+
         sectionId: enrollment.sectionId,
         sectionName: enrollment.section.name,
         gradeLevel: enrollment.section.gradeLevel,
+
+        // ✅ ADDRESS (ONLY FROM ADDRESS TABLE)
         houseNo: s.address?.streetAddress ?? "",
         barangay: s.address?.barangay ?? "",
         municipality: s.address?.municipalityCity ?? "",
         province: s.address?.province ?? "",
+
+        // ✅ GUARDIAN (ONLY FROM GUARDIAN TABLE)
         fatherName:
           [
-            s.guardian?.fatherLastName,
             s.guardian?.fatherFirstName,
             s.guardian?.fatherMiddleName,
+            s.guardian?.fatherLastName,
           ]
             .filter(Boolean)
             .join(" ") || "",
+
         motherName:
           [
-            s.guardian?.motherMaidenLastName,
             s.guardian?.motherMaidenFirstName,
             s.guardian?.motherMaidenMiddleName,
+            s.guardian?.motherMaidenLastName,
           ]
             .filter(Boolean)
             .join(" ") || "",
+
         guardianName: s.guardian?.guardianName ?? "",
         guardianRelationship: s.guardian?.guardianRelationship ?? "",
         guardianContact: s.guardian?.guardianContactNumber ?? "",
-        learningModality: enrollment.learningModality ?? "",
 
+        learningModality: enrollment.learningModality ?? "",
         motherTongue: s.motherTongue ?? "",
         religion: s.religion ?? "",
 
-        // Include enrollments (flatten learning areas)
         enrollments: (s.enrollments ?? []).map((enr) => ({
           ...enr,
           learningAreas: (enr.learningAreas ?? []).map(
             (ela) => ela.learningArea,
           ),
         })),
-        // Include grades & related data
+
         sf9Grades: s.sf9Grades ?? [],
         sf9Summaries: s.sf9Summaries ?? [],
         sf5Reports: s.sf5Reports ?? [],
         sf9CoreValues: s.sf9CoreValues ?? [],
       };
 
-      res.json(
+      return res.json(
         successResponse("Student retrieved successfully", studentResponse),
       );
     } catch (err) {
       console.error("Get student in section error:", err);
-      res
+      return res
         .status(500)
         .json(errorResponse("Failed to fetch student", err.message));
     }

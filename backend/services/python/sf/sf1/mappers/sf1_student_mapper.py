@@ -12,35 +12,40 @@ def build_student(
 ) -> dict:
     last, first, middle = parse_name(name_combined)
 
-    # Build guardian sub-objects with correctly split name fields
     f_first, f_middle, f_last = parse_guardian_name(father_raw)
     m_first, m_middle, m_last = parse_guardian_name(mother_raw)
 
     return {
-        "lrn":              normalize_lrn(lrn),
-        "firstName":        first,
-        "middleName":       middle or None,
-        "lastName":         last,
-        "sex":              normalize_sex(sex_raw),
-        "birthDate":        normalize_date(birth_raw),
-        "motherTongue":     mother_tongue.strip() or None,
-        "ethnicGroup":      ip.strip() or None,
-        "religion":         religion.strip() or None,
+        "lrn": normalize_lrn(lrn),
+        "firstName": first,
+        "middleName": middle or None,
+        "lastName": last,
+        "sex": normalize_sex(sex_raw),
+        "birthDate": normalize_date(birth_raw),
+        "motherTongue": mother_tongue.strip() or None,
+        "ethnicGroup": ip.strip() or None,
+        "religion": religion.strip() or None,
 
-        # Address
-        "barangay":         barangay.strip() or None,
-        "municipality":     municipality.strip() or None,
-        "province":         province.strip() or None,
-        
-        # Guardian (pre-split into individual name fields)
-        "fatherFirstName":        f_first  or None,
-        "fatherMiddleName":       f_middle or None,
-        "fatherLastName":         f_last   or None,
-        "motherMaidenFirstName":  m_first  or None,
-        "motherMaidenMiddleName": m_middle or None,
-        "motherMaidenLastName":   m_last   or None,
+        "address": {
+            "create": {
+                "streetAddress": None,
+                "barangay": barangay.strip() or None,
+                "municipalityCity": municipality.strip() or None,
+                "province": province.strip() or None,
+            }
+        },
 
-        # Enrollment
-        "learningModality": normalize_modality(modality_raw),
-        "remarks":          remarks.strip() or None,
+        "guardian": {
+            "create": {
+                "fatherFirstName": f_first or None,
+                "fatherMiddleName": f_middle or None,
+                "fatherLastName": f_last or None,
+                "motherMaidenFirstName": m_first or None,
+                "motherMaidenMiddleName": m_middle or None,
+                "motherMaidenLastName": m_last or None,
+                "guardianName": None,
+                "guardianRelationship": None,
+                "guardianContactNumber": None,
+            }
+        },
     }

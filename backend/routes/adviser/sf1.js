@@ -120,6 +120,8 @@ router.post(
       return res.status(500).json(errorResponse("Invalid parser output"));
     }
 
+    console.log("SAMPLE STUDENT:", students[0]);
+
     if (!students.length) {
       return res.status(400).json(errorResponse("No students found"));
     }
@@ -404,8 +406,7 @@ router.get("/export", verifyAdviser, async (req, res) => {
 
     const studentsData = enrollments.map((e) => {
       const s = e.student,
-        g = s.guardian || {},
-        a = s.address || {};
+        g = s.guardian || {};
       return {
         LRN: s.lrn || "",
         "First Name": s.firstName || "",
@@ -426,9 +427,9 @@ router.get("/export", verifyAdviser, async (req, res) => {
         ]
           .filter(Boolean)
           .join(" "),
-        Barangay: a.barangay || "",
-        Municipality: a.municipalityCity || "",
-        Province: a.province || "",
+        Barangay: s.barangay || "",
+        Municipality: s.municipality || "",
+        Province: s.province || "",
         "Learning Modality": e.learningModality || "",
         Remarks: e.remarks || "",
         Section: section.name || "",
@@ -453,12 +454,7 @@ router.get("/export", verifyAdviser, async (req, res) => {
       .filter(Boolean);
 
     if (incomplete.length) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Cannot export SF1: some students have incomplete information.",
-        data: incomplete,
-      });
+      console.warn("[SF1 Export] Incomplete students detected:", incomplete);
     }
 
     // [4] Run Python parser to fill the template
@@ -541,9 +537,7 @@ router.get("/view", verifyAdviser, async (req, res) => {
     });
 
     const students = enrollments.map((e) => {
-      const s = e.student,
-        g = s.guardian || {},
-        a = s.address || {};
+      const g = s;
       return {
         LRN: s.lrn || "",
         "First Name": s.firstName || "",
@@ -557,6 +551,7 @@ router.get("/view", verifyAdviser, async (req, res) => {
         "Father Name": [g.fatherFirstName, g.fatherMiddleName, g.fatherLastName]
           .filter(Boolean)
           .join(" "),
+
         "Mother Maiden Name": [
           g.motherMaidenFirstName,
           g.motherMaidenMiddleName,
@@ -564,9 +559,13 @@ router.get("/view", verifyAdviser, async (req, res) => {
         ]
           .filter(Boolean)
           .join(" "),
-        Barangay: a.barangay || "",
-        Municipality: a.municipalityCity || "",
-        Province: a.province || "",
+        Barangay: s.barangay || s.address?.barangay || "",
+        Municipality:
+          s.municipality ||
+          s.address?.municipalityCity ||
+          s.address?.municipality ||
+          "",
+        Province: s.province || s.address?.province || "ILOILO",
         "Learning Modality": e.learningModality || "",
         Remarks: e.remarks || "",
       };

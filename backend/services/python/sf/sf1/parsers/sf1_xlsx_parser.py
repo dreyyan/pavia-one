@@ -27,7 +27,6 @@ try:
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     TEMPLATE_PATH = os.path.join(FORMS_DIR, "SF1_template.xlsx")
-    OUTPUT_PATH = os.path.join(OUTPUT_DIR, "SF1_filled_output.xlsx")
 
     # ---------------- LOAD DATA ----------------
     if len(sys.argv) > 1:
@@ -35,6 +34,11 @@ try:
             students_list = json.load(f)
     else:
         payload = json.loads(sys.stdin.read())
+
+        output_path = payload.get("outputPath")
+
+        if not output_path:
+            output_path = os.path.join(OUTPUT_DIR, "SF1_filled_output.xlsx")
 
         students_list = payload["students"]
         adviser = payload.get("adviser", {})
@@ -263,10 +267,14 @@ try:
         write_cell(60, c, adviser_name)
         write_cell(61, c, adviser_name)
 
-    wb.save(OUTPUT_PATH)
+        wb.save(output_path)
 
-    print(f"[SUCCESS] Saved to {OUTPUT_PATH}")
-    print(f"Male: {len(males)}, Female: {len(females)}, Total: {total}")
+        print(json.dumps({
+            "filePath": output_path,
+            "male": len(males),
+            "female": len(females),
+            "total": total
+        }))
 
 except Exception as e:
     print(f"[ERROR] {e}", file=sys.stderr)

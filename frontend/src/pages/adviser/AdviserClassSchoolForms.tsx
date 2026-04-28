@@ -136,44 +136,40 @@ const AdviserClassSchoolForms = () => {
   }, [sectionId]);
 
   // * [HANDLE] Export School Form
-  const handleExport = async (formType: string) => {
-    setExporting(formType);
-    try {
-      const token = localStorage.getItem("token");
-      const endpointMap: Record<string, string> = {
-        SF1: "/api/adviser/sf1/export",
-        SF2: "/api/adviser/sf2/export",
-        SF5: "/api/adviser/sf5/export",
-        SF9: "/api/adviser/sf9/export",
-        SF10: "/api/adviser/sf10/export",
-      };
+const handleExport = async (formType: string) => {
+  setExporting(formType);
 
-      const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}${endpointMap[formType]}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+  try {
+    const token = localStorage.getItem("token");
 
-      const contentType = res.headers.get("content-type") || "";
-      if (contentType.includes("application/json")) {
-        const errData = await res.json();
-        if (!res.ok && errData.data && Array.isArray(errData.data)) {
-          const names = errData.data
-            .slice(0, 5)
-            .map((s: any) => `• ${s.name}: ${(s.missing ?? s.missingFields ?? []).join(", ")}`)
-            .join("\n");
-          const more = errData.data.length > 5 ? `\n...and ${errData.data.length - 5} more.` : "";
-          openGeneralModal({
-            title: `Cannot Export ${formType}`,
-            message: `Some students have incomplete information:\n\n${names}${more}`,
-            type: "error",
-            confirmText: "Close",
-            onConfirm: () => closeGeneralModal(),
-          });
-          return;
-        }
+    const endpointMap: Record<string, string> = {
+      SF1: "/api/adviser/sf1/export",
+      SF2: "/api/adviser/sf2/export",
+      SF5: "/api/adviser/sf5/export",
+      SF9: "/api/adviser/sf9/export",
+      SF10: "/api/adviser/sf10/export",
+    };
+
+    const res = await fetch(
+      `${import.meta.env.VITE_API_BASE_URL}${endpointMap[formType]}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    const contentType = res.headers.get("content-type") || "";
+
+    // ❗ CASE 1: JSON response (warning or error)
+    if (contentType.includes("application/json")) {
+      const errData = await res.json();
+
+      // ❌ real error (no export generated)
+      if (!res.ok && !errData.data) {
         openGeneralModal({
           title: "Export Failed",
-          message: errData.message || "An error occurred while generating the file.",
+          message:
+            errData.message ||
+            "An error occurred while generating the file.",
           type: "error",
           confirmText: "Close",
           onConfirm: () => closeGeneralModal(),
@@ -181,34 +177,67 @@ const AdviserClassSchoolForms = () => {
         return;
       }
 
-      if (!res.ok) throw new Error("Export failed");
+      // ⚠️ WARNING CASE (SF1 incomplete students)
+      if (Array.isArray(errData.data)) {
+        const names = errData.data
+          .slice(0, 5)
+          .map(
+            (s: any) =>
+              `• ${s.name}: ${(s.missing ?? s.missingFields ?? []).join(", ")}`
+          )
+          .join("\n");
 
-      // [DOWNLOAD] Stream blob to user
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      const disp = res.headers.get("content-disposition") || "";
-      const match = disp.match(/filename="?([^"]+)"?/);
-      a.href = url;
-      a.download = match ? match[1] : `${formType}_export.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch (err: any) {
-      // ! [ERROR] Export failed
-      console.error(err);
-      openGeneralModal({
-        title: "Export Failed",
-        message: err.message || "Network error. Please check your connection.",
-        type: "error",
-        confirmText: "Close",
-        onConfirm: () => closeGeneralModal(),
-      });
-    } finally {
-      setExporting(null);
+        const more =
+          errData.data.length > 5
+            ? `\n...and ${errData.data.length - 5} more.`
+            : "";
+
+        openGeneralModal({
+          title: `Incomplete SF1 Data`,
+          message: `Some students have missing information:\n\n${names}${more}\n\nExport will still proceed.`,
+          type: "error",
+          confirmText: "OK",
+          isCancelable: false,
+          onConfirm: () => closeGeneralModal(),
+        });
+
+        return;
+      }
     }
-  };
+
+    // ❌ real failure (non-JSON, no file)
+    if (!res.ok) throw new Error("Export failed");
+
+    // 📦 SUCCESS: stream file
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+
+    const disp = res.headers.get("content-disposition") || "";
+    const match = disp.match(/filename="?([^"]+)"?/);
+
+    a.href = url;
+    a.download = match ? match[1] : `${formType}_export.xlsx`;
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (err: any) {
+    console.error(err);
+
+    openGeneralModal({
+      title: "Export Failed",
+      message: err.message || "Network error. Please try again.",
+      type: "error",
+      confirmText: "Close",
+      onConfirm: () => closeGeneralModal(),
+    });
+  } finally {
+    setExporting(null);
+  }
+};
 
   // [HANDLE] Trigger hidden file input for SF1 import
   const handleImportClick = () => {
