@@ -3,16 +3,11 @@ const express = require("express");
 const router = express.Router();
 const prisma = require("../../lib/prisma");
 
-// [IMPORT] Tools
-require("dotenv").config();
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcrypt");
-
 // [IMPORT] Utilities & Middleware
 const { successResponse, errorResponse } = require("../../utils/response");
 const verifyAdviser = require("../../middleware/authMiddleware").verifyAdviser;
 
-// ?[GET] Get Section Detail w/ Forms + Student Form Statuses for Adviser
+// ?[GET] Get Section Detail with Forms + Student SF9 Statuses
 // /api/adviser/forms/section/:sectionId
 router.get("/section/:sectionId", verifyAdviser, async (req, res) => {
   try {
@@ -20,13 +15,14 @@ router.get("/section/:sectionId", verifyAdviser, async (req, res) => {
     if (isNaN(sectionId))
       return res.status(400).json(errorResponse("Invalid section ID"));
 
-    // --- Section ---
+    // [FETCH] Section with section-level school forms only
     const section = await prisma.section.findUnique({
       where: { id: sectionId },
       include: {
         adviser: {
           select: { id: true, adviserId: true, name: true, email: true },
         },
+        // Section-level forms: SF1, SF2, SF5, SF10
         schoolForms: {
           orderBy: { id: "asc" },
         },
@@ -36,11 +32,9 @@ router.get("/section/:sectionId", verifyAdviser, async (req, res) => {
     if (!section)
       return res.status(404).json(errorResponse("Section not found"));
 
-    // --- Enrollments + SF9 ---
+    // [FETCH] Enrollments with student SF9 data only — SF5 is NOT per student
     const enrollments = await prisma.enrollment.findMany({
-      where: {
-        sectionId,
-      },
+      where: { sectionId },
       include: {
         student: {
           select: {
@@ -52,7 +46,7 @@ router.get("/section/:sectionId", verifyAdviser, async (req, res) => {
             nameExtension: true,
             sex: true,
 
-            // 🔥 RAW SF9 grades
+            // [SF9] Student-level grade data — grouped by learningAreaId
             sf9Grades: {
               where: { schoolYear: section.schoolYear },
               select: {
@@ -71,41 +65,26 @@ router.get("/section/:sectionId", verifyAdviser, async (req, res) => {
               },
             },
 
+            // [SF9 SUMMARY] For general average / SF10 status
             sf9Summaries: {
               where: { schoolYear: section.schoolYear },
-              select: {
-                id: true,
-                generalAverage: true,
-              },
-            },
-
-            sf5Reports: {
-              select: {
-                id: true,
-                generalAverage: true,
-                actionTaken: true,
-              },
+              select: { id: true, generalAverage: true },
             },
           },
         },
       },
-      orderBy: {
-        student: { lastName: "asc" },
-      },
+      orderBy: { student: { lastName: "asc" } },
     });
 
     const classSize = enrollments.length;
 
-    // =========================
-    // 🔥 NORMALIZE SF9 + STATUS
-    // =========================
+    // [NORMALIZE] Build student list with SF9 map and derived statuses
     const students = enrollments.map((e) => {
       const s = e.student;
-
       const sf9Grades = s.sf9Grades ?? [];
 
-      // 🔥 group SF9 by learningAreaId
-      const sf9Map = sf9Grades.reduce((acc, g) => {
+      // [COMPUTE] Group SF9 grades by learningAreaId for easy frontend lookup
+      const sf9 = sf9Grades.reduce((acc, g) => {
         acc[g.learningAreaId] = {
           id: g.id,
           q1: g.q1,
@@ -122,12 +101,12 @@ router.get("/section/:sectionId", verifyAdviser, async (req, res) => {
         return acc;
       }, {});
 
+      // [COMPUTE] SF9 status derived from quarter readiness flags
       const allReady =
         sf9Grades.length > 0 &&
         sf9Grades.every(
           (g) => g.q1Ready && g.q2Ready && g.q3Ready && g.q4Ready,
         );
-
       const partialReady =
         sf9Grades.length > 0 &&
         sf9Grades.some((g) => g.q1Ready || g.q2Ready || g.q3Ready || g.q4Ready);
@@ -138,13 +117,10 @@ router.get("/section/:sectionId", verifyAdviser, async (req, res) => {
           ? "PARTIAL"
           : "PENDING";
 
+      // [COMPUTE] SF10 status — complete only when general average exists
       const sf9Summary = s.sf9Summaries?.[0] ?? null;
-
       const sf10Status =
         sf9Summary?.generalAverage != null ? "COMPLETE" : "PENDING";
-
-      const sf5Report = s.sf5Reports?.[0] ?? null;
-      const sf5Status = sf5Report ? "COMPLETE" : "PENDING";
 
       return {
         id: s.id,
@@ -154,20 +130,16 @@ router.get("/section/:sectionId", verifyAdviser, async (req, res) => {
         lastName: s.lastName,
         nameExtension: s.nameExtension,
         sex: s.sex,
-
         enrollmentStatus: e.status,
-
-        // 🔥 ADD THIS
-        sf9: sf9Map,
-
+        sf9,
         sf9Status,
         sf10Status,
-        sf5Status,
-
         generalAverage: sf9Summary?.generalAverage ?? null,
-        actionTaken: sf5Report?.actionTaken ?? null,
       };
     });
+
+    // [COMPUTE] SF5 is section-level only — extract from schoolForms
+    const sf5Form = section.schoolForms.find((f) => f.type === "SF5") ?? null;
 
     res.json(
       successResponse("Section detail retrieved", {
@@ -183,6 +155,7 @@ router.get("/section/:sectionId", verifyAdviser, async (req, res) => {
           classSize,
         },
         students,
+        sf5: sf5Form,
       }),
     );
   } catch (err) {
@@ -197,27 +170,22 @@ router.get("/section/:sectionId", verifyAdviser, async (req, res) => {
 // /api/adviser/forms
 router.get("/", verifyAdviser, async (req, res) => {
   try {
-    // --- Validate adviser ---
     const adviser = await prisma.adviser.findUnique({
       where: { adviserId: req.adviserId },
       select: { id: true },
     });
-
     if (!adviser)
       return res.status(404).json(errorResponse("Adviser not found"));
 
-    // --- Validate advisory section ---
     const section = await prisma.section.findFirst({
       where: { adviserId: adviser.id },
       select: { id: true },
     });
-
     if (!section)
       return res
         .status(404)
         .json(errorResponse("No advisory section assigned"));
 
-    // --- Fetch forms ---
     const forms = await prisma.schoolForm.findMany({
       where: { sectionId: section.id },
       orderBy: { generatedAt: "desc" },
@@ -236,46 +204,34 @@ router.post("/", verifyAdviser, async (req, res) => {
   try {
     const { type, schoolYear } = req.body;
 
-    // --- Validate input ---
     if (!type || typeof type !== "string")
       return res
         .status(400)
         .json(errorResponse("Type is required and must be a string"));
-
     if (!schoolYear || typeof schoolYear !== "string")
       return res
         .status(400)
         .json(errorResponse("School year is required and must be a string"));
 
-    // --- Get adviser ---
     const adviser = await prisma.adviser.findUnique({
       where: { adviserId: req.adviserId },
       select: { id: true },
     });
-
     if (!adviser)
       return res.status(404).json(errorResponse("Adviser not found"));
 
-    // --- Get advisory section ---
     const section = await prisma.section.findFirst({
       where: { adviserId: adviser.id },
       select: { id: true },
     });
-
     if (!section)
       return res
         .status(404)
         .json(errorResponse("No advisory section assigned"));
 
-    // --- Prevent duplicate forms for same section & schoolYear ---
     const existingForm = await prisma.schoolForm.findFirst({
-      where: {
-        sectionId: section.id,
-        schoolYear,
-        type,
-      },
+      where: { sectionId: section.id, schoolYear, type },
     });
-
     if (existingForm)
       return res
         .status(409)
@@ -283,7 +239,6 @@ router.post("/", verifyAdviser, async (req, res) => {
           errorResponse("Form already exists for this section and school year"),
         );
 
-    // --- Create form ---
     const form = await prisma.schoolForm.create({
       data: {
         sectionId: section.id,
@@ -305,8 +260,6 @@ router.post("/", verifyAdviser, async (req, res) => {
 router.get("/:id", verifyAdviser, async (req, res) => {
   try {
     const formId = Number(req.params.id);
-
-    // --- Validate form ID ---
     if (isNaN(formId))
       return res.status(400).json(errorResponse("Invalid form ID"));
 
@@ -314,7 +267,6 @@ router.get("/:id", verifyAdviser, async (req, res) => {
       where: { id: formId },
       include: { section: true },
     });
-
     if (!form) return res.status(404).json(errorResponse("Form not found"));
 
     res.json(successResponse("Form retrieved", form));
@@ -331,10 +283,8 @@ router.put("/:id", verifyAdviser, async (req, res) => {
     const formId = Number(req.params.id);
     const { status } = req.body;
 
-    // --- Validate input ---
     if (isNaN(formId))
       return res.status(400).json(errorResponse("Invalid form ID"));
-
     if (!status || typeof status !== "string")
       return res
         .status(400)
@@ -357,14 +307,10 @@ router.put("/:id", verifyAdviser, async (req, res) => {
 router.delete("/:id", verifyAdviser, async (req, res) => {
   try {
     const formId = Number(req.params.id);
-
-    // --- Validate form ID ---
     if (isNaN(formId))
       return res.status(400).json(errorResponse("Invalid form ID"));
 
-    await prisma.schoolForm.delete({
-      where: { id: formId },
-    });
+    await prisma.schoolForm.delete({ where: { id: formId } });
 
     res.json(successResponse("Form deleted"));
   } catch (err) {
@@ -377,27 +323,18 @@ router.delete("/:id", verifyAdviser, async (req, res) => {
 // /api/adviser/forms/auto-create
 router.post("/auto-create", verifyAdviser, async (req, res) => {
   try {
-    // --- Default form types ---
     const defaultFormTypes = ["SF1", "SF2", "SF9"];
-
-    // --- Get all sections ---
     const sections = await prisma.section.findMany({
       select: { id: true, adviserId: true },
     });
-
-    if (!sections.length) {
+    if (!sections.length)
       return res.status(404).json(errorResponse("No sections found"));
-    }
 
-    // --- Current school year from request or default ---
     const { schoolYear } = req.body;
-    if (!schoolYear) {
+    if (!schoolYear)
       return res.status(400).json(errorResponse("schoolYear is required"));
-    }
 
     const createdForms = [];
-
-    // --- Loop through sections and default form types ---
     for (const section of sections) {
       for (const type of defaultFormTypes) {
         try {
@@ -411,7 +348,6 @@ router.post("/auto-create", verifyAdviser, async (req, res) => {
           });
           createdForms.push(form);
         } catch (err) {
-          // Ignore duplicate forms (unique constraint)
           if (err.code !== "P2002") {
             console.error(
               `Failed to create form ${type} for section ${section.id}`,
