@@ -48,4 +48,6 @@ def build_student(
                 "guardianContactNumber": None,
             }
         },
+
+        "remarks": remarks.strip() or None,
     }

@@ -65,6 +65,13 @@ def parse_csv(path: str) -> list:
 
         data = reader[row_idx]
 
+        print("\n[ROW DEBUG]", file=sys.stderr)
+        print("LEN:", len(data), file=sys.stderr)
+        print("ROW:", data, file=sys.stderr)
+        print("LAST COL:", data[-1] if data else "EMPTY", file=sys.stderr)
+        print("REMARKS INDEX 44:", data[44] if len(data) > 44 else "OUT OF RANGE", file=sys.stderr)
+        print("[ROW REMARKS RAW]", data[CSV_COL["remarks"]] if len(data) > CSV_COL["remarks"] else "MISSING", file=sys.stderr)
+
         def g(col):
             return data[col].strip() if len(data) > col else ""
 
@@ -87,7 +94,7 @@ def parse_csv(path: str) -> list:
             father_raw=g(CSV_COL["father"]),
             mother_raw=g(CSV_COL["mother"]),
             modality_raw=g(CSV_COL["modality"]),
-            remarks=g(CSV_COL["remarks"]),
+            remarks = g(CSV_COL["remarks"])
         )
         students.append(student)
         row_idx += 1

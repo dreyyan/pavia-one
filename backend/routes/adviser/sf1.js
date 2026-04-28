@@ -67,21 +67,19 @@ if (!fs.existsSync(OUTPUT_DIR)) {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 }
 
-// ? [POST] Import SF1 file → parse students → upsert → enroll → create SF9
-// /api/adviser/sf1/import
 router.post(
   "/import",
   verifyAdviser,
   upload.single("sf1File"),
   async (req, res) => {
+    const fs = require("fs");
+    const path = require("path");
+
     if (!req.file) {
       return res.status(400).json(errorResponse("No file uploaded"));
     }
 
     console.log("[SF1 IMPORT HIT]", req.adviserId);
-
-    const fs = require("fs");
-    const path = require("path");
 
     const filePath = req.file.path;
     const originalExt = path.extname(req.file.originalname).toLowerCase();
@@ -113,16 +111,22 @@ router.post(
 
     safeUnlink(namedPath);
 
-    let students;
-    try {
-      students = JSON.parse(result.stdout);
-    } catch {
-      return res.status(500).json(errorResponse("Invalid parser output"));
+    if (!result.stdout) {
+      return res.status(500).json(errorResponse("Empty Python output"));
     }
 
-    console.log("SAMPLE STUDENT:", students[0]);
+    let students;
 
-    if (!students.length) {
+    try {
+      students = JSON.parse(result.stdout);
+    } catch (err) {
+      console.log(result.stdout);
+      return res
+        .status(500)
+        .json(errorResponse("Invalid parser output", err.message));
+    }
+
+    if (!Array.isArray(students) || students.length === 0) {
       return res.status(400).json(errorResponse("No students found"));
     }
 
@@ -134,98 +138,18 @@ router.post(
       return res.status(resolved.status).json(errorResponse(resolved.error));
     }
 
-    const section = await prisma.section.findUnique({
-      where: { id: resolved.section.id },
-    });
+    const section = resolved.section;
 
-    const { SPECIAL_SECTIONS } = require("../../utils/constants");
-
-    const hasCurriculum = (gradeLevel, curriculum) => {
-      if (curriculum === "Regular") return true;
-      return SPECIAL_SECTIONS?.[gradeLevel]?.[curriculum]?.length > 0;
+    const normalizeRemarks = (value) => {
+      if (typeof value !== "string") return null;
+      const cleaned = value.trim();
+      return cleaned.length > 0 ? cleaned : null;
     };
 
-    // =========================
-    // SUBJECTS SETUP
-    // =========================
-    const coreSubjects = [
-      "Filipino",
-      "English",
-      "Mathematics",
-      "Science",
-      "Araling Panlipunan",
-      "Edukasyon sa Pagpapakatao",
-      "MAPEH",
-      "Edukasyong Pantahanan at Pangkabuhayan",
-    ];
-
-    const steSpecializedSubjects = {
-      7: ["Environmental Science", "Research I"],
-      8: ["Biotechnology", "Research II"],
-      9: ["Applied Chemistry", "Research III"],
-      10: ["Electronics", "Research IV"],
-    };
-
-    const curriculumAddons = {
-      SPJ: ["ICT", "Journalism"],
-      SPS: ["Badminton"],
-      SPA: ["Visual Arts"],
-    };
-
-    const { gradeLevel, curriculum } = section;
-
-    let subjects = [];
-
-    if (hasCurriculum(gradeLevel, curriculum)) {
-      if (curriculum === "Regular") {
-        subjects = coreSubjects;
-      } else if (curriculum === "STE") {
-        subjects = [
-          ...coreSubjects,
-          ...(steSpecializedSubjects[gradeLevel] || []),
-        ];
-      } else {
-        subjects = [...coreSubjects, ...(curriculumAddons[curriculum] || [])];
-      }
-    }
-
-    // =========================
-    // LEARNING AREA MATCHING
-    // =========================
-    const learningAreas = await prisma.learningArea.findMany({
-      where: {
-        gradeLevel: Number(gradeLevel),
-        curriculum,
-      },
-      select: {
-        id: true,
-        name: true,
-      },
-    });
-
-    const normalize = (str) => str.toLowerCase().trim();
-    const subjectSet = new Set(subjects.map(normalize));
-
-    const subjectIds = learningAreas
-      .filter((la) => subjectSet.has(normalize(la.name)))
-      .map((la) => la.id);
-
-    console.log({
-      gradeLevel,
-      curriculum,
-      subjects,
-      learningAreasCount: learningAreas.length,
-      matchedSubjectIds: subjectIds.length,
-    });
-
-    // =========================
-    // RESULTS TRACKING
-    // =========================
     const results = {
       created: 0,
       updated: 0,
       enrolled: 0,
-      skippedEnrollment: 0,
       sf9Created: 0,
       errors: [],
     };
@@ -240,55 +164,91 @@ router.post(
       }
 
       try {
-        let studentId;
-
         const existing = await prisma.student.findUnique({
           where: { lrn: s.lrn },
         });
 
+        const remarks = normalizeRemarks(s.remarks);
+
+        const studentData = {
+          lrn: s.lrn,
+          firstName: s.firstName,
+          middleName: s.middleName || null,
+          lastName: s.lastName,
+          sex: s.sex || "MALE",
+          birthDate: s.birthDate ? new Date(s.birthDate) : null,
+          motherTongue: s.motherTongue || null,
+          ethnicGroup: s.ethnicGroup || null,
+          religion: s.religion || null,
+          createdByAdviserId: req.adviserId,
+        };
+
+        const addressData = {
+          create: {
+            streetAddress: null,
+            barangay:
+              s.address?.create?.barangay || s.address?.barangay || null,
+            municipalityCity:
+              s.address?.create?.municipalityCity ||
+              s.address?.municipalityCity ||
+              null,
+            province:
+              s.address?.create?.province || s.address?.province || null,
+          },
+        };
+
+        const guardianData = {
+          create: {
+            fatherFirstName: s.guardian?.create?.fatherFirstName || null,
+            fatherMiddleName: s.guardian?.create?.fatherMiddleName || null,
+            fatherLastName: s.guardian?.create?.fatherLastName || null,
+            motherMaidenFirstName:
+              s.guardian?.create?.motherMaidenFirstName || null,
+            motherMaidenMiddleName:
+              s.guardian?.create?.motherMaidenMiddleName || null,
+            motherMaidenLastName:
+              s.guardian?.create?.motherMaidenLastName || null,
+          },
+        };
+
+        let studentId;
+
         if (!existing) {
           const created = await prisma.student.create({
             data: {
-              lrn: s.lrn,
-              firstName: s.firstName,
-              middleName: s.middleName || null,
-              lastName: s.lastName,
-              sex: s.sex || "MALE",
-              birthDate: s.birthDate ? new Date(s.birthDate) : null,
-              motherTongue: s.motherTongue || null,
-              ethnicGroup: s.ethnicGroup || null,
-              religion: s.religion || null,
-              createdByAdviserId: req.adviserId,
+              ...studentData,
+              address: addressData,
+              guardian: guardianData,
             },
           });
 
           studentId = created.id;
           results.created++;
         } else {
-          await prisma.student.update({
+          const updated = await prisma.student.update({
             where: { lrn: s.lrn },
             data: {
-              firstName: s.firstName,
-              middleName: s.middleName || null,
-              lastName: s.lastName,
+              ...studentData,
+              address: addressData,
+              guardian: guardianData,
             },
           });
 
-          studentId = existing.id;
+          studentId = updated.id;
           results.updated++;
         }
 
         // =========================
-        // ENROLLMENT
+        // ENROLLMENT (FIXED REMARKS HANDLING)
         // =========================
-        const enrolled = await prisma.enrollment.findFirst({
+        const enrollment = await prisma.enrollment.findFirst({
           where: {
             studentId,
             sectionId: section.id,
           },
         });
 
-        if (!enrolled) {
+        if (!enrollment) {
           await prisma.enrollment.create({
             data: {
               studentId,
@@ -296,55 +256,24 @@ router.post(
               schoolYear: section.schoolYear,
               learningModality: s.learningModality || "FACE_TO_FACE",
               status: "ENROLLED",
+              remarks, // ✅ SAFE NULLABLE VALUE
             },
           });
 
           results.enrolled++;
         } else {
-          results.skippedEnrollment++;
-        }
+          await prisma.enrollment.update({
+            where: { id: enrollment.id },
+            data: {
+              learningModality:
+                s.learningModality || enrollment.learningModality,
 
-        // =========================
-        // SF9 CREATION (FIXED LOGIC)
-        // =========================
-
-        if (subjectIds.length > 0) {
-          const existingSF9 = await prisma.sF9Grade.findMany({
-            where: {
-              studentId,
-              schoolYear: section.schoolYear,
-              learningAreaId: {
-                in: subjectIds,
-              },
-            },
-            select: {
-              learningAreaId: true,
+              // 🔥 IMPORTANT FIX: NEVER overwrite good data with empty string
+              remarks: remarks !== null ? remarks : enrollment.remarks,
             },
           });
 
-          const existingSet = new Set(existingSF9.map((g) => g.learningAreaId));
-
-          const toCreate = subjectIds.filter((id) => !existingSet.has(id));
-
-          if (toCreate.length > 0) {
-            await prisma.sF9Grade.createMany({
-              data: toCreate.map((id) => ({
-                studentId,
-                learningAreaId: id,
-                schoolYear: section.schoolYear,
-                q1: null,
-                q2: null,
-                q3: null,
-                q4: null,
-                q1Ready: false,
-                q2Ready: false,
-                q3Ready: false,
-                q4Ready: false,
-              })),
-            });
-
-            results.sf9Created++;
-          }
+          results.updated++;
         }
       } catch (err) {
         results.errors.push({
@@ -354,32 +283,47 @@ router.post(
       }
     }
 
-    return res.json(
-      successResponse("Import complete", {
-        section,
-        results,
-      }),
-    );
+    return res.json(successResponse("Import complete", { section, results }));
   },
 );
 
 // ? [GET] Export SF1 — build Excel from DB data and stream it
-// /api/adviser/sf1/export
 router.get("/export", verifyAdviser, async (req, res) => {
   try {
+    // =========================
     // [1] Resolve adviser + section
+    // =========================
     const resolved = await resolveAdviserSection(req.adviserId);
     if (resolved.error) {
       return res.status(resolved.status).json(errorResponse(resolved.error));
     }
+
     const { section } = resolved;
 
+    // =========================
     // [2] Fetch enrolled students
+    // =========================
     const enrollments = await prisma.enrollment.findMany({
-      where: { sectionId: section.id, status: "ENROLLED" },
-      include: { student: { include: { guardian: true, address: true } } },
-      orderBy: { student: { lastName: "asc" } },
+      where: {
+        sectionId: section.id,
+        status: "ENROLLED",
+      },
+      include: {
+        student: {
+          include: {
+            guardian: true,
+            address: true,
+          },
+        },
+      },
+      orderBy: {
+        student: {
+          lastName: "asc",
+        },
+      },
     });
+
+    console.log("[RAW ENROLLMENT OBJECT SAMPLE]", enrollments[0]);
 
     if (!enrollments.length) {
       return res
@@ -387,7 +331,9 @@ router.get("/export", verifyAdviser, async (req, res) => {
         .json(errorResponse("No enrolled students found in this section"));
     }
 
-    // [3] Validate completeness
+    // =========================
+    // REQUIRED FIELDS CHECK
+    // =========================
     const REQUIRED = [
       "LRN",
       "First Name",
@@ -404,45 +350,77 @@ router.get("/export", verifyAdviser, async (req, res) => {
       "Learning Modality",
     ];
 
+    // =========================
+    // SAFE NORMALIZER
+    // =========================
+    const safe = (v) => (v ?? "").toString().trim();
+
+    // =========================
+    // BUILD STUDENT DATA
+    // =========================
     const studentsData = enrollments.map((e) => {
-      const s = e.student,
-        g = s.guardian || {};
+      const s = e.student || {};
+      const g = s.guardian || {};
+      const a = s.address || {};
+
       return {
-        LRN: s.lrn || "",
-        "First Name": s.firstName || "",
-        "Middle Name": s.middleName || "",
-        "Last Name": s.lastName || "",
-        Sex: s.sex || "",
-        "Birth Date": s.birthDate || "",
+        LRN: safe(s.lrn),
+        "First Name": safe(s.firstName),
+        "Middle Name": safe(s.middleName),
+        "Last Name": safe(s.lastName),
+        Sex: safe(s.sex),
+        "Birth Date": s.birthDate ? new Date(s.birthDate) : "",
         Age: calculateAge(s.birthDate),
-        "Mother Tongue": s.motherTongue || "",
-        Religion: s.religion || "",
-        "Father Name": [g.fatherFirstName, g.fatherMiddleName, g.fatherLastName]
-          .filter(Boolean)
-          .join(" "),
-        "Mother Maiden Name": [
-          g.motherMaidenFirstName,
-          g.motherMaidenMiddleName,
-          g.motherMaidenLastName,
+
+        "Mother Tongue": safe(s.motherTongue),
+        Religion: safe(s.religion),
+
+        "Father Name": [
+          safe(g.fatherFirstName),
+          safe(g.fatherMiddleName),
+          safe(g.fatherLastName),
         ]
           .filter(Boolean)
           .join(" "),
-        Barangay: s.barangay || "",
-        Municipality: s.municipality || "",
-        Province: s.province || "",
-        "Learning Modality": e.learningModality || "",
-        Remarks: e.remarks || "",
-        Section: section.name || "",
+
+        "Mother Maiden Name": [
+          safe(g.motherMaidenFirstName),
+          safe(g.motherMaidenMiddleName),
+          safe(g.motherMaidenLastName),
+        ]
+          .filter(Boolean)
+          .join(" "),
+
+        Barangay: safe(a.barangay),
+        Municipality: safe(a.municipalityCity),
+        Province: safe(a.province),
+
+        "Learning Modality": safe(e.learningModality),
+
+        // 🔥 FINAL FIX (ROBUST REMARK SOURCE)
+        Remarks: e.remarks ? String(e.remarks).trim() : "",
+
+        Section: safe(section.name),
         "Grade Level": `Grade ${section.gradeLevel}`,
-        "IP Ethnic Group": s.ethnicGroup || "",
+        "IP Ethnic Group": safe(s.ethnicGroup),
       };
+      console.log("[NODE REMARKS RAW]", e.remarks);
     });
 
+    console.log(
+      "[SF1 EXPORT REMARKS SAMPLE]",
+      studentsData.slice(0, 5).map((s) => s.Remarks),
+    );
+
+    // =========================
+    // VALIDATION
+    // =========================
     const incomplete = studentsData
       .map((s, i) => {
         const missing = REQUIRED.filter(
           (f) => !s[f] || !s[f].toString().trim(),
         );
+
         return missing.length
           ? {
               index: i + 1,
@@ -457,18 +435,19 @@ router.get("/export", verifyAdviser, async (req, res) => {
       console.warn("[SF1 Export] Incomplete students detected:", incomplete);
     }
 
-    // [4] Run Python parser to fill the template
+    // =========================
+    // PYTHON GENERATION
+    // =========================
     if (!fs.existsSync(TEMPLATE_PATH)) {
       return res
         .status(500)
         .json(errorResponse("SF1 template file not found on server"));
     }
 
-    // Use a unique output path per section to avoid race conditions
     const outputPath = path.join(OUTPUT_DIR, `SF1_${section.id}_filled.xlsx`);
 
-    // Patch parser to use our per-section output path via env var
     let result;
+
     try {
       result = await runPythonWithJSON(PYTHON_EXE, PARSER_PATH, {
         students: studentsData,
@@ -486,38 +465,45 @@ router.get("/export", verifyAdviser, async (req, res) => {
         .json(errorResponse("Failed to generate SF1 Excel file", pyErr.stderr));
     }
 
-    const finalPath = outputPath;
-
-    if (!finalPath) {
-      console.error("[SF1 Export] No output file found in:", OUTPUT_DIR);
+    // =========================
+    // FILE CHECK
+    // =========================
+    if (!fs.existsSync(outputPath)) {
       return res
         .status(500)
         .json(errorResponse("Excel file was not generated by Python"));
     }
 
-    // [5] Stream file
+    // =========================
+    // STREAM FILE
+    // =========================
     const filename = `SF1_Grade${section.gradeLevel}_${section.name}_${section.schoolYear.replace(/\s/g, "")}.xlsx`;
+
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.setHeader(
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
 
-    const stream = fs.createReadStream(finalPath);
+    const stream = fs.createReadStream(outputPath);
     stream.pipe(res);
-    stream.on("end", () => {
-      safeUnlink(finalPath);
-    });
+
+    stream.on("end", () => safeUnlink(outputPath));
+
     stream.on("error", (err) => {
       console.error("[SF1 Export] Stream error:", err);
-      if (!res.headersSent)
+      if (!res.headersSent) {
         res.status(500).json(errorResponse("Failed to stream Excel file"));
-      else res.destroy();
+      } else {
+        res.destroy();
+      }
     });
   } catch (err) {
     console.error("[SF1 Export] Unexpected error:", err);
-    if (!res.headersSent)
+
+    if (!res.headersSent) {
       res.status(500).json(errorResponse("Export failed", err.message));
+    }
   }
 });
 
@@ -584,6 +570,100 @@ router.get("/view", verifyAdviser, async (req, res) => {
     res
       .status(500)
       .json(errorResponse("Failed to retrieve SF1 data", err.message));
+  }
+});
+
+// ? [GET] SF1 Remarks Debug Check
+// /api/adviser/sf1/remarks-check
+router.get("/remarks-check", verifyAdviser, async (req, res) => {
+  try {
+    // =========================
+    // Resolve section
+    // =========================
+    const resolved = await resolveAdviserSection(req.adviserId);
+
+    if (resolved.error) {
+      return res.status(resolved.status).json(errorResponse(resolved.error));
+    }
+
+    const { section } = resolved;
+
+    // =========================
+    // Fetch enrollments with student
+    // =========================
+    const enrollments = await prisma.enrollment.findMany({
+      where: {
+        sectionId: section.id,
+      },
+      include: {
+        student: {
+          include: {
+            address: true,
+            guardian: true,
+          },
+        },
+      },
+    });
+
+    if (!enrollments.length) {
+      return res.status(404).json(errorResponse("No enrollments found"));
+    }
+
+    // =========================
+    // TRACE REPORT
+    // =========================
+    const report = enrollments.map((e) => {
+      const s = e.student;
+
+      const studentRemarks = s?.remarks ?? null; // (usually none in DB)
+      const enrollmentRemarks = e?.remarks ?? null;
+
+      return {
+        lrn: s?.lrn,
+
+        // 🔴 WHERE IT SHOULD BE
+        enrollmentRemarks,
+
+        // 🟡 FALLBACK SOURCE (if ever stored in student)
+        studentRemarks,
+
+        // 🟢 FINAL USED VALUE (what export should use)
+        resolvedRemarks: enrollmentRemarks || studentRemarks || "",
+
+        // 🔍 DEBUG FLAG
+        hasRemarksInEnrollment: !!enrollmentRemarks,
+        hasRemarksInStudent: !!studentRemarks,
+      };
+    });
+
+    // =========================
+    // SUMMARY
+    // =========================
+    const summary = {
+      total: report.length,
+      withEnrollmentRemarks: report.filter((r) => r.hasRemarksInEnrollment)
+        .length,
+      withStudentRemarks: report.filter((r) => r.hasRemarksInStudent).length,
+      missingBoth: report.filter(
+        (r) => !r.hasRemarksInEnrollment && !r.hasRemarksInStudent,
+      ).length,
+    };
+
+    return res.json(
+      successResponse("SF1 remarks diagnostic complete", {
+        section: {
+          id: section.id,
+          name: section.name,
+        },
+        summary,
+        report,
+      }),
+    );
+  } catch (err) {
+    console.error("[SF1 Remarks Check] Error:", err);
+    return res
+      .status(500)
+      .json(errorResponse("Failed to check remarks", err.message));
   }
 });
 

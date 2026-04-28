@@ -62,8 +62,21 @@ try:
     for s in students_list:
         for k, v in defaults.items():
             s.setdefault(k, v)
+            
+    print("[PYTHON INPUT SAMPLE]", json.dumps(students_list[:3], indent=2))
+    data = pd.DataFrame(students_list)
 
-    data = pd.DataFrame(students_list).fillna("")
+    # FORCE FIX missing columns BEFORE anything else
+    for col in [
+        "LRN", "First Name", "Middle Name", "Last Name",
+        "Sex", "Birth Date", "Age",
+        "Mother Tongue", "Religion",
+        "Barangay", "Municipality", "Province",
+        "Father Name", "Mother Maiden Name",
+        "Learning Modality", "Remarks"
+    ]:
+        if col not in data.columns:
+            data[col] = ""
 
     # ---------------- LOAD TEMPLATE ----------------
     wb = load_workbook(TEMPLATE_PATH)
@@ -82,7 +95,7 @@ try:
         return cell
 
     def write_cell(row, col, value, as_text=False):
-        if value in ("", None):
+        if value is None:
             return
 
         cell = get_safe_cell(ws, row, col)
@@ -167,7 +180,16 @@ try:
         write_cell(row, COL["mother"], format_name(s.get("Mother Maiden Name")))
 
         write_cell(row, COL["modality"], safe(s.get("Learning Modality")).replace("_", " ").title())
-        write_cell(row, COL["remarks"], s.get("Remarks", ""))
+        remarks_value = s.get("Remarks")
+
+        if remarks_value is None:
+            remarks_value = ""
+        else:
+            remarks_value = str(remarks_value).strip()
+
+        write_cell(row, COL["remarks"], remarks_value, as_text=True)
+
+        print("[REMARKS DEBUG FINAL]", repr(remarks_value))
 
     # ---------------- SPLIT ----------------
     males = data[data["Sex"].apply(is_male)]
@@ -267,14 +289,14 @@ try:
         write_cell(60, c, adviser_name)
         write_cell(61, c, adviser_name)
 
-        wb.save(output_path)
+    wb.save(output_path)
 
-        print(json.dumps({
-            "filePath": output_path,
-            "male": len(males),
-            "female": len(females),
-            "total": total
-        }))
+    print(json.dumps({
+        "filePath": output_path,
+        "male": len(males),
+        "female": len(females),
+        "total": total
+    }))
 
 except Exception as e:
     print(f"[ERROR] {e}", file=sys.stderr)
