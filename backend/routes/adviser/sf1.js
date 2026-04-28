@@ -32,17 +32,13 @@ const verifyAdviser = require("../../middleware/authMiddleware").verifyAdviser;
 const BASE_DIR = path.resolve(__dirname, "../..");
 
 const SERVICES_DIR = path.join(BASE_DIR, "services");
-const FORMS_DIR = path.join(BASE_DIR, "forms");
+const FORMS_DIR = path.join(SERVICES_DIR, "forms");
+const SF1_DIR = path.join(SERVICES_DIR, "python", "sf", "sf1");
 const OUTPUT_DIR = path.join(FORMS_DIR, "output_data");
 
-// [SETUP] Python SF1 Paths
-const SF1_DIR = path.join(SERVICES_DIR, "python", "sf", "sf1");
-
-const IMPORTER_PATH = path.join(SF1_DIR, "sf1_import_runner.py");
-const PARSER_PATH = path.join(SF1_DIR, "parsers", "sf1_xlsx_parser.py");
-
-// [SETUP] Template
 const TEMPLATE_PATH = path.join(FORMS_DIR, "SF1_template.xlsx");
+const IMPORTER_PATH = path.join(SF1_DIR, "sf1_import_runner.py");
+const OUTPUT_PATH = path.join(OUTPUT_DIR, "SF1_filled_output.xlsx");
 
 // [SETUP] Uploads
 const UPLOAD_DIR = path.join(BASE_DIR, "tmp");
@@ -58,15 +54,24 @@ const PYTHON_EXE =
     ? path.join(__dirname, "../../venv/Scripts/python.exe")
     : path.join(__dirname, "../../venv/bin/python3");
 
-// [SETUP] Ensure directories exist
-if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-}
+// [SETUP] Ensure directories exist (ROBUST)
+const ensureDir = (dir) => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+};
 
-if (!fs.existsSync(OUTPUT_DIR)) {
-  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
-}
+ensureDir(BASE_DIR);
+ensureDir(SERVICES_DIR);
+ensureDir(FORMS_DIR);
+ensureDir(SF1_DIR);
 
+// Runtime directories
+ensureDir(OUTPUT_DIR);
+ensureDir(UPLOAD_DIR);
+
+// ? [POST] Import SF1 File
+// /api/sf1/import
 router.post(
   "/import",
   verifyAdviser,
@@ -75,6 +80,7 @@ router.post(
     const fs = require("fs");
     const path = require("path");
 
+    // [VALIDATION] Check uploaded file existence
     if (!req.file) {
       return res.status(400).json(errorResponse("No file uploaded"));
     }
@@ -84,6 +90,7 @@ router.post(
     const filePath = req.file.path;
     const originalExt = path.extname(req.file.originalname).toLowerCase();
 
+    // [VALIDATION] Accept only CSV or XLSX
     if (![".xlsx", ".csv"].includes(originalExt)) {
       safeUnlink(filePath);
       return res.status(400).json(errorResponse("Invalid file type"));
@@ -91,6 +98,7 @@ router.post(
 
     const namedPath = filePath + originalExt;
 
+    // [FILESYSTEM] Restore file extension for Python compatibility
     try {
       fs.renameSync(filePath, namedPath);
     } catch {
@@ -100,6 +108,7 @@ router.post(
 
     let result;
 
+    // [PYTHON RUN] Execute SF1 importer script
     try {
       result = await runPythonWithFile(PYTHON_EXE, IMPORTER_PATH, namedPath);
     } catch (pyErr) {
@@ -109,14 +118,17 @@ router.post(
         .json(errorResponse("Python importer failed", pyErr.stderr || pyErr));
     }
 
+    // [CLEANUP] Remove uploaded temp file
     safeUnlink(namedPath);
 
+    // [VALIDATION] Ensure Python returned output
     if (!result.stdout) {
       return res.status(500).json(errorResponse("Empty Python output"));
     }
 
     let students;
 
+    // [PARSE] Convert Python JSON output → JS object
     try {
       students = JSON.parse(result.stdout);
     } catch (err) {
@@ -126,12 +138,13 @@ router.post(
         .json(errorResponse("Invalid parser output", err.message));
     }
 
+    // [VALIDATION] Ensure valid student array
     if (!Array.isArray(students) || students.length === 0) {
       return res.status(400).json(errorResponse("No students found"));
     }
 
     // =========================
-    // SECTION RESOLUTION
+    // [SECTION] Resolve Adviser Section
     // =========================
     const resolved = await resolveAdviserSection(req.adviserId);
     if (resolved.error) {
@@ -140,12 +153,14 @@ router.post(
 
     const section = resolved.section;
 
+    // [HELPER] Normalize optional remarks field
     const normalizeRemarks = (value) => {
       if (typeof value !== "string") return null;
       const cleaned = value.trim();
       return cleaned.length > 0 ? cleaned : null;
     };
 
+    // [RESULT TRACKING] Import summary counters
     const results = {
       created: 0,
       updated: 0,
@@ -155,21 +170,24 @@ router.post(
     };
 
     // =========================
-    // PROCESS STUDENTS
+    // [PROCESS] Iterate imported students
     // =========================
     for (const s of students) {
+      // [VALIDATION] Required fields check
       if (!s.lrn || !s.firstName || !s.lastName) {
         results.errors.push({ lrn: s.lrn || "?", reason: "Missing fields" });
         continue;
       }
 
       try {
+        // [DB] Check existing student
         const existing = await prisma.student.findUnique({
           where: { lrn: s.lrn },
         });
 
         const remarks = normalizeRemarks(s.remarks);
 
+        // [DATA] Normalize student payload
         const studentData = {
           lrn: s.lrn,
           firstName: s.firstName,
@@ -183,6 +201,7 @@ router.post(
           createdByAdviserId: req.adviserId,
         };
 
+        // [DATA] Address payload
         const addressData = {
           create: {
             streetAddress: null,
@@ -197,6 +216,7 @@ router.post(
           },
         };
 
+        // [DATA] Guardian payload
         const guardianData = {
           create: {
             fatherFirstName: s.guardian?.create?.fatherFirstName || null,
@@ -213,6 +233,7 @@ router.post(
 
         let studentId;
 
+        // [DB] Create or update student
         if (!existing) {
           const created = await prisma.student.create({
             data: {
@@ -238,9 +259,7 @@ router.post(
           results.updated++;
         }
 
-        // =========================
-        // ENROLLMENT (FIXED REMARKS HANDLING)
-        // =========================
+        // [DB] Enrollment upsert
         const enrollment = await prisma.enrollment.findFirst({
           where: {
             studentId,
@@ -256,7 +275,7 @@ router.post(
               schoolYear: section.schoolYear,
               learningModality: s.learningModality || "FACE_TO_FACE",
               status: "ENROLLED",
-              remarks, // ✅ SAFE NULLABLE VALUE
+              remarks,
             },
           });
 
@@ -267,8 +286,6 @@ router.post(
             data: {
               learningModality:
                 s.learningModality || enrollment.learningModality,
-
-              // 🔥 IMPORTANT FIX: NEVER overwrite good data with empty string
               remarks: remarks !== null ? remarks : enrollment.remarks,
             },
           });
@@ -276,6 +293,7 @@ router.post(
           results.updated++;
         }
       } catch (err) {
+        // [ERROR HANDLING] Per-student failure tracking
         results.errors.push({
           lrn: s.lrn,
           reason: err.message,
@@ -283,6 +301,7 @@ router.post(
       }
     }
 
+    // [RESPONSE] Import summary
     return res.json(successResponse("Import complete", { section, results }));
   },
 );
@@ -322,8 +341,6 @@ router.get("/export", verifyAdviser, async (req, res) => {
         },
       },
     });
-
-    console.log("[RAW ENROLLMENT OBJECT SAMPLE]", enrollments[0]);
 
     if (!enrollments.length) {
       return res
@@ -407,11 +424,6 @@ router.get("/export", verifyAdviser, async (req, res) => {
       console.log("[NODE REMARKS RAW]", e.remarks);
     });
 
-    console.log(
-      "[SF1 EXPORT REMARKS SAMPLE]",
-      studentsData.slice(0, 5).map((s) => s.Remarks),
-    );
-
     // =========================
     // VALIDATION
     // =========================
@@ -435,29 +447,32 @@ router.get("/export", verifyAdviser, async (req, res) => {
       console.warn("[SF1 Export] Incomplete students detected:", incomplete);
     }
 
-    // =========================
-    // PYTHON GENERATION
-    // =========================
-    if (!fs.existsSync(TEMPLATE_PATH)) {
-      return res
-        .status(500)
-        .json(errorResponse("SF1 template file not found on server"));
-    }
-
     const outputPath = path.join(OUTPUT_DIR, `SF1_${section.id}_filled.xlsx`);
 
     let result;
 
     try {
-      result = await runPythonWithJSON(PYTHON_EXE, PARSER_PATH, {
-        students: studentsData,
-        adviser: section.adviser,
-        outputPath,
-      });
+      const WRITER_PATH = path.join(
+        __dirname,
+        "../../services/python/sf/sf1/templates/sf1_writer.py",
+      );
+      const schoolInfo = JSON.parse(
+        fs.readFileSync(path.join(FORMS_DIR, "school_data.json"), "utf-8"),
+      );
 
-      console.log("[SF1 Export] Python STDOUT:", result.stdout);
-      console.log("[SF1 Export] Python STDERR:", result.stderr);
-      console.log("ADVISER BEING SENT:", section.adviser);
+      result = await runPythonWithJSON(PYTHON_EXE, WRITER_PATH, {
+        students: studentsData,
+        school: schoolInfo,
+        section: {
+          name: section.name,
+          gradeLevel: section.gradeLevel,
+          schoolYear: section.schoolYear,
+        },
+        paths: {
+          templatePath: TEMPLATE_PATH,
+          outputPath: outputPath,
+        },
+      });
     } catch (pyErr) {
       console.error("[SF1 Export] Python error:", pyErr.stderr || pyErr);
       return res
@@ -504,166 +519,6 @@ router.get("/export", verifyAdviser, async (req, res) => {
     if (!res.headersSent) {
       res.status(500).json(errorResponse("Export failed", err.message));
     }
-  }
-});
-
-// ?[GET] View SF1 data as JSON (for in-browser preview)
-// GET /api/adviser/sf1/view
-router.get("/view", verifyAdviser, async (req, res) => {
-  try {
-    const resolved = await resolveAdviserSection(req.adviserId);
-    if (resolved.error)
-      return res.status(resolved.status).json(errorResponse(resolved.error));
-    const { section } = resolved;
-
-    const enrollments = await prisma.enrollment.findMany({
-      where: { sectionId: section.id, status: "ENROLLED" },
-      include: { student: { include: { guardian: true, address: true } } },
-      orderBy: { student: { lastName: "asc" } },
-    });
-
-    const students = enrollments.map((e) => {
-      const g = s;
-      return {
-        LRN: s.lrn || "",
-        "First Name": s.firstName || "",
-        "Middle Name": s.middleName || "",
-        "Last Name": s.lastName || "",
-        Sex: s.sex || "",
-        "Birth Date": s.birthDate || "",
-        Age: calculateAge(s.birthDate),
-        "Mother Tongue": s.motherTongue || "",
-        Religion: s.religion || "",
-        "Father Name": [g.fatherFirstName, g.fatherMiddleName, g.fatherLastName]
-          .filter(Boolean)
-          .join(" "),
-
-        "Mother Maiden Name": [
-          g.motherMaidenFirstName,
-          g.motherMaidenMiddleName,
-          g.motherMaidenLastName,
-        ]
-          .filter(Boolean)
-          .join(" "),
-        Barangay: s.barangay || s.address?.barangay || "",
-        Municipality:
-          s.municipality ||
-          s.address?.municipalityCity ||
-          s.address?.municipality ||
-          "",
-        Province: s.province || s.address?.province || "ILOILO",
-        "Learning Modality": e.learningModality || "",
-        Remarks: e.remarks || "",
-      };
-    });
-
-    res.json(
-      successResponse("SF1 data retrieved", {
-        section: section.name,
-        gradeLevel: section.gradeLevel,
-        schoolYear: section.schoolYear,
-        students,
-      }),
-    );
-  } catch (err) {
-    console.error("[SF1 View] Error:", err);
-    res
-      .status(500)
-      .json(errorResponse("Failed to retrieve SF1 data", err.message));
-  }
-});
-
-// ? [GET] SF1 Remarks Debug Check
-// /api/adviser/sf1/remarks-check
-router.get("/remarks-check", verifyAdviser, async (req, res) => {
-  try {
-    // =========================
-    // Resolve section
-    // =========================
-    const resolved = await resolveAdviserSection(req.adviserId);
-
-    if (resolved.error) {
-      return res.status(resolved.status).json(errorResponse(resolved.error));
-    }
-
-    const { section } = resolved;
-
-    // =========================
-    // Fetch enrollments with student
-    // =========================
-    const enrollments = await prisma.enrollment.findMany({
-      where: {
-        sectionId: section.id,
-      },
-      include: {
-        student: {
-          include: {
-            address: true,
-            guardian: true,
-          },
-        },
-      },
-    });
-
-    if (!enrollments.length) {
-      return res.status(404).json(errorResponse("No enrollments found"));
-    }
-
-    // =========================
-    // TRACE REPORT
-    // =========================
-    const report = enrollments.map((e) => {
-      const s = e.student;
-
-      const studentRemarks = s?.remarks ?? null; // (usually none in DB)
-      const enrollmentRemarks = e?.remarks ?? null;
-
-      return {
-        lrn: s?.lrn,
-
-        // 🔴 WHERE IT SHOULD BE
-        enrollmentRemarks,
-
-        // 🟡 FALLBACK SOURCE (if ever stored in student)
-        studentRemarks,
-
-        // 🟢 FINAL USED VALUE (what export should use)
-        resolvedRemarks: enrollmentRemarks || studentRemarks || "",
-
-        // 🔍 DEBUG FLAG
-        hasRemarksInEnrollment: !!enrollmentRemarks,
-        hasRemarksInStudent: !!studentRemarks,
-      };
-    });
-
-    // =========================
-    // SUMMARY
-    // =========================
-    const summary = {
-      total: report.length,
-      withEnrollmentRemarks: report.filter((r) => r.hasRemarksInEnrollment)
-        .length,
-      withStudentRemarks: report.filter((r) => r.hasRemarksInStudent).length,
-      missingBoth: report.filter(
-        (r) => !r.hasRemarksInEnrollment && !r.hasRemarksInStudent,
-      ).length,
-    };
-
-    return res.json(
-      successResponse("SF1 remarks diagnostic complete", {
-        section: {
-          id: section.id,
-          name: section.name,
-        },
-        summary,
-        report,
-      }),
-    );
-  } catch (err) {
-    console.error("[SF1 Remarks Check] Error:", err);
-    return res
-      .status(500)
-      .json(errorResponse("Failed to check remarks", err.message));
   }
 });
 

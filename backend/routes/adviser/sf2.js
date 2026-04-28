@@ -21,19 +21,6 @@ const { safeUnlink } = require("../../utils/file");
 // [IMPORT] Middleware
 const verifyAdviser = require("../../middleware/authMiddleware").verifyAdviser;
 
-// [SETUP] Paths
-const BASE_DIR = path.resolve(__dirname, "../..");
-
-const FORMS_DIR = path.join(BASE_DIR, "forms");
-const OUTPUT_DIR = path.join(FORMS_DIR, "output_data");
-
-const TEMPLATE_PATH = path.join(FORMS_DIR, "SF2_template.xlsx");
-
-// Ensure output dir exists (for consistency)
-if (!fs.existsSync(OUTPUT_DIR)) {
-  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
-}
-
 // ? [GET] Export SF2 Template
 // /api/adviser/sf2/export
 router.get("/export", verifyAdviser, async (req, res) => {

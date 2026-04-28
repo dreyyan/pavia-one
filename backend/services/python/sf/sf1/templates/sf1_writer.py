@@ -4,176 +4,236 @@ import io
 import sys
 import json
 import pandas as pd
-from openpyxl import load_workbook # pyright: ignore[reportMissingModuleSource]
+from datetime import datetime
+from openpyxl import load_workbook  # pyright: ignore[reportMissingModuleSource]
+from openpyxl.cell.cell import MergedCell  # pyright: ignore[reportMissingModuleSource]
+from openpyxl.cell.cell import Cell  # pyright: ignore[reportMissingModuleSource]
 
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+# [IMPORT] Utilities
+from sf.utils.normalization import safe, is_male, is_female, format_birthdate
+from sf.utils.name_parser import adviser_full_name
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
 
-PROJECT_ROOT = os.path.abspath(
-    os.path.join(BASE_DIR, "..", "..", "..", "..", "..")
-)
+try:
+    # =========================
+    # [LOAD PAYLOAD]
+    # =========================
+    payload = json.loads(sys.stdin.read())
 
-FORMS_DIR = os.path.join(PROJECT_ROOT, "forms")
+    students_list = payload.get("students", [])
+    adviser = payload.get("adviser", {})
+    section = payload.get("section", {})
+    paths = payload.get("paths", {})
 
-CSV_PATH = os.path.join(FORMS_DIR, "output_data", "SF1_data.csv")
-TEMPLATE_PATH = os.path.join(FORMS_DIR, "SF1_template.xlsx")
-OUTPUT_PATH = os.path.join(FORMS_DIR, "output_data/SF1_filled_output.xlsx")
-SCHOOL_JSON_PATH = os.path.join(FORMS_DIR, "school_data.json")
+    TEMPLATE_PATH = paths.get("templatePath")
+    OUTPUT_PATH = paths.get("outputPath")
 
-# -------------------------------------------------
-# Load data
-# -------------------------------------------------
-data = pd.read_csv(CSV_PATH).fillna("")
+    if not TEMPLATE_PATH or not OUTPUT_PATH:
+        raise ValueError("Missing templatePath or outputPath")
 
-with open(SCHOOL_JSON_PATH, "r", encoding="utf-8") as f:
-    school_info = json.load(f)
+    OUTPUT_DIR = os.path.dirname(OUTPUT_PATH)
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# -------------------------------------------------
-# Load workbook
-# -------------------------------------------------
-wb = load_workbook(TEMPLATE_PATH)
-ws = wb.active
-print("[SUCCESS] Loaded template and CSV")
+    # =========================
+    # DEFAULT VALUES
+    # =========================
+    defaults = {
+        "Age": "",
+        "Mother Tongue": "",
+        "Religion": "",
+        "Grade Level": section.get("gradeLevel", "Grade 10"),
+        "Section": section.get("name", "A"),
+        "IP Ethnic Group": "",
+        "Learning Modality": "",
+        "Remarks": "",
+        "Father Name": "",
+        "Mother Maiden Name": "",
+        "Barangay": "",
+        "Municipality": "",
+        "Province": ""
+    }
 
-# -------------------------------------------------
-# Config
-# -------------------------------------------------
-START_ROW = 7
-SKIP_ROWS = {32, 59, 60}
+    for s in students_list:
+        for k, v in defaults.items():
+            s.setdefault(k, v)
 
-COL = {
-    "lrn": 1, "name": 3, "sex": 7, "birth": 8, "age": 10,
-    "mother_tongue": 12, "ip": 14, "religion": 15,
-    "barangay": 18, "municipality": 21, "province": 23,
-    "father": 28, "mother": 32, "modality": 44, "remarks": 45
-}
+    data = pd.DataFrame(students_list).fillna("")
 
-# -------------------------------------------------
-# Helpers
-# -------------------------------------------------
-def is_male(sex):
-    return str(sex).upper() in ("M", "MALE")
+    # =========================
+    # LOAD TEMPLATE
+    # =========================
+    wb = load_workbook(TEMPLATE_PATH)
+    ws = wb.active
 
-def is_female(sex):
-    return str(sex).upper() in ("F", "FEMALE")
+    # =========================
+    # SAFE CELL WRITER
+    # =========================
+    def get_safe_cell(ws, row, col) -> Cell | None:
+        cell = ws.cell(row=row, column=col)
 
-def format_parent_name(name_str):
-    if not str(name_str).strip():
-        return ""
-    if "," in name_str:
-        parts = [p.strip() for p in name_str.split(",")]
-        last = parts[0].upper()
-        first_middle = parts[1].upper() if len(parts) > 1 else ""
-        return f"{last}, {first_middle}".strip(", ")
-    words = name_str.strip().split()
-    if len(words) == 1:
-        return words[0].upper()
-    elif len(words) == 2:
-        first, last = words
-        return f"{last.upper()}, {first.upper()}"
-    else:
-        *first_middle, last = words
-        return f"{last.upper()}, {' '.join(first_middle).upper()}"
+        if isinstance(cell, MergedCell):
+            for merged in ws.merged_cells.ranges:
+                if cell.coordinate in merged:
+                    return ws.cell(row=merged.min_row, column=merged.min_col)
+            return None
 
-# -------------------------------------------------
-# Safe cell writer (fixes merged cell errors)
-# -------------------------------------------------
-def write_cell(ws, row, col, value, as_text=False):
-    if value == "":
-        return
-    cell = ws.cell(row, col)
-    # If this cell is part of a merged range, write to the top-left cell
-    for merged in ws.merged_cells.ranges:
-        if cell.coordinate in merged:
-            cell = ws.cell(merged.min_row, merged.min_col)
+        return cell
+
+    def write_cell(row, col, value, as_text=False):
+        if value in ("", None):
+            return
+
+        cell = get_safe_cell(ws, row, col)
+        if cell is None:
+            return
+
+        cell.value = str(value) if as_text else value
+
+    # =========================
+    # HEADER
+    # =========================
+    today = datetime.today()
+    sy = f"{today.year} - {today.year + 1}"
+
+    for c in range(20, 25):
+        write_cell(4, c, sy)
+
+    grade = data["Grade Level"].iloc[0] if len(data) else "Grade 10"
+    section_name = data["Section"].iloc[0].upper() if len(data) else "A"
+
+    write_cell(4, 31, grade)
+    write_cell(4, 32, grade)
+
+    for c in range(39, 48):
+        write_cell(4, c, section_name)
+
+    # =========================
+    # CONFIG
+    # =========================
+    START_ROW = 7
+
+    COL = {
+        "lrn": 1, "name": 3, "sex": 7, "birth": 8, "age": 10,
+        "mother_tongue": 12, "ip": 14, "religion": 15,
+        "barangay": 18, "municipality": 21, "province": 23,
+        "father": 28, "mother": 32, "modality": 44, "remarks": 45
+    }
+
+    # =========================
+    # HELPERS
+    # =========================
+    def format_name(n):
+        n = safe(n).strip()
+        if not n:
+            return ""
+
+        if "," in n:
+            a, b = n.split(",", 1)
+            return f"{a.strip().upper()}, {b.strip().upper()}"
+
+        parts = n.split()
+        if len(parts) == 1:
+            return parts[0].upper()
+        if len(parts) == 2:
+            return f"{parts[1].upper()}, {parts[0].upper()}"
+
+        return f"{parts[-1].upper()}, {parts[0].upper()} {' '.join(parts[1:-1]).upper()}"
+
+    def full_name(s):
+        return f"{safe(s.get('Last Name')).upper()}, {safe(s.get('First Name')).upper()} {safe(s.get('Middle Name')).upper()}"
+
+    def write_student(s, row):
+        sex = "M" if is_male(s.get("Sex")) else "F"
+
+        write_cell(row, COL["lrn"], s.get("LRN", ""), True)
+        write_cell(row, COL["name"], full_name(s))
+        write_cell(row, COL["sex"], sex)
+        write_cell(row, COL["birth"], format_birthdate(s.get("Birth Date")))
+        write_cell(row, COL["age"], s.get("Age", ""))
+
+        write_cell(row, COL["mother_tongue"], s.get("Mother Tongue", ""))
+        write_cell(row, COL["ip"], safe(s.get("IP Ethnic Group")).upper())
+        write_cell(row, COL["religion"], s.get("Religion", ""))
+
+        write_cell(row, COL["barangay"], safe(s.get("Barangay")).upper())
+        write_cell(row, COL["municipality"], safe(s.get("Municipality")).upper())
+        write_cell(row, COL["province"], safe(s.get("Province")).upper() or "ILOILO")
+
+        write_cell(row, COL["father"], format_name(s.get("Father Name")))
+        write_cell(row, COL["mother"], format_name(s.get("Mother Maiden Name")))
+
+        write_cell(row, COL["modality"], safe(s.get("Learning Modality")).replace("_", " ").title())
+        write_cell(row, COL["remarks"], s.get("Remarks", ""))
+
+    # =========================
+    # SPLIT DATA
+    # =========================
+    males = data[data["Sex"].apply(is_male)].reset_index(drop=True)
+    females = data[data["Sex"].apply(is_female)].reset_index(drop=True)
+
+    male_count = len(males)
+    female_count = len(females)
+    grand_total = male_count + female_count
+
+    # =========================
+    # FOOTER DETECTION
+    # =========================
+    marker = "List and Code of Indicators under REMARKS column"
+    footer_row = None
+
+    for r in range(START_ROW, ws.max_row + 1):
+        for c in range(1, 20):
+            v = ws.cell(r, c).value
+            if isinstance(v, str) and marker in v:
+                footer_row = r
+                break
+        if footer_row:
             break
-    cell.value = str(value) if as_text else value
 
-# -------------------------------------------------
-# Student writer
-# -------------------------------------------------
-def write_student(student, row):
-    sex_display = "M" if is_male(student.get("Sex", "")) else "F"
-    write_cell(ws, row, COL["lrn"], student.get("LRN", ""), as_text=True)
-    last = student.get("Last Name", "").upper()
-    first = student.get("First Name", "").upper()
-    middle = student.get("Middle Name", "").upper()
-    name = f"{last}, {first}" + (f" {middle}" if middle else "")
-    write_cell(ws, row, COL["name"], name)
-    write_cell(ws, row, COL["sex"], sex_display)
-    birth = str(student.get("Birth Date", "")).split("T")[0]
-    write_cell(ws, row, COL["birth"], birth)
-    write_cell(ws, row, COL["age"], student.get("Age", ""))
-    write_cell(ws, row, COL["mother_tongue"], student.get("Mother Tongue", ""))
-    write_cell(ws, row, COL["ip"], student.get("IP Ethnic Group", "").upper())
-    write_cell(ws, row, COL["religion"], student.get("Religion", ""))
-    write_cell(ws, row, COL["barangay"], student.get("Barangay", "").upper())
-    write_cell(ws, row, COL["municipality"], student.get("Municipality", "").upper())
-    write_cell(ws, row, COL["province"], student.get("Province", "ILOILO").upper())
-    write_cell(ws, row, COL["father"], format_parent_name(student.get("Father Name", "")))
-    write_cell(ws, row, COL["mother"], format_parent_name(student.get("Mother Maiden Name", "")))
-    modality = student.get("Learning Modality", "").replace("_", " ").title()
-    write_cell(ws, row, COL["modality"], modality)
-    write_cell(ws, row, COL["remarks"], student.get("Remarks", ""))
+    if not footer_row:
+        raise ValueError("Footer marker not found")
 
-# -------------------------------------------------
-# Prepare student lists
-# -------------------------------------------------
-males = data[data["Sex"].apply(is_male)].sort_values(by=["Last Name", "First Name", "Middle Name"])
-females = data[data["Sex"].apply(is_female)].sort_values(by=["Last Name", "First Name", "Middle Name"])
+    LIMIT = footer_row - 3
+    current = START_ROW
 
-# -------------------------------------------------
-# Write students
-# -------------------------------------------------
-current_row = START_ROW
+    # =========================
+    # WRITE DATA
+    # =========================
+    for _, s in males.iterrows():
+        if current > LIMIT:
+            break
+        write_student(s, current)
+        current += 1
 
-def write_group(students):
-    global current_row
-    for _, student in students.iterrows():
-        while current_row in SKIP_ROWS:
-            current_row += 1
-        write_student(student, current_row)
-        current_row += 1
+    write_cell(current, 1, male_count)
+    write_cell(current, 2, male_count)
+    write_cell(current, 3, "<=== TOTAL MALE")
+    current += 1
 
-# -------------------------------------------------
-# Male
-# -------------------------------------------------
-write_group(males)
-male_count = len(males)
-while current_row in SKIP_ROWS:
-    current_row += 1
-write_cell(ws, current_row, 1, male_count)
-write_cell(ws, current_row, 2, male_count)
-write_cell(ws, current_row, 3, "<=== TOTAL MALE")
-current_row += 1
+    for _, s in females.iterrows():
+        if current > LIMIT:
+            break
+        write_student(s, current)
+        current += 1
 
-# -------------------------------------------------
-# Female
-# -------------------------------------------------
-write_group(females)
-female_count = len(females)
-while current_row in SKIP_ROWS:
-    current_row += 1
-write_cell(ws, current_row, 1, female_count)
-write_cell(ws, current_row, 2, female_count)
-write_cell(ws, current_row, 3, "<=== TOTAL FEMALE")
-current_row += 1
+    write_cell(current, 1, female_count)
+    write_cell(current, 2, female_count)
+    write_cell(current, 3, "<=== TOTAL FEMALE")
+    current += 1
 
-# -------------------------------------------------
-# Grand total
-# -------------------------------------------------
-grand_total = male_count + female_count
-while current_row in SKIP_ROWS:
-    current_row += 1
-write_cell(ws, current_row, 1, grand_total)
-write_cell(ws, current_row, 2, grand_total)
-write_cell(ws, current_row, 3, "<=== TOTAL COMBINED")
-current_row += 1
+    write_cell(current, 1, grand_total)
+    write_cell(current, 2, grand_total)
+    write_cell(current, 3, "<=== TOTAL COMBINED")
 
-# -------------------------------------------------
-# Save
-# -------------------------------------------------
-wb.save(OUTPUT_PATH)
-print(f"[SUCCESS] Saved to {OUTPUT_PATH}")
-print(f"Male: {male_count}, Female: {female_count}, Total: {grand_total}")
+    # =========================
+    # SAVE
+    # =========================
+    wb.save(OUTPUT_PATH)
+
+    print(f"[SUCCESS] Saved to {OUTPUT_PATH}")
+    print(f"Male: {male_count}, Female: {female_count}, Total: {grand_total}")
+
+except Exception as e:
+    print(f"[ERROR] {e}", file=sys.stderr)
+    sys.exit(1)
