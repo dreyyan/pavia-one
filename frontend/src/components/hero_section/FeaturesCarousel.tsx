@@ -113,11 +113,11 @@ const FeaturesCarousel = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 md:gap-6 mt-2 md:mt-4">
-                <PrimaryButton text="Login as Adviser" onClick={handleAdviserLogin} />
-                <SecondaryButton text="Login as Admin"  onClick={handleAdminLogin} />
+                <PrimaryButton text="Login as Adviser" iconSrc="/adviser.svg" onClick={handleAdviserLogin} />
+                <SecondaryButton text="Login as Admin" iconSrc="/admin.svg"  onClick={handleAdminLogin} />
             </div>
         </div>
-    </div>
+      </div>
     </div>
   );
 };
