@@ -57,4 +57,12 @@ def parse_guardian_name(full: str):
     return first, middle, last
 
 def adviser_full_name(a):
-    return safe(a.get("name")).strip().upper()
+    if not isinstance(a, dict):
+        return ""
+
+    first = safe(a.get("firstName"))
+    middle = safe(a.get("middleName"))
+    last = safe(a.get("lastName"))
+
+    full = f"{first} {middle} {last}".strip()
+    return " ".join(full.split()).upper()

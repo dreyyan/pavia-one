@@ -24,6 +24,7 @@ try:
     students_list = payload.get("students", [])
     adviser = payload.get("adviser", {})
     section = payload.get("section", {})
+    school = payload.get("school", {})
     paths = payload.get("paths", {})
 
     TEMPLATE_PATH = paths.get("templatePath")
@@ -35,6 +36,8 @@ try:
     OUTPUT_DIR = os.path.dirname(OUTPUT_PATH)
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+    adviser_name = adviser_full_name(adviser)
+
     # =========================
     # DEFAULT VALUES
     # =========================
@@ -42,8 +45,16 @@ try:
         "Age": "",
         "Mother Tongue": "",
         "Religion": "",
+
         "Grade Level": section.get("gradeLevel", "Grade 10"),
         "Section": section.get("name", "A"),
+
+        # SCHOOL DATA (NEW FIX)
+        "School ID": school.get("School ID", ""),
+        "Region": school.get("Region", ""),
+        "School Name": school.get("School Name", ""),
+        "Division": school.get("Division", ""),
+
         "IP Ethnic Group": "",
         "Learning Modality": "",
         "Remarks": "",
@@ -105,8 +116,21 @@ try:
     write_cell(4, 31, grade)
     write_cell(4, 32, grade)
 
+    # =========================
+    # SCHOOL HEADER FIX (MERGED CELLS SAFE)
+    # =========================
+
+    # Row 3
+    write_cell(3, 6, school.get("School ID", ""))   # F3 (F-I merged)
+    write_cell(3, 11, school.get("Region", ""))     # K3 (K-O merged)
+    write_cell(3, 20, school.get("Division", ""))   # T3 (T-AF merged)
+
+    # Row 4
+    write_cell(4, 6, school.get("School Name", "")) # F4 (F-O merged)
+
     for c in range(39, 48):
         write_cell(4, c, section_name)
+        
 
     # =========================
     # CONFIG
@@ -177,32 +201,54 @@ try:
     grand_total = male_count + female_count
 
     # =========================
-    # FOOTER DETECTION
+    # CONSTANT TEMPLATE LIMITS
     # =========================
-    marker = "List and Code of Indicators under REMARKS column"
-    footer_row = None
+    START_ROW = 7
+    END_ROW = 68
 
-    for r in range(START_ROW, ws.max_row + 1):
-        for c in range(1, 20):
-            v = ws.cell(r, c).value
-            if isinstance(v, str) and marker in v:
-                footer_row = r
-                break
-        if footer_row:
-            break
-
-    if not footer_row:
-        raise ValueError("Footer marker not found")
-
-    LIMIT = footer_row - 3
     current = START_ROW
 
     # =========================
-    # WRITE DATA
+    # VALIDATE SPACE
+    # =========================
+    students_total = len(males) + len(females)
+
+    MAX_DATA_ROWS = END_ROW - START_ROW + 1
+
+    # +3 for totals (male, female, grand total)
+    required_rows = students_total + 3
+
+    if required_rows > MAX_DATA_ROWS:
+        raise ValueError(
+            f"Too many students ({students_total}). "
+            f"Template only supports {MAX_DATA_ROWS - 3} students (reserve space for totals)."
+        )
+
+    # =========================
+    # DATA AREA CONFIG
+    # =========================
+    DATA_START = 7
+    DATA_END = 68
+
+    current = DATA_START
+
+    students_total = len(males) + len(females)
+
+    # +3 total rows (male + female + grand total)
+    required_rows = students_total + 3
+
+    max_rows = DATA_END - DATA_START + 1
+
+    if required_rows > max_rows:
+        raise ValueError(
+            f"Too many students ({students_total}). "
+            f"Only {max_rows - 3} allowed."
+        )
+
+    # =========================
+    # WRITE MALES
     # =========================
     for _, s in males.iterrows():
-        if current > LIMIT:
-            break
         write_student(s, current)
         current += 1
 
@@ -211,9 +257,10 @@ try:
     write_cell(current, 3, "<=== TOTAL MALE")
     current += 1
 
+    # =========================
+    # WRITE FEMALES
+    # =========================
     for _, s in females.iterrows():
-        if current > LIMIT:
-            break
         write_student(s, current)
         current += 1
 
@@ -222,12 +269,56 @@ try:
     write_cell(current, 3, "<=== TOTAL FEMALE")
     current += 1
 
+    # =========================
+    # GRAND TOTAL
+    # =========================
     write_cell(current, 1, grand_total)
     write_cell(current, 2, grand_total)
     write_cell(current, 3, "<=== TOTAL COMBINED")
 
     # =========================
-    # SAVE
+    # TOTALS + ADVISER (MERGED CELLS SAFE)
+    # =========================
+
+    # Total Male (Row 71–73, Col X–Z → X = 24)
+    write_cell(71, 24, male_count)
+
+    # Total Female (Row 74–75, Col X–Z)
+    write_cell(74, 24, female_count)
+
+    # Total Combined (Row 76–77, Col X–Z)
+    write_cell(76, 24, grand_total)
+
+    # Adviser Name (Row 71–73, Col AE–AK → AE = 31)
+    write_cell(
+        71,
+        31,
+        adviser_full_name(adviser)
+    )
+
+    # =========================
+    # SIMULATED ROW DELETION (NO SHIFTING, NO STRUCTURE CHANGE)
+    # =========================
+
+    def wipe_row(row):
+        for c in range(1, 50):
+            cell = ws.cell(row=row, column=c)
+
+            # skip merged "slave" cells safely
+            if isinstance(cell, MergedCell):
+                continue
+
+            cell.value = None
+
+
+    last_used_row = current
+
+    # "delete" remaining rows in SF1 data area
+    for r in range(last_used_row + 1, DATA_END + 1):
+        wipe_row(r)
+
+    # =========================
+    # SAVE FILE
     # =========================
     wb.save(OUTPUT_PATH)
 

@@ -10,6 +10,7 @@ const multer = require("multer");
 
 // [IMPORT] Utilities
 const { successResponse, errorResponse } = require("../../utils/response");
+const { splitFullName } = require("../../utils/helpers");
 
 // [IMPORT] Services
 const {
@@ -460,9 +461,19 @@ router.get("/export", verifyAdviser, async (req, res) => {
         fs.readFileSync(path.join(FORMS_DIR, "school_data.json"), "utf-8"),
       );
 
+      const adviserRecord = await prisma.adviser.findUnique({
+        where: { adviserId: req.adviserId },
+        select: {
+          name: true,
+        },
+      });
+
+      const normalizedAdviser = splitFullName(adviserRecord.name);
+
       result = await runPythonWithJSON(PYTHON_EXE, WRITER_PATH, {
         students: studentsData,
         school: schoolInfo,
+        adviser: normalizedAdviser,
         section: {
           name: section.name,
           gradeLevel: section.gradeLevel,
