@@ -12,7 +12,6 @@ import EmptyState from "../../components/ui/EmptyState";
 import SearchBar from "../../components/toolbar/SearchBar";
 import Dropdown from "../../components/toolbar/Dropdown";
 import Pagination from "../../components/toolbar/Pagination";
-import Breadcrumbs from "../../components/toolbar/Breadcrumbs";
 import PageLayout from "../../components/layouts/PageLayout";
 import SectionSchoolFormCard from "../../components/cards/section/SectionSchoolFormCard";
 
@@ -130,12 +129,6 @@ const AdviserSchoolForms = () => {
   const totalPages = Math.ceil(filteredSections.length / itemsPerPage);
   const displayedSections = filteredSections.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
-  // * [BREADCRUMBS] Adviser School Forms navigation
-  const breadcrumbs = [
-    { label: "Adviser Dashboard", path: "/adviser/dashboard" },
-    { label: "School Forms", path: null },
-  ];
-
   // ? [LOADING STATE]
   if (loading) return <Skeleton />;
 
@@ -155,7 +148,7 @@ const AdviserSchoolForms = () => {
 
       {/* [LAYOUT] Adviser Page */}
       <PageLayout
-        header={<Breadcrumbs items={breadcrumbs} title="School Forms" />}
+        header={<span className="page-title">School Forms</span>}
         toolbar={
           <div className="bg-[var(--color-bg-100)] px-3 sm:px-4 py-4 rounded-lg flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">
             <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">

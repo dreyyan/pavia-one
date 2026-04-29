@@ -322,13 +322,12 @@ const handleExport = async (formType: string) => {
   // [COMPUTE] SF9 aggregate export forms — section-wide export of all student SF9s
   const studentLevelForms = section?.schoolForms?.filter(f => STUDENT_FORMS.includes(f.type)) ?? [];
 
-  const sectionLabel = section ? `${section.gradeLevel} — ${section.name}` : "Class";
+  const sectionLabel = section ? `(${section.gradeLevel} — ${section.name})` : "Class";
 
   // * [BREADCRUMBS] Adviser Class School Forms navigation
   const breadcrumbs = [
-    { label: "Adviser Dashboard", path: "/adviser/dashboard" },
     { label: "School Forms", path: "/adviser/school-forms" },
-    { label: sectionLabel, path: null },
+    { label: "Forms", path: null },
   ];
 
   // ? [LOADING STATE]
@@ -359,7 +358,7 @@ const handleExport = async (formType: string) => {
 
       {/* [LAYOUT] Adviser Page */}
       <PageLayout
-        header={<Breadcrumbs items={breadcrumbs} title={`School Forms — ${sectionLabel}`} />}
+        header={<Breadcrumbs items={breadcrumbs} title={`School Forms ${sectionLabel}`} />}
       >
         {section ? (
           <div className="space-y-4">
