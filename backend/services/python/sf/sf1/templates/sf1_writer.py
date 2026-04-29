@@ -285,6 +285,15 @@ try:
     )
 
     # =========================
+    # SCHOOL HEAD (ROW 71, COL AN–AS)
+    # =========================
+
+    school_head = safe(school.get("School Head", "")).upper()
+
+    for col in range(40, 46):  # AN–AS
+        write_cell(71, col, school_head)
+
+    # =========================
     # SIMULATED ROW DELETION (NO SHIFTING, NO STRUCTURE CHANGE)
     # =========================
 
