@@ -437,7 +437,7 @@ router.get("/export", verifyAdviser, async (req, res) => {
     try {
       const WRITER_PATH = path.join(
         __dirname,
-        "../../services/python/sf/sf1/templates/sf1_writer.py",
+        "../../services/python/sf/sf1/sf1_writer.py",
       );
       const schoolInfo = JSON.parse(
         fs.readFileSync(path.join(FORMS_DIR, "school_data.json"), "utf-8"),
