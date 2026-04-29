@@ -19,8 +19,8 @@ import SubjectFormModal from "../../components/forms/SubjectFormModal";
 import PageLayout from "../../components/layouts/PageLayout";
 
 // [IMPORT] Helpers, Constants & Types
-import { getVisiblePages } from "../../helpers/index";
-import { GRADE_LEVEL_OPTIONS, CURRICULUM_OPTIONS } from "../../constants";
+import { getGradeColor, getVisiblePages } from "../../helpers/index";
+import { GRADE_LEVEL_OPTIONS, CURRICULUM_OPTIONS, CURRICULUM_BADGE_MAP } from "../../constants";
 import { LearningAreaFormData, GeneralModalConfig, Subject } from "../../types";
 import Badge from "../../components/badges/Badge";
 
@@ -518,11 +518,23 @@ const AdminSubjects = () => {
                       </td> */}
 
                       <td className="table-cell table-text table-text-default">
-                        Grade {s.gradeLevel}
+                        <Badge
+                          label={`Grade ${s.gradeLevel}`}
+                          color={getGradeColor(Number(s.gradeLevel))}
+                        />
                       </td>
 
-                      <td className="table-cell table-text table-text-default">
-                        {s.curriculum ?? "—"}
+                      <td className="table-cell">
+                        {s.curriculum ? (
+                          <Badge
+                            label={s.curriculum}
+                            color={
+                              CURRICULUM_BADGE_MAP[s.curriculum] ?? "secondary"
+                            }
+                          />
+                        ) : (
+                          "—"
+                        )}
                       </td>
 
 
