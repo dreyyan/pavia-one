@@ -48,9 +48,6 @@ const StudentsListCard: React.FC<StudentsListCardProps> = ({ students, classSize
                   <p className="text-xs font-mono text-[var(--color-text-500)]">
                     LRN {student.lrn}
                   </p>
-                  <p className="text-xs font-roboto text-[var(--color-text-500)]">
-                    {student.learningModality || "—"}
-                  </p>
                 </div>
                 <StatusBadge status={student.status} />
               </div>

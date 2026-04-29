@@ -196,3 +196,13 @@ export const formatBreadcrumbName = (name: string): string => {
 
   return `${lastName}, ${initials}`;
 };
+
+// [HELPER] Format learning modality value
+export const formatLearningModality = (value?: string) => {
+  if (!value) return "Unknown";
+
+  return value
+    .toLowerCase()
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};

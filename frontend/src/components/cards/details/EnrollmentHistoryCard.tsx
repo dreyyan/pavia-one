@@ -2,11 +2,13 @@
 import React from "react";
 
 // [IMPORT] Sub-components
+import Badge from "../../badges/Badge";
 import { StatusBadge } from "../../badges/StatusBadge";
 
-// [IMPORT] Types
+// [IMPORT] Helpers, Constants & Types
+import { formatLearningModality } from "../../../helpers";
+import { LEARNING_MODALITY_BADGE_MAP } from "../../../constants";
 import { Enrollment } from "../../../types";
-import Badge from "../../badges/Badge";
 
 interface EnrollmentHistoryCardProps {
   enrollments: Enrollment[];
@@ -47,16 +49,8 @@ const EnrollmentHistoryCard: React.FC<EnrollmentHistoryCardProps> = ({ enrollmen
                 {/* [COMPONENT] Learning Modality Badge */}
                 <div className="mt-1">
                   <Badge
-                    label={enrollment.learningModality}
-                    color={
-                      enrollment.learningModality === "Online"
-                        ? "blue"
-                        : enrollment.learningModality === "Blended"
-                        ? "purple"
-                        : enrollment.learningModality === "Modular"
-                        ? "orange"
-                        : "secondary"
-                    }
+                    label={formatLearningModality(enrollment.learningModality)}
+                    color={LEARNING_MODALITY_BADGE_MAP[enrollment.learningModality] ?? "secondary"}
                   />
                 </div>
               </div>

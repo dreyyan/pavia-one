@@ -342,3 +342,19 @@ export const CURRICULUM_BADGE_MAP: Record<string, BadgeColor> = {
   STE: "violet",
   SPA: "pink",
 };
+
+export const LEARNING_MODALITY_BADGE_MAP: Record<string, BadgeColor> = {
+  FACE_TO_FACE: "blue",
+  DISTANCE_LEARNING: "orange",
+  BLENDED: "violet",
+  ONLINE: "primary",
+  HOMESCHOOL: "pink",
+  OTHER: "gray",
+};
+
+export const ENROLLMENT_STATUS_BADGE_MAP: Record<string, BadgeColor> = {
+  ENROLLED: "green",
+  DROPPED: "red",
+  TRANSFERRED: "secondary",
+  GRADUATED: "blue",
+};
