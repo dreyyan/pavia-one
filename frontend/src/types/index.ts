@@ -107,6 +107,7 @@ export interface Section {
 export interface Adviser {
   id: number;
   adviserId: string;
+  sex: string;
   name: string;
   sections?: AdviserSection[];
   
