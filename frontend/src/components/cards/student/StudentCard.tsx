@@ -37,7 +37,7 @@ const StudentCard: React.FC<StudentCardProps> = ({
     s.sex === "FEMALE"
       ? {
           bg: "bg-[var(--color-red-50)]",
-          text: "text-[var(--color-red-600)]",
+          text: "text-[var(--color-red-700)]",
           border: "border-[var(--color-red-200)]",
         }
       : s.sex === "MALE"
