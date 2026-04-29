@@ -4,9 +4,10 @@ import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Sub-components
 import Badge from "../../badges/Badge";
+import Avatar from "../../badges/Avatar";
 
 // [IMPORT] Helpers & Types
-import { getGradeColor } from "../../../helpers";
+import { getGradeAvatarColor } from "../../../helpers";
 import type { Section } from "../../../types";
 
 interface SectionCardProps {
@@ -16,7 +17,6 @@ interface SectionCardProps {
 
 const SectionCard: React.FC<SectionCardProps> = ({ section, onClick }) => {
   const navigate = useNavigate();
-  const colors = getGradeColor(Number(section.gradeLevel));
 
   const handleClick = () => {
     if (onClick) onClick(section.id);
@@ -31,11 +31,10 @@ const SectionCard: React.FC<SectionCardProps> = ({ section, onClick }) => {
       {/* [HEADER] Grade + Name */}
       <div className="bg-[var(--color-bg-50)] px-3 pr-4 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
         <div className="flex items-center w-full gap-3 min-w-0">
-          <div
-            className={`size-10 rounded-md flex items-center justify-center font-bold text-xl border flex-shrink-0 ${colors.badge}`}
-          >
-            {section.gradeLevel}
-          </div>
+          <Avatar
+            label={`${section.gradeLevel}`}
+            color={getGradeAvatarColor(Number(section.gradeLevel))}
+          />
 
           <div className="flex-1 min-w-0">
             <p className="font-roboto font-bold text-[var(--color-text-900)] text-lg leading-tight truncate">
@@ -72,7 +71,7 @@ const SectionCard: React.FC<SectionCardProps> = ({ section, onClick }) => {
                 {section.adviser.name}
               </span>
             ) : (
-              <Badge label="No Adviser" color="red" />
+              <Badge label="Unassigned" color="red" />
             )}
           </div>
         </div>

@@ -13,7 +13,7 @@ type AvatarColor =
   | "neutral";
 
 interface AvatarProps {
-  initials: string;
+  label: string;
   color?: AvatarColor;
 }
 
@@ -41,14 +41,14 @@ const colorStyles: Record<AvatarColor, string> = {
 };
 
 const Avatar: React.FC<AvatarProps> = ({
-  initials,
+  label,
   color = "neutral",
 }) => {
   return (
     <div
       className={`size-10 rounded-md flex items-center justify-center font-bold text-xl border flex-shrink-0 ${colorStyles[color]}`}
     >
-      {initials}
+      {label}
     </div>
   );
 };

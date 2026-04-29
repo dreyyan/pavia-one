@@ -1,6 +1,10 @@
+// [IMPORT] Helpers, Constants, and Types
+import { getGradeAvatarColor } from "../../../helpers";
 import { STATUS_BADGE, STATUS_LABEL } from "../../../constants";
-import { getGradeColor } from "../../../helpers";
 import type { Section, SectionForm } from "../../../types";
+
+// [IMPORT] Sub-components
+import Avatar from "../../badges/Avatar";
 
 const FORM_TYPES = ["SF1", "SF2", "SF5", "SF9", "SF10"];
 
@@ -37,8 +41,6 @@ const SectionSchoolFormCard: React.FC<SectionSchoolFormCardProps> = ({
   section,
   onClick,
 }) => {
-  const colors = getGradeColor(Number(section.gradeLevel));
-
   const handleClick = () => {
     if (onClick) onClick(section.id);
   };
@@ -52,11 +54,10 @@ const SectionSchoolFormCard: React.FC<SectionSchoolFormCardProps> = ({
       <div className="px-3 pr-4 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
         <div className="flex items-center w-full gap-3 min-w-0">
           
-          <div
-            className={`size-10 rounded-md flex items-center justify-center font-bold text-xl border flex-shrink-0 ${colors.badge}`}
-          >
-            {section.gradeLevel}
-          </div>
+          <Avatar
+            label={`${section.gradeLevel}`}
+            color={getGradeAvatarColor(Number(section.gradeLevel))}
+          />
 
           <div className="flex-1 min-w-0">
             <p className="font-roboto font-bold text-[var(--color-text-900)] text-lg leading-tight truncate">

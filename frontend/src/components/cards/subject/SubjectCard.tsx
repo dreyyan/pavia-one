@@ -4,9 +4,10 @@ import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Sub-components
 import Badge from "../../badges/Badge";
+import Avatar from "../../badges/Avatar";
 
 // [IMPORT] Helpers
-import { getGradeColor } from "../../../helpers";
+import { getGradeAvatarColor } from "../../../helpers";
 
 // [IMPORT] Types
 import type { Subject } from "../../../types";
@@ -19,7 +20,6 @@ interface SubjectCardProps {
 // [COMPONENT]
 const SubjectCard: React.FC<SubjectCardProps> = ({ subject, onClick }) => {
   const navigate = useNavigate();
-  const colors = getGradeColor(subject.gradeLevel);
 
   const handleClick = () => {
     if (onClick) onClick(subject.id);
@@ -34,11 +34,10 @@ const SubjectCard: React.FC<SubjectCardProps> = ({ subject, onClick }) => {
       {/* [HEADER] Grade Badge, Name & Code */}
       <div className="bg-[var(--color-bg-50)] px-3 pr-4 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
         <div className="flex items-center w-full gap-3 min-w-0">
-          <div
-            className={`size-10 rounded-md flex items-center justify-center font-bold text-sm border flex-shrink-0 px-1 ${colors.badge}`}
-          >
-            {subject.gradeLevel}
-          </div>
+          <Avatar
+            label={`${subject.gradeLevel}`}
+            color={getGradeAvatarColor(Number(subject.gradeLevel))}
+          />
 
           <div className="flex-1 min-w-0">
             <p className="font-roboto font-bold text-[var(--color-text-900)] text-lg leading-tight truncate">

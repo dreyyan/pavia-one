@@ -516,6 +516,18 @@ export type BadgeColor =
   | "pink"
   | "gray";
 
+  export type AvatarColor =
+  | "primary"
+  | "secondary"
+  | "accent"
+  | "blue"
+  | "green"
+  | "red"
+  | "orange"
+  | "violet"
+  | "pink"
+  | "neutral";
+
 export type BadgeVariant =
   | "primary"
   | "secondary"

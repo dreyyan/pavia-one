@@ -1,10 +1,9 @@
-// [IMPORT] Constants, Types, Helpers
+// [IMPORT] Helpers, Constants & Types
 import { FORM_STATUS_BADGE, FORM_STATUS_LABELS } from "../../../constants/index";
 import { SectionOverview } from "../../../types/index";
-import { getMissingInfo, sectionFormSummary } from "../../../helpers/index";
+import { getGradeAvatarColor, getMissingInfo, sectionFormSummary } from "../../../helpers/index";
 
-// [IMPORT] Helpers
-import { getGradeColor } from "../../../helpers/index";
+import Avatar from "../../badges/Avatar";
 
 // ? [INTERFACE]
 interface SectionFormCardProps {
@@ -18,9 +17,6 @@ const SectionFormCard = ({ section, onClick }: SectionFormCardProps) => {
   const sf1 = section.schoolForms.find((f) => f.type === "SF1");
   const sf5 = section.schoolForms.find((f) => f.type === "SF5");
   const missing = getMissingInfo(section);
-
-  // [DERIVED] Grade color system
-  const colors = getGradeColor(section.gradeLevel);
 
   return (
     <div
@@ -44,12 +40,10 @@ const SectionFormCard = ({ section, onClick }: SectionFormCardProps) => {
       {/* [CARD] Header */}
       <div className="bg-[var(--color-bg-50)] px-3 pr-4 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
         <div className="flex items-center w-full gap-3 min-w-0">
-          {/* [UI] Grade level avatar (NOW USING getGradeColor) */}
-          <div
-            className={`size-10 rounded-md flex items-center justify-center font-bold text-sm border flex-shrink-0 ${colors.badge}`}
-          >
-            {section.gradeLevel}
-          </div>
+          <Avatar
+            label={`${section.gradeLevel}`}
+            color={getGradeAvatarColor(Number(section.gradeLevel))}
+          />
 
           {/* [UI] Section name + school year */}
           <div className="flex-1 min-w-0">

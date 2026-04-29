@@ -1,11 +1,12 @@
 // [IMPORT] React
 import React from "react";
 
-// [IMPORT] Types
+// [IMPORT] Helpers, Constants, and Types
+import { getGradeAvatarColor } from "../../../helpers";
 import type { Section } from "../../../types";
 
-// [IMPORT] Helpers
-import { getGradeColor } from "../../../helpers/index";
+// [IMPORT] Sub-components
+import Avatar from "../../badges/Avatar";
 
 interface SectionInfoCardProps {
   section: Section;
@@ -16,20 +17,15 @@ const SectionInfoCard: React.FC<SectionInfoCardProps> = ({
   section,
   totalStudents,
 }) => {
-  // [DERIVED] Grade styling (consistent with SectionFormCard)
-  const colors = getGradeColor(Number(section.gradeLevel));
-
   return (
     <div className="bg-white rounded-xl border-2 border-[var(--color-bg-200)] overflow-hidden transition-all duration-200">
       {/* [CARD] Header */}
       <div className="bg-[var(--color-bg-50)] px-3 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
         <div className="flex items-center w-full gap-3 min-w-0">
-          {/* [UI] Grade badge (consistent style) */}
-          <div
-            className={`size-10 rounded-md flex items-center justify-center font-bold text-sm border flex-shrink-0 ${colors.badge}`}
-          >
-            {section.gradeLevel}
-          </div>
+          <Avatar
+            label={`${section.gradeLevel}`}
+            color={getGradeAvatarColor(Number(section.gradeLevel))}
+          />
 
           {/* [UI] Title block */}
           <div className="flex-1 min-w-0">

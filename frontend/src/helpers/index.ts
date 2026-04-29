@@ -1,5 +1,5 @@
 import { SPECIAL_SECTIONS } from "../constants/index";
-import { SectionOverview, SectionForm, SchoolFormStatus } from "../types/index";
+import { SectionOverview, SectionForm, SchoolFormStatus, BadgeColor, AvatarColor } from "../types/index";
 
 // [HELPER] Safe JSON parse
 export const safeJson = async (res: Response) => {
@@ -52,38 +52,33 @@ export const normalizeSex = (sex: unknown): string => {
 };
 
 // [HELPER] Get grade level color scheme
-export const getGradeColor = (grade: number) => {
+export const getGradeColor = (grade: number): BadgeColor => {
   switch (grade) {
     case 7:
-      return {
-        bg: "bg-[var(--color-accent-50)]",
-        text: "text-[var(--color-accent-700)]",
-        badge: "text-[var(--color-accent-700)] bg-[var(--color-accent-100)] border-[var(--color-accent-300)]"
-      };
+      return "green";
     case 8:
-      return {
-        bg: "bg-[var(--color-secondary-50)]",
-        text: "text-[var(--color-secondary-700)]",
-        badge: "text-[var(--color-secondary-600)] bg-[var(--color-secondary-100)] border-[var(--color-secondary-300)]"
-      };
+      return "secondary";
     case 9:
-      return {
-        bg: "bg-[var(--color-primary-50)]",
-        text: "text-[var(--color-primary-700)]",
-        badge: "text-[var(--color-primary-700)] bg-[var(--color-primary-100)] border-[var(--color-primary-300)]"
-      };
+      return "blue";
     case 10:
-      return {
-        bg: "bg-[var(--color-red-50)]",
-        text: "text-[var(--color-red-700)]",
-        badge: "text-[var(--color-red-700)] bg-[var(--color-red-100)] border-[var(--color-red-300)]"
-      };
+      return "red";
     default:
-      return {
-        bg: "bg-[var(--color-bg-50)]",
-        text: "text-[var(--color-text-700)]",
-        badge: "text-[var(--color-text-700)] bg-[var(--color-bg-100)] border-[var(--color-bg-300)]"
-      };
+      return "gray";
+  }
+};
+
+export const getGradeAvatarColor = (grade: number): AvatarColor => {
+  switch (grade) {
+    case 7:
+      return "accent";
+    case 8:
+      return "secondary";
+    case 9:
+      return "primary";
+    case 10:
+      return "red";
+    default:
+      return "neutral";
   }
 };
 
