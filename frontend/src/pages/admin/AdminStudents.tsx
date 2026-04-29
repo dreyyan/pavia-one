@@ -626,7 +626,10 @@ const AdminStudents = () => {
                         )}
                       </td>
 
-                      <td className="table-cell table-text table-text-default">
+                      <td
+                        onClick={() => navigate(`/admin/advisers/view/${s.adviser?.id}`)}
+                        className="table-cell table-text text-[var(--color-text-600)] cursor-pointer hover:underline hover:text-[var(--color-primary-700)] transition"
+                      >
                         {s.adviser?.name ?? "—"}
                       </td>
                     </tr>

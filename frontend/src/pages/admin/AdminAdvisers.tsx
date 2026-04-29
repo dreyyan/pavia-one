@@ -402,7 +402,7 @@ const AdminAdvisers = () => {
                       className="bg-[var(--color-bg-50)] hover:bg-[var(--color-bg-200)] transition cursor-pointer"
                       onClick={() => navigate(`/admin/advisers/view/${a.id}`)}
                     >
-                      <td className="table-cell table-text">
+                      <td className="table-cell table-text table-text-link hover:underline">
                         {formatName(a.name)}
                       </td>
 

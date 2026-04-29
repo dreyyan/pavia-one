@@ -537,7 +537,6 @@ const AdminSubjects = () => {
                         )}
                       </td>
 
-
                       <td className="table-cell table-text">
                         {s.adviser ? (
                           <span
@@ -545,7 +544,7 @@ const AdminSubjects = () => {
                               e.stopPropagation();
                               navigate(`/admin/advisers/view/${s.adviser!.id}`);
                             }}
-                            className="table-text-default text-[var(--color-primary-700)] cursor-pointer hover:underline transition"
+                            className="cursor-pointer hover:underline hover:text-[var(--color-primary-700)] transition"
                           >
                             {s.adviser.name}
                           </span>
