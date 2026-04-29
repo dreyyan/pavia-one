@@ -502,3 +502,24 @@ export type VirtualSchoolForm = {
   schoolYear: string;
   isVirtual: true;
 };
+
+export type BadgeColor =
+  | "primary"
+  | "secondary"
+  | "accent"
+  | "blue"
+  | "green"
+  | "red"
+  | "orange"
+  | "violet"
+  | "purple";
+
+export type BadgeVariant =
+  | "primary"
+  | "secondary"
+  | "accent"
+  | "success"
+  | "warning"
+  | "danger"
+  | "info"
+  | "neutral";

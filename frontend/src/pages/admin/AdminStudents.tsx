@@ -18,7 +18,7 @@ import StudentFormModal from "../../components/forms/StudentFormModal";
 import PageLayout from "../../components/layouts/PageLayout";
 
 // [IMPORT] Helpers, Constants & Types
-import { getVisiblePages, getLastName } from "../../helpers/index";
+import { getVisiblePages, getLastName, formatName } from "../../helpers/index";
 import { GRADE_LEVEL_OPTIONS, CURRICULUM_OPTIONS } from "../../constants";
 import { GeneralModalConfig, StudentFormData, Adviser, Student } from "../../types";
 
@@ -113,7 +113,7 @@ const AdminStudents = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/students?page=${page}&limit=${itemsPerPage}&search=${search}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/students`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -572,7 +572,8 @@ const AdminStudents = () => {
                     {/* [SECTION] Table Headers */}
                     <th className="table-header">Name</th>
                     <th className="table-header">LRN</th>
-                    <th className="table-header">Grade, Section & Curriculum</th>
+                    <th className="table-header">Grade & Section</th>
+                    <th className="table-header">Curriculum</th>
                     <th className="table-header">Adviser</th>
                   </tr>
                 </thead>
@@ -590,7 +591,7 @@ const AdminStudents = () => {
                         }
                         className="table-cell table-text table-text-link cursor-pointer hover:underline"
                       >
-                        {s.fullName}
+                        {formatName(s.fullName)}
                       </td>
 
                       <td className="table-cell table-text table-text-default">
@@ -605,8 +606,14 @@ const AdminStudents = () => {
                         className="table-cell table-text text-[var(--color-text-600)] cursor-pointer hover:underline hover:text-[var(--color-primary-700)] transition"
                       >
                         {s.enrollments?.[0]?.section
-                          ? `Grade ${s.enrollments[0].section.gradeLevel} - ${s.enrollments[0].section.name}`
+                          ? `Grade ${s.enrollments[0].section.gradeLevel} — ${s.enrollments[0].section.name}`
                           : "—"}
+                      </td>
+                      <td className="table-cell table-text table-text-default">
+                        {s.enrollments?.[0]?.section
+                          ? `${(s.enrollments[0].section.curriculum)}`
+                          : "—"}
+                      
                       </td>
 
                       <td className="table-cell table-text table-text-default">

@@ -1,4 +1,4 @@
-import { SchoolFormType, SchoolFormStatus, EventType, EventFormData, AnnouncementFormData } from "../types";
+import { SchoolFormType, SchoolFormStatus, EventType, EventFormData, AnnouncementFormData, BadgeColor } from "../types";
 
 // ? [CONSTANTS] Options
 export const GRADE_LEVEL_OPTIONS = ["7", "8", "9", "10"];
@@ -333,4 +333,12 @@ export const CONFIRM_BUTTON_COLORS = {
   success: "bg-[var(--color-accent-500)] hover:bg-[var(--color-accent-600)]",
   info: "bg-[var(--color-primary-700)] hover:bg-[var(--color-primary-800)]",
   warning: "bg-[var(--color-secondary-600)] hover:bg-[var(--color-secondary-700)]",
+};
+
+export const CURRICULUM_BADGE_MAP: Record<string, BadgeColor> = {
+  Regular: "secondary",
+  SPJ: "orange",
+  SPS: "blue",
+  STE: "violet",
+  SPA: "red",
 };
