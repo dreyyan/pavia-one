@@ -69,7 +69,12 @@ const ClassCard: React.FC<ClassCardProps> = ({
 
   return (
     <div
-      className="w-full min-w-0 bg-[var(--color-bg-100)] rounded-md border border-[var(--color-bg-300)] overflow-hidden hover:translate-y-[-1px] hover:shadow-md active:shadow-md transition-all duration-200 cursor-pointer shadow"
+      style={{
+        backgroundColor: displayFields
+          ? "var(--color-bg-100)"
+          : "var(--color-bg-50)",
+      }}
+      className="w-full min-w-0 rounded-md border border-[var(--color-bg-300)] overflow-hidden hover:translate-y-[-1px] hover:shadow-md active:shadow-md transition-all duration-200 cursor-pointer shadow"
       onClick={handleClick}
     >
       {/* [SECTION] Header */}
@@ -99,8 +104,8 @@ const ClassCard: React.FC<ClassCardProps> = ({
         {/* [UI] Student Count */}
         {classSize > 0 && (
           <div className="px-2 py-0.5 text-xs font-semibold rounded-full whitespace-nowrap flex items-center gap-1 flex-shrink-0 bg-[var(--color-bg-50)] text-[var(--color-text-700)] border border-[var(--color-bg-300)]">
+            {classSize}
             <img src="/person.svg" alt="students" className="size-3" />
-            {classSize} student{classSize !== 1 ? "s" : ""}
           </div>
         )}
       </div>

@@ -247,6 +247,7 @@ const AdviserClassManagement = () => {
                 femaleCount={cls.femaleCount ?? 0}
                 curriculum={cls.curriculum}
                 gradeLevel={cls.gradeLevel}
+                displayFields={false}
               />
             ))}
           </div>
