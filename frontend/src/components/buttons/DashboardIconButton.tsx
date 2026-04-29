@@ -8,7 +8,7 @@ interface DashboardIconButtonProps {
 
 const variantStyles = {
   primary: "bg-[var(--color-secondary-500)] hover:bg-[var(--color-secondary-600)]",
-  neutral: "bg-[var(--color-bg-600)] hover:bg-[var(--color-bg-700)]",
+  neutral: "bg-[var(--color-bg-500)] hover:bg-[var(--color-bg-600)]",
   danger: "bg-[var(--color-red-700)] hover:bg-[var(--color-red-800)]",
 };
 
