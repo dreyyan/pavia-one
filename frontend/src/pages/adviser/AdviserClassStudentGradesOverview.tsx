@@ -229,22 +229,10 @@ const AdviserClassStudentGradesOverview = () => {
           {/* [COMPONENT] Profile Info */}
           <ProfileInfo lastName={lastName} firstName={firstName} />
 
-          {/* [CARD] Advisory Section */}
-          {advisorySection && (
-            <div className="bg-[var(--color-bg-100)] rounded-lg px-4 py-3">
-              <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)] mb-1">
-                Section
-              </p>
-              <p className="font-roboto font-semibold text-[var(--color-text-900)]">
-                Grade {advisorySection.gradeLevel} — {advisorySection.name}
-              </p>
-            </div>
-          )}
-
           {/* [CARD] SF9 Grades */}
           <div className="bg-[var(--color-bg-100)] px-3 py-4 rounded-lg">
             <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)] mb-3">
-              SF9 Grades
+              Grades
             </p>
 
             {grades.length === 0 ? (
