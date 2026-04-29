@@ -21,6 +21,22 @@ const { safeUnlink } = require("../../utils/file");
 // [IMPORT] Middleware
 const verifyAdviser = require("../../middleware/authMiddleware").verifyAdviser;
 
+// [IMPORT] Paths
+const {
+  BASE_DIR,
+  SERVICES_DIR,
+  FORMS_DIR,
+  OUTPUT_DIR,
+  UPLOAD_DIR,
+} = require("../../services/forms/formPaths");
+
+const {
+  SF2_DIR,
+  TEMPLATE_PATH,
+  IMPORTER_PATH,
+  OUTPUT_PATH,
+} = require("../../services/forms/config/sf2Config");
+
 // ? [GET] Export SF2 Template
 // /api/adviser/sf2/export
 router.get("/export", verifyAdviser, async (req, res) => {

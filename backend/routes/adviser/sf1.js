@@ -27,20 +27,21 @@ const {
 // [IMPORT] Middleware
 const verifyAdviser = require("../../middleware/authMiddleware").verifyAdviser;
 
-// [SETUP] Paths
-const BASE_DIR = path.resolve(__dirname, "../..");
+// [IMPORT] Paths
+const {
+  BASE_DIR,
+  SERVICES_DIR,
+  FORMS_DIR,
+  OUTPUT_DIR,
+  UPLOAD_DIR,
+} = require("../../services/forms/formPaths");
 
-const SERVICES_DIR = path.join(BASE_DIR, "services");
-const FORMS_DIR = path.join(SERVICES_DIR, "forms");
-const SF1_DIR = path.join(SERVICES_DIR, "python", "sf", "sf1");
-const OUTPUT_DIR = path.join(FORMS_DIR, "output_data");
-
-const TEMPLATE_PATH = path.join(FORMS_DIR, "SF1_template.xlsx");
-const IMPORTER_PATH = path.join(SF1_DIR, "sf1_import_runner.py");
-const OUTPUT_PATH = path.join(OUTPUT_DIR, "SF1_filled_output.xlsx");
-
-// [SETUP] Uploads
-const UPLOAD_DIR = path.join(BASE_DIR, "tmp");
+const {
+  SF1_DIR,
+  TEMPLATE_PATH,
+  IMPORTER_PATH,
+  OUTPUT_PATH,
+} = require("../../services/forms/config/sf1Config");
 
 const upload = multer({
   dest: UPLOAD_DIR,
