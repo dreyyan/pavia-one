@@ -293,7 +293,7 @@ const AdminAdviserDetails = () => {
             value={formData.sex ?? ""}
             onChange={handleFieldChange("sex")}
             placeholder="Select sex"
-            options={["Male", "Female"]}
+            options={["MALE", "FEMALE"]}
             disabled={!isEditing}
             required
           />
