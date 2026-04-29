@@ -18,9 +18,10 @@ import AdviserFormModal from "../../components/forms/AdviserFormModal";
 import PageLayout from "../../components/layouts/PageLayout";
 import Badge from "../../components/badges/Badge";
 
-// [IMPORT] Helpers & Types
-import { getVisiblePages, getLastName } from "../../helpers/index";
+// [IMPORT] Helpers, Types, and Constants
+import { getVisiblePages, getLastName, formatName } from "../../helpers/index";
 import { Adviser, AdviserFormData, GeneralModalConfig } from "../../types";
+import { CURRICULUM_BADGE_MAP } from "../../constants";
 
 // [CONSTANT] Empty form state
 const EMPTY_FORM: AdviserFormData = {
@@ -75,7 +76,6 @@ const AdminAdvisers = () => {
   const closeGeneralModal = () => {
     setGeneralModal(prev => ({ ...prev, isOpen: false }));
   };
-
   // [STATES] Pagination
   const [page, setPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
@@ -86,9 +86,9 @@ const AdminAdvisers = () => {
       const width = window.innerWidth;
 
       if (width < 768) setItemsPerPage(5);        // xs (cards)
-      else if (width < 1024) setItemsPerPage(6);  // md (cards)
-      else if (width < 1280) setItemsPerPage(8);  // lg (table)
-      else if (width < 1536) setItemsPerPage(10); // xl (table)
+      else if (width < 1024) setItemsPerPage(8);  // md (cards)
+      else if (width < 1280) setItemsPerPage(10);  // lg (table)
+      else if (width < 1536) setItemsPerPage(12); // xl (table)
       else setItemsPerPage(12);                   // 2xl (table)
     };
 
@@ -97,6 +97,11 @@ const AdminAdvisers = () => {
 
     return () => window.removeEventListener("resize", updateItemsPerPage);
   }, []);
+
+  // [EFFECT] Reload page when screen size changes
+  useEffect(() => {
+    fetchAdvisers();
+  }, [page, itemsPerPage, search]);
 
   // * [HANDLE] Fetch Advisers
   const fetchAdvisers = async () => {
@@ -284,7 +289,7 @@ const AdminAdvisers = () => {
                 <div className="w-full sm:w-64 md:w-80 lg:w-96">
                   <SearchBar
                     value={search}
-                    placeholder="Search by name, email, or adviser ID..."
+                    placeholder="Search by name, email, or adviser ID"
                     onChange={setSearch}
                     onResetPage={() => setPage(1)}
                   />
@@ -398,19 +403,7 @@ const AdminAdvisers = () => {
                       onClick={() => navigate(`/admin/advisers/view/${a.id}`)}
                     >
                       <td className="table-cell table-text">
-                        <div className="flex items-center gap-2">
-                          <div className="size-7 rounded-md bg-[var(--color-primary-100)] flex items-center justify-center text-[var(--color-primary-700)] font-bold text-xs border border-[var(--color-primary-200)] flex-shrink-0">
-                            {a.name
-                              .split(" ")
-                              .map((n: string) => n[0])
-                              .join("")
-                              .toUpperCase()
-                              .slice(0, 2)}
-                          </div>
-                          <span className="table-text-link hover:underline">
-                            {a.name}
-                          </span>
-                        </div>
+                        {formatName(a.name)}
                       </td>
 
                       <td className="table-cell table-text table-text-default font-mono text-xs">
@@ -423,28 +416,27 @@ const AdminAdvisers = () => {
 
                       <td className="table-cell table-text table-text-default">
                         {a.sections?.[0]?.curriculum ? (
-                          a.sections[0].curriculum
+                          <Badge
+                            label={a.sections[0].curriculum}
+                            color={
+                              CURRICULUM_BADGE_MAP[a.sections[0].curriculum] ?? "secondary"
+                            }
+                          />
                         ) : (
                           <Badge label="Missing" color="red" />
                         )}
                       </td>
 
                       <td
+                        onClick={() =>
+                          a.sections?.[0]?.id &&
+                          navigate(`/admin/sections/view/${a.sections[0].id}`)
+                        }
                         className="table-cell table-text text-[var(--color-text-600)]"
                       >
                         {a.sections?.length ? (
-                          <span
-                            onClick={(e) => {
-                              e.stopPropagation();
-
-                              const section = a.sections?.[0];
-                              if (!section) return;
-
-                              navigate(`/admin/sections/view/${section.id}`);
-                            }}
-                            className="cursor-pointer hover:underline hover:text-[var(--color-primary-700)] transition"
-                          >
-                            Grade {a.sections[0].gradeLevel} - {a.sections[0].name}
+                          <span className="cursor-pointer hover:underline hover:text-[var(--color-primary-700)] transition">
+                            Grade {a.sections[0].gradeLevel} — {a.sections[0].name}
                           </span>
                         ) : (
                           <Badge label="Unassigned" color="red" />

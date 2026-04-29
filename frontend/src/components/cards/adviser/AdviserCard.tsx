@@ -4,9 +4,10 @@ import { useNavigate } from "react-router-dom";
 
 // [IMPORT] Sub-components
 import Badge from "../../badges/Badge";
+import Avatar from "../../badges/Avatar";
 
 // [IMPORT] Helpers & Types
-import { formatName, getGradeColor } from "../../../helpers";
+import { formatName } from "../../../helpers";
 import type { Adviser } from "../../../types";
 
 interface AdviserCardProps {
@@ -21,11 +22,14 @@ const AdviserCard: React.FC<AdviserCardProps> = ({ adviser: a, onClick }) => {
   const sections = a.sections ?? [];
   const firstSection = sections[0];
   const hasSection = sections.length > 0;
-  
+
   // [DERIVED] Avatar color
-  const colors = hasSection
-    ? getGradeColor(Number(firstSection.gradeLevel))
-    : null;
+  const avatarColor =
+    a.sex === "FEMALE"
+      ? "red"
+      : a.sex === "MALE"
+      ? "blue"
+      : "neutral";
 
   const initials = a.name
     .split(" ")
@@ -34,7 +38,7 @@ const AdviserCard: React.FC<AdviserCardProps> = ({ adviser: a, onClick }) => {
     .toUpperCase()
     .slice(0, 2);
 
-  // [HANDLE] Navigate to adviser detials
+  // [HANDLE] Navigate to adviser details
   const handleClick = () => {
     if (onClick) onClick(a.id);
     else navigate(`/admin/advisers/view/${a.id}`);
@@ -48,17 +52,12 @@ const AdviserCard: React.FC<AdviserCardProps> = ({ adviser: a, onClick }) => {
       {/* [HEADER] Avatar, Name & ID */}
       <div className="bg-[var(--color-bg-50)] px-3 pr-4 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
         <div className="flex items-center w-full gap-3 min-w-0">
-          {/* [UI] Initials Avatar */}
-          <div
-            className={`size-10 rounded-md flex items-center justify-center font-bold text-sm flex-shrink-0 border
-              ${
-                colors?.badge ??
-                "bg-[var(--color-bg-100)] text-[var(--color-text-700)] border-[var(--color-bg-200)]"
-              }
-            `}
-          >
-            {initials}
-          </div>
+
+          {/* [UI] Avatar */}
+          <Avatar
+            initials={initials}
+            color={avatarColor ?? "neutral"}
+          />
 
           {/* [TEXT] Name + Adviser ID */}
           <div className="flex-1 min-w-0">
@@ -74,6 +73,7 @@ const AdviserCard: React.FC<AdviserCardProps> = ({ adviser: a, onClick }) => {
 
       {/* [DETAILS] Fields */}
       <div className="px-4 py-3 space-y-2 text-sm">
+
         <div className="flex justify-between items-center min-w-0">
           <span className="text-[var(--color-text-700)] font-figree font-semibold">
             Email
@@ -91,7 +91,7 @@ const AdviserCard: React.FC<AdviserCardProps> = ({ adviser: a, onClick }) => {
           <div className="flex justify-end min-w-0">
             {hasSection && firstSection ? (
               <span className="truncate text-[var(--color-text-900)]">
-                Grade {firstSection.gradeLevel} – {firstSection.name}
+                Grade {firstSection.gradeLevel} — {firstSection.name}
               </span>
             ) : (
               <Badge label="Unassigned" color="red" />

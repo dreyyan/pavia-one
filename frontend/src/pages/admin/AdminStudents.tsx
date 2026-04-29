@@ -106,6 +106,11 @@ const AdminStudents = () => {
     return () => window.removeEventListener("resize", updateItemsPerPage);
   }, []);
 
+  // [EFFECT] Reload page when screen size changes
+  useEffect(() => {
+    fetchStudents();
+  }, [page, itemsPerPage, search]);
+
   // [STATE] Selected Students (for bulk actions)
   const [selectedStudents, setSelectedStudents] = useState<number[]>([]);
 
@@ -143,11 +148,6 @@ const AdminStudents = () => {
   useEffect(() => {
     fetchStudents();
   }, []);
-
-  // [EFFECT] Reload page when screen size changes
-  useEffect(() => {
-    fetchStudents();
-  }, [page, itemsPerPage, search]);
 
   // * [HANDLE] Fetch Advisers for Dropdown (w/ optional search) 
   const fetchAdvisers = async () => {
