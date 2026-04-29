@@ -8,6 +8,12 @@ const fs = require("fs");
 const path = require("path");
 const multer = require("multer");
 
+// [IMPORT] Helpers
+const {
+  runPythonWithJSON,
+  runPythonWithFile,
+} = require("../../utils/pythonRunner");
+
 // [IMPORT] Utilities
 const { successResponse, errorResponse } = require("../../utils/response");
 const { calculateAge, splitFullName } = require("../../utils/helpers");
@@ -17,12 +23,6 @@ const { safeUnlink } = require("../../utils/file");
 const {
   resolveAdviserSection,
 } = require("../../services/node/adviser_service");
-
-// [IMPORT] Helpers
-const {
-  runPythonWithJSON,
-  runPythonWithFile,
-} = require("../../utils/pythonRunner");
 
 // [IMPORT] Middleware
 const verifyAdviser = require("../../middleware/authMiddleware").verifyAdviser;
