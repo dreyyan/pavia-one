@@ -93,9 +93,9 @@ const AdminStudents = () => {
       const width = window.innerWidth;
 
       if (width < 768) setItemsPerPage(5);        // xs (cards)
-      else if (width < 1024) setItemsPerPage(6);  // md (cards)
-      else if (width < 1280) setItemsPerPage(8);  // lg (table)
-      else if (width < 1536) setItemsPerPage(10); // xl (table)
+      else if (width < 1024) setItemsPerPage(8);  // md (cards)
+      else if (width < 1280) setItemsPerPage(10);  // lg (table)
+      else if (width < 1536) setItemsPerPage(12); // xl (table)
       else setItemsPerPage(12);                   // 2xl (table)
     };
 
@@ -113,7 +113,7 @@ const AdminStudents = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/students?limit=200`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/students?page=${page}&limit=${itemsPerPage}&search=${search}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -142,6 +142,11 @@ const AdminStudents = () => {
   useEffect(() => {
     fetchStudents();
   }, []);
+
+  // [EFFECT] Reload page when screen size changes
+  useEffect(() => {
+    fetchStudents();
+  }, [page, itemsPerPage, search]);
 
   // * [HANDLE] Fetch Advisers for Dropdown (w/ optional search) 
   const fetchAdvisers = async () => {
@@ -443,7 +448,7 @@ const AdminStudents = () => {
                 <div className="w-full sm:w-64 md:w-80 lg:w-96">
                   <SearchBar
                     value={search}
-                    placeholder="Search by name, LRN, or email..."
+                    placeholder="Search by name, LRN, or email"
                     onChange={setSearch}
                     onResetPage={() => setPage(1)}
                   />
