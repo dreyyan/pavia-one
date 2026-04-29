@@ -344,108 +344,103 @@ const AdminSubjects = () => {
           <Breadcrumbs items={breadcrumbs} title="Subjects" />
         }
         toolbar={
-          <div className="bg-[var(--color-bg-100)] px-3 sm:px-4 py-4 rounded-lg flex flex-col gap-3 w-full">
+          <div className="bg-[var(--color-bg-100)] px-3 sm:px-4 py-4 rounded-lg space-y-3 w-full">
 
-            <div className="flex flex-col lg:flex-row lg:items-center gap-3 w-full">
+            {/* [TOP ROW] Search + Sort + Filter (ONE LINE ALWAYS) */}
+            <div className="flex items-center gap-2 w-full overflow-x-auto">
 
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full min-w-0">
-
-                {/* [COMPONENT] Search Bar */}
-                <div className="w-full sm:w-64 md:w-80 lg:w-96 min-w-0">
-                  <SearchBar
-                    value={search}
-                    placeholder="Search by subject name or code"
-                    onChange={setSearch}
-                    onResetPage={() => setPage(1)}
-                  />
-                </div>
-
-                {/* [COMPONENT] Sort & Filter Dropdowns */}
-                <div className="flex gap-2 flex-wrap sm:flex-nowrap sm:ml-auto shrink-0">
-                  <Dropdown
-                    icon="/sort.svg"
-                    label="Sort"
-                    isOpen={activeDropdown === "sort"}
-                    onToggle={() =>
-                      setActiveDropdown(activeDropdown === "sort" ? null : "sort")
-                    }
-                    selected={sortOption}
-                    onSelect={(value) => {
-                      setSortOption(value as SortOption);
-                      setPage(1);
-                    }}
-                    options={[
-                      { label: "Name (A → Z)", value: "name-asc" },
-                      { label: "Name (Z → A)", value: "name-desc" },
-                      { label: "Grade ↑", value: "grade-asc" },
-                      { label: "Grade ↓", value: "grade-desc" },
-                    ]}
-                  />
-
-                  {/* [COMPONENT] Filter Dropdown */}
-                  <Dropdown
-                    icon="/filter.svg"
-                    label="Filter"
-                    isOpen={activeDropdown === "filter"}
-                    onToggle={() =>
-                      setActiveDropdown(activeDropdown === "filter" ? null : "filter")
-                    }
-                    width="w-52"
-                    groups={[
-                      {
-                        label: "Grade",
-                        options: GRADE_LEVEL_OPTIONS.map(g => ({
-                          label: `Grade ${g}`,
-                          value: String(g),
-                        })),
-                        selectedValues: selectedGrades,
-                        onSelectMultiple: (v) => {
-                          setSelectedGrades(v);
-                          setPage(1);
-                        },
-                      },
-                      {
-                        label: "Curriculum",
-                        options: CURRICULUM_OPTIONS.map(c => ({
-                          label: c.label,
-                          value: c.value,
-                        })),
-                        selectedValues: selectedCurricula,
-                        onSelectMultiple: (v) => {
-                          setSelectedCurricula(v);
-                          setPage(1);
-                        },
-                      },
-                    ]}
-                  />
-                </div>
+              {/* Search */}
+              <div className="flex-1 min-w-[180px] sm:min-w-[240px] md:min-w-[320px] lg:min-w-[400px]">
+                <SearchBar
+                  value={search}
+                  placeholder="Search by subject name or code"
+                  onChange={setSearch}
+                  onResetPage={() => setPage(1)}
+                />
               </div>
 
-              {/* [ACTION BUTTONS] Add Subject + Auto-Create */}
-              <div className="
-                flex flex-col sm:flex-row
-                gap-2 w-full lg:w-auto
-                lg:ml-auto
-                shrink-0
-                flex-wrap
-              ">
-                <PrimaryButton
-                  text="Add Subject"
-                  iconSrc="/add.svg"
-                  onClick={handleAddSubject}
-                />
-
-                <SecondaryButton
-                  text="Auto-Create Subjects"
-                  iconSrc="/auto-generate.svg"
-                  onClick={() => {
-                    setAutoCreateError("");
-                    setShowAutoCreateModal(true);
+              {/* Sort */}
+              <div className="shrink-0">
+                <Dropdown
+                  icon="/sort.svg"
+                  label="Sort"
+                  isOpen={activeDropdown === "sort"}
+                  onToggle={() =>
+                    setActiveDropdown(activeDropdown === "sort" ? null : "sort")
+                  }
+                  selected={sortOption}
+                  onSelect={(value) => {
+                    setSortOption(value as SortOption);
+                    setPage(1);
                   }}
+                  options={[
+                    { label: "Name (A → Z)", value: "name-asc" },
+                    { label: "Name (Z → A)", value: "name-desc" },
+                    { label: "Grade ↑", value: "grade-asc" },
+                    { label: "Grade ↓", value: "grade-desc" },
+                  ]}
+                />
+              </div>
+
+              {/* Filter */}
+              <div className="shrink-0">
+                <Dropdown
+                  icon="/filter.svg"
+                  label="Filter"
+                  isOpen={activeDropdown === "filter"}
+                  onToggle={() =>
+                    setActiveDropdown(activeDropdown === "filter" ? null : "filter")
+                  }
+                  width="w-52"
+                  groups={[
+                    {
+                      label: "Grade",
+                      options: GRADE_LEVEL_OPTIONS.map(g => ({
+                        label: `Grade ${g}`,
+                        value: String(g),
+                      })),
+                      selectedValues: selectedGrades,
+                      onSelectMultiple: (v) => {
+                        setSelectedGrades(v);
+                        setPage(1);
+                      },
+                    },
+                    {
+                      label: "Curriculum",
+                      options: CURRICULUM_OPTIONS.map(c => ({
+                        label: c.label,
+                        value: c.value,
+                      })),
+                      selectedValues: selectedCurricula,
+                      onSelectMultiple: (v) => {
+                        setSelectedCurricula(v);
+                        setPage(1);
+                      },
+                    },
+                  ]}
                 />
               </div>
 
             </div>
+
+            {/* [BOTTOM ROW] ACTIONS */}
+            <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
+              <PrimaryButton
+                text="Add Subject"
+                iconSrc="/add.svg"
+                onClick={handleAddSubject}
+              />
+
+              <SecondaryButton
+                text="Auto-Create Subjects"
+                iconSrc="/auto-generate.svg"
+                onClick={() => {
+                  setAutoCreateError("");
+                  setShowAutoCreateModal(true);
+                }}
+              />
+            </div>
+
           </div>
         }
         footer={

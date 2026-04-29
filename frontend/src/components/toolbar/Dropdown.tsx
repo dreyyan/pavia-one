@@ -85,7 +85,7 @@ const Dropdown: React.FC<DropdownProps> = ({
     <div ref={ref} className="relative">
       <button
         onClick={onToggle}
-        className="relative flex items-center justify-between gap-2 rounded-md px-3 sm:px-4 md:px-5 h-10 transition cursor-pointer bg-[var(--color-bg-50)] hover:opacity-80"
+        className="relative flex items-center justify-between gap-2 rounded-md px-3 sm:px-4 md:px-5 h-10 transition cursor-pointer bg-[var(--color-bg-50)] hover:opacity-80 overflow-visible"
       >
         <span className="hidden sm:inline text-xs font-roboto font-medium text-[var(--color-text-700)]">
           {label}
@@ -99,7 +99,7 @@ const Dropdown: React.FC<DropdownProps> = ({
         <img src={icon} alt={label} className="size-4 sm:size-5" />
 
         {hasActiveFilter && (
-          <span className="absolute -top-1 -right-1 size-2 rounded-full bg-[var(--color-primary-500)] sm:hidden" />
+          <span className="absolute top-1 right-1 size-2 rounded-full bg-[var(--color-primary-500)] sm:hidden" />
         )}
       </button>
 
