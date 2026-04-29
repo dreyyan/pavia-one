@@ -207,22 +207,11 @@ async function createSectionWithForms(data) {
 
     await tx.schoolForm.createMany({
       data: [
-        {
-          sectionId: section.id,
-          schoolYear: section.schoolYear,
-          type: "SF1",
-        },
-        {
-          sectionId: section.id,
-          schoolYear: section.schoolYear,
-          type: "SF2",
-        },
-        {
-          sectionId: section.id,
-          schoolYear: section.schoolYear,
-          type: "SF5",
-        },
+        { sectionId: section.id, schoolYear: section.schoolYear, type: "SF1" },
+        { sectionId: section.id, schoolYear: section.schoolYear, type: "SF2" },
+        { sectionId: section.id, schoolYear: section.schoolYear, type: "SF5" },
       ],
+      skipDuplicates: true, // skip duplicate forms
     });
 
     return section;

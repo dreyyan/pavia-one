@@ -1,9 +1,9 @@
 // [IMPORT] Constants & Types
-import { SchoolForm } from "../../../types";
+import { SectionFormUI } from "../../../types";
 import { STATUS_BADGE, STATUS_LABEL, FORM_TITLES, FORM_THEME } from "../../../constants";
 
 interface SchoolFormActionCardProps {
-  form: SchoolForm;
+  form: SectionFormUI;
   sectionSchoolYear: string;
   onExport: () => void;
   onImport?: () => void;
@@ -49,8 +49,12 @@ const SchoolFormActionCard = ({
         </div>
 
         {/* [BADGE] Status */}
-        <span className={`text-xs px-2 py-0.5 rounded-full font-semibold flex-shrink-0 ${STATUS_BADGE[form.status]}`}>
-          {STATUS_LABEL[form.status]}
+        <span className={`text-xs px-2 py-0.5 rounded-full font-semibold flex-shrink-0 ${form.status === "VIRTUAL"
+          ? "bg-gray-200 text-gray-600"
+          : STATUS_BADGE[form.status]}`}>
+        {form.status === "VIRTUAL"
+          ? "VIRTUAL"
+          : STATUS_LABEL[form.status]}
         </span>
       </div>
 

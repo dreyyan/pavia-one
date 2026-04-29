@@ -463,3 +463,42 @@ export interface SchoolForm {
   generatedAt?: string;
   submittedAt?: string;
 }
+
+export type FormType = "SF1" | "SF2" | "SF5" | "SF9" | "SF10";
+
+export type SectionFormUI =
+  | {
+      id: number;
+      type: FormType;
+      status: SchoolFormStatus;
+      schoolYear: string;
+      generatedAt?: string;
+      submittedAt?: string;
+      isVirtual?: false;
+    }
+  | {
+      id: string;
+      type: FormType;
+      status: "VIRTUAL";
+      schoolYear: string;
+      generatedAt?: undefined;
+      submittedAt?: undefined;
+      isVirtual: true;
+    };
+
+export type RealSchoolForm = {
+  id: number;
+  type: FormType;
+  status: SchoolFormStatus;
+  schoolYear: string;
+  generatedAt?: string;
+  submittedAt?: string;
+};
+
+export type VirtualSchoolForm = {
+  id: string; // "virtual-SF2"
+  type: FormType;
+  status: "VIRTUAL";
+  schoolYear: string;
+  isVirtual: true;
+};

@@ -257,7 +257,7 @@ export const SPECIAL_SECTIONS: SpecialSections = {
   },
 };
 
-export const SECTION_FORMS = ["SF1", "SF2", "SF5"];
+export const SECTION_FORMS = ["SF1", "SF2", "SF5"] as const;
 export const STUDENT_FORMS = ["SF9", "SF10"];
 export const FORM_TITLES: Record<string, string> = {
   SF1: "School Register",

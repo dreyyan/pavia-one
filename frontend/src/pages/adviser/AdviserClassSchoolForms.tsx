@@ -16,7 +16,7 @@ import PageLayout from "../../components/layouts/PageLayout";
 
 // [IMPORT] Constants & Types
 import { SECTION_FORMS, STUDENT_FORMS, FORM_PERMISSIONS } from "../../constants";
-import { GeneralModalConfig, SchoolFormStatus, SectionInfo, ImportResult } from "../../types";
+import { GeneralModalConfig, SchoolFormStatus, SectionInfo, ImportResult, SectionFormUI, FormType } from "../../types";
 
 // ? [INTERFACE] Student with SF9 data only (SF5 is section-level, never per student)
 interface StudentSF9 {
@@ -116,6 +116,7 @@ const AdviserClassSchoolForms = () => {
           submittedAt: f.submittedAt ?? undefined,
         })),
       });
+      console.log("RAW FORMS:", raw.schoolForms);
     } catch (err) {
       // ! [ERROR] Fetching section failed
       console.error(err);
@@ -298,7 +299,22 @@ const handleExport = async (formType: string) => {
   };
 
   // [COMPUTE] Section-level forms: SF1, SF2, SF5, SF10 — from section.schoolForms
-  const sectionLevelForms = section?.schoolForms?.filter(f => SECTION_FORMS.includes(f.type)) ?? [];
+  const sectionLevelForms: SectionFormUI[] =
+    SECTION_FORMS.map((type) => {
+      const existing = section?.schoolForms?.find((f) => f.type === type);
+
+      return (
+        existing ?? {
+          id: `virtual-${type}`,
+          type,
+          status: "VIRTUAL",
+          schoolYear: section?.schoolYear ?? "",
+          generatedAt: undefined,
+          submittedAt: undefined,
+          isVirtual: true,
+        }
+      );
+    });
 
   // [COMPUTE] SF5 is section-level only — never per student
   const sf5Form = section?.schoolForms?.find(f => f.type === "SF5") ?? null;
@@ -373,7 +389,7 @@ const handleExport = async (formType: string) => {
                       onImport={form.type === "SF1" ? handleImportClick : undefined}
                       exporting={exporting === form.type}
                       importing={importLoading && importingFor === "SF1" && form.type === "SF1"}
-                      supportsImport={FORM_PERMISSIONS[form.type]?.import ?? false}
+                      supportsImport={FORM_PERMISSIONS[form.type as FormType]?.import ?? false}
                     />
                   ))}
                 </div>
