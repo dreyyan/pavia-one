@@ -53,7 +53,7 @@ const SchoolFormActionCard = ({
           ? "bg-gray-200 text-gray-600"
           : STATUS_BADGE[form.status]}`}>
         {form.status === "VIRTUAL"
-          ? "VIRTUAL"
+          ? "Virtual"
           : STATUS_LABEL[form.status]}
         </span>
       </div>

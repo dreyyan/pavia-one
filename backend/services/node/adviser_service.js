@@ -19,6 +19,7 @@ async function resolveAdviserSection(adviserId) {
       name: true,
       gradeLevel: true,
       schoolYear: true,
+      curriculum: true,
     },
   });
 
