@@ -16,10 +16,11 @@ import StudentCard from "../../components/cards/student/StudentCard";
 import PrimaryButton from "../../components/buttons/PrimaryButton";
 import StudentFormModal from "../../components/forms/StudentFormModal";
 import PageLayout from "../../components/layouts/PageLayout";
+import Badge from "../../components/badges/Badge";
 
 // [IMPORT] Helpers, Constants & Types
 import { getVisiblePages, getLastName, formatName } from "../../helpers/index";
-import { GRADE_LEVEL_OPTIONS, CURRICULUM_OPTIONS } from "../../constants";
+import { GRADE_LEVEL_OPTIONS, CURRICULUM_OPTIONS, CURRICULUM_BADGE_MAP } from "../../constants";
 import { GeneralModalConfig, StudentFormData, Adviser, Student } from "../../types";
 
 const AdminStudents = () => {
@@ -609,11 +610,20 @@ const AdminStudents = () => {
                           ? `Grade ${s.enrollments[0].section.gradeLevel} — ${s.enrollments[0].section.name}`
                           : "—"}
                       </td>
-                      <td className="table-cell table-text table-text-default">
-                        {s.enrollments?.[0]?.section
-                          ? `${(s.enrollments[0].section.curriculum)}`
-                          : "—"}
                       
+                      <td className="table-cell">
+                        {s.enrollments?.[0]?.section ? (
+                          <Badge
+                            label={s.enrollments[0].section.curriculum}
+                            color={
+                              CURRICULUM_BADGE_MAP[
+                                s.enrollments[0].section.curriculum
+                              ] ?? "secondary"
+                            }
+                          />
+                        ) : (
+                          "—"
+                        )}
                       </td>
 
                       <td className="table-cell table-text table-text-default">
