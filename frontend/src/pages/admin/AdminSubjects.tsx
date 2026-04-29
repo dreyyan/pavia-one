@@ -70,9 +70,9 @@ const AdminSubjects = () => {
       const width = window.innerWidth;
 
       if (width < 768) setItemsPerPage(5);        // xs (cards)
-      else if (width < 1024) setItemsPerPage(6);  // md (cards)
-      else if (width < 1280) setItemsPerPage(8);  // lg (table)
-      else if (width < 1536) setItemsPerPage(10); // xl (table)
+      else if (width < 1024) setItemsPerPage(8);  // md (cards)
+      else if (width < 1280) setItemsPerPage(10);  // lg (table)
+      else if (width < 1536) setItemsPerPage(12); // xl (table)
       else setItemsPerPage(12);                   // 2xl (table)
     };
 
@@ -81,6 +81,11 @@ const AdminSubjects = () => {
 
     return () => window.removeEventListener("resize", updateItemsPerPage);
   }, []);
+
+  // [EFFECT] Reload page when screen size changes
+  useEffect(() => {
+    fetchSubjects();
+  }, [page, itemsPerPage, search]);
 
   // [STATE] General Modal
   const [generalModal, setGeneralModal] = useState<GeneralModalConfig>({
@@ -349,7 +354,7 @@ const AdminSubjects = () => {
                 <div className="w-full sm:w-64 md:w-80 lg:w-96 min-w-0">
                   <SearchBar
                     value={search}
-                    placeholder="Search by name or code..."
+                    placeholder="Search by subject name or code"
                     onChange={setSearch}
                     onResetPage={() => setPage(1)}
                   />

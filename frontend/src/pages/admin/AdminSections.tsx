@@ -20,8 +20,8 @@ import SectionFormModal from "../../components/forms/SectionFormModal";
 import PageLayout from "../../components/layouts/PageLayout";
 
 // [IMPORT] Helpers, Constants & Types
-import { getVisiblePages, normalizeSchoolYear } from "../../helpers/index";
-import { GRADE_LEVEL_OPTIONS, CURRICULUM_OPTIONS } from "../../constants";
+import { getVisiblePages, normalizeSchoolYear, getGradeColor } from "../../helpers/index";
+import { GRADE_LEVEL_OPTIONS, CURRICULUM_OPTIONS, CURRICULUM_BADGE_MAP } from "../../constants";
 import { GeneralModalConfig, Section, SectionFormData } from "../../types";
 import Badge from "../../components/badges/Badge";
 
@@ -101,9 +101,9 @@ const AdminSections = () => {
       const width = window.innerWidth;
 
       if (width < 768) setItemsPerPage(5);        // xs (cards)
-      else if (width < 1024) setItemsPerPage(6);  // md (cards)
-      else if (width < 1280) setItemsPerPage(8);  // lg (table)
-      else if (width < 1536) setItemsPerPage(10); // xl (table)
+      else if (width < 1024) setItemsPerPage(8);  // md (cards)
+      else if (width < 1280) setItemsPerPage(10);  // lg (table)
+      else if (width < 1536) setItemsPerPage(12); // xl (table)
       else setItemsPerPage(12);                   // 2xl (table)
     };
 
@@ -112,6 +112,11 @@ const AdminSections = () => {
 
     return () => window.removeEventListener("resize", updateItemsPerPage);
   }, []);
+
+  // [EFFECT] Reload page when screen size changes
+  useEffect(() => {
+    fetchSections();
+  }, [page, itemsPerPage, search]);
 
   // * [HANDLE] Fetch Sections
   const fetchSections = async () => {
@@ -472,7 +477,7 @@ const AdminSections = () => {
                 <div className="w-full sm:w-64 md:w-80 lg:w-96 min-w-0">
                   <SearchBar
                     value={search}
-                    placeholder="Search by name, curriculum, or school year..."
+                    placeholder="Search by section name, curriculum, or school year"
                     onChange={setSearch}
                     onResetPage={() => setPage(1)}
                   />
@@ -615,15 +620,27 @@ const AdminSections = () => {
                       </td>
 
                       <td className="table-cell table-text table-text-default">
-                        Grade {s.gradeLevel}
+                        <Badge
+                          label={`Grade ${s.gradeLevel}`}
+                          color={getGradeColor(Number(s.gradeLevel))}
+                        />
                       </td>
 
                       <td className="table-cell table-text table-text-default">
                         {s.schoolYear}
                       </td>
 
-                      <td className="table-cell table-text table-text-default">
-                        {s.curriculum}
+                      <td className="table-cell">
+                        {s.curriculum ? (
+                          <Badge
+                            label={s.curriculum}
+                            color={
+                              CURRICULUM_BADGE_MAP[s.curriculum] ?? "secondary"
+                            }
+                          />
+                        ) : (
+                          "—"
+                        )}
                       </td>
 
                       <td className="table-cell table-text">
