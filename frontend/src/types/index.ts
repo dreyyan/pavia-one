@@ -513,7 +513,8 @@ export type BadgeColor =
   | "red"
   | "orange"
   | "violet"
-  | "purple";
+  | "pink"
+  | "gray";
 
 export type BadgeVariant =
   | "primary"

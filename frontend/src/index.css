@@ -140,6 +140,18 @@
   --color-violet-900: #2A0D4D;
   --color-violet-950: #150726;
 
+  --color-pink-50:  #FFF0F6;
+  --color-pink-100: #FFD6E7;
+  --color-pink-200: #FFADCF;
+  --color-pink-300: #FF85B8;
+  --color-pink-400: #FF5CA1;
+  --color-pink-500: #FF2E8A;
+  --color-pink-600: #E01F74;
+  --color-pink-700: #B8175C;
+  --color-pink-800: #8F1045;
+  --color-pink-900: #660A2F;
+  --color-pink-950: #3D051B;
+
   /* Fonts */
   --font-figtree: 'Figtree', sans-serif;
   --font-roboto: 'Roboto', sans-serif;

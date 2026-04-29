@@ -8,7 +8,7 @@ type AvatarColor =
   | "green"
   | "orange"
   | "violet"
-  | "purple"
+  | "pink"
   | "red"
   | "neutral";
 
@@ -32,8 +32,8 @@ const colorStyles: Record<AvatarColor, string> = {
     "bg-[var(--color-orange-50)] text-[var(--color-orange-700)] border-[var(--color-orange-200)]",
   violet:
     "bg-[var(--color-violet-50)] text-[var(--color-violet-700)] border-[var(--color-violet-200)]",
-  purple:
-    "bg-[var(--color-purple-50)] text-[var(--color-purple-700)] border-[var(--color-purple-200)]",
+  pink:
+    "bg-[var(--color-pink-50)] text-[var(--color-pink-700)] border-[var(--color-pink-200)]",
   red:
     "bg-[var(--color-red-50)] text-[var(--color-red-600)] border-[var(--color-red-200)]",
   neutral:

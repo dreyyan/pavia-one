@@ -337,8 +337,8 @@ export const CONFIRM_BUTTON_COLORS = {
 
 export const CURRICULUM_BADGE_MAP: Record<string, BadgeColor> = {
   Regular: "secondary",
-  SPJ: "orange",
-  SPS: "blue",
+  SPJ: "blue",
+  SPS: "orange",
   STE: "violet",
-  SPA: "red",
+  SPA: "pink",
 };
