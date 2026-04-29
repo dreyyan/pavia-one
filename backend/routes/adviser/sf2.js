@@ -56,25 +56,70 @@ const PYTHON_EXE =
     ? path.join(__dirname, "../../venv/Scripts/python.exe")
     : path.join(__dirname, "../../venv/bin/python3");
 
-// ? [GET] Export SF2 Template
-// /api/adviser/sf2/export
 router.get("/export", verifyAdviser, async (req, res) => {
   try {
     // [1] Resolve adviser + section
     const resolved = await resolveAdviserSection(req.adviserId);
-
     if (resolved.error) {
       return res.status(resolved.status).json(errorResponse(resolved.error));
     }
 
     const { section } = resolved;
 
-    // [2] Load school info (same as SF1 pattern)
+    // [2] Fetch enrolled students (COPY FROM SF1)
+    const enrollments = await prisma.enrollment.findMany({
+      where: {
+        sectionId: section.id,
+        status: "ENROLLED",
+      },
+      include: {
+        student: true,
+      },
+      orderBy: {
+        student: {
+          lastName: "asc",
+        },
+      },
+    });
+
+    if (!enrollments.length) {
+      return res
+        .status(404)
+        .json(errorResponse("No enrolled students found in this section"));
+    }
+
+    // [3] SAFE NORMALIZER
+    const safe = (v) => (v ?? "").toString().trim();
+
+    // [4] BUILD STUDENTS DATA (MINIMAL SF2 VERSION)
+    const studentsData = enrollments.map((e) => {
+      const s = e.student || {};
+
+      return {
+        LRN: safe(s.lrn),
+        "First Name": safe(s.firstName),
+        "Middle Name": safe(s.middleName),
+        "Last Name": safe(s.lastName),
+        Sex: safe(s.sex),
+        "Birth Date": s.birthDate ? new Date(s.birthDate) : "",
+        MotherTongue: safe(s.motherTongue),
+        Religion: safe(s.religion),
+        Barangay: safe(s.barangay),
+        Municipality: safe(s.municipalityCity),
+        Province: safe(s.province),
+        LearningModality: safe(e.learningModality),
+        Remarks: e.remarks ? String(e.remarks).trim() : "",
+        Section: safe(section.name),
+        GradeLevel: section.gradeLevel,
+      };
+    });
+
+    // [5] LOAD SCHOOL INFO
     const schoolInfo = JSON.parse(
       fs.readFileSync(path.join(FORMS_DIR, "school_data.json"), "utf-8"),
     );
 
-    // [3] Get adviser info (SF1 style consistency)
+    // [6] ADVISER INFO (SF1 STYLE CONSISTENCY)
     const adviserRecord = await prisma.adviser.findUnique({
       where: { adviserId: req.adviserId },
       select: { name: true },
@@ -86,17 +131,15 @@ router.get("/export", verifyAdviser, async (req, res) => {
 
     const normalizedAdviser = splitFullName(adviserRecord.name);
 
-    // [4] OUTPUT PATH (SF2 version)
+    // [7] OUTPUT PATH
     const outputPath = path.join(OUTPUT_DIR, `SF2_${section.id}_filled.xlsx`);
 
-    let result;
-
-    // [5] Run SF2 Python writer
+    // [8] RUN PYTHON WRITER
     try {
       const WRITER_PATH = path.join(SF2_DIR, "sf2_writer.py");
 
-      result = await runPythonWithJSON(PYTHON_EXE, WRITER_PATH, {
-        students: [], // SF2 has no student processing
+      await runPythonWithJSON(PYTHON_EXE, WRITER_PATH, {
+        students: studentsData,
         school: schoolInfo,
         adviser: normalizedAdviser,
         section: {
@@ -106,7 +149,7 @@ router.get("/export", verifyAdviser, async (req, res) => {
         },
         paths: {
           templatePath: TEMPLATE_PATH,
-          outputPath: outputPath,
+          outputPath,
         },
       });
     } catch (pyErr) {
@@ -117,14 +160,14 @@ router.get("/export", verifyAdviser, async (req, res) => {
         .json(errorResponse("Failed to generate SF2 Excel file", pyErr.stderr));
     }
 
-    // [6] FILE CHECK
+    // [9] FILE CHECK
     if (!fs.existsSync(outputPath)) {
       return res
         .status(500)
         .json(errorResponse("SF2 Excel file was not generated"));
     }
 
-    // [7] STREAM FILE (same as SF1)
+    // [10] STREAM FILE
     const filename = `SF2_Grade${section.gradeLevel}_${section.name}_${section.schoolYear.replace(/\s/g, "")}.xlsx`;
 
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
