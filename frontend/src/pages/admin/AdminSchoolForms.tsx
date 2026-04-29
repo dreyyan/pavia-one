@@ -111,7 +111,7 @@ const AdminSchoolForms = () => {
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/admin/school-forms/genesrate`,
+        `${import.meta.env.VITE_API_BASE_URL}/api/admin/school-forms/generate`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },

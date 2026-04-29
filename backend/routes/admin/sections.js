@@ -435,6 +435,35 @@ router.post("/generate", verifyAdmin, async (req, res) => {
 
         if (existingSet.has(key)) {
           skipped.push({ gradeLevel, sectionName, reason: "Already exists" });
+
+          // 🔥 FIX: ensure missing forms for existing section
+          const existingSection = await prisma.section.findFirst({
+            where: {
+              name: sectionName,
+              gradeLevel: Number(gradeLevel),
+              curriculum,
+              schoolYear: normalizedYear,
+            },
+          });
+
+          if (existingSection) {
+            await prisma.schoolForm.createMany({
+              data: [
+                {
+                  sectionId: existingSection.id,
+                  schoolYear: normalizedYear,
+                  type: "SF1",
+                },
+                {
+                  sectionId: existingSection.id,
+                  schoolYear: normalizedYear,
+                  type: "SF5",
+                },
+              ],
+              skipDuplicates: true,
+            });
+          }
+
           continue;
         }
 
