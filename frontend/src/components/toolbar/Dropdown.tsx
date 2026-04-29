@@ -85,7 +85,7 @@ const Dropdown: React.FC<DropdownProps> = ({
     <div ref={ref} className="relative">
       <button
         onClick={onToggle}
-        className="relative flex items-center justify-between gap-2 rounded-sm px-3 sm:px-4 md:px-5 h-10 transition cursor-pointer bg-[var(--color-bg-50)] hover:opacity-80"
+        className="relative flex items-center justify-between gap-2 rounded-md px-3 sm:px-4 md:px-5 h-10 transition cursor-pointer bg-[var(--color-bg-50)] hover:opacity-80"
       >
         <span className="hidden sm:inline text-xs font-roboto font-medium text-[var(--color-text-700)]">
           {label}
