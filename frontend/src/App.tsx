@@ -42,6 +42,7 @@ import AdminAnnouncementsAndEvents from "./pages/admin/AdminAnnouncementsAndEven
 import AdminSchoolForms from "./pages/admin/AdminSchoolForms";
 import AdminSchoolFormDetails from "./pages/admin/AdminSchoolFormDetails";
 import AdminReportsAndStatistics from "./pages/admin/AdminReportsAndStatistics";
+import AdminSchoolYears from "./pages/admin/AdminSchoolYears";
 
 // [IMPORT] Context & Layout
 import PrivateRoute from "./context/PrivateRoute";
@@ -105,6 +106,8 @@ function App() {
 
           <Route path="/admin/reports-and-statistics" element={<AdminReportsAndStatistics />} />
           <Route path="/admin/announcements-and-events" element={<AdminAnnouncementsAndEvents />} />
+
+          <Route path="/admin/school-years" element={<AdminSchoolYears />} />
         </Route>
 
         {/* [ROUTES] Shared */}

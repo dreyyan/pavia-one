@@ -466,3 +466,32 @@ model Event {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @default(now())
 }
+
+model SchoolYear {
+  id          Int      @id @default(autoincrement())
+  label       String   @unique // "2025-2026"
+
+  startDate   DateTime
+  endDate     DateTime
+
+  isActive    Boolean  @default(false)
+  isLocked    Boolean  @default(false)
+
+  quarters    Quarter[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Quarter {
+  id           Int      @id @default(autoincrement())
+  schoolYearId Int
+
+  name         Int      // 1, 2, 3, 4
+  startDate    DateTime
+  endDate      DateTime
+
+  schoolYear   SchoolYear @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolYearId, name])
+}
