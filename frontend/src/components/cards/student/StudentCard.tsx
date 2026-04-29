@@ -3,6 +3,7 @@ import React from "react";
 
 // [IMPORT] Sub-component
 import Badge from "../../badges/Badge";
+import Avatar from "../../badges/Avatar";
 
 // [IMPORT] Helpers & Types
 import { formatName } from "../../../helpers";
@@ -35,24 +36,12 @@ const StudentCard: React.FC<StudentCardProps> = ({
     .toUpperCase()
     .slice(0, 2);
 
-  const avatarStyle =
+  const avatarColor =
     s.sex === "FEMALE"
-      ? {
-          bg: "bg-[var(--color-red-50)]",
-          text: "text-[var(--color-red-700)]",
-          border: "border-[var(--color-red-200)]",
-        }
+      ? "red"
       : s.sex === "MALE"
-      ? {
-          bg: "bg-[var(--color-primary-50)]",
-          text: "text-[var(--color-primary-700)]",
-          border: "border-[var(--color-primary-200)]",
-        }
-      : {
-          bg: "bg-[var(--color-bg-100)]",
-          text: "text-[var(--color-text-600)]",
-          border: "border-[var(--color-bg-300)]",
-        };
+      ? "blue"
+      : "neutral";
 
   return (
     <div
@@ -62,11 +51,7 @@ const StudentCard: React.FC<StudentCardProps> = ({
       <div className="bg-[var(--color-bg-50)] px-3 pr-4 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
         <div className="flex items-center w-full gap-3 min-w-0">
           {/* Avatar */}
-          <div
-            className={`size-10 rounded-md flex items-center justify-center font-bold px-4 text-xl border flex-shrink-0 ${avatarStyle.bg} ${avatarStyle.text} ${avatarStyle.border}`}
-          >
-            {initials}
-          </div>
+          <Avatar initials={initials} color={avatarColor} />
 
           {/* Name + LRN */}
           <div className="flex-1 min-w-0">
@@ -82,7 +67,7 @@ const StudentCard: React.FC<StudentCardProps> = ({
             </p>
           </div>
 
-          {/* Sex badge */}
+          {/* [COMPONENT] Sex badge */}
           <Badge
             label={s.sex === "MALE" ? "M" : s.sex === "FEMALE" ? "F" : "—"}
             variant={
