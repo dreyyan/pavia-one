@@ -55,7 +55,7 @@ const AdviserCard: React.FC<AdviserCardProps> = ({ adviser: a, onClick }) => {
 
           {/* [UI] Avatar */}
           <Avatar
-            initials={initials}
+            label={initials}
             color={avatarColor ?? "neutral"}
           />
 

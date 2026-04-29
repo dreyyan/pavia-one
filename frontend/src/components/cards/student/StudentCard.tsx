@@ -51,7 +51,7 @@ const StudentCard: React.FC<StudentCardProps> = ({
       <div className="bg-[var(--color-bg-50)] px-3 pr-4 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
         <div className="flex items-center w-full gap-3 min-w-0">
           {/* Avatar */}
-          <Avatar initials={initials} color={avatarColor} />
+          <Avatar label={initials} color={avatarColor} />
 
           {/* Name + LRN */}
           <div className="flex-1 min-w-0">
