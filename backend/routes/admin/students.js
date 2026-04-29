@@ -21,21 +21,18 @@ const verifyAdmin = require("../../middleware/authMiddleware").verifyAdmin;
 // /api/admin/students
 router.get("/", verifyAdmin, async (req, res) => {
   try {
-    const rawPage = parseInt(req.query.page, 10);
-    const rawLimit = parseInt(req.query.limit, 10);
+    const {
+      page = 1,
+      limit = 50,
+      sortBy = "lrn",
+      sortOrder = "asc",
+      search = "",
+    } = req.query;
 
-    const pageNum = Math.max(rawPage || 1, 1);
+    const pageNum = Math.max(parseInt(page, 10) || 1, 1);
 
-    const limitNum = Math.min(
-      isNaN(rawLimit) || rawLimit < 1 ? 50 : rawLimit,
-      100,
-    );
-
+    const limitNum = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 100);
     const skip = (pageNum - 1) * limitNum;
-
-    const sortBy = req.query.sortBy || "lrn";
-    const sortOrder = req.query.sortOrder === "desc" ? "desc" : "asc";
-    const search = req.query.search || "";
 
     const where = search
       ? {

@@ -573,7 +573,6 @@ const AdminStudents = () => {
                     <th className="table-header">Name</th>
                     <th className="table-header">LRN</th>
                     <th className="table-header">Grade, Section & Curriculum</th>
-                    <th className="table-header">Email</th>
                     <th className="table-header">Adviser</th>
                   </tr>
                 </thead>
@@ -608,10 +607,6 @@ const AdminStudents = () => {
                         {s.enrollments?.[0]?.section
                           ? `Grade ${s.enrollments[0].section.gradeLevel} - ${s.enrollments[0].section.name}`
                           : "—"}
-                      </td>
-
-                      <td className="table-cell table-text table-text-default">
-                        {s.email ?? "—"}
                       </td>
 
                       <td className="table-cell table-text table-text-default">
