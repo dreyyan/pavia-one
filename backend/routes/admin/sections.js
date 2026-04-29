@@ -595,36 +595,6 @@ router.put("/:id", verifyAdmin, async (req, res) => {
       },
     });
 
-    // ? Detect adviser assignment (null → assigned)
-    const adviserJustAssigned =
-      existingSection.adviserId === null && updatedSection.adviserId !== null;
-
-    // ? Only trigger if adviser assigned AND schoolYear exists
-    if (adviserJustAssigned && updatedSection.schoolYear) {
-      const formTypes = ["SF1", "SF2", "SF5"];
-
-      for (const type of formTypes) {
-        try {
-          await prisma.schoolForm.create({
-            data: {
-              sectionId: updatedSection.id,
-              type,
-              schoolYear: updatedSection.schoolYear,
-              generatedBy: updatedSection.adviserId ?? null,
-            },
-          });
-        } catch (err) {
-          // ! Skip duplicates (same behavior as your admin route)
-          if (err.code !== "P2002") {
-            console.error(
-              `[ERROR] Creating ${type} for section ${updatedSection.id}:`,
-              err,
-            );
-          }
-        }
-      }
-    }
-
     res.json(successResponse("Section updated successfully", updatedSection));
   } catch (err) {
     console.error("Update section error:", err);
