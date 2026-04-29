@@ -358,3 +358,10 @@ export const ENROLLMENT_STATUS_BADGE_MAP: Record<string, BadgeColor> = {
   TRANSFERRED: "secondary",
   GRADUATED: "blue",
 };
+
+export const EVENT_TYPE_BADGE_MAP: Record<string, BadgeColor> = {
+  SCHOOL_EVENT: "blue",
+  ACADEMIC_EVENT: "primary",
+  COMMUNITY_SERVICE: "green",
+  OTHER: "secondary",
+};

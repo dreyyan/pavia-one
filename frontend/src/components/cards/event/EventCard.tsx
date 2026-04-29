@@ -1,8 +1,11 @@
 // [IMPORT] Libraries
 import React from "react";
 
+// [IMPORT] Sub-components
+import EventBadge from "../../badges/EventBadge";
+
 // [IMPORT] Constants & Types
-import { EVENT_TYPE_LABELS } from "../../../constants";
+import { EVENT_TYPE_LABELS, EVENT_TYPE_BADGE_MAP } from "../../../constants";
 import type { SchoolEvent } from "../../../types";
 
 interface EventCardProps {
@@ -41,9 +44,7 @@ const EventCard: React.FC<EventCardProps> = ({
         </p>
         <div className="flex items-center gap-2 flex-wrap">
           {/* [BADGE] Event type */}
-          <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--color-bg-200)] text-[var(--color-text-600)]">
-            {EVENT_TYPE_LABELS[event.type]}
-          </span>
+          <EventBadge type={event.type} />
 
           {/* [BADGE] Online indicator */}
           {event.isOnline && (
