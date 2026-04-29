@@ -157,7 +157,7 @@ const AdviserSchoolForms = () => {
                 <div className="w-full sm:w-64 md:w-80 lg:w-96">
                   <SearchBar
                     value={search}
-                    placeholder="Search by section name or school year..."
+                    placeholder="Search by section name or school year"
                     onChange={setSearch}
                     onResetPage={() => setPage(1)}
                   />

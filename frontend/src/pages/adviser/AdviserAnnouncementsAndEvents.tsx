@@ -341,7 +341,7 @@ const AdviserAnnouncementsAndEvents = () => {
                 <div className="w-full sm:w-64 md:w-80 lg:w-96">
                   <SearchBar
                     value={announcementSearch}
-                    placeholder="Search announcements..."
+                    placeholder="Search announcements"
                     onChange={setAnnouncementSearch}
                     onResetPage={() => setAnnouncementPage(1)}
                   />
@@ -417,7 +417,7 @@ const AdviserAnnouncementsAndEvents = () => {
                 <div className="w-full sm:w-64 md:w-80 lg:w-96">
                   <SearchBar
                     value={eventSearch}
-                    placeholder="Search events..."
+                    placeholder="Search events"
                     onChange={setEventSearch}
                     onResetPage={() => setEventPage(1)}
                   />

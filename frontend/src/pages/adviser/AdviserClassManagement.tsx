@@ -159,7 +159,7 @@ const AdviserClassManagement = () => {
                 <div className="w-full sm:w-64 md:w-80 lg:w-96">
                   <SearchBar
                     value={search}
-                    placeholder="Search by name, LRN, or email..."
+                    placeholder="Search by name, LRN, or email"
                     onChange={setSearch}
                     onResetPage={() => setPage(1)}
                   />

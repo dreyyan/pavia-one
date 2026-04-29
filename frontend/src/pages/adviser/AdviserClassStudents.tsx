@@ -222,7 +222,7 @@ const AdviserClassStudents = () => {
                   <div className="w-full sm:w-64 md:w-80 lg:w-96">
                     <SearchBar
                       value={search}
-                      placeholder="Search by name or LRN..."
+                      placeholder="Search by name or LRN"
                       onChange={setSearch}
                       onResetPage={() => setPage(1)}
                     />
