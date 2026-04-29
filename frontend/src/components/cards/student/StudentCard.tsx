@@ -1,6 +1,9 @@
 // [IMPORT] React
 import React from "react";
 
+// [IMPORT] Sub-component
+import Badge from "../../badges/Badge";
+
 // [IMPORT] Helpers & Types
 import { formatName } from "../../../helpers";
 import { Student } from "../../../types";
@@ -25,7 +28,6 @@ const StudentCard: React.FC<StudentCardProps> = ({
 
   const curriculum = section?.curriculum ?? "—";
 
-  // ✅ SAFE initials (prevents crash)
   const initials = (s.fullName ?? "")
     .split(" ")
     .map((n) => n[0])
@@ -81,17 +83,16 @@ const StudentCard: React.FC<StudentCardProps> = ({
           </div>
 
           {/* Sex badge */}
-          <div
-            className={`px-2 py-0.5 text-xs font-semibold rounded-full whitespace-nowrap flex-shrink-0 ${
+          <Badge
+            label={s.sex === "MALE" ? "M" : s.sex === "FEMALE" ? "F" : "—"}
+            variant={
               s.sex === "MALE"
-                ? "bg-[var(--color-primary-100)] text-[var(--color-primary-500)]"
+                ? "info"
                 : s.sex === "FEMALE"
-                ? "bg-[var(--color-red-100)] text-[var(--color-red-500)]"
-                : "bg-[var(--color-bg-100)] text-gray-600"
-            }`}
-          >
-            {s.sex === "MALE" ? "M" : s.sex === "FEMALE" ? "F" : "—"}
-          </div>
+                ? "danger"
+                : "neutral"
+            }
+          />
         </div>
       </div>
 
