@@ -9,13 +9,17 @@ import { useAuth } from "../../context/useAuth";
 import Modal from "../../components/modal/Modal";
 import Skeleton from "../../components/ui/Skeleton";
 import EmptyState from "../../components/ui/EmptyState";
+import SearchBar from "../../components/toolbar/SearchBar";
+import Dropdown from "../../components/toolbar/Dropdown";
+import Pagination from "../../components/toolbar/Pagination";
 import Breadcrumbs from "../../components/toolbar/Breadcrumbs";
 import ClassCard from "../../components/cards/class/ClassCard";
 import SchoolFormActionCard from "../../components/cards/school_form/SchoolFormActionCard";
 import PageLayout from "../../components/layouts/PageLayout";
 
-// [IMPORT] Constants & Types
+// [IMPORT] Constants, Helpers & Types
 import { SECTION_FORMS, STUDENT_FORMS, FORM_PERMISSIONS } from "../../constants";
+import { getVisiblePages } from "../../helpers/index";
 import { GeneralModalConfig, SchoolFormStatus, SectionInfo, ImportResult, SectionFormUI, FormType } from "../../types";
 
 // ? [INTERFACE] Student with SF9 data only (SF5 is section-level, never per student)
@@ -33,6 +37,8 @@ interface StudentSF9 {
   generalAverage: number | null;
 }
 
+type SF9SortOption = "name-asc" | "name-desc" | "lrn-asc" | "lrn-desc" | "status-asc" | "status-desc";
+
 const AdviserClassSchoolForms = () => {
   const { sectionId } = useParams<{ sectionId: string }>();
   const navigate = useNavigate();
@@ -49,6 +55,13 @@ const AdviserClassSchoolForms = () => {
   const [importLoading, setImportLoading] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // [STATES] SF9 Search, Sort, and Pagination
+  const [sf9Search, setSf9Search] = useState("");
+  const [sf9SortOption, setSf9SortOption] = useState<SF9SortOption>("name-asc");
+  const [sf9ActiveDropdown, setSf9ActiveDropdown] = useState<"sort" | null>(null);
+  const [sf9Page, setSf9Page] = useState(1);
+  const sf9ItemsPerPage = 10;
 
   // [STATE] General Modal
   const [generalModal, setGeneralModal] = useState<GeneralModalConfig>({
@@ -116,7 +129,6 @@ const AdviserClassSchoolForms = () => {
           submittedAt: f.submittedAt ?? undefined,
         })),
       });
-      console.log("RAW FORMS:", raw.schoolForms);
     } catch (err) {
       // ! [ERROR] Fetching section failed
       console.error(err);
@@ -136,109 +148,110 @@ const AdviserClassSchoolForms = () => {
     fetchSection();
   }, [sectionId]);
 
-  // * [HANDLE] Export School Form
-const handleExport = async (formType: string) => {
-  setExporting(formType);
+  // * [HANDLE] Export School Form (section-level or per-student SF9)
+  const handleExport = async (formType: string, studentId?: number) => {
+    const exportKey = studentId ? `SF9-${studentId}` : formType;
+    setExporting(exportKey);
 
-  try {
-    const token = localStorage.getItem("token");
+    try {
+      const token = localStorage.getItem("token");
 
-    const endpointMap: Record<string, string> = {
-      SF1: "/api/adviser/sf1/export",
-      SF2: "/api/adviser/sf2/export",
-      SF5: "/api/adviser/sf5/export",
-      SF9: "/api/adviser/sf9/export",
-      SF10: "/api/adviser/sf10/export",
-    };
+      const endpointMap: Record<string, string> = {
+        SF1:  "/api/adviser/sf1/export",
+        SF2:  "/api/adviser/sf2/export",
+        SF5:  "/api/adviser/sf5/export",
+        SF9:  "/api/adviser/sf9/export",
+        SF10: "/api/adviser/sf10/export",
+      };
 
-    const res = await fetch(
-      `${import.meta.env.VITE_API_BASE_URL}${endpointMap[formType]}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
+      // [COMPUTE] Per-student SF9 uses a dedicated endpoint with studentId param
+      const endpoint = studentId
+        ? `/api/adviser/sf9/export?studentId=${studentId}`
+        : endpointMap[formType];
+
+      const res = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}${endpoint}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const contentType = res.headers.get("content-type") || "";
+
+      // [CASE] JSON response — warning or error
+      if (contentType.includes("application/json")) {
+        const errData = await res.json();
+
+        // ! [ERROR] Real error — no export generated
+        if (!res.ok && !errData.data) {
+          openGeneralModal({
+            title: "Export Failed",
+            message: errData.message || "An error occurred while generating the file.",
+            type: "error",
+            confirmText: "Close",
+            onConfirm: () => closeGeneralModal(),
+          });
+          return;
+        }
+
+        // ⚠ [WARNING] SF1 incomplete students
+        if (Array.isArray(errData.data)) {
+          const names = errData.data
+            .slice(0, 5)
+            .map(
+              (s: any) =>
+                `• ${s.name}: ${(s.missing ?? s.missingFields ?? []).join(", ")}`
+            )
+            .join("\n");
+
+          const more =
+            errData.data.length > 5
+              ? `\n...and ${errData.data.length - 5} more.`
+              : "";
+
+          openGeneralModal({
+            title: "Incomplete SF1 Data",
+            message: `Some students have missing information:\n\n${names}${more}\n\nExport will still proceed.`,
+            type: "error",
+            confirmText: "OK",
+            isCancelable: false,
+            onConfirm: () => closeGeneralModal(),
+          });
+
+          return;
+        }
       }
-    );
 
-    const contentType = res.headers.get("content-type") || "";
+      // ! [ERROR] Non-JSON failure
+      if (!res.ok) throw new Error("Export failed");
 
-    // ❗ CASE 1: JSON response (warning or error)
-    if (contentType.includes("application/json")) {
-      const errData = await res.json();
+      // * [SUCCESS] Stream file download
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
 
-      // ❌ real error (no export generated)
-      if (!res.ok && !errData.data) {
-        openGeneralModal({
-          title: "Export Failed",
-          message:
-            errData.message ||
-            "An error occurred while generating the file.",
-          type: "error",
-          confirmText: "Close",
-          onConfirm: () => closeGeneralModal(),
-        });
-        return;
-      }
+      const a = document.createElement("a");
+      const disp = res.headers.get("content-disposition") || "";
+      const match = disp.match(/filename="?([^"]+)"?/);
 
-      // ⚠️ WARNING CASE (SF1 incomplete students)
-      if (Array.isArray(errData.data)) {
-        const names = errData.data
-          .slice(0, 5)
-          .map(
-            (s: any) =>
-              `• ${s.name}: ${(s.missing ?? s.missingFields ?? []).join(", ")}`
-          )
-          .join("\n");
+      a.href = url;
+      a.download = match ? match[1] : `${formType}_export.xlsx`;
 
-        const more =
-          errData.data.length > 5
-            ? `\n...and ${errData.data.length - 5} more.`
-            : "";
-
-        openGeneralModal({
-          title: `Incomplete SF1 Data`,
-          message: `Some students have missing information:\n\n${names}${more}\n\nExport will still proceed.`,
-          type: "error",
-          confirmText: "OK",
-          isCancelable: false,
-          onConfirm: () => closeGeneralModal(),
-        });
-
-        return;
-      }
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      // ! [ERROR] Export failed
+      console.error(err);
+      openGeneralModal({
+        title: "Export Failed",
+        message: err.message || "Network error. Please try again.",
+        type: "error",
+        confirmText: "Close",
+        onConfirm: () => closeGeneralModal(),
+      });
+    } finally {
+      setExporting(null);
     }
-
-    // ❌ real failure (non-JSON, no file)
-    if (!res.ok) throw new Error("Export failed");
-
-    // 📦 SUCCESS: stream file
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-
-    const disp = res.headers.get("content-disposition") || "";
-    const match = disp.match(/filename="?([^"]+)"?/);
-
-    a.href = url;
-    a.download = match ? match[1] : `${formType}_export.xlsx`;
-
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  } catch (err: any) {
-    console.error(err);
-
-    openGeneralModal({
-      title: "Export Failed",
-      message: err.message || "Network error. Please try again.",
-      type: "error",
-      confirmText: "Close",
-      onConfirm: () => closeGeneralModal(),
-    });
-  } finally {
-    setExporting(null);
-  }
-};
+  };
 
   // [HANDLE] Trigger hidden file input for SF1 import
   const handleImportClick = () => {
@@ -272,7 +285,7 @@ const handleExport = async (formType: string) => {
       setImportResult(r);
       await fetchSection();
 
-      // * [SUCCESS] Import Successful
+      // * [SUCCESS] Import successful
       openGeneralModal({
         title: "Import Successful",
         message:
@@ -302,7 +315,6 @@ const handleExport = async (formType: string) => {
   const sectionLevelForms: SectionFormUI[] =
     SECTION_FORMS.map((type) => {
       const existing = section?.schoolForms?.find((f) => f.type === type);
-
       return (
         existing ?? {
           id: `virtual-${type}`,
@@ -322,6 +334,49 @@ const handleExport = async (formType: string) => {
   // [COMPUTE] SF9 aggregate export forms — section-wide export of all student SF9s
   const studentLevelForms = section?.schoolForms?.filter(f => STUDENT_FORMS.includes(f.type)) ?? [];
 
+  // * [COMPUTE] Filtered & sorted SF9 students
+  const filteredSF9Students = students
+    .filter(s => {
+      const fullName = `${s.lastName}, ${s.firstName}${s.middleName ? ` ${s.middleName}` : ""}`;
+      return (
+        fullName.toLowerCase().includes(sf9Search.toLowerCase()) ||
+        s.lrn.includes(sf9Search)
+      );
+    })
+    .sort((a, b) => {
+      const aName = `${a.lastName} ${a.firstName}`;
+      const bName = `${b.lastName} ${b.firstName}`;
+      const statusOrder = { COMPLETE: 0, PARTIAL: 1, PENDING: 2 };
+      switch (sf9SortOption) {
+        case "name-asc":    return aName.localeCompare(bName);
+        case "name-desc":   return bName.localeCompare(aName);
+        case "lrn-asc":     return a.lrn.localeCompare(b.lrn);
+        case "lrn-desc":    return b.lrn.localeCompare(a.lrn);
+        case "status-asc":  return statusOrder[a.sf9Status] - statusOrder[b.sf9Status];
+        case "status-desc": return statusOrder[b.sf9Status] - statusOrder[a.sf9Status];
+        default: return 0;
+      }
+    });
+
+  const sf9TotalPages = Math.ceil(filteredSF9Students.length / sf9ItemsPerPage);
+  const displayedSF9Students = filteredSF9Students.slice(
+    (sf9Page - 1) * sf9ItemsPerPage,
+    sf9Page * sf9ItemsPerPage
+  );
+
+  // [DERIVED] SF9 status badge style helper
+  const getSF9BadgeStyle = (status: StudentSF9["sf9Status"]) => {
+    if (status === "COMPLETE") return "bg-[var(--color-accent-100)] text-[var(--color-accent-700)]";
+    if (status === "PARTIAL")  return "bg-amber-100 text-amber-700";
+    return "bg-[var(--color-bg-200)] text-[var(--color-text-600)]";
+  };
+
+  const getSF10BadgeStyle = (status: StudentSF9["sf10Status"]) =>
+    status === "COMPLETE"
+      ? "bg-[var(--color-accent-100)] text-[var(--color-accent-700)]"
+      : "bg-[var(--color-bg-200)] text-[var(--color-text-600)]";
+
+  // [DERIVED] Section label
   const sectionLabel = section ? `(${section.gradeLevel} — ${section.name})` : "Class";
 
   // * [BREADCRUMBS] Adviser Class School Forms navigation
@@ -395,7 +450,7 @@ const handleExport = async (formType: string) => {
               )}
             </div>
 
-            {/* [CARD] SF9 Student Grades — per-student status overview */}
+            {/* [CARD] SF9 Student Grades — per-student status overview with search, sort, and pagination */}
             <div className="bg-[var(--color-bg-100)] px-3 py-4 rounded-lg space-y-3">
               <p className="text-xs font-roboto font-semibold uppercase tracking-wide text-[var(--color-text-600)]">
                 SF9 Student Grades
@@ -407,53 +462,199 @@ const handleExport = async (formType: string) => {
                   subtitle="Import SF1 to generate student SF9 records."
                 />
               ) : (
-                <div className="flex flex-col gap-2">
-                  {students.map(student => {
-                    // [COMPUTE] SF9 presence — backend returns sf9 as a map keyed by learningAreaId
-                    const hasSF9 = Object.keys(student.sf9 ?? {}).length > 0;
+                <>
+                  {/* [TOOLBAR] Search + Sort */}
+                  <div className="bg-[var(--color-bg-50)] border border-[var(--color-bg-200)] px-3 py-3 rounded-md flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">
+                    <div className="flex items-stretch gap-2 md:gap-4 w-full">
 
-                    const sf9BadgeStyle =
-                      student.sf9Status === "COMPLETE"
-                        ? "bg-[var(--color-accent-100)] text-[var(--color-accent-700)]"
-                        : student.sf9Status === "PARTIAL"
-                        ? "bg-amber-100 text-amber-700"
-                        : "bg-[var(--color-bg-200)] text-[var(--color-text-600)]";
-
-                    const sf10BadgeStyle =
-                      student.sf10Status === "COMPLETE"
-                        ? "bg-[var(--color-accent-100)] text-[var(--color-accent-700)]"
-                        : "bg-[var(--color-bg-200)] text-[var(--color-text-600)]";
-
-                    return (
-                      <div
-                        key={student.id}
-                        className="bg-[var(--color-bg-50)] border border-[var(--color-bg-200)] rounded-md px-4 py-3 flex items-center justify-between gap-3 cursor-pointer hover:bg-[var(--color-bg-100)] transition"
-                        onClick={() =>
-                          navigate(`/adviser/classes/${sectionId}/grades/${student.id}`)
-                        }
-                      >
-                        <div className="min-w-0">
-                          <p className="font-roboto font-semibold text-sm text-[var(--color-text-900)] truncate">
-                            {student.lastName}, {student.firstName}
-                            {student.middleName ? ` ${student.middleName}` : ""}
-                          </p>
-                          <p className="text-xs font-mono text-[var(--color-text-500)] mt-0.5">
-                            LRN {student.lrn}
-                          </p>
-                        </div>
-
-                        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${sf9BadgeStyle}`}>
-                            SF9: {hasSF9 ? student.sf9Status : "PENDING"}
-                          </span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${sf10BadgeStyle}`}>
-                            SF10: {student.sf10Status}
-                          </span>
-                        </div>
+                      {/* Search */}
+                      <div className="w-full sm:w-64 md:w-80 lg:w-96">
+                        <SearchBar
+                          value={sf9Search}
+                          placeholder="Search by name or LRN..."
+                          onChange={setSf9Search}
+                          onResetPage={() => setSf9Page(1)}
+                        />
                       </div>
-                    );
-                  })}
-                </div>
+
+                      {/* Sort */}
+                      <div className="flex gap-x-2 ml-auto shrink-0">
+                        <Dropdown
+                          icon="/sort.svg"
+                          label="Sort"
+                          isOpen={sf9ActiveDropdown === "sort"}
+                          onToggle={() =>
+                            setSf9ActiveDropdown(sf9ActiveDropdown === "sort" ? null : "sort")
+                          }
+                          selected={sf9SortOption}
+                          onSelect={(value) => {
+                            setSf9SortOption(value as SF9SortOption);
+                            setSf9Page(1);
+                          }}
+                          options={[
+                            { label: "Name (A → Z)",      value: "name-asc" },
+                            { label: "Name (Z → A)",      value: "name-desc" },
+                            { label: "LRN ↑",             value: "lrn-asc" },
+                            { label: "LRN ↓",             value: "lrn-desc" },
+                            { label: "SF9 Status (Best)", value: "status-asc" },
+                            { label: "SF9 Status (Worst)",value: "status-desc" },
+                          ]}
+                        />
+                      </div>
+
+                    </div>
+                  </div>
+
+                  {/* [TABLE] Mobile — card grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:hidden gap-3">
+                    {displayedSF9Students.length === 0 ? (
+                      <div className="sm:col-span-2 flex justify-center">
+                        <EmptyState
+                          title="No students found"
+                          subtitle="No students match your current search."
+                        />
+                      </div>
+                    ) : (
+                      displayedSF9Students.map(student => {
+                        const hasSF9 = Object.keys(student.sf9 ?? {}).length > 0;
+                        const exportKey = `SF9-${student.id}`;
+
+                        return (
+                          <div
+                            key={student.id}
+                            className="bg-[var(--color-bg-50)] border border-[var(--color-bg-200)] rounded-md px-4 py-3 flex flex-col gap-2"
+                          >
+                            {/* [TEXT] Name + LRN */}
+                            <div
+                              className="min-w-0 cursor-pointer"
+                              onClick={() =>
+                                navigate(`/adviser/classes/${sectionId}/grades/${student.id}`)
+                              }
+                            >
+                              <p className="font-roboto font-semibold text-sm text-[var(--color-primary-600)] hover:underline truncate">
+                                {student.lastName}, {student.firstName}
+                                {student.middleName ? ` ${student.middleName}` : ""}
+                              </p>
+                              <p className="text-xs font-mono text-[var(--color-text-500)] mt-0.5">
+                                LRN {student.lrn}
+                              </p>
+                            </div>
+
+                            {/* [BADGES + ACTION] Status pills + export */}
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${getSF9BadgeStyle(hasSF9 ? student.sf9Status : "PENDING")}`}>
+                                  SF9: {hasSF9 ? student.sf9Status : "PENDING"}
+                                </span>
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${getSF10BadgeStyle(student.sf10Status)}`}>
+                                  SF10: {student.sf10Status}
+                                </span>
+                              </div>
+
+                              {/* [ACTION] Per-student SF9 export */}
+                              <button
+                                onClick={() => handleExport("SF9", student.id)}
+                                disabled={exporting === exportKey}
+                                className="flex items-center gap-1 text-xs font-roboto font-semibold px-2.5 py-1 rounded-md bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex-shrink-0"
+                              >
+                                <img src="/export.svg" alt="" className="size-3.5" />
+                                {exporting === exportKey ? "Exporting..." : "Export SF9"}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {/* [TABLE] Desktop */}
+                  <div className="hidden md:block bg-[var(--color-bg-50)] border border-[var(--color-bg-200)] rounded-md overflow-x-auto">
+                    {displayedSF9Students.length === 0 ? (
+                      <div className="px-3 py-4">
+                        <EmptyState
+                          title="No students found"
+                          subtitle="No students match your current search."
+                        />
+                      </div>
+                    ) : (
+                      <table className="min-w-full border-separate border-spacing-y-2 px-3 py-2">
+                        <thead>
+                          <tr className="text-left">
+                            <th className="table-header">Name</th>
+                            <th className="table-header">LRN</th>
+                            <th className="table-header text-center">SF9 Status</th>
+                            <th className="table-header text-center">SF10 Status</th>
+                            <th className="table-header text-center">Actions</th>
+                          </tr>
+                        </thead>
+
+                        <tbody>
+                          {displayedSF9Students.map(student => {
+                            const hasSF9 = Object.keys(student.sf9 ?? {}).length > 0;
+                            const exportKey = `SF9-${student.id}`;
+
+                            return (
+                              <tr
+                                key={student.id}
+                                className="bg-[var(--color-bg-50)] hover:bg-[var(--color-bg-200)] transition"
+                              >
+                                {/* Name */}
+                                <td
+                                  onClick={() =>
+                                    navigate(`/adviser/classes/${sectionId}/grades/${student.id}`)
+                                  }
+                                  className="table-cell table-text table-text-link cursor-pointer hover:underline"
+                                >
+                                  {student.lastName}, {student.firstName}
+                                  {student.middleName ? ` ${student.middleName}` : ""}
+                                </td>
+
+                                {/* LRN */}
+                                <td className="table-cell table-text table-text-default font-mono">
+                                  {student.lrn}
+                                </td>
+
+                                {/* SF9 Status */}
+                                <td className="table-cell table-text text-center">
+                                  <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${getSF9BadgeStyle(hasSF9 ? student.sf9Status : "PENDING")}`}>
+                                    {hasSF9 ? student.sf9Status : "PENDING"}
+                                  </span>
+                                </td>
+
+                                {/* SF10 Status */}
+                                <td className="table-cell table-text text-center">
+                                  <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${getSF10BadgeStyle(student.sf10Status)}`}>
+                                    {student.sf10Status}
+                                  </span>
+                                </td>
+
+                                {/* [ACTION] Per-student SF9 export */}
+                                <td className="table-cell table-text text-center">
+                                  <button
+                                    onClick={() => handleExport("SF9", student.id)}
+                                    disabled={exporting === exportKey}
+                                    className="inline-flex items-center gap-1.5 text-xs font-roboto font-semibold px-3 py-1.5 rounded-md bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                  >
+                                    <img src="/export.svg" alt="" className="size-3.5" />
+                                    {exporting === exportKey ? "Exporting..." : "Export SF9"}
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+
+                  {/* [PAGINATION] SF9 Students */}
+                  <Pagination
+                    page={sf9Page}
+                    totalPages={sf9TotalPages}
+                    onPageChange={setSf9Page}
+                    getVisiblePages={getVisiblePages}
+                  />
+                </>
               )}
             </div>
 
