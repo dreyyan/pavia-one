@@ -7,10 +7,15 @@ import { Student } from "../../../types";
 
 interface StudentCardProps {
   student: Student;
+  displayFields?: boolean;
   onClick?: () => void;
 }
 
-const StudentCard: React.FC<StudentCardProps> = ({ student: s, onClick }) => {
+const StudentCard: React.FC<StudentCardProps> = ({
+  student: s,
+  displayFields = true,
+  onClick,
+}) => {
   const enrollment = s.enrollments?.[0];
   const section = enrollment?.section;
 
@@ -20,7 +25,8 @@ const StudentCard: React.FC<StudentCardProps> = ({ student: s, onClick }) => {
 
   const curriculum = section?.curriculum ?? "—";
 
-  const initials = s.fullName
+  // ✅ SAFE initials (prevents crash)
+  const initials = (s.fullName ?? "")
     .split(" ")
     .map((n) => n[0])
     .join("")
@@ -34,10 +40,16 @@ const StudentCard: React.FC<StudentCardProps> = ({ student: s, onClick }) => {
           text: "text-[var(--color-red-600)]",
           border: "border-[var(--color-red-200)]",
         }
-      : {
+      : s.sex === "MALE"
+      ? {
           bg: "bg-[var(--color-primary-50)]",
           text: "text-[var(--color-primary-700)]",
           border: "border-[var(--color-primary-200)]",
+        }
+      : {
+          bg: "bg-[var(--color-bg-100)]",
+          text: "text-[var(--color-text-600)]",
+          border: "border-[var(--color-bg-300)]",
         };
 
   return (
@@ -47,16 +59,19 @@ const StudentCard: React.FC<StudentCardProps> = ({ student: s, onClick }) => {
     >
       <div className="bg-[var(--color-bg-50)] px-3 pr-4 py-3 flex items-center justify-between border-b border-[var(--color-bg-200)]">
         <div className="flex items-center w-full gap-3 min-w-0">
+          {/* Avatar */}
           <div
             className={`size-10 rounded-md flex items-center justify-center font-bold px-4 text-xl border flex-shrink-0 ${avatarStyle.bg} ${avatarStyle.text} ${avatarStyle.border}`}
           >
             {initials}
           </div>
 
+          {/* Name + LRN */}
           <div className="flex-1 min-w-0">
             <p className="font-roboto font-bold text-[var(--color-text-900)] text-lg leading-tight truncate">
               {formatName(s.fullName)}
             </p>
+
             <p className="text-xs font-mono text-[var(--color-text-600)] mt-0.5 tracking-wider truncate">
               LRN{" "}
               <span className="font-semibold text-[var(--color-text-700)]">
@@ -65,6 +80,7 @@ const StudentCard: React.FC<StudentCardProps> = ({ student: s, onClick }) => {
             </p>
           </div>
 
+          {/* Sex badge */}
           <div
             className={`px-2 py-0.5 text-xs font-semibold rounded-full whitespace-nowrap flex-shrink-0 ${
               s.sex === "MALE"
@@ -79,34 +95,37 @@ const StudentCard: React.FC<StudentCardProps> = ({ student: s, onClick }) => {
         </div>
       </div>
 
-      <div className="px-4 py-3 space-y-2 text-sm">
-        <div className="flex justify-between items-center min-w-0">
-          <span className="text-[var(--color-text-700)] font-figree font-semibold">
-            Grade & Section
-          </span>
-          <span className="text-[var(--color-text-900)] truncate text-right min-w-0">
-            {gradeSection}
-          </span>
-        </div>
+      {/* Details section */}
+      {displayFields && (
+        <div className="px-4 py-3 space-y-2 text-sm">
+          <div className="flex justify-between items-center min-w-0">
+            <span className="text-[var(--color-text-700)] font-figree font-semibold">
+              Grade & Section
+            </span>
+            <span className="text-[var(--color-text-900)] truncate text-right min-w-0">
+              {gradeSection}
+            </span>
+          </div>
 
-        <div className="flex justify-between items-center min-w-0">
-          <span className="text-[var(--color-text-700)] font-figree font-semibold">
-            Adviser
-          </span>
-          <span className="text-[var(--color-text-900)] font-semibold truncate text-right min-w-0">
-            {s.adviser?.name ?? "—"}
-          </span>
-        </div>
+          <div className="flex justify-between items-center min-w-0">
+            <span className="text-[var(--color-text-700)] font-figree font-semibold">
+              Adviser
+            </span>
+            <span className="text-[var(--color-text-900)] font-semibold truncate text-right min-w-0">
+              {s.adviser?.name ?? "—"}
+            </span>
+          </div>
 
-        <div className="flex justify-between items-center min-w-0">
-          <span className="text-[var(--color-text-700)] font-figree font-semibold">
-            Curriculum
-          </span>
-          <span className="text-[var(--color-text-900)] truncate text-right min-w-0">
-            {curriculum}
-          </span>
+          <div className="flex justify-between items-center min-w-0">
+            <span className="text-[var(--color-text-700)] font-figree font-semibold">
+              Curriculum
+            </span>
+            <span className="text-[var(--color-text-900)] truncate text-right min-w-0">
+              {curriculum}
+            </span>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

@@ -206,6 +206,8 @@ const AdviserClassStudents = () => {
                 id={section.id}
                 name={section.name}
                 classSize={section.classSize}
+                maleCount={section.maleCount}
+                femaleCount={section.femaleCount}
                 curriculum={section.curriculum}
                 gradeLevel={section.gradeLevel}
               />
@@ -281,6 +283,7 @@ const AdviserClassStudents = () => {
                     onClick={() =>
                       navigate(`/adviser/classes/${sectionId}/students/${s.id}`)
                     }
+                    displayFields={false}
                   />
                 ))
               )}
