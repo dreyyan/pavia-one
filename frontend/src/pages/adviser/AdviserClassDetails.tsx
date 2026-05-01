@@ -151,14 +151,14 @@ const AdviserClassDetails = () => {
                   iconSrc="/class-size.svg"
                   text="Class Size"
                   value={section.classSize}
-                  color="var(--color-primary-600)"
+                  color="var(--color-primary-700)"
                 />
 
                 <InfoItem
                   iconSrc="/male.svg"
                   text="Male Students"
                   value={section.maleCount ?? 0}
-                  color="var(--color-blue-600)"
+                  color="var(--color-primary-600)"
                 />
 
                 <InfoItem
