@@ -82,10 +82,10 @@ const AdminSubjects = () => {
     return () => window.removeEventListener("resize", updateItemsPerPage);
   }, []);
 
-  // [EFFECT] Reload page when screen size changes
-  useEffect(() => {
-    fetchSubjects();
-  }, [page, itemsPerPage, search]);
+  // // [EFFECT] Reload page when screen size changes
+  // useEffect(() => {
+  //   fetchSubjects();
+  // }, [page, itemsPerPage, search]);
 
   // [STATE] General Modal
   const [generalModal, setGeneralModal] = useState<GeneralModalConfig>({

@@ -113,10 +113,10 @@ const AdminSections = () => {
     return () => window.removeEventListener("resize", updateItemsPerPage);
   }, []);
 
-  // [EFFECT] Reload page when screen size changes
-  useEffect(() => {
-    fetchSections();
-  }, [page, itemsPerPage, search]);
+  // // [EFFECT] Reload page when screen size changes
+  // useEffect(() => {
+  //   fetchSections();
+  // }, [page, itemsPerPage, search]);
 
   // * [HANDLE] Fetch Sections
   const fetchSections = async () => {
