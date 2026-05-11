@@ -193,21 +193,23 @@ router.get("/:id/students", verifyAdviser, async (req, res) => {
         .json(errorResponse("Unauthorized or section not found"));
     }
 
-    // [3] Enrollment filter
+    // [3] Student filter
+    const studentFilter = search
+      ? {
+          OR: [
+            { firstName: { contains: search, mode: "insensitive" } },
+            { middleName: { contains: search, mode: "insensitive" } },
+            { lastName: { contains: search, mode: "insensitive" } },
+            { nameExtension: { contains: search, mode: "insensitive" } },
+            { lrn: { contains: search } },
+            { email: { contains: search, mode: "insensitive" } },
+          ],
+        }
+      : undefined;
+
     const enrollmentWhere = {
       sectionId,
-      student: search
-        ? {
-            OR: [
-              { firstName: { contains: search, mode: "insensitive" } },
-              { middleName: { contains: search, mode: "insensitive" } },
-              { lastName: { contains: search, mode: "insensitive" } },
-              { nameExtension: { contains: search, mode: "insensitive" } },
-              { lrn: { contains: search } },
-              { email: { contains: search, mode: "insensitive" } },
-            ],
-          }
-        : undefined,
+      ...(studentFilter && { student: studentFilter }),
     };
 
     // [4] Sorting
@@ -215,18 +217,46 @@ router.get("/:id/students", verifyAdviser, async (req, res) => {
 
     if (["lrn", "firstName", "lastName"].includes(sortBy)) {
       orderBy = {
-        student: { [sortBy]: sortOrder === "desc" ? "desc" : "asc" },
+        student: {
+          [sortBy]: sortOrder === "desc" ? "desc" : "asc",
+        },
       };
     }
 
-    // [5] Fetch enrollments WITH FULL student data
+    // =========================================================
+    // 🔥 FIX #1: FETCH FULL DATA FOR STATS (NO PAGINATION)
+    // =========================================================
+    const allEnrollments = await prisma.enrollment.findMany({
+      where: enrollmentWhere,
+      select: {
+        student: {
+          select: {
+            id: true,
+            sex: true,
+          },
+        },
+      },
+    });
+
+    const classSize = allEnrollments.length;
+
+    let maleCount = 0;
+    let femaleCount = 0;
+
+    allEnrollments.forEach((e) => {
+      if (e.student.sex === "MALE") maleCount++;
+      else if (e.student.sex === "FEMALE") femaleCount++;
+    });
+
+    // =========================================================
+    // 🔥 FIX #2: PAGINATED DATA FOR UI ONLY
+    // =========================================================
     const [enrollments, total] = await Promise.all([
       prisma.enrollment.findMany({
         where: enrollmentWhere,
         skip,
         take,
         orderBy,
-
         select: {
           student: {
             select: {
@@ -270,10 +300,13 @@ router.get("/:id/students", verifyAdviser, async (req, res) => {
           },
         },
       }),
-      prisma.enrollment.count({ where: enrollmentWhere }),
+
+      prisma.enrollment.count({
+        where: enrollmentWhere,
+      }),
     ]);
 
-    // [6] Map to student objects + derived fields
+    // [5] Map students
     const students = enrollments.map((e) => {
       const s = e.student;
 
@@ -301,28 +334,25 @@ router.get("/:id/students", verifyAdviser, async (req, res) => {
       };
     });
 
-    // [7] Male / Female counts
-    let maleCount = 0;
-    let femaleCount = 0;
-
-    students.forEach((student) => {
-      if (student.sex === "MALE") maleCount++;
-      else if (student.sex === "FEMALE") femaleCount++;
-    });
-
     const totalPages = Math.ceil(total / take);
 
-    res.json(
+    // [6] RESPONSE
+    return res.json(
       successResponse("Students retrieved successfully", {
         section: {
           name: section.name,
           gradeLevel: section.gradeLevel,
           sectionColor: section.color,
           curriculum: section.curriculum,
+
+          // ✅ ALWAYS correct
+          classSize,
           maleCount,
           femaleCount,
         },
+
         students,
+
         pagination: {
           total,
           page: pageNum,
@@ -335,7 +365,7 @@ router.get("/:id/students", verifyAdviser, async (req, res) => {
     );
   } catch (err) {
     console.error("Adviser section students fetch error:", err);
-    res
+    return res
       .status(500)
       .json(errorResponse("Failed to fetch students", err.message));
   }

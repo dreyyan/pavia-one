@@ -17,7 +17,7 @@ import ClassCard from "../../components/cards/class/ClassCard";
 import Modal from "../../components/modal/Modal";
 
 // [IMPORT] Constants, Helpers & Types
-import { getVisiblePages } from "../../helpers/index";
+import { getVisiblePages, getLastName } from "../../helpers/index";
 import { Student, Section, GeneralModalConfig } from "../../types";
 
 type SortOption = "name-asc" | "name-desc" | "lrn-asc" | "lrn-desc";
@@ -102,12 +102,13 @@ const AdviserClassStudents = () => {
         id: Number(sectionId),
         name: sec.name,
         gradeLevel: sec.gradeLevel,
-        classSize: data.data.pagination.total,
+        classSize: sec.actualEnrolled ?? sec.classSize ?? studentsData.length,
         curriculum: sec.curriculum ?? "—",
         color: sec.sectionColor || "#999999",
         maleCount: sec.maleCount,
         femaleCount: sec.femaleCount,
       });
+      
     } catch (err) {
       // ! [ERROR] Fetching students failed
       console.error(err);
@@ -138,11 +139,22 @@ const AdviserClassStudents = () => {
     )
     .sort((a, b) => {
       switch (sortOption) {
-        case "name-asc":  return a.fullName.localeCompare(b.fullName);
-        case "name-desc": return b.fullName.localeCompare(a.fullName);
-        case "lrn-asc":  return a.lrn.localeCompare(b.lrn);
-        case "lrn-desc": return b.lrn.localeCompare(a.lrn);
-        default: return 0;
+        case "name-asc":
+          return getLastName(a.fullName || "")
+            .localeCompare(getLastName(b.fullName || ""));
+
+        case "name-desc":
+          return getLastName(b.fullName || "")
+            .localeCompare(getLastName(a.fullName || ""));
+
+        case "lrn-asc":
+          return a.lrn.localeCompare(b.lrn);
+
+        case "lrn-desc":
+          return b.lrn.localeCompare(a.lrn);
+
+        default:
+          return 0;
       }
     });
 

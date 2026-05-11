@@ -17,7 +17,7 @@ import StudentGradeCard from "../../components/cards/student/StudentGradeCard";
 import PageLayout from "../../components/layouts/PageLayout";
 
 // [IMPORT] Helpers & Types
-import { getVisiblePages } from "../../helpers";
+import { getVisiblePages, getLastName } from "../../helpers";
 import { GeneralModalConfig, StudentGrade, SectionUI, Enrollment } from "../../types";
 
 export type EnrollmentWithStudent = Enrollment & {
@@ -113,7 +113,11 @@ const AdviserClassGrades = () => {
       const gradesData = await resGrades.json();
       if (!gradesData?.success) throw new Error("Failed to fetch grades");
 
-      setGrades(gradesData.data || []);
+      const safeGrades = Array.isArray(gradesData?.data)
+        ? gradesData.data
+        : [];
+
+      setGrades(safeGrades);
     } catch (err) {
       // ! [ERROR] Fetching grades failed
       console.error(err);
@@ -136,24 +140,39 @@ const AdviserClassGrades = () => {
   }, [sectionId]);
 
   // * [COMPUTE] Filtered & sorted grades
-  const filteredGrades = grades
-    .filter(s => {
-      const matchesSearch =
-        s.fullName.toLowerCase().includes(search.toLowerCase()) ||
-        s.lrn.includes(search);
-      const matchesSex =
-        selectedSexes.length === 0 ||
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        selectedSexes.includes((s as any).sex);
-      return matchesSearch && matchesSex;
-    })
+const filteredGrades = grades
+  .filter(s => {
+  const fullName = (s.fullName ?? "");
+  const searchLower = search.toLowerCase();
+
+  const matchesSearch =
+    fullName.toLowerCase().includes(searchLower) ||
+    (s.lrn ?? "").includes(search);
+    const matchesSex =
+
+      selectedSexes.length === 0 ||
+      selectedSexes.includes((s as any).sex);
+
+    return matchesSearch && matchesSex;
+  })
     .sort((a, b) => {
       switch (sortOption) {
-        case "name-asc":  return a.fullName.localeCompare(b.fullName);
-        case "name-desc": return b.fullName.localeCompare(a.fullName);
-        case "lrn-asc":   return a.lrn.localeCompare(b.lrn);
-        case "lrn-desc":  return b.lrn.localeCompare(a.lrn);
-        default: return 0;
+        case "name-asc":
+          return getLastName(a.fullName || "")
+            .localeCompare(getLastName(b.fullName || ""));
+
+        case "name-desc":
+          return getLastName(b.fullName || "")
+            .localeCompare(getLastName(a.fullName || ""));
+
+        case "lrn-asc":
+          return a.lrn.localeCompare(b.lrn);
+
+        case "lrn-desc":
+          return b.lrn.localeCompare(a.lrn);
+
+        default:
+          return 0;
       }
     });
 

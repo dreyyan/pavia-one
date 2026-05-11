@@ -1,6 +1,8 @@
 // [IMPORT] Libraries
 import React from "react";
 
+import { formatName } from "../../../helpers";
+
 // ? [INTERFACE] Student grade row
 interface StudentGrade {
   id: number;
@@ -16,8 +18,9 @@ interface StudentGradeCardProps {
 }
 
 const StudentGradeCard: React.FC<StudentGradeCardProps> = ({ student: s, onClick }) => {
-  const initials = s.fullName
+  const initials = (s.fullName ?? "")
     .split(" ")
+    .filter(Boolean)
     .map((n) => n[0])
     .join("")
     .toUpperCase()
@@ -43,7 +46,7 @@ const StudentGradeCard: React.FC<StudentGradeCardProps> = ({ student: s, onClick
           {/* [TEXT] Name + LRN */}
           <div className="flex-1 min-w-0">
             <p className="font-roboto font-bold text-[var(--color-text-900)] text-lg leading-tight truncate">
-              {s.fullName}
+              {formatName(s.fullName)}
             </p>
             <p className="text-xs font-mono text-[var(--color-text-600)] mt-0.5 tracking-wider truncate">
               LRN{" "}

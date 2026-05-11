@@ -5,7 +5,7 @@ const prisma = require("../../lib/prisma");
 
 // [IMPORT] Tools
 const { successResponse, errorResponse } = require("../../utils/response");
-const { updateGeneralAverage } = require("../../utils/helpers");
+const { updateGeneralAverage, getFullName } = require("../../utils/helpers");
 const verifyAdviser = require("../../middleware/authMiddleware").verifyAdviser;
 
 // [CONSTANTS]
@@ -78,30 +78,50 @@ router.get("/section/:sectionId", verifyAdviser, async (req, res) => {
           orderBy: { id: "desc" },
         },
       },
-      orderBy: { lastName: "asc" },
+      orderBy: [
+        { lastName: "asc" },
+        { firstName: "asc" },
+        { middleName: "asc" },
+      ],
     });
 
     const responseData = students.map((s) => {
       const summary = s.sf9Summaries?.[0];
       const avg = summary?.generalAverage ?? null;
 
+      // ✅ SAFE FULL NAME BUILDER (backend standard)
+      const fullName = [s.lastName, s.firstName, s.middleName, s.nameExtension]
+        .filter(Boolean)
+        .join(", ")
+        .replace(", undefined", "")
+        .trim();
+
       return {
         id: s.id,
         lrn: s.lrn,
-        fullName: `${s.firstName} ${s.lastName}`,
+
+        // ✅ single source of truth
+        fullName: getFullName(s),
+
+        // (optional but useful if you still need formatting in frontend)
+        firstName: s.firstName,
+        middleName: s.middleName,
+        lastName: s.lastName,
+        nameExtension: s.nameExtension,
+
         average: avg,
         remarks: avg !== null ? (avg >= 75 ? "PASSED" : "FAILED") : null,
       };
     });
 
-    res.json({
+    return res.json({
       success: true,
       message: "Section grades retrieved",
       data: responseData,
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to fetch section grades",
       data: err.message,
