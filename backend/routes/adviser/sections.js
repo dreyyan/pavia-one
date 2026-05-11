@@ -413,99 +413,180 @@ router.get(
   verifyAdviser,
   async (req, res) => {
     try {
-      const sectionId = parseInt(req.params.sectionId);
-      const studentId = parseInt(req.params.studentId);
+      const sectionId = parseInt(req.params.sectionId, 10);
+      const studentId = parseInt(req.params.studentId, 10);
 
       console.log(
         "[REQUEST] GET /api/adviser/sections/:sectionId/students/:studentId",
         { sectionId, studentId },
       );
 
-      // Get numeric adviser ID from token
+      // ! [VALIDATION]
+      if (isNaN(sectionId) || isNaN(studentId)) {
+        return res
+          .status(400)
+          .json(errorResponse("Invalid sectionId or studentId"));
+      }
+
+      // *──────────────────────────────────────────────
+      // * Get adviser
+      // *──────────────────────────────────────────────
       const adviser = await prisma.adviser.findUnique({
         where: { adviserId: req.adviserId },
         select: { id: true },
       });
 
-      if (!adviser)
+      if (!adviser) {
         return res.status(404).json(errorResponse("Adviser not found"));
+      }
 
-      // Verify section belongs to adviser
+      // *──────────────────────────────────────────────
+      // * Verify section belongs to adviser
+      // *──────────────────────────────────────────────
       const section = await prisma.section.findFirst({
-        where: { id: sectionId, adviserId: adviser.id },
-        select: { id: true, name: true, gradeLevel: true },
+        where: {
+          id: sectionId,
+          adviserId: adviser.id,
+        },
+        select: {
+          id: true,
+          name: true,
+          gradeLevel: true,
+          curriculum: true,
+          schoolYear: true,
+        },
       });
 
-      if (!section)
+      if (!section) {
         return res
           .status(403)
           .json(errorResponse("You do not manage this section"));
+      }
 
-      // Fetch student enrollment including all details
+      // *──────────────────────────────────────────────
+      // * Verify student is enrolled in this section
+      // *──────────────────────────────────────────────
       const enrollment = await prisma.enrollment.findFirst({
-        where: { sectionId, studentId },
+        where: {
+          sectionId,
+          studentId,
+          schoolYear: section.schoolYear,
+        },
         include: {
-          student: {
-            include: {
-              address: true,
-              guardian: true,
-
-              enrollments: {
-                include: {
-                  learningAreas: {
-                    include: {
-                      learningArea: true,
-                    },
-                  },
-                },
-              },
-
-              sf9Grades: { include: { items: true, learningArea: true } },
-              sf9Summaries: true,
-              sf5Reports: true,
-              sf9CoreValues: true,
-            },
-          },
           section: {
-            select: { id: true, name: true, gradeLevel: true },
+            select: {
+              id: true,
+              name: true,
+              gradeLevel: true,
+              curriculum: true,
+              schoolYear: true,
+            },
           },
         },
       });
 
-      if (!enrollment)
+      if (!enrollment) {
         return res
           .status(404)
           .json(errorResponse("Student not found in this section"));
+      }
 
-      const s = enrollment.student;
-      const address = s.address || {};
-      const guardian = s.guardian || {};
+      // *──────────────────────────────────────────────
+      // * Fetch FULL student with FILTERED SF9 grades
+      // *──────────────────────────────────────────────
+      const s = await prisma.student.findUnique({
+        where: { id: studentId },
 
-      // Build flattened student response (ADMIN-COMPATIBLE SHAPE)
+        include: {
+          address: true,
+          guardian: true,
+
+          enrollments: {
+            include: {
+              section: {
+                select: {
+                  id: true,
+                  name: true,
+                  gradeLevel: true,
+                  curriculum: true,
+                  schoolYear: true,
+                },
+              },
+
+              learningAreas: {
+                include: {
+                  learningArea: true,
+                },
+              },
+            },
+          },
+
+          // ✅ ONLY grades for THIS section's school year + curriculum
+          sf9Grades: {
+            where: {
+              schoolYear: section.schoolYear,
+
+              learningArea: {
+                gradeLevel: section.gradeLevel,
+                curriculum: section.curriculum,
+              },
+            },
+
+            include: {
+              items: true,
+              learningArea: true,
+            },
+
+            orderBy: {
+              learningArea: {
+                name: "asc",
+              },
+            },
+          },
+
+          sf9Summaries: true,
+          sf5Reports: true,
+          sf9CoreValues: true,
+        },
+      });
+
+      if (!s) {
+        return res.status(404).json(errorResponse("Student not found"));
+      }
+
+      // *──────────────────────────────────────────────
+      // * Build flattened response
+      // *──────────────────────────────────────────────
       const studentResponse = {
         id: s.id,
         lrn: s.lrn,
+
         firstName: s.firstName,
         middleName: s.middleName,
         lastName: s.lastName,
         nameExtension: s.nameExtension,
+
         fullName: getFullName(s),
+
         email: s.email,
         sex: s.sex,
+
         birthDate: s.birthDate,
         age: calculateAge(s.birthDate),
 
         sectionId: enrollment.sectionId,
         sectionName: enrollment.section.name,
         gradeLevel: enrollment.section.gradeLevel,
+        curriculum: enrollment.section.curriculum,
+        schoolYear: enrollment.section.schoolYear,
 
-        // ✅ ADDRESS (ONLY FROM ADDRESS TABLE)
+        // ✅ ADDRESS
         houseNo: s.address?.streetAddress ?? "",
         barangay: s.address?.barangay ?? "",
         municipality: s.address?.municipalityCity ?? "",
         province: s.address?.province ?? "",
 
-        // ✅ GUARDIAN (ONLY FROM GUARDIAN TABLE)
+        // ✅ GUARDIAN
         fatherName:
           [
             s.guardian?.fatherFirstName,
@@ -529,16 +610,20 @@ router.get(
         guardianContact: s.guardian?.guardianContactNumber ?? "",
 
         learningModality: enrollment.learningModality ?? "",
+
         motherTongue: s.motherTongue ?? "",
         religion: s.religion ?? "",
 
+        // ✅ Flatten learning areas
         enrollments: (s.enrollments ?? []).map((enr) => ({
           ...enr,
+
           learningAreas: (enr.learningAreas ?? []).map(
             (ela) => ela.learningArea,
           ),
         })),
 
+        // ✅ FILTERED SF9 DATA
         sf9Grades: s.sf9Grades ?? [],
         sf9Summaries: s.sf9Summaries ?? [],
         sf5Reports: s.sf5Reports ?? [],
@@ -550,6 +635,7 @@ router.get(
       );
     } catch (err) {
       console.error("Get student in section error:", err);
+
       return res
         .status(500)
         .json(errorResponse("Failed to fetch student", err.message));

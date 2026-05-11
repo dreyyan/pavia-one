@@ -19,6 +19,280 @@ const toDate = (str) => {
 };
 
 // *────────────────────────────────────────────────
+// * ACTIVATION PIPELINE
+// *────────────────────────────────────────────────
+
+/**
+ * * [PIPELINE] runActivationPipeline
+ *
+ * Runs automatically when a school year is set as Active.
+ * Performs four sequential steps:
+ *
+ *   Step 1 — Clone sections from the most recent prior school year into
+ *             the new label. Preserves gradeLevel, curriculum, adviser,
+ *             color, room, and schedule. Skips sections that already exist.
+ *
+ *   Step 2 — For every section, ensure LearningArea rows exist for that
+ *             grade + curriculum combo. Copies from the previous year's
+ *             matching sections. LearningAreas are global (not per school
+ *             year) so this is a safe upsert — no duplicates created.
+ *
+ *   Step 3 — For every student enrolled in each section (Enrollment row
+ *             for this school year), upsert an SF9Grade row per LearningArea.
+ *             Grades start empty — advisers populate them during the year.
+ *
+ *   Step 4 — Generate SchoolForm rows (SF1, SF2, SF5) per section.
+ *             Skips duplicates via unique([sectionId, schoolYear, type]).
+ *
+ * @param {string} schoolYearLabel  e.g. "2025-2026"
+ * @param {object} db               prisma client (or tx client)
+ * @returns {object}                result summary counts for the UI modal
+ */
+const runActivationPipeline = async (schoolYearLabel, db) => {
+  const result = {
+    sectionsCloned: 0,
+    sectionsSkipped: 0,
+    learningAreas: 0,
+    sf9GradesCreated: 0,
+    sf9GradesSkipped: 0,
+    formsCreated: 0,
+    formsSkipped: 0,
+  };
+
+  // *──────────────────────────────────────────────
+  // * STEP 1 — Clone sections from the previous year
+  // *──────────────────────────────────────────────
+
+  // [QUERY] Most recently created school year that is NOT the one being activated
+  const previousYear = await db.schoolYear.findFirst({
+    where: { label: { not: schoolYearLabel } },
+    orderBy: { startDate: "desc" },
+  });
+
+  let templateSections = [];
+  if (previousYear) {
+    templateSections = await db.section.findMany({
+      where: { schoolYear: previousYear.label },
+    });
+  }
+
+  // [QUERY] Sections already created for the new school year (skip cloning these)
+  const existingSections = await db.section.findMany({
+    where: { schoolYear: schoolYearLabel },
+    select: { gradeLevel: true, name: true },
+  });
+  const existingKeys = new Set(
+    existingSections.map((s) => `${s.gradeLevel}::${s.name}`),
+  );
+
+  // [PROCESS] Clone each template section unless it already exists
+  for (const tpl of templateSections) {
+    const key = `${tpl.gradeLevel}::${tpl.name}`;
+    if (existingKeys.has(key)) {
+      result.sectionsSkipped++;
+      continue;
+    }
+
+    await db.section.create({
+      data: {
+        name: tpl.name,
+        gradeLevel: tpl.gradeLevel,
+        curriculum: tpl.curriculum,
+        schoolYear: schoolYearLabel,
+        adviserId: tpl.adviserId ?? null,
+        color: tpl.color ?? null,
+        room: tpl.room ?? null,
+        schedule: tpl.schedule ?? null,
+      },
+    });
+    result.sectionsCloned++;
+  }
+
+  // [QUERY] Full section list for this school year (cloned + pre-existing)
+  const allSections = await db.section.findMany({
+    where: { schoolYear: schoolYearLabel },
+  });
+
+  // *──────────────────────────────────────────────
+  // * STEP 2 — Ensure LearningArea rows exist
+  // *──────────────────────────────────────────────
+
+  // [COMPUTE] Unique gradeLevel + curriculum pairs needed by current sections
+  const gradeCurriculumPairs = [
+    ...new Map(
+      allSections.map((s) => [`${s.gradeLevel}::${s.curriculum}`, s]),
+    ).values(),
+  ].map((s) => ({ gradeLevel: s.gradeLevel, curriculum: s.curriculum }));
+
+  // [QUERY] Source LearningAreas from the previous year's sections
+  let sourceAreas = [];
+  if (previousYear) {
+    const prevSectionMeta = await db.section.findMany({
+      where: { schoolYear: previousYear.label },
+      select: { gradeLevel: true, curriculum: true },
+    });
+
+    const prevPairs = [
+      ...new Map(
+        prevSectionMeta.map((s) => [`${s.gradeLevel}::${s.curriculum}`, s]),
+      ).values(),
+    ].map((s) => ({ gradeLevel: s.gradeLevel, curriculum: s.curriculum }));
+
+    if (prevPairs.length) {
+      sourceAreas = await db.learningArea.findMany({
+        where: {
+          OR: prevPairs.map((p) => ({
+            gradeLevel: p.gradeLevel,
+            curriculum: p.curriculum,
+          })),
+        },
+      });
+    }
+  }
+
+  // [PROCESS] Upsert each source LearningArea into all matching current pairs
+  for (const pair of gradeCurriculumPairs) {
+    const matchingAreas = sourceAreas.filter(
+      (a) =>
+        a.gradeLevel === pair.gradeLevel && a.curriculum === pair.curriculum,
+    );
+
+    for (const area of matchingAreas) {
+      await db.learningArea.upsert({
+        where: {
+          name_gradeLevel_curriculum: {
+            name: area.name,
+            gradeLevel: area.gradeLevel,
+            curriculum: area.curriculum,
+          },
+        },
+        // [UPDATE] Sync weights in case the previous year's values were adjusted
+        update: {
+          writtenWorkWeight: area.writtenWorkWeight,
+          performanceTaskWeight: area.performanceTaskWeight,
+          quarterlyAssessmentWeight: area.quarterlyAssessmentWeight,
+        },
+        create: {
+          name: area.name,
+          gradeLevel: area.gradeLevel,
+          curriculum: area.curriculum,
+          writtenWorkWeight: area.writtenWorkWeight,
+          performanceTaskWeight: area.performanceTaskWeight,
+          quarterlyAssessmentWeight: area.quarterlyAssessmentWeight,
+        },
+      });
+      result.learningAreas++;
+    }
+  }
+
+  // *──────────────────────────────────────────────
+  // * STEP 3 — Auto-create SF9Grade rows per student
+  // *──────────────────────────────────────────────
+
+  const sf9GradesData = [];
+
+  for (const section of allSections) {
+    // [QUERY] Students enrolled in this section
+    const enrollments = await db.enrollment.findMany({
+      where: {
+        sectionId: section.id,
+        schoolYear: schoolYearLabel,
+      },
+      select: {
+        studentId: true,
+      },
+    });
+
+    if (!enrollments.length) continue;
+
+    // [QUERY] LearningAreas for this section
+    const areas = await db.learningArea.findMany({
+      where: {
+        gradeLevel: section.gradeLevel,
+        curriculum: section.curriculum,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!areas.length) continue;
+
+    // [BUILD] student × learningArea combinations
+    for (const { studentId } of enrollments) {
+      for (const { id: learningAreaId } of areas) {
+        sf9GradesData.push({
+          studentId,
+          learningAreaId,
+          schoolYear: schoolYearLabel,
+
+          q1: null,
+          q2: null,
+          q3: null,
+          q4: null,
+
+          q1Ready: false,
+          q2Ready: false,
+          q3Ready: false,
+          q4Ready: false,
+
+          finalRating: null,
+          remarks: null,
+        });
+      }
+    }
+  }
+
+  // [CREATE] Bulk insert all SF9 grades
+  if (sf9GradesData.length > 0) {
+    const created = await db.sF9Grade.createMany({
+      data: sf9GradesData,
+      skipDuplicates: true,
+    });
+
+    result.sf9GradesCreated = created.count;
+    result.sf9GradesSkipped = sf9GradesData.length - created.count;
+  }
+
+  // *──────────────────────────────────────────────
+  // * STEP 4 — Auto-generate school forms per section
+  // *──────────────────────────────────────────────
+  //
+  // SchoolFormType enum: SF1 | SF2 | SF5
+  // One set per section per school year.
+  // Skip duplicates via unique([sectionId, schoolYear, type]).
+
+  const SECTION_FORM_TYPES = ["SF1", "SF2", "SF5"];
+
+  for (const section of allSections) {
+    for (const type of SECTION_FORM_TYPES) {
+      try {
+        await db.schoolForm.create({
+          data: {
+            sectionId: section.id,
+            type,
+            schoolYear: schoolYearLabel,
+            status: "DRAFT",
+            generatedBy: section.adviserId ?? null,
+          },
+        });
+        result.formsCreated++;
+      } catch (err) {
+        if (err.code === "P2002") {
+          // ! [SKIP] Already exists — unique([sectionId, schoolYear, type])
+          result.formsSkipped++;
+        } else {
+          // ! [ERROR] Unexpected — rethrow to surface in the response
+          throw err;
+        }
+      }
+    }
+  }
+
+  return result;
+};
+
+// *────────────────────────────────────────────────
 // * ROUTES
 // *────────────────────────────────────────────────
 
@@ -149,7 +423,7 @@ router.patch("/:id", verifyAdmin, async (req, res) => {
       return res.status(404).json(errorResponse("School year not found"));
 
     // ! [GUARD] Locked school years cannot be modified
-    if (existing.isLocked && action !== "lock") {
+    if (existing.isLocked && action !== "lock" && action !== "unlock") {
       return res
         .status(403)
         .json(
@@ -157,9 +431,12 @@ router.patch("/:id", verifyAdmin, async (req, res) => {
         );
     }
 
-    // * [ACTION] Activate — deactivates all others in a transaction
+    // *──────────────────────────────────────────────
+    // * ACTION: Activate
+    // *──────────────────────────────────────────────
     if (action === "activate") {
-      const updated = await prisma.$transaction([
+      // [STEP A] Flip active flags atomically
+      await prisma.$transaction([
         prisma.schoolYear.updateMany({
           where: { isActive: true, id: { not: id } },
           data: { isActive: false },
@@ -167,13 +444,45 @@ router.patch("/:id", verifyAdmin, async (req, res) => {
         prisma.schoolYear.update({
           where: { id },
           data: { isActive: true },
-          include: { quarters: { orderBy: { name: "asc" } } },
         }),
       ]);
-      return res.json(successResponse("School year activated", updated[1]));
+
+      // [STEP B] Run the four-step setup pipeline
+      let pipelineResult;
+      try {
+        pipelineResult = await runActivationPipeline(existing.label, prisma);
+      } catch (pipelineErr) {
+        // ! [ERROR] Pipeline failed — year is active but setup is incomplete.
+        //           Surface the error so the admin can investigate or re-trigger.
+        console.error("[ERROR] Activation pipeline failed:", pipelineErr);
+        return res
+          .status(500)
+          .json(
+            errorResponse(
+              "School year was activated but the setup pipeline encountered an error. " +
+                "Some sections, grades, or forms may be missing. Check server logs.",
+              pipelineErr.message,
+            ),
+          );
+      }
+
+      // [FETCH] Return the updated record + pipeline summary
+      const updated = await prisma.schoolYear.findUnique({
+        where: { id },
+        include: { quarters: { orderBy: { name: "asc" } } },
+      });
+
+      return res.json(
+        successResponse("School year activated", {
+          schoolYear: updated,
+          pipeline: pipelineResult,
+        }),
+      );
     }
 
-    // * [ACTION] Lock — irreversible
+    // *──────────────────────────────────────────────
+    // * ACTION: Lock — irreversible
+    // *──────────────────────────────────────────────
     if (action === "lock") {
       const updated = await prisma.schoolYear.update({
         where: { id },
@@ -183,12 +492,32 @@ router.patch("/:id", verifyAdmin, async (req, res) => {
       return res.json(successResponse("School year locked", updated));
     }
 
-    // * [ACTION] General field update (label / dates)
+    // *──────────────────────────────────────────────
+    // * ACTION: Unlock — re-enables editing
+    // *──────────────────────────────────────────────
+    if (action === "unlock") {
+      // ! [GUARD] Only locked school years can be unlocked
+      if (!existing.isLocked) {
+        return res
+          .status(400)
+          .json(errorResponse("This school year is not locked"));
+      }
+
+      const updated = await prisma.schoolYear.update({
+        where: { id },
+        data: { isLocked: false },
+        include: { quarters: { orderBy: { name: "asc" } } },
+      });
+      return res.json(successResponse("School year unlocked", updated));
+    }
+
+    // *──────────────────────────────────────────────
+    // * ACTION: General field update (label / dates)
+    // *──────────────────────────────────────────────
     const updateData = {};
 
-    if (label && label.trim() !== existing.label) {
+    if (label && label.trim() !== existing.label)
       updateData.label = label.trim();
-    }
 
     if (startDate) {
       const s = toDate(startDate);
@@ -303,7 +632,6 @@ router.delete("/:id", verifyAdmin, async (req, res) => {
   if (isNaN(id)) return res.status(400).json(errorResponse("Invalid ID"));
 
   try {
-    // [CHECK] Exists
     const existing = await prisma.schoolYear.findUnique({ where: { id } });
     if (!existing)
       return res.status(404).json(errorResponse("School year not found"));

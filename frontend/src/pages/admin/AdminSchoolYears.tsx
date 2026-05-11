@@ -21,15 +21,15 @@ import { GeneralModalConfig } from "../../types";
 // ? [INTERFACE] Quarter belonging to a school year
 interface Quarter {
   id: number;
-  name: number;         // 1 | 2 | 3 | 4
-  startDate: string;    // ISO date string
+  name: number;      // 1 | 2 | 3 | 4
+  startDate: string; // ISO date string
   endDate: string;
 }
 
 // ? [INTERFACE] School year entity from API
 interface SchoolYear {
   id: number;
-  label: string;        // e.g. "2025-2026"
+  label: string;     // e.g. "2025-2026"
   startDate: string;
   endDate: string;
   isActive: boolean;
@@ -37,6 +37,17 @@ interface SchoolYear {
   quarters: Quarter[];
   createdAt: string;
   updatedAt: string;
+}
+
+// ? [INTERFACE] Pipeline result returned by the activate endpoint
+interface PipelineResult {
+  sectionsCloned:   number;
+  sectionsSkipped:  number;
+  learningAreas:    number;
+  sf9GradesCreated: number;
+  sf9GradesSkipped: number;
+  formsCreated:     number;
+  formsSkipped:     number;
 }
 
 // ? [INTERFACE] Form state for creating / editing a school year
@@ -53,7 +64,7 @@ interface QuarterForm {
   endDate: string;
 }
 
-type ModalMode = "create" | "edit" | "quarters" | null;
+type ModalMode = "create" | "edit" | "quarters" | "pipeline" | null;
 
 // *────────────────────────────────────────────────
 // * HELPERS
@@ -61,12 +72,10 @@ type ModalMode = "create" | "edit" | "quarters" | null;
 
 // [HELPER] Build default quarter date ranges from a school year's start/end
 const buildDefaultQuarters = (startDate: string, endDate: string): Omit<Quarter, "id">[] => {
-  const start = new Date(startDate);
-  const end   = new Date(endDate);
-
-  // [COMPUTE] Split the total duration into 4 roughly equal chunks
-  const totalMs    = end.getTime() - start.getTime();
-  const quarterMs  = totalMs / 4;
+  const start     = new Date(startDate);
+  const end       = new Date(endDate);
+  const totalMs   = end.getTime() - start.getTime();
+  const quarterMs = totalMs / 4;
 
   return [1, 2, 3, 4].map((name) => {
     const qStart = new Date(start.getTime() + quarterMs * (name - 1));
@@ -82,16 +91,16 @@ const buildDefaultQuarters = (startDate: string, endDate: string): Omit<Quarter,
 // [HELPER] Format ISO date string as readable date
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-PH", {
-    year: "numeric",
+    year:  "numeric",
     month: "short",
-    day: "numeric",
+    day:   "numeric",
   });
 
 // [HELPER] Derive status label + badge style from a school year
 const getStatusMeta = (sy: SchoolYear) => {
   if (sy.isLocked) return { label: "Locked",   style: "bg-[var(--color-bg-300)] text-[var(--color-text-500)]" };
   if (sy.isActive) return { label: "Active",   style: "bg-[var(--color-accent-100)] text-[var(--color-accent-700)]" };
-  return              { label: "Inactive", style: "bg-amber-100 text-amber-700" };
+  return               { label: "Inactive", style: "bg-amber-100 text-amber-700" };
 };
 
 // *────────────────────────────────────────────────
@@ -102,18 +111,22 @@ const AdminSchoolYears = () => {
   usePageTitle("Settings: School Years");
 
   // [STATES] Entities
-  const [schoolYears, setSchoolYears] = useState<SchoolYear[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [schoolYears, setSchoolYears]   = useState<SchoolYear[]>([]);
+  const [loading, setLoading]           = useState(true);
 
   // [STATES] Modal mode + selected row
-  const [modalMode, setModalMode] = useState<ModalMode>(null);
-  const [selectedSY, setSelectedSY] = useState<SchoolYear | null>(null);
+  const [modalMode, setModalMode]       = useState<ModalMode>(null);
+  const [selectedSY, setSelectedSY]     = useState<SchoolYear | null>(null);
+
+  // [STATE] Pipeline result — shown in summary modal after activation
+  const [pipelineResult, setPipelineResult] = useState<PipelineResult | null>(null);
+  const [activatedLabel, setActivatedLabel] = useState<string>("");
 
   // [STATES] Creation / edit form
   const [syForm, setSyForm] = useState<SchoolYearForm>({
-    label: "",
-    startDate: "",
-    endDate: "",
+    label:                "",
+    startDate:            "",
+    endDate:              "",
     autoGenerateQuarters: true,
   });
 
@@ -121,19 +134,19 @@ const AdminSchoolYears = () => {
   const [quarterForms, setQuarterForms] = useState<Record<number, QuarterForm>>({});
 
   // [STATES] Submission loading flags
-  const [savingForm, setSavingForm]   = useState(false);
-  const [savingQtr, setSavingQtr]     = useState(false);
-  const [actioning, setActioning]     = useState<string | null>(null); // "activate-{id}" | "lock-{id}" | "delete-{id}"
+  const [savingForm, setSavingForm] = useState(false);
+  const [savingQtr, setSavingQtr]   = useState(false);
+  const [actioning, setActioning]   = useState<string | null>(null); // "activate-{id}" | "lock-{id}" | "unlock-{id}" | "delete-{id}"
 
   // [STATE] General Modal
   const [generalModal, setGeneralModal] = useState<GeneralModalConfig>({
-    isOpen: false,
-    title: "",
-    message: "",
-    type: "default",
+    isOpen:      false,
+    title:       "",
+    message:     "",
+    type:        "default",
     confirmText: "OK",
     isCancelable: false,
-    onConfirm: () => {},
+    onConfirm:   () => {},
   });
 
   const openGeneralModal = (config: Partial<Omit<GeneralModalConfig, "isOpen">>) => {
@@ -153,9 +166,10 @@ const AdminSchoolYears = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const res   = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/school-years`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res   = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/admin/school-years`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
       if (!res.ok) throw new Error("Failed to fetch school years");
 
@@ -165,11 +179,11 @@ const AdminSchoolYears = () => {
       // ! [ERROR] Fetch failed
       console.error(err);
       openGeneralModal({
-        title: "Unable to Load School Years",
-        message: "We couldn't load school years. Please check your connection and try again.",
-        type: "error",
+        title:       "Unable to Load School Years",
+        message:     "We couldn't load school years. Please check your connection and try again.",
+        type:        "error",
         confirmText: "Close",
-        onConfirm: () => closeGeneralModal(),
+        onConfirm:   () => closeGeneralModal(),
       });
     } finally {
       setLoading(false);
@@ -194,10 +208,10 @@ const AdminSchoolYears = () => {
   // [HANDLE] Open edit form pre-filled with existing data
   const openEditModal = (sy: SchoolYear) => {
     setSyForm({
-      label:                  sy.label,
-      startDate:              sy.startDate.slice(0, 10),
-      endDate:                sy.endDate.slice(0, 10),
-      autoGenerateQuarters:   false,
+      label:                sy.label,
+      startDate:            sy.startDate.slice(0, 10),
+      endDate:              sy.endDate.slice(0, 10),
+      autoGenerateQuarters: false,
     });
     setSelectedSY(sy);
     setModalMode("edit");
@@ -253,12 +267,12 @@ const AdminSchoolYears = () => {
     // ! [VALIDATION] Required fields
     if (!label.trim() || !startDate || !endDate) {
       openGeneralModal({
-        title: "Incomplete Fields",
-        message: "Label, Start Date, and End Date are all required.",
-        type: "error",
+        title:       "Incomplete Fields",
+        message:     "Label, Start Date, and End Date are all required.",
+        type:        "error",
         confirmText: "Close",
         isCancelable: false,
-        onConfirm: () => closeGeneralModal(),
+        onConfirm:   () => closeGeneralModal(),
       });
       return;
     }
@@ -266,19 +280,19 @@ const AdminSchoolYears = () => {
     // ! [VALIDATION] Date range
     if (new Date(startDate) >= new Date(endDate)) {
       openGeneralModal({
-        title: "Invalid Date Range",
-        message: "Start Date must be before End Date.",
-        type: "error",
+        title:       "Invalid Date Range",
+        message:     "Start Date must be before End Date.",
+        type:        "error",
         confirmText: "Close",
         isCancelable: false,
-        onConfirm: () => closeGeneralModal(),
+        onConfirm:   () => closeGeneralModal(),
       });
       return;
     }
 
-    const token   = localStorage.getItem("token");
-    const isEdit  = modalMode === "edit";
-    const url     = isEdit
+    const token  = localStorage.getItem("token");
+    const isEdit = modalMode === "edit";
+    const url    = isEdit
       ? `${import.meta.env.VITE_API_BASE_URL}/api/admin/school-years/${selectedSY!.id}`
       : `${import.meta.env.VITE_API_BASE_URL}/api/admin/school-years`;
 
@@ -289,13 +303,10 @@ const AdminSchoolYears = () => {
 
     setSavingForm(true);
     try {
-      const res = await fetch(url, {
+      const res  = await fetch(url, {
         method:  isEdit ? "PATCH" : "POST",
-        headers: {
-          Authorization:  `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ label: label.trim(), startDate, endDate, quarters }),
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body:    JSON.stringify({ label: label.trim(), startDate, endDate, quarters }),
       });
 
       const data = await res.json();
@@ -369,11 +380,8 @@ const AdminSchoolYears = () => {
         `${import.meta.env.VITE_API_BASE_URL}/api/admin/school-years/${selectedSY.id}/quarters`,
         {
           method:  "PUT",
-          headers: {
-            Authorization:  `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body:    JSON.stringify({
             quarters: [1, 2, 3, 4].map(q => ({
               name:      q,
               startDate: quarterForms[q].startDate,
@@ -424,7 +432,7 @@ const AdminSchoolYears = () => {
     }
   };
 
-  // * [HANDLE] Set a school year as Active
+  // * [HANDLE] Set a school year as Active — triggers the full pipeline
   const handleActivate = async (sy: SchoolYear) => {
     const actionKey = `activate-${sy.id}`;
     setActioning(actionKey);
@@ -434,11 +442,8 @@ const AdminSchoolYears = () => {
         `${import.meta.env.VITE_API_BASE_URL}/api/admin/school-years/${sy.id}`,
         {
           method:  "PATCH",
-          headers: {
-            Authorization:  `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ action: "activate" }),
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body:    JSON.stringify({ action: "activate" }),
         }
       );
 
@@ -456,16 +461,11 @@ const AdminSchoolYears = () => {
         return;
       }
 
-      // * [SUCCESS]
+      // * [SUCCESS] Refresh list then open the pipeline summary modal
       await fetchSchoolYears();
-      openGeneralModal({
-        title:       "School Year Activated",
-        message:     `"${sy.label}" is now the active school year. The previous active year has been deactivated.`,
-        type:        "success",
-        confirmText: "Got it",
-        isCancelable: false,
-        onConfirm:   () => closeGeneralModal(),
-      });
+      setActivatedLabel(sy.label);
+      setPipelineResult(data.data?.pipeline ?? null);
+      setModalMode("pipeline");
     } catch (err) {
       // ! [ERROR] Network error
       console.error(err);
@@ -482,7 +482,7 @@ const AdminSchoolYears = () => {
     }
   };
 
-  // * [HANDLE] Lock a school year (irreversible)
+  // * [HANDLE] Lock a school year (irreversible — confirm first)
   const handleLock = (sy: SchoolYear) => {
     openGeneralModal({
       title:       "Lock School Year?",
@@ -500,11 +500,8 @@ const AdminSchoolYears = () => {
             `${import.meta.env.VITE_API_BASE_URL}/api/admin/school-years/${sy.id}`,
             {
               method:  "PATCH",
-              headers: {
-                Authorization:  `Bearer ${token}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ action: "lock" }),
+              headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+              body:    JSON.stringify({ action: "lock" }),
             }
           );
 
@@ -542,7 +539,64 @@ const AdminSchoolYears = () => {
     });
   };
 
-  // * [HANDLE] Delete a school year
+  // * [HANDLE] Unlock a school year — re-enables editing and quarter changes
+  const handleUnlock = (sy: SchoolYear) => {
+    openGeneralModal({
+      title:        "Unlock School Year?",
+      message:      `Unlocking "${sy.label}" will allow edits to its dates, quarters, and settings again. Are you sure?`,
+      type:         "warning",
+      confirmText:  "Unlock",
+      isCancelable: true,
+      onConfirm:    async () => {
+        closeGeneralModal();
+        const actionKey = `unlock-${sy.id}`;
+        setActioning(actionKey);
+        const token = localStorage.getItem("token");
+        try {
+          const res = await fetch(
+            `${import.meta.env.VITE_API_BASE_URL}/api/admin/school-years/${sy.id}`,
+            {
+              method:  "PATCH",
+              headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+              body:    JSON.stringify({ action: "unlock" }),
+            }
+          );
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            openGeneralModal({
+              title:       "Unlock Failed",
+              message:     data.message || "Could not unlock this school year.",
+              type:        "error",
+              confirmText: "Close",
+              isCancelable: false,
+              onConfirm:   () => closeGeneralModal(),
+            });
+            return;
+          }
+
+          // * [SUCCESS]
+          await fetchSchoolYears();
+        } catch (err) {
+          // ! [ERROR] Network error
+          console.error(err);
+          openGeneralModal({
+            title:       "Request Failed",
+            message:     "Network error. Please try again.",
+            type:        "error",
+            confirmText: "Close",
+            isCancelable: false,
+            onConfirm:   () => closeGeneralModal(),
+          });
+        } finally {
+          setActioning(null);
+        }
+      },
+    });
+  };
+
+  // * [HANDLE] Delete a school year (confirm first)
   const handleDelete = (sy: SchoolYear) => {
     openGeneralModal({
       title:       "Delete School Year?",
@@ -624,6 +678,105 @@ const AdminSchoolYears = () => {
         onConfirm={generalModal.onConfirm}
         isCancelable={generalModal.isCancelable}
       />
+
+      {/* [MODAL] Activation Pipeline Summary */}
+      {modalMode === "pipeline" && pipelineResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-[var(--color-bg-50)] rounded-xl shadow-xl w-full max-w-md p-6 space-y-5">
+
+            {/* [HEADER] */}
+            <div className="flex items-start gap-3">
+              <div className="size-9 rounded-full bg-[var(--color-accent-100)] flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg xmlns="http://www.w3.org/2000/svg" className="size-5 text-[var(--color-accent-700)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-roboto font-bold text-base text-[var(--color-text-900)]">
+                  "{activatedLabel}" is now Active
+                </h3>
+                <p className="text-xs font-roboto text-[var(--color-text-500)] mt-0.5">
+                  Setup pipeline completed. Here's a summary of what was generated:
+                </p>
+              </div>
+            </div>
+
+            {/* [SUMMARY] Pipeline result rows */}
+            <div className="bg-[var(--color-bg-100)] rounded-lg divide-y divide-[var(--color-bg-200)]">
+
+              {/* Sections */}
+              <div className="px-4 py-2.5 flex items-center justify-between">
+                <p className="text-xs font-roboto text-[var(--color-text-700)]">Sections cloned</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-roboto font-bold text-[var(--color-accent-700)]">
+                    +{pipelineResult.sectionsCloned} new
+                  </span>
+                  {pipelineResult.sectionsSkipped > 0 && (
+                    <span className="text-xs font-roboto text-[var(--color-text-400)]">
+                      ({pipelineResult.sectionsSkipped} already existed)
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Learning Areas */}
+              <div className="px-4 py-2.5 flex items-center justify-between">
+                <p className="text-xs font-roboto text-[var(--color-text-700)]">Learning areas synced</p>
+                <span className="text-xs font-roboto font-bold text-[var(--color-accent-700)]">
+                  {pipelineResult.learningAreas}
+                </span>
+              </div>
+
+              {/* SF9 Grades */}
+              <div className="px-4 py-2.5 flex items-center justify-between">
+                <p className="text-xs font-roboto text-[var(--color-text-700)]">SF9 grade records created</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-roboto font-bold text-[var(--color-accent-700)]">
+                    +{pipelineResult.sf9GradesCreated} new
+                  </span>
+                  {pipelineResult.sf9GradesSkipped > 0 && (
+                    <span className="text-xs font-roboto text-[var(--color-text-400)]">
+                      ({pipelineResult.sf9GradesSkipped} already existed)
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* School Forms */}
+              <div className="px-4 py-2.5 flex items-center justify-between">
+                <p className="text-xs font-roboto text-[var(--color-text-700)]">School forms generated</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-roboto font-bold text-[var(--color-accent-700)]">
+                    +{pipelineResult.formsCreated} new
+                  </span>
+                  {pipelineResult.formsSkipped > 0 && (
+                    <span className="text-xs font-roboto text-[var(--color-text-400)]">
+                      ({pipelineResult.formsSkipped} already existed)
+                    </span>
+                  )}
+                </div>
+              </div>
+
+            </div>
+
+            {/* [NOTE] Contextual hint */}
+            {pipelineResult.sf9GradesCreated === 0 && pipelineResult.sectionsCloned > 0 && (
+              <p className="text-xs font-roboto text-[var(--color-text-500)] bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                ⚠ No SF9 grade records were created because no students are enrolled yet.
+                SF9 records will be created automatically when students are enrolled.
+              </p>
+            )}
+
+            {/* [CLOSE] */}
+            <button
+              onClick={() => setModalMode(null)}
+              className="w-full py-2.5 rounded-md bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-sm font-roboto font-bold text-white transition cursor-pointer"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* [MODAL] Create / Edit School Year */}
       {(modalMode === "create" || modalMode === "edit") && (
@@ -771,10 +924,7 @@ const AdminSchoolYears = () => {
       {/* [LAYOUT] Admin Page */}
       <PageLayout
         header={
-          <Breadcrumbs
-            items={breadcrumbs}
-            title="School Year Configuration"
-          />
+          <Breadcrumbs items={breadcrumbs} title="School Year Configuration" />
         }
       >
         <div className="space-y-4">
@@ -877,7 +1027,7 @@ const AdminSchoolYears = () => {
                                     disabled={actioning === `activate-${sy.id}`}
                                     className="text-xs px-2.5 py-1 rounded-md font-roboto font-semibold bg-[var(--color-accent-100)] text-[var(--color-accent-700)] hover:bg-[var(--color-accent-200)] transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                   >
-                                    {actioning === `activate-${sy.id}` ? "Setting..." : "Set Active"}
+                                    {actioning === `activate-${sy.id}` ? "Setting up..." : "Set Active"}
                                   </button>
                                 )}
 
@@ -899,6 +1049,17 @@ const AdminSchoolYears = () => {
                                     className="text-xs px-2.5 py-1 rounded-md font-roboto font-semibold bg-amber-100 text-amber-700 hover:bg-amber-200 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                   >
                                     {actioning === `lock-${sy.id}` ? "Locking..." : "Lock"}
+                                  </button>
+                                )}
+
+                                {/* Unlock */}
+                                {sy.isLocked && (
+                                  <button
+                                    onClick={() => handleUnlock(sy)}
+                                    disabled={actioning === `unlock-${sy.id}`}
+                                    className="text-xs px-2.5 py-1 rounded-md font-roboto font-semibold bg-[var(--color-bg-200)] text-[var(--color-text-700)] hover:bg-[var(--color-bg-300)] transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                  >
+                                    {actioning === `unlock-${sy.id}` ? "Unlocking..." : "Unlock"}
                                   </button>
                                 )}
 
@@ -968,7 +1129,7 @@ const AdminSchoolYears = () => {
                               disabled={actioning === `activate-${sy.id}`}
                               className="text-xs px-2.5 py-1 rounded-md font-roboto font-semibold bg-[var(--color-accent-100)] text-[var(--color-accent-700)] hover:bg-[var(--color-accent-200)] transition disabled:opacity-50 cursor-pointer"
                             >
-                              {actioning === `activate-${sy.id}` ? "Setting..." : "Set Active"}
+                              {actioning === `activate-${sy.id}` ? "Setting up..." : "Set Active"}
                             </button>
                           )}
                           {canEdit && (
@@ -986,6 +1147,15 @@ const AdminSchoolYears = () => {
                               className="text-xs px-2.5 py-1 rounded-md font-roboto font-semibold bg-amber-100 text-amber-700 hover:bg-amber-200 transition disabled:opacity-50 cursor-pointer"
                             >
                               {actioning === `lock-${sy.id}` ? "Locking..." : "Lock"}
+                            </button>
+                          )}
+                          {sy.isLocked && (
+                            <button
+                              onClick={() => handleUnlock(sy)}
+                              disabled={actioning === `unlock-${sy.id}`}
+                              className="text-xs px-2.5 py-1 rounded-md font-roboto font-semibold bg-[var(--color-bg-200)] text-[var(--color-text-700)] hover:bg-[var(--color-bg-300)] transition disabled:opacity-50 cursor-pointer"
+                            >
+                              {actioning === `unlock-${sy.id}` ? "Unlocking..." : "Unlock"}
                             </button>
                           )}
                           {canDelete && (
@@ -1013,7 +1183,8 @@ const AdminSchoolYears = () => {
             </p>
             <ul className="space-y-1 text-xs font-roboto text-[var(--color-text-500)]">
               <li>• Only one school year can be <span className="font-semibold text-[var(--color-accent-700)]">Active</span> at a time. Activating a year automatically deactivates the previous one.</li>
-              <li>• <span className="font-semibold text-[var(--color-text-700)]">Locked</span> school years cannot be modified or deleted.</li>
+              <li>• Setting a year as Active clones sections, syncs subjects, creates SF9 grade records for enrolled students, and generates SF1/SF2/SF5 school forms.</li>
+              <li>• <span className="font-semibold text-[var(--color-text-700)]">Locked</span> school years cannot be modified or deleted. Use <span className="font-semibold">Unlock</span> to re-enable editing.</li>
               <li>• <span className="font-semibold text-red-600">Active</span> school years cannot be deleted — lock or deactivate first.</li>
               <li>• Quarters drive SF9 grading logic (Q1–Q4 readiness) and enrollment filtering.</li>
             </ul>

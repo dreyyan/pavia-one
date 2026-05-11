@@ -240,12 +240,15 @@ model Student {
   email              String?   @unique
   createdByAdviserId String
 
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
-  adviser            Adviser       @relation("CreatedByAdviser", fields: [createdByAdviserId], references: [adviserId], onDelete: Cascade)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  adviser            Adviser   @relation("CreatedByAdviser", fields: [createdByAdviserId], references: [adviserId], onDelete: Cascade)
 
   address            Address?
-  guardian           Guardian?
+
+  studentGuardians   StudentGuardian[]
+
   enrollments        Enrollment[]
   sf9Grades          SF9Grade[]
   sf9Summaries       SF9Summary[]
@@ -253,6 +256,43 @@ model Student {
   sf9CoreValues      SF9CoreValue[]
 
   @@map("students")
+}
+
+model StudentGuardian {
+  id          Int      @id @default(autoincrement())
+
+  studentId   Int
+  guardianId  Int
+
+  relationship String?
+  isPrimary    Boolean  @default(false)
+
+  createdAt    DateTime @default(now())
+
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  guardian    Guardian @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, guardianId])
+  @@map("student_guardians")
+}
+
+model Guardian {
+  id                     Int      @id @default(autoincrement())
+
+  fatherFirstName        String?
+  fatherMiddleName       String?
+  fatherLastName         String?
+  motherMaidenFirstName  String?
+  motherMaidenMiddleName String?
+  motherMaidenLastName   String?
+
+  guardianName           String?
+  guardianRelationship   String?
+  guardianContactNumber  String?
+
+  studentGuardians       StudentGuardian[]
+
+  @@map("guardians")
 }
 
 model Address {
@@ -266,26 +306,6 @@ model Address {
   student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@map("addresses")
-}
-
-model Guardian {
-  id                     Int      @id @default(autoincrement())
-  studentId              Int      @unique
-
-  fatherFirstName        String?
-  fatherMiddleName       String?
-  fatherLastName         String?
-  motherMaidenFirstName  String?
-  motherMaidenMiddleName String?
-  motherMaidenLastName   String?
-
-  guardianName           String?
-  guardianRelationship   String?
-  guardianContactNumber  String?
-
-  student                Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-
-  @@map("guardians")
 }
 
 model EnrollmentLearningArea {
