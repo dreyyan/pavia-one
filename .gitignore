@@ -14,4 +14,4 @@ __pycache__/
 backend/tmp/
 
 # Generated SF1 outputs
-backend/forms/output_data/
+backend/services/forms/output_data/
