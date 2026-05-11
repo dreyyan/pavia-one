@@ -10,5 +10,6 @@ router.use("/sf5", require("./sf5"));
 router.use("/forms", require("./forms"));
 router.use("/announcements", require("./announcements"));
 router.use("/events", require("./events"));
+router.use("/reports", require("./reports"));
 
 module.exports = router;
