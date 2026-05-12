@@ -10,7 +10,8 @@ import Skeleton from "../../components/ui/Skeleton";
 import Modal from "../../components/modal/Modal";
 import DashboardIconButton from "../../components/buttons/DashboardIconButton";
 
-// [IMPORT] Types
+// [IMPORT] Helpers & Types
+import { formatName } from "../../helpers";
 import { GeneralModalConfig, Profile, DashboardSummary } from "../../types";
 
 const AdminDashboard = () => {
@@ -164,8 +165,8 @@ const AdminDashboard = () => {
 
           {/* [SECTION] Profile Information */}
           <div className="flex-1 lg:pt-2">
-            <p className="lg:text-end font-roboto font-extrabold text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-3xl text-[var(--color-text-800)]">
-              {profile?.name}
+            <p className="lg:text-end font-roboto font-extrabold text-lg sm:text-xl md:text-2xl lg:text-2xl xl:text-2xl text-[var(--color-text-800)]">
+              {formatName(profile?.name || "Admin")}
             </p>
             <p className="lg:text-end font-roboto sm:font-semibold lg:font-medium text-sm sm:text-md md:text-lg lg:text-md xl:text-xl text-[var(--color-text-700)]">
               Administrator
