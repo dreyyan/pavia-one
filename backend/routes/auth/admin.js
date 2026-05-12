@@ -16,16 +16,16 @@ const { error } = require("../../utils/logger");
 // ?[POST] Admin Sign Up
 // /api/auth/admin/sign-up
 router.post("/sign-up", async (req, res) => {
-  let { username, email, password } = req.body;
+  let { name, username, email, password } = req.body;
 
   // use default password if not provided
   password = password || "admin123";
 
   // ![ERROR] Missing required fields
-  if (!username || !email) {
+  if (!name || !username || !email) {
     return res
       .status(400)
-      .json(errorResponse("Username and email are required"));
+      .json(errorResponse("Name, username, and email are required"));
   }
 
   try {
@@ -47,7 +47,12 @@ router.post("/sign-up", async (req, res) => {
 
     // ?[CREATE] Admin record
     const newAdmin = await prisma.admin.create({
-      data: { username, email, password: hashedPassword },
+      data: {
+        name,
+        username,
+        email,
+        password: hashedPassword,
+      },
     });
 
     const { password: _, ...adminWithoutPassword } = newAdmin;
@@ -129,12 +134,18 @@ router.post("/bulk-sign-up", async (req, res) => {
     const errors = [];
 
     for (const admin of adminsInput) {
-      const { username, email } = admin;
+      const { name, username, email } = admin;
       const password = admin.password || "admin123"; // default password
 
       // ![ERROR] Missing fields
-      if (!username || !email) {
-        errors.push({ username, email, message: "Missing required fields" });
+      if (!name || !username || !email) {
+        errors.push({
+          name,
+          username,
+          email,
+          message: "Missing required fields",
+        });
+
         continue;
       }
 
@@ -159,7 +170,12 @@ router.post("/bulk-sign-up", async (req, res) => {
 
         // ?[CREATE] Admin
         const newAdmin = await prisma.admin.create({
-          data: { username, email, password: hashedPassword },
+          data: {
+            name,
+            username,
+            email,
+            password: hashedPassword,
+          },
         });
 
         const { password: _, ...adminWithoutPassword } = newAdmin;
