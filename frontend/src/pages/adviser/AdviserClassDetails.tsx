@@ -195,6 +195,7 @@ const AdviserClassDetails = () => {
                 iconSrc="/dashboard-reports.svg"
                 text="Reports"
                 color="#8F28A4"
+                disabled
               />
               <DashboardButton
                 iconSrc="/dashboard-school-forms.svg"
