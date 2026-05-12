@@ -91,19 +91,108 @@ router.post("/login", async (req, res) => {
     const { password: _, ...adviserWithoutPassword } = adviser;
 
     // *[SUCCESS] Login successful
-    res
-      .status(200)
-      .json(
-        successResponse("Login successful", {
-          adviser: adviserWithoutPassword,
-          token,
-        }),
-      );
+    res.status(200).json(
+      successResponse("Login successful", {
+        adviser: adviserWithoutPassword,
+        token,
+      }),
+    );
   } catch (err) {
     console.error(err);
     res
       .status(400)
       .json(errorResponse("Failed to log in adviser", err.message));
+  }
+});
+
+// ?[POST] Bulk Adviser Sign Up
+// /api/auth/adviser/bulk-sign-up
+router.post("/bulk-sign-up", async (req, res) => {
+  try {
+    const advisersInput = Array.isArray(req.body) ? req.body : [req.body];
+
+    // ![ERROR] Empty request body
+    if (!advisersInput.length) {
+      return res
+        .status(400)
+        .json(errorResponse("Request body cannot be empty"));
+    }
+
+    const createdAdvisers = [];
+    const errors = [];
+
+    for (const adviser of advisersInput) {
+      const { adviserId, name, email } = adviser;
+      const password = adviser.password || "adviser123"; // default password
+
+      // ![ERROR] Missing required fields
+      if (!adviserId || !name || !email) {
+        errors.push({
+          adviserId,
+          name,
+          email,
+          message: "Missing required fields",
+        });
+        continue;
+      }
+
+      // ?[VALIDATION] Check if adviser already exists
+      const existing = await prisma.adviser.findFirst({
+        where: {
+          OR: [{ adviserId }, { email }],
+        },
+      });
+
+      // ![ERROR] Already registered
+      if (existing) {
+        errors.push({
+          adviserId,
+          name,
+          email,
+          message: "Adviser ID or email already registered",
+        });
+        continue;
+      }
+
+      try {
+        // ?[HASH] Hash password
+        const hashedPassword = await hashPassword(password);
+
+        // ?[CREATE] Adviser record
+        const newAdviser = await prisma.adviser.create({
+          data: {
+            adviserId,
+            name,
+            email,
+            password: hashedPassword,
+          },
+        });
+
+        const { password: _, ...adviserWithoutPassword } = newAdviser;
+
+        createdAdvisers.push(adviserWithoutPassword);
+      } catch (err) {
+        errors.push({
+          adviserId,
+          name,
+          email,
+          message: err.message,
+        });
+      }
+    }
+
+    // *[SUCCESS] Bulk adviser creation completed
+    res.status(201).json(
+      successResponse("Bulk adviser creation processed", {
+        created: createdAdvisers,
+        failed: errors,
+      }),
+    );
+  } catch (err) {
+    console.error(err);
+    res
+      .status(500)
+      .json(errorResponse("Failed to bulk create advisers", err.message));
   }
 });
 
