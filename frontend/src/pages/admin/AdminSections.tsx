@@ -470,7 +470,7 @@ const AdminSections = () => {
           <div className="bg-[var(--color-bg-100)] px-3 sm:px-4 py-4 rounded-lg space-y-3 w-full">
 
             {/* [TOP ROW] Search + Filters (ALWAYS ONE LINE) */}
-            <div className="flex items-center gap-2 w-full overflow-x-auto">
+            <div className="flex items-center gap-2 w-full overflow-x-visible">
 
               {/* Search */}
               <div className="flex-1 min-w-[180px] sm:min-w-[240px] md:min-w-[320px] lg:min-w-[400px]">
